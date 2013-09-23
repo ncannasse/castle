@@ -1,0 +1,182 @@
+body {
+	margin : 0;
+	padding : 0;
+	background-color : #CCC;
+	overflow-x : CSS('hidden');
+}
+
+ul, li {
+	margin : 0;
+	padding : 0;
+	list-style : none;
+}
+
+body, td, li, p, a, input, select {
+	font-family : Verdana, serif;
+	font-size : 10pt;
+}
+
+a {
+	text-decoration : none;
+}
+
+input[type="submit"] {
+	border : 1px solid #888;
+	background-color : #F0F0F0;
+	padding : 3px 5px;
+	color : #333;
+	cursor : pointer;
+}
+
+input[type="submit"]:hover {
+	color : #888;
+	background-color : #F4F4F4;
+	border-color : #AAA;
+}
+
+div.modal {
+	position : fixed;
+	width : 100%;
+	height : 100%;
+	z-index : 9;
+	background-color: rgba(0,0,0,0.8);
+	.content {
+		width : 300px;
+		background-color : white;
+		border : 1px solid #88F;
+		border-radius : 5px;
+		margin : 50px auto;
+		padding : 10px 20px;
+		text-align : right;
+		input[type="text"], select {
+			width : 170px;
+		}
+		h1 {
+			color : #44C;
+			font-size : 20px;
+		}
+		span {
+			float : left;
+			margin-top : 3px;
+		}
+	}
+	#col_options.t_id {
+		.opt, .list {
+			display : none;
+		}
+	}
+	#col_options .values, #col_options .sheet {
+		display : none;
+	}
+	#col_options.t_enum .values {
+		display : block;
+	}
+	#col_options.t_ref .sheet {
+		display : block;
+	}
+	
+}
+
+div#menu {
+	position : fixed;
+	z-index : 9;
+	background-color : #CCF;
+	bottom : 0px;
+	border-top : 1px solid #88F;
+	height : 25px;
+	width : 100%;
+	a {
+		line-height : 25px;
+		color : #228;
+		float : right;
+		margin-right: 10px;
+	}
+	a:hover {
+		color : #44C;
+	}
+	ul.sheets {
+		margin-top : -1px;
+		margin-left : 5px;
+		li {
+			height : 20px;
+			background-color : #88F;
+			padding : 2px 8px;
+			display : inline-block;
+			color : #44C;
+			cursor : pointer;
+			border : 1px solid #88F;
+			border-top : 0px;
+			border-bottom-right-radius: 5px;
+		}
+		li:hover {
+			background-color : #88F * 1.1;
+		}
+		li.active {
+			color : #228 * 1.1;
+			background-color : #CCF * 1.1;
+		}
+	}
+}
+
+table.castle {
+	width : 100%;
+	background-color : white;
+	border-collapse : collapse;
+	border-spacing : 0;
+
+	td {
+		padding : 2px 4px;
+		overflow : hidden;
+	}
+	
+	tr.head {
+		font-weight: bold;
+		text-align: center;
+		border-bottom : 1px solid #888;
+		background-color : #333;
+		color : #EEE;
+	}
+	
+	td {
+		user-select: none;
+		border-left : 1px solid #CCC;
+	}
+	
+	td.t_bool {
+		text-align : center;
+	}
+	
+	td.t_int, td.t_float {
+		text-align : right;
+		input {
+			text-align : right;
+		}
+	}
+	
+	td.t_enum {
+		padding-left : 5px;
+	}
+	
+	tr {
+		border-bottom : 1px solid #F8F8F8;
+	}
+	
+	td.edit {
+		padding : 0px;
+		input {
+			padding : 1px 4px;
+			width : 100%;
+			height : 20px;
+			border : none;
+		}
+		select {
+			padding-left : 0px;
+			height : 20px;
+			width : 100%;
+		}
+	}
+	
+	span.error {
+		color : #A00;
+	}
+}

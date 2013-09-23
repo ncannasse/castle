@@ -1,0 +1,90 @@
+<html>
+<head>
+	<link rel="stylesheet" type="text/css" href="style.css"/>
+	<script type="text/javascript" src="jquery-latest.min.js"></script>
+</head>
+
+<body>
+
+<div id="newsheet" class="modal" style="display:none">
+	<div class="content">
+		<h1>New Sheet</h1>
+		<p>
+			<span>Sheet Name</span> <input type="text" id="sheet_name"/>
+		</p>
+		<p class="buttons">
+			<input type="submit" value="Create" onclick="_.createSheet($('#sheet_name').val())"/>
+			<input type="submit" value="Cancel" onclick="$(this).parents('.modal').hide()"/>
+		</p>
+	</div>
+</div>
+
+<div id="newcol" class="modal" style="display:none">
+	<div class="content">
+		<form id="col_form">
+		<h1>New Column</h1>
+		<p>
+			<span>Column name</span> <input type="text" name="name"/>
+		</p>
+		<p>
+			<span>Column type</span>
+			<select name="type" onchange="$('#col_options').attr('class','t_'+this.value)">
+			<option value="">---- Choose -----</option>
+			<option value="id">Unique Identifier</option>
+			<option value="string">Text</option>
+			<option value="bool">Boolean</option>
+			<option value="int">Integer</option>
+			<option value="float">Float Value</option>
+			<option value="enum">Enumeration</option>
+			<option value="ref">Reference</option>
+			<option value="struct">Structure</option>
+			</select>
+		</p>
+		<div id="col_options">
+			<div class="values"><span>Possible Values</span> <input type="text" name="values" name="vals"/></div>
+			<div class="sheet"><span>Sheet</span> <select name="sheet"></select> </div>
+			<div class="list">List <input type="checkbox" name="list"/></div>
+			<div class="opt">Optional <input type="checkbox" name="opt"/></div>
+		</div>
+		<p class="buttons">
+			<input type="submit" value="Create" onclick="_.createColumn(); return false"/>
+			<input type="submit" value="Cancel" onclick="$(this).parents('.modal').hide(); return false"/>
+		</p>
+		</form>
+	</div>
+</div>
+
+<div id="menu">
+	<a href="javascript:_.newLine()">New Line</a>
+	<a href="javascript:_.newColumn()">New Column</a>
+	<a href="javascript:_.newSheet()">New Sheet</a>
+	
+	<ul class="sheets" id="sheets">
+		<li>Sheet 1</li>
+		<li class="active">Sheet 2</li>
+		<li>Sheet 3</li>
+	</ul>
+	
+</div>
+	
+<table class="castle" id="content">
+	<tr class="head">
+		<td>ID</td>
+		<td>Name</td>
+		<td>Description</td>
+		<td>Bool</td>
+		<td>Int</td>
+	</tr>
+	<tr>
+		<td><input type="text" class="edit" value="bla"/></td>
+		<td>Bla bla</td>
+		<td>Can do lorem ipsum</td>
+		<td>X</td>
+		<td>1230</td>
+	</tr>
+</table>
+
+<script type="text/javascript" src="castle.js"></script>
+
+</body>
+</html>

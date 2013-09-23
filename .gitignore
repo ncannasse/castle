@@ -1,0 +1,9 @@
+/*.cas
+
+/bin/*.dll
+
+/bin/*.exe
+
+/bin/nw.pak
+
+/bin/credits.html

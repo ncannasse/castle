@@ -1,0 +1,12 @@
+{
+	"name" : "CastleDB",
+	"window" : {
+		"title" : "CastleDB",
+		"icon" : "castle.png",
+		"width" : 800,
+		"height" : 600,
+		"show" : false,
+		"toolbar" : false
+	},
+	"main" : "index.html"
+}

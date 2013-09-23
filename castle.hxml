@@ -1,0 +1,4 @@
+-cp src
+-js bin/castle.js
+-main Main
+-lib nodejs

@@ -1,0 +1,174 @@
+body {
+	margin : 0;
+	padding : 0;
+	background-color : #CCC;
+	overflow-x : hidden;
+}
+ul, li {
+	margin : 0;
+	padding : 0;
+	list-style : none;
+}
+body, td, li, p, a, input, select {
+	font-family : Verdana, serif;
+	font-size : 10pt;
+}
+a {
+	text-decoration : none;
+}
+input[type=submit] {
+	border : 1px solid #888;
+	background-color : #F0F0F0;
+	padding : 3px 5px;
+	color : #333;
+	cursor : pointer;
+}
+input[type=submit]:hover {
+	color : #888;
+	background-color : #F4F4F4;
+	border-color : #AAA;
+}
+div.modal {
+	position : fixed;
+	width : 100%;
+	height : 100%;
+	z-index : 9;
+	background-color : #000000;
+	background-color : rgba(0,0,0,0.8);
+	background-color : transparent\9;
+	filter : progid:DXImageTransform.Microsoft.gradient(startColorstr=#CC000000, endColorstr=#CC000000);
+	zoom : 1;
+}
+div.modal .content {
+	width : 300px;
+	background-color : white;
+	border : 1px solid #88F;
+	border-radius : 5px;
+	-moz-border-radius : 5px;
+	-webkit-border-radius : 5px;
+	margin : 50px auto;
+	padding : 10px 20px;
+	text-align : right;
+}
+div.modal .content input[type=text], div.modal .content select {
+	width : 170px;
+}
+div.modal .content h1 {
+	color : #44C;
+	font-size : 20px;
+}
+div.modal .content span {
+	float : left;
+	margin-top : 3px;
+}
+div.modal #col_options.t_id .opt, div.modal #col_options.t_id .list {
+	display : none;
+}
+div.modal #col_options .values, div.modal #col_options .sheet {
+	display : none;
+}
+div.modal #col_options.t_enum .values {
+	display : block;
+}
+div.modal #col_options.t_ref .sheet {
+	display : block;
+}
+div#menu {
+	position : fixed;
+	z-index : 9;
+	background-color : #CCF;
+	bottom : 0px;
+	border-top : 1px solid #88F;
+	height : 25px;
+	width : 100%;
+}
+div#menu a {
+	line-height : 25px;
+	color : #228;
+	float : right;
+	margin-right : 10px;
+}
+div#menu a:hover {
+	color : #44C;
+}
+div#menu ul.sheets {
+	margin-top : -1px;
+	margin-left : 5px;
+}
+div#menu ul.sheets li {
+	height : 20px;
+	background-color : #88F;
+	padding : 2px 8px;
+	display : inline-block;
+	zoom : 1;
+	*display : inline;
+	color : #44C;
+	cursor : pointer;
+	border : 1px solid #88F;
+	border-top : 0px;
+	border-bottom-right-radius : 5px;
+	-moz-border-radius-bottomright : 5px;
+	-webkit-border-bottom-right-radius : 5px;
+}
+div#menu ul.sheets li:hover {
+	background-color : #9696FF;
+}
+div#menu ul.sheets li.active {
+	color : #252596;
+	background-color : #E0E0FF;
+}
+table.castle {
+	width : 100%;
+	background-color : white;
+	border-collapse : collapse;
+	border-spacing : 0;
+}
+table.castle td {
+	padding : 2px 4px;
+	overflow : hidden;
+}
+table.castle tr.head {
+	font-weight : bold;
+	text-align : center;
+	border-bottom : 1px solid #888;
+	background-color : #333;
+	color : #EEE;
+}
+table.castle td {
+	user-select : none;
+	-moz-user-select : none;
+	-webkit-user-select : none;
+	border-left : 1px solid #CCC;
+}
+table.castle td.t_bool {
+	text-align : center;
+}
+table.castle td.t_int, table.castle td.t_float {
+	text-align : right;
+}
+table.castle td.t_int input, table.castle td.t_float input {
+	text-align : right;
+}
+table.castle td.t_enum {
+	padding-left : 5px;
+}
+table.castle tr {
+	border-bottom : 1px solid #F8F8F8;
+}
+table.castle td.edit {
+	padding : 0px;
+}
+table.castle td.edit input {
+	padding : 1px 4px;
+	width : 100%;
+	height : 20px;
+	border : none;
+}
+table.castle td.edit select {
+	padding-left : 0px;
+	height : 20px;
+	width : 100%;
+}
+table.castle span.error {
+	color : #A00;
+}
