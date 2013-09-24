@@ -60,11 +60,6 @@ div.modal {
 			margin-top : 3px;
 		}
 	}
-	#col_options.t_id {
-		.opt, .list {
-			display : none;
-		}
-	}
 	#col_options .values, #col_options .sheet {
 		display : none;
 	}
@@ -85,6 +80,7 @@ div#menu {
 	border-top : 1px solid #88F;
 	height : 25px;
 	width : 100%;
+	user-select : none;
 	a {
 		line-height : 25px;
 		color : #228;

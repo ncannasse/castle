@@ -12,20 +12,12 @@ class Main {
 	var prefs : Prefs;
 	var data : Data;
 	var sheet : Data.Sheet;
-	var smap : Map<String, { s : Data.Sheet, ids : Map < String, String > } >;
+	var smap : Map<String, { s : Data.Sheet, ids : Map < String, String >, all : Array<{ id : String, disp : String }> } >;
 	
 	static var r_id = ~/^[A-Za-z_][A-Za-z_0-9]*$/;
 	
 	function new() {
 		window = nw.Window.get();
-		
-		window.window.onerror = function(msg:String) {
-			if( msg.indexOf("removeClass") > 0 )
-				return false;
-			window.show();
-			window.showDevTools();
-			return false;
-		};
 		
 		prefs = {
 			windowPos : { x : 50, y : 50, w : 800, h : 600, max : false },
@@ -49,8 +41,6 @@ class Main {
 		return switch( c.type ) {
 		case TInt, TFloat, TEnum(_): 0;
 		case TString, TId, TRef(_): "";
-		case TStruct(_): { };
-		case TList(_): [];
 		case TBool: false;
 		}
 	}
@@ -61,8 +51,12 @@ class Main {
 			newLine();
 	}
 	
-	function changed() {
+	function changed( c : Data.Column ) {
 		save();
+		if( c.type == TId ) {
+			makeSheet(sheet);
+			refresh();
+		}
 	}
 	
 	function load(noError=false) {
@@ -112,13 +106,38 @@ class Main {
 	
 	function makeSheets() {
 		smap = new Map();
-		for( s in data.sheets ) {
-			var sdat = {
-				s : s,
-				ids : new Map(),
+		for( s in data.sheets )
+			makeSheet(s);
+	}
+	
+	function error( msg ) {
+		js.Lib.alert(msg);
+	}
+	
+	function makeSheet( s : Data.Sheet ) {
+		var sdat = {
+			s : s,
+			ids : new Map(),
+			all : [],
+		};
+		var cid = null;
+		for( c in s.columns )
+			if( c.type == TId ) {
+				for( l in s.lines ) {
+					var v = Reflect.field(l, c.name);
+					if( v != null && v != "" ) {
+						var disp = v;
+						if( s.props.displayColumn != null ) {
+							disp = Reflect.field(c.name, s.props.displayColumn);
+							if( disp == null || disp == "" ) disp = "#"+v;
+						}
+						sdat.ids.set(v, disp);
+						sdat.all.push( { id : v, disp:disp } );
+					}
+				}
+				break;
 			}
-			smap.set(s.name, sdat);
-		}
+		this.smap.set(s.name, sdat);
 	}
 	
 	function valueHtml( c : Data.Column, v : Dynamic ) : String {
@@ -134,21 +153,16 @@ class Main {
 			v == "" ? '<span class="error">#MISSING</span>' : v;
 		case TString:
 			v == "" ? "&nbsp;" : StringTools.htmlEscape(v);
-		case TStruct(_):
-			"...";
 		case TRef(sname):
-			var s = smap.get(sname);
-			var disp = s.ids.get(v);
-			disp == null ? '<span class="error">#REF($v)</span>' : StringTools.htmlEscape(disp);
+			if( v == "" )
+				'<span class="error">#MISSING</span>';
+			else {
+				var s = smap.get(sname);
+				var disp = s.ids.get(v);
+				disp == null ? '<span class="error">#REF($v)</span>' : StringTools.htmlEscape(disp);
+			}
 		case TBool:
 			v?"Y":"N";
-		case TList(t):
-			var a : Array<Dynamic> = v;
-			var out = [];
-			var ct = { name : "", id : "", type : t, opt : false, size : null };
-			for( v in a )
-				out.push(valueHtml(ct, v));
-			Std.string(out);
 		case TEnum(values):
 			values[v];
 		}
@@ -170,6 +184,7 @@ class Main {
 			var col = J("<td>");
 			col.html(c.name);
 			col.css("width", c.size == null ? Std.int(100 / s.columns.length) + "%" : c.size + "%");
+			col.dblclick(function(_) newColumn(c));
 			cols.append(col);
 			var ctype = "t_" + types[Type.enumIndex(c.type)];
 			var ids = new Map<String,Int>();
@@ -216,7 +231,7 @@ class Main {
 										Reflect.setField(obj, c.name, val);
 								}
 								html = valueHtml(c, val);
-								changed();
+								changed(c);
 								editDone();
 							}
 						});
@@ -226,7 +241,7 @@ class Main {
 								if( val != null ) {
 									val = html = null;
 									Reflect.deleteField(obj, c.name);
-									changed();
+									changed(c);
 								}
 							} else {
 								var val2 : Dynamic = switch( c.type ) {
@@ -241,17 +256,10 @@ class Main {
 									nv;
 								}
 								if( val2 != val && val2 != null ) {
-									if( c.type == TId && val != null && ids.get(val) == index ) ids.remove(val);
 									val = val2;
 									html = valueHtml(c, val);
-									if( c.type == TId ) {
-										if( ids.get(val) == null )
-											ids.set(val, index);
-										else
-											html = '<span class="error">#DUP($val)</span>';
-									}
 									Reflect.setField(obj, c.name, val);
-									changed();
+									changed(c);
 								}
 							}
 							editDone();
@@ -262,7 +270,9 @@ class Main {
 						var s = J("<select>");
 						v.addClass("edit");
 						for( i in 0...values.length )
-							J("<option>").attr("value", "" + i).attr(val == i ? "selected" : "_sel","selected").text(values[i]).appendTo(s);
+							J("<option>").attr("value", "" + i).attr(val == i ? "selected" : "_sel", "selected").text(values[i]).appendTo(s);
+						if( c.opt )
+							J("<option>").attr("value","-1").text("--- None ---").prependTo(s);
 						v.append(s);
 						s.change(function(_) {
 							val = Std.parseInt(s.val());
@@ -271,7 +281,7 @@ class Main {
 							else
 								Reflect.setField(obj, c.name, val);
 							html = valueHtml(c, val);
-							changed();
+							changed(c);
 							editDone();
 						});
 						s.blur(function(_) {
@@ -281,14 +291,41 @@ class Main {
 						var event : Dynamic = cast js.Browser.document.createEvent('MouseEvents');
 						event.initMouseEvent('mousedown', true, true, js.Browser.window);
 						s[0].dispatchEvent(event);
-					case TRef(_):
-					case TStruct(_):
-					case TList(_):
+					case TRef(sname):
+						var sdat = smap.get(sname);
+						if( sdat == null ) return;
+
+						v.html("");
+						var s = J("<select>");
+						v.addClass("edit");
+						for( l in sdat.all )
+							J("<option>").attr("value", "" + l.id).attr(val == l.id ? "selected" : "_sel", "selected").text(l.disp).appendTo(s);
+						if( c.opt )
+							J("<option>").attr("value", "").text("--- None ---").prependTo(s);
+						v.append(s);
+						s.change(function(_) {
+							val = s.val();
+							if( val == "" ) {
+								val = null;
+								Reflect.deleteField(obj, c.name);
+							} else
+								Reflect.setField(obj, c.name, val);
+							html = valueHtml(c, val);
+							changed(c);
+							editDone();
+						});
+						s.blur(function(_) {
+							editDone();
+						});
+						s.focus();
+						var event : Dynamic = cast js.Browser.document.createEvent('MouseEvents');
+						event.initMouseEvent('mousedown', true, true, js.Browser.window);
+						s[0].dispatchEvent(event);
 					case TBool:
 						val = !val;
 						Reflect.setField(obj, c.name, val);
 						v.html(valueHtml(c, val));
-						changed();
+						changed(c);
 					}
 				});
 			}
@@ -310,7 +347,31 @@ class Main {
 		J("#newsheet").show();
 	}
 	
-	function newColumn() {
+	function newColumn( ?ref : Data.Column ) {
+		var form = J("#newcol");
+		
+		var sheets = J("[name=sheet]");
+		sheets.html("");
+		for( i in 0...data.sheets.length )
+			J("<option>").attr("value", "" + i).text(data.sheets[i].name).appendTo(sheets);
+			
+		if( ref != null ) {
+			form.find("[name=name]").val(ref.name);
+			form.find("[name=type]").val(ref.type.getName().substr(1).toLowerCase()).change();
+			form.find("[name=opt]").attr("checked", cast ref.opt);
+			form.find("[name=ref]").val(ref.name);
+			form.find("input.create").val("Modify");
+			switch( ref.type ) {
+			case TEnum(values):
+				form.find("[name=values]").val(values.join(","));
+			case TRef(sname):
+				form.find("[name=sheet]").val(sname);
+			default:
+			}
+		} else {
+			form.find("input").val("");
+		}
+		
 		J("#newcol").show();
 	}
 	
@@ -347,14 +408,27 @@ class Main {
 	}
 	
 	function createColumn() {
+		
 		var v : Dynamic<String> = { };
 		var cols = J("#col_form input, #col_form select").not("[type=submit]");
 		for( i in cols )
 			Reflect.setField(v, i.attr("name"), i.attr("type") == "checkbox" ? (i.is(":checked")?"on":null) : i.val());
+
+		var refColumn = null;
+		if( v.ref != "" ) {
+			for( c in sheet.columns )
+				if( c.name == v.ref )
+					refColumn = c;
+		}
+	
 		var t : Data.ColumnType = switch( v.type ) {
 		case "id":
-			v.opt = "";
-			v.list = "";
+			if( refColumn == null )
+				for( c in sheet.columns )
+					if( c.type == TId ) {
+						error("Only one ID allowed");
+						return;
+					}
 			TId;
 		case "int": TInt;
 		case "float": TFloat;
@@ -362,49 +436,136 @@ class Main {
 		case "bool": TBool;
 		case "enum":
 			var vals = StringTools.trim(v.values).split(",");
-			if( vals.length == 0 ) return;
+			if( vals.length == 0 ) {
+				error("Missing value list");
+				return;
+			}
 			TEnum([for( f in vals ) StringTools.trim(f)]);
 		case "ref":
-			return;
+			var s = data.sheets[Std.parseInt(v.sheet)];
+			if( s == null ) {
+				error("Sheet not found");
+				return;
+			}
+			TRef(s.name);
 		default:
 			return;
 		}
-		if( v.list == "on" )
-			t = TList(t);
 		var c : Data.Column = {
 			type : t,
 			opt : v.opt == "on",
-			id : v.name,
 			name : v.name,
 			size : null,
 		};
 		
-		for( c2 in sheet.columns )
-			if( c2.name == c.name )
-				return;
-		
-		var isList = false, isStruct = null;
-		var def : Dynamic = switch( t ) {
-		case TId, TString: "";
-		case TRef(sheet):
-			var found = null;
-			for( s in data.sheets )
-				if( s.name == sheet && s.lines.length > 0 )
-					found = Reflect.field(s.lines[0], s.columns[0].name);
-			found;
-		case TInt, TFloat, TEnum(_): 0;
-		case TBool: false;
-		case TList(_): isList = !c.opt; [];
-		case TStruct(_): isStruct = !c.opt; {};
-		};
-		if( c.opt ) def = null;
-		sheet.columns.push(c);
-		if( def != null )
-			for( i in sheet.lines ) {
-				var def : Dynamic = def;
-				if( isList ) def = [] else if( isStruct ) def = { };
-				Reflect.setField(i, c.name, def);
+		if( refColumn != null ) {
+			// modify
+			
+			var old = refColumn;
+			if( old.name != c.name ) {
+				for( o in sheet.lines ) {
+					var v = Reflect.field(o, old.name);
+					Reflect.deleteField(o, old.name);
+					if( v != null )
+						Reflect.setField(o, c.name, v);
+				}
+				old.name = c.name;
 			}
+			
+			if( !old.type.equals(c.type) ) {
+				var conv : Dynamic -> Dynamic = null;
+				switch( [old.type, c.type] ) {
+				case [TInt, TFloat]:
+					// nothing
+				case [TId | TRef(_), TString]:
+					// nothing
+				case [TString, (TId | TRef(_))]:
+					// nothing
+				case [TBool, (TInt | TFloat)]:
+					conv = function(b) return b ? 1 : 0;
+				case [TString, TInt]:
+					conv = Std.parseInt;
+				case [TString, TFloat]:
+					conv = Std.parseFloat;
+				case [TString, TBool]:
+					conv = function(s) return s != "";
+				case [TString, TEnum(values)]:
+					var map = new Map();
+					for( i in 0...values.length )
+						map.set(values[i].toLowerCase(), i);
+					conv = function(s:String) return map.get(s.toLowerCase());
+				case [TFloat, TInt]:
+					conv = Std.int;
+				case [(TInt | TFloat | TBool), TString]:
+					conv = Std.string;
+				case [(TFloat|TInt), TBool]:
+					conv = function(v:Float) return v != 0;
+				case [TEnum(values1), TEnum(values2)]:
+					var map = [];
+					for( v in values1 ) {
+						var pos = Lambda.indexOf(values2, v);
+						if( pos < 0 ) map.push(null) else map.push(pos);
+					}
+					conv = function(i) return map[i];
+				case [TInt, TEnum(values)]:
+					conv = function(i) return if( i < 0 || i >= values.length ) null else i;
+				case [TEnum(values), TInt]:
+					// nothing
+				default:
+					error("Cannot convert " + old.type.getName().substr(1) + " to " + c.type.getName().substr(1));
+					return;
+				}
+				if( conv != null )
+					for( o in sheet.lines ) {
+						var v = Reflect.field(o, c.name);
+						if( v != null ) {
+							v = conv(v);
+							if( v != null ) Reflect.setField(o, c.name, v) else Reflect.deleteField(o, c.name);
+						}
+					}
+				old.type = c.type;
+			}
+			
+			if( old.opt != c.opt ) {
+				if( old.opt ) {
+					for( o in sheet.lines ) {
+						var v = Reflect.field(o, c.name);
+						if( v == null ) {
+							v = getDefault(c);
+							if( v != null ) Reflect.setField(o, c.name, v);
+						}
+					}
+				} else {
+					switch( old.type ) {
+					case TEnum(_):
+						// first choice should not be removed
+					default:
+						var def = getDefault(old);
+						for( o in sheet.lines ) {
+							var v = Reflect.field(o, c.name);
+							if( v == def )
+								Reflect.deleteField(o, c.name);
+						}
+					}
+				}
+				old.opt = c.opt;
+			}
+			makeSheet(sheet);
+				
+		} else {
+			// create
+			for( c2 in sheet.columns )
+				if( c2.name == c.name ) {
+					error("Column already exists");
+					return;
+				}
+			sheet.columns.push(c);
+			for( i in sheet.lines ) {
+				var def = getDefault(c);
+				if( def != null ) Reflect.setField(i, c.name, def);
+			}
+		}
+		
 		J("#newcol").hide();
 		for( c in cols )
 			c.val("");

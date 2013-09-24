@@ -1,6 +1,6 @@
 (function () { "use strict";
 var $hxClasses = {},$estr = function() { return js.Boot.__string_rec(this,''); };
-var ColumnType = $hxClasses["ColumnType"] = { __ename__ : ["ColumnType"], __constructs__ : ["TId","TString","TBool","TInt","TFloat","TEnum","TRef","TList","TStruct"] }
+var ColumnType = $hxClasses["ColumnType"] = { __ename__ : ["ColumnType"], __constructs__ : ["TId","TString","TBool","TInt","TFloat","TEnum","TRef"] }
 ColumnType.TId = ["TId",0];
 ColumnType.TId.toString = $estr;
 ColumnType.TId.__enum__ = ColumnType;
@@ -18,8 +18,6 @@ ColumnType.TFloat.toString = $estr;
 ColumnType.TFloat.__enum__ = ColumnType;
 ColumnType.TEnum = function(values) { var $x = ["TEnum",5,values]; $x.__enum__ = ColumnType; $x.toString = $estr; return $x; }
 ColumnType.TRef = function(sheet) { var $x = ["TRef",6,sheet]; $x.__enum__ = ColumnType; $x.toString = $estr; return $x; }
-ColumnType.TList = function(t) { var $x = ["TList",7,t]; $x.__enum__ = ColumnType; $x.toString = $estr; return $x; }
-ColumnType.TStruct = function(a) { var $x = ["TStruct",8,a]; $x.__enum__ = ColumnType; $x.toString = $estr; return $x; }
 var EReg = function(r,opt) {
 	opt = opt.split("u").join("");
 	this.r = new RegExp(r,opt);
@@ -128,14 +126,7 @@ List.prototype = {
 	,__class__: List
 }
 var Main = function() {
-	var _g = this;
 	this["window"] = nw.Window.get();
-	this["window"]["window"].onerror = function(msg) {
-		if(msg.indexOf("removeClass") > 0) return false;
-		_g["window"].show();
-		_g["window"].showDevTools();
-		return false;
-	};
 	this.prefs = { windowPos : { x : 50, y : 50, w : 800, h : 600, max : false}, curFile : null, curSheet : 0};
 	try {
 		this.prefs = haxe.Unserializer.run(js.Browser.getLocalStorage().getItem("prefs"));
@@ -256,12 +247,32 @@ Main.prototype = {
 			} else value = i.val();
 			v[field] = value;
 		}
+		var refColumn = null;
+		if(v.ref != "") {
+			var _g = 0;
+			var _g1 = this.sheet.columns;
+			while(_g < _g1.length) {
+				var c = _g1[_g];
+				++_g;
+				if(c.name == v.ref) refColumn = c;
+			}
+		}
 		var t;
 		var _g = v.type;
 		switch(_g) {
 		case "id":
-			v.opt = "";
-			v.list = "";
+			if(refColumn == null) {
+				var _g1 = 0;
+				var _g2 = this.sheet.columns;
+				while(_g1 < _g2.length) {
+					var c = _g2[_g1];
+					++_g1;
+					if(c.type == ColumnType.TId) {
+						this.error("Only one ID allowed");
+						return;
+					}
+				}
+			}
 			t = ColumnType.TId;
 			break;
 		case "int":
@@ -278,7 +289,10 @@ Main.prototype = {
 			break;
 		case "enum":
 			var vals = StringTools.trim(v.values).split(",");
-			if(vals.length == 0) return;
+			if(vals.length == 0) {
+				this.error("Missing value list");
+				return;
+			}
 			t = ColumnType.TEnum((function($this) {
 				var $r;
 				var _g1 = [];
@@ -295,71 +309,267 @@ Main.prototype = {
 			}(this)));
 			break;
 		case "ref":
-			return;
+			var s = this.data.sheets[Std.parseInt(v.sheet)];
+			if(s == null) {
+				this.error("Sheet not found");
+				return;
+			}
+			t = ColumnType.TRef(s.name);
+			break;
 		default:
 			return;
 		}
-		if(v.list == "on") t = ColumnType.TList(t);
-		var c = { type : t, opt : v.opt == "on", id : v.name, name : v.name, size : null};
-		var _g1 = 0;
-		var _g2 = this.sheet.columns;
-		while(_g1 < _g2.length) {
-			var c2 = _g2[_g1];
-			++_g1;
-			if(c2.name == c.name) return;
-		}
-		var isList = false;
-		var isStruct = null;
-		var def;
-		switch(t[1]) {
-		case 0:case 1:
-			def = "";
-			break;
-		case 6:
-			var sheet = t[2];
-			var found = null;
-			var _g1 = 0;
-			var _g2 = this.data.sheets;
-			while(_g1 < _g2.length) {
-				var s = _g2[_g1];
-				++_g1;
-				if(s.name == sheet && s.lines.length > 0) {
-					var v1 = null;
-					try {
-						v1 = s.lines[0][s.columns[0].name];
-					} catch( e ) {
+		var c = { type : t, opt : v.opt == "on", name : v.name, size : null};
+		if(refColumn != null) {
+			var old = refColumn;
+			if(old.name != c.name) {
+				var _g1 = 0;
+				var _g2 = this.sheet.lines;
+				while(_g1 < _g2.length) {
+					var o = _g2[_g1];
+					++_g1;
+					var v1 = (function($this) {
+						var $r;
+						var v2 = null;
+						try {
+							v2 = o[old.name];
+						} catch( e ) {
+						}
+						$r = v2;
+						return $r;
+					}(this));
+					Reflect.deleteField(o,old.name);
+					if(v1 != null) o[c.name] = v1;
+				}
+				old.name = c.name;
+			}
+			if(!Type.enumEq(old.type,c.type)) {
+				var conv = null;
+				{
+					var _g1 = old.type;
+					var _g2 = c.type;
+					switch(_g1[1]) {
+					case 3:
+						switch(_g2[1]) {
+						case 4:
+							break;
+						case 1:
+							conv = Std.string;
+							break;
+						case 2:
+							conv = function(v1) {
+								return v1 != 0;
+							};
+							break;
+						case 5:
+							var values = _g2[2];
+							conv = function(i) {
+								if(i < 0 || i >= values.length) return null; else return i;
+							};
+							break;
+						default:
+							this.error("Cannot convert " + HxOverrides.substr(old.type[0],1,null) + " to " + HxOverrides.substr(c.type[0],1,null));
+							return;
+						}
+						break;
+					case 0:case 6:
+						switch(_g2[1]) {
+						case 1:
+							break;
+						default:
+							this.error("Cannot convert " + HxOverrides.substr(old.type[0],1,null) + " to " + HxOverrides.substr(c.type[0],1,null));
+							return;
+						}
+						break;
+					case 1:
+						switch(_g2[1]) {
+						case 0:case 6:
+							break;
+						case 3:
+							conv = Std.parseInt;
+							break;
+						case 4:
+							conv = Std.parseFloat;
+							break;
+						case 2:
+							conv = function(s) {
+								return s != "";
+							};
+							break;
+						case 5:
+							var values = _g2[2];
+							var map = new haxe.ds.StringMap();
+							var _g4 = 0;
+							var _g3 = values.length;
+							while(_g4 < _g3) {
+								var i = _g4++;
+								var key = values[i].toLowerCase();
+								map.set(key,i);
+							}
+							conv = function(s) {
+								var key = s.toLowerCase();
+								return map.get(key);
+							};
+							break;
+						default:
+							this.error("Cannot convert " + HxOverrides.substr(old.type[0],1,null) + " to " + HxOverrides.substr(c.type[0],1,null));
+							return;
+						}
+						break;
+					case 2:
+						switch(_g2[1]) {
+						case 3:case 4:
+							conv = function(b) {
+								if(b) return 1; else return 0;
+							};
+							break;
+						case 1:
+							conv = Std.string;
+							break;
+						default:
+							this.error("Cannot convert " + HxOverrides.substr(old.type[0],1,null) + " to " + HxOverrides.substr(c.type[0],1,null));
+							return;
+						}
+						break;
+					case 4:
+						switch(_g2[1]) {
+						case 3:
+							conv = Std["int"];
+							break;
+						case 1:
+							conv = Std.string;
+							break;
+						case 2:
+							conv = function(v1) {
+								return v1 != 0;
+							};
+							break;
+						default:
+							this.error("Cannot convert " + HxOverrides.substr(old.type[0],1,null) + " to " + HxOverrides.substr(c.type[0],1,null));
+							return;
+						}
+						break;
+					case 5:
+						switch(_g2[1]) {
+						case 5:
+							var values1 = _g1[2];
+							var values2 = _g2[2];
+							var map1 = [];
+							var _g3 = 0;
+							while(_g3 < values1.length) {
+								var v1 = values1[_g3];
+								++_g3;
+								var pos = Lambda.indexOf(values2,v1);
+								if(pos < 0) map1.push(null); else map1.push(pos);
+							}
+							conv = function(i) {
+								return map1[i];
+							};
+							break;
+						case 3:
+							var values = _g1[2];
+							break;
+						default:
+							this.error("Cannot convert " + HxOverrides.substr(old.type[0],1,null) + " to " + HxOverrides.substr(c.type[0],1,null));
+							return;
+						}
+						break;
 					}
-					found = v1;
+				}
+				if(conv != null) {
+					var _g3 = 0;
+					var _g4 = this.sheet.lines;
+					while(_g3 < _g4.length) {
+						var o = _g4[_g3];
+						++_g3;
+						var v1 = (function($this) {
+							var $r;
+							var v2 = null;
+							try {
+								v2 = o[c.name];
+							} catch( e ) {
+							}
+							$r = v2;
+							return $r;
+						}(this));
+						if(v1 != null) {
+							v1 = conv(v1);
+							if(v1 != null) o[c.name] = v1; else Reflect.deleteField(o,c.name);
+						}
+					}
+				}
+				old.type = c.type;
+			}
+			if(old.opt != c.opt) {
+				if(old.opt) {
+					var _g1 = 0;
+					var _g2 = this.sheet.lines;
+					while(_g1 < _g2.length) {
+						var o = _g2[_g1];
+						++_g1;
+						var v1 = (function($this) {
+							var $r;
+							var v2 = null;
+							try {
+								v2 = o[c.name];
+							} catch( e ) {
+							}
+							$r = v2;
+							return $r;
+						}(this));
+						if(v1 == null) {
+							v1 = this.getDefault(c);
+							if(v1 != null) o[c.name] = v1;
+						}
+					}
+				} else {
+					var _g1 = old.type;
+					switch(_g1[1]) {
+					case 5:
+						break;
+					default:
+						var def = this.getDefault(old);
+						var _g2 = 0;
+						var _g3 = this.sheet.lines;
+						while(_g2 < _g3.length) {
+							var o = _g3[_g2];
+							++_g2;
+							var v1 = (function($this) {
+								var $r;
+								var v2 = null;
+								try {
+									v2 = o[c.name];
+								} catch( e ) {
+								}
+								$r = v2;
+								return $r;
+							}(this));
+							if(v1 == def) Reflect.deleteField(o,c.name);
+						}
+					}
+				}
+				old.opt = c.opt;
+			}
+			this.makeSheet(this.sheet);
+		} else {
+			var _g1 = 0;
+			var _g2 = this.sheet.columns;
+			while(_g1 < _g2.length) {
+				var c2 = _g2[_g1];
+				++_g1;
+				if(c2.name == c.name) {
+					this.error("Column already exists");
+					return;
 				}
 			}
-			def = found;
-			break;
-		case 3:case 4:case 5:
-			def = 0;
-			break;
-		case 2:
-			def = false;
-			break;
-		case 7:
-			isList = !c.opt;
-			def = [];
-			break;
-		case 8:
-			isStruct = !c.opt;
-			def = { };
-			break;
-		}
-		if(c.opt) def = null;
-		this.sheet.columns.push(c);
-		if(def != null) {
+			this.sheet.columns.push(c);
 			var _g1 = 0;
 			var _g2 = this.sheet.lines;
 			while(_g1 < _g2.length) {
 				var i = _g2[_g1];
 				++_g1;
-				var def1 = def;
-				if(isList) def1 = []; else if(isStruct) def1 = { };
-				i[c.name] = def1;
+				var def = this.getDefault(c);
+				if(def != null) i[c.name] = def;
 			}
 		}
 		new js.JQuery("#newcol").hide();
@@ -395,7 +605,37 @@ Main.prototype = {
 		this.sheet.lines.push(o);
 		this.refresh();
 	}
-	,newColumn: function() {
+	,newColumn: function(ref) {
+		var form = new js.JQuery("#newcol");
+		var sheets = new js.JQuery("[name=sheet]");
+		sheets.html("");
+		var _g1 = 0;
+		var _g = this.data.sheets.length;
+		while(_g1 < _g) {
+			var i = _g1++;
+			new js.JQuery("<option>").attr("value","" + i).text(this.data.sheets[i].name).appendTo(sheets);
+		}
+		if(ref != null) {
+			form.find("[name=name]").val(ref.name);
+			form.find("[name=type]").val(HxOverrides.substr(ref.type[0],1,null).toLowerCase()).change();
+			form.find("[name=opt]").attr("checked",ref.opt);
+			form.find("[name=ref]").val(ref.name);
+			form.find("input.create").val("Modify");
+			{
+				var _g = ref.type;
+				switch(_g[1]) {
+				case 5:
+					var values = _g[2];
+					form.find("[name=values]").val(values.join(","));
+					break;
+				case 6:
+					var sname = _g[2];
+					form.find("[name=sheet]").val(sname);
+					break;
+				default:
+				}
+			}
+		} else form.find("input").val("");
 		new js.JQuery("#newcol").show();
 	}
 	,newSheet: function() {
@@ -408,7 +648,7 @@ Main.prototype = {
 		this.refresh();
 	}
 	,refresh: function() {
-		var _g8 = this;
+		var _g4 = this;
 		var s = this.sheet;
 		var content = new js.JQuery("#content");
 		if(s.columns.length == 0) {
@@ -445,14 +685,19 @@ Main.prototype = {
 			var col = new js.JQuery("<td>");
 			col.html(c[0].name);
 			col.css("width",c[0].size == null?(100 / s.columns.length | 0) + "%":c[0].size + "%");
+			col.dblclick((function(c) {
+				return function(_) {
+					_g4.newColumn(c[0]);
+				};
+			})(c));
 			cols.append(col);
 			var ctype = "t_" + types[c[0].type[1]];
-			var ids = [new haxe.ds.StringMap()];
+			var ids = new haxe.ds.StringMap();
 			var _g5 = 0;
-			var _g4 = s.lines.length;
-			while(_g5 < _g4) {
-				var index = [_g5++];
-				var obj = [s.lines[index[0]]];
+			var _g41 = s.lines.length;
+			while(_g5 < _g41) {
+				var index = _g5++;
+				var obj = [s.lines[index]];
 				var val = [(function($this) {
 					var $r;
 					var v = null;
@@ -464,21 +709,21 @@ Main.prototype = {
 					return $r;
 				}(this))];
 				var v1 = [new js.JQuery("<td>").addClass(ctype)];
-				v1[0].appendTo(lines[index[0]]);
+				v1[0].appendTo(lines[index]);
 				var html = [this.valueHtml(c[0],val[0])];
 				if(c[0].type == ColumnType.TId && val[0] != null && val[0] != "") {
 					if((function($this) {
 						var $r;
 						var key = val[0];
-						$r = ids[0].get(key);
+						$r = ids.get(key);
 						return $r;
 					}(this)) == null) {
 						var key = val[0];
-						ids[0].set(key,index[0]);
+						ids.set(key,index);
 					} else html[0] = "<span class=\"error\">#DUP(" + Std.string(val[0]) + ")</span>";
 				}
 				v1[0].html(html[0]);
-				v1[0].click((function(html,v1,val,obj,index,ids,c) {
+				v1[0].click((function(html,v1,val,obj,c) {
 					return function() {
 						if(v1[0].hasClass("edit")) return;
 						var editDone = (function(html,v1) {
@@ -508,26 +753,26 @@ Main.prototype = {
 											i.blur();
 											break;
 										case 46:
-											var val2 = _g8.getDefault(c[0]);
+											var val2 = _g4.getDefault(c[0]);
 											if(val2 != val[0]) {
 												val[0] = val2;
 												if(val[0] == null) Reflect.deleteField(obj[0],c[0].name); else obj[0][c[0].name] = val[0];
 											}
-											html[0] = _g8.valueHtml(c[0],val[0]);
-											_g8.changed();
+											html[0] = _g4.valueHtml(c[0],val[0]);
+											_g4.changed(c[0]);
 											editDone();
 											break;
 										}
 									};
 								})(html,val,obj,c));
-								i.blur((function(html,val,obj,index,ids,c) {
+								i.blur((function(html,val,obj,c) {
 									return function(_) {
 										var nv = i.val();
 										if(nv == "" && c[0].opt) {
 											if(val[0] != null) {
 												val[0] = html[0] = null;
 												Reflect.deleteField(obj[0],c[0].name);
-												_g8.changed();
+												_g4.changed(c[0]);
 											}
 										} else {
 											var val2;
@@ -547,35 +792,15 @@ Main.prototype = {
 												val2 = nv;
 											}
 											if(val2 != val[0] && val2 != null) {
-												if(c[0].type == ColumnType.TId && val[0] != null && (function($this) {
-													var $r;
-													var key = val[0];
-													$r = ids[0].get(key);
-													return $r;
-												}(this)) == index[0]) {
-													var key = val[0];
-													ids[0].remove(key);
-												}
 												val[0] = val2;
-												html[0] = _g8.valueHtml(c[0],val[0]);
-												if(c[0].type == ColumnType.TId) {
-													if((function($this) {
-														var $r;
-														var key = val[0];
-														$r = ids[0].get(key);
-														return $r;
-													}(this)) == null) {
-														var key = val[0];
-														ids[0].set(key,index[0]);
-													} else html[0] = "<span class=\"error\">#DUP(" + Std.string(val[0]) + ")</span>";
-												}
+												html[0] = _g4.valueHtml(c[0],val[0]);
 												obj[0][c[0].name] = val[0];
-												_g8.changed();
+												_g4.changed(c[0]);
 											}
 										}
 										editDone();
 									};
-								})(html,val,obj,index,ids,c));
+								})(html,val,obj,c));
 								i.focus();
 								break;
 							case 5:
@@ -583,19 +808,20 @@ Main.prototype = {
 								v1[0].html("");
 								var s1 = new js.JQuery("<select>");
 								v1[0].addClass("edit");
-								var _g81 = 0;
+								var _g8 = 0;
 								var _g7 = values.length;
-								while(_g81 < _g7) {
-									var i = _g81++;
+								while(_g8 < _g7) {
+									var i = _g8++;
 									new js.JQuery("<option>").attr("value","" + i).attr(val[0] == i?"selected":"_sel","selected").text(values[i]).appendTo(s1);
 								}
+								if(c[0].opt) new js.JQuery("<option>").attr("value","-1").text("--- None ---").prependTo(s1);
 								v1[0].append(s1);
 								s1.change((function(html,val,obj,c) {
 									return function(_) {
 										val[0] = Std.parseInt(s1.val());
 										if(val[0] < 0) Reflect.deleteField(obj[0],c[0].name); else obj[0][c[0].name] = val[0];
-										html[0] = _g8.valueHtml(c[0],val[0]);
-										_g8.changed();
+										html[0] = _g4.valueHtml(c[0],val[0]);
+										_g4.changed(c[0]);
 										editDone();
 									};
 								})(html,val,obj,c));
@@ -610,21 +836,53 @@ Main.prototype = {
 								s1[0].dispatchEvent(event);
 								break;
 							case 6:
-								break;
-							case 8:
-								break;
-							case 7:
+								var sname = _g6[2];
+								var sdat = _g4.smap.get(sname);
+								if(sdat == null) return;
+								v1[0].html("");
+								var s2 = new js.JQuery("<select>");
+								v1[0].addClass("edit");
+								var _g7 = 0;
+								var _g8 = sdat.all;
+								while(_g7 < _g8.length) {
+									var l = _g8[_g7];
+									++_g7;
+									new js.JQuery("<option>").attr("value","" + l.id).attr(val[0] == l.id?"selected":"_sel","selected").text(l.disp).appendTo(s2);
+								}
+								if(c[0].opt) new js.JQuery("<option>").attr("value","").text("--- None ---").prependTo(s2);
+								v1[0].append(s2);
+								s2.change((function(html,val,obj,c) {
+									return function(_) {
+										val[0] = s2.val();
+										if(val[0] == "") {
+											val[0] = null;
+											Reflect.deleteField(obj[0],c[0].name);
+										} else obj[0][c[0].name] = val[0];
+										html[0] = _g4.valueHtml(c[0],val[0]);
+										_g4.changed(c[0]);
+										editDone();
+									};
+								})(html,val,obj,c));
+								s2.blur((function() {
+									return function(_) {
+										editDone();
+									};
+								})());
+								s2.focus();
+								var event = window.document.createEvent("MouseEvents");
+								event.initMouseEvent("mousedown",true,true,window);
+								s2[0].dispatchEvent(event);
 								break;
 							case 2:
 								val[0] = !val[0];
 								obj[0][c[0].name] = val[0];
-								v1[0].html(_g8.valueHtml(c[0],val[0]));
-								_g8.changed();
+								v1[0].html(_g4.valueHtml(c[0],val[0]));
+								_g4.changed(c[0]);
 								break;
 							}
 						}
 					};
-				})(html,v1,val,obj,index,ids,c));
+				})(html,v1,val,obj,c));
 			}
 		}
 		content.html("");
@@ -652,36 +910,71 @@ Main.prototype = {
 			case 1:
 				if(v == "") return "&nbsp;"; else return StringTools.htmlEscape(v);
 				break;
-			case 8:
-				return "...";
 			case 6:
 				var sname = _g[2];
-				var s = this.smap.get(sname);
-				var disp;
-				var key = v;
-				disp = s.ids.get(key);
-				if(disp == null) return "<span class=\"error\">#REF(" + Std.string(v) + ")</span>"; else return StringTools.htmlEscape(disp);
+				if(v == "") return "<span class=\"error\">#MISSING</span>"; else {
+					var s = this.smap.get(sname);
+					var disp;
+					var key = v;
+					disp = s.ids.get(key);
+					if(disp == null) return "<span class=\"error\">#REF(" + Std.string(v) + ")</span>"; else return StringTools.htmlEscape(disp);
+				}
 				break;
 			case 2:
 				if(v) return "Y"; else return "N";
 				break;
-			case 7:
-				var t = _g[2];
-				var a = v;
-				var out = [];
-				var ct = { name : "", id : "", type : t, opt : false, size : null};
-				var _g1 = 0;
-				while(_g1 < a.length) {
-					var v1 = a[_g1];
-					++_g1;
-					out.push(this.valueHtml(ct,v1));
-				}
-				return Std.string(out);
 			case 5:
 				var values = _g[2];
 				return values[v];
 			}
 		}
+	}
+	,makeSheet: function(s) {
+		var sdat = { s : s, ids : new haxe.ds.StringMap(), all : []};
+		var cid = null;
+		var _g = 0;
+		var _g1 = s.columns;
+		while(_g < _g1.length) {
+			var c = _g1[_g];
+			++_g;
+			if(c.type == ColumnType.TId) {
+				var _g2 = 0;
+				var _g3 = s.lines;
+				while(_g2 < _g3.length) {
+					var l = _g3[_g2];
+					++_g2;
+					var v = (function($this) {
+						var $r;
+						var v1 = null;
+						try {
+							v1 = l[c.name];
+						} catch( e ) {
+						}
+						$r = v1;
+						return $r;
+					}(this));
+					if(v != null && v != "") {
+						var disp = v;
+						if(s.props.displayColumn != null) {
+							var v1 = null;
+							try {
+								v1 = c.name[s.props.displayColumn];
+							} catch( e ) {
+							}
+							disp = v1;
+							if(disp == null || disp == "") disp = "#" + v;
+						}
+						sdat.ids.set(v,disp);
+						sdat.all.push({ id : v, disp : disp});
+					}
+				}
+				break;
+			}
+		}
+		this.smap.set(s.name,sdat);
+	}
+	,error: function(msg) {
+		js.Lib.alert(msg);
 	}
 	,makeSheets: function() {
 		this.smap = new haxe.ds.StringMap();
@@ -690,8 +983,7 @@ Main.prototype = {
 		while(_g < _g1.length) {
 			var s = _g1[_g];
 			++_g;
-			var sdat = { s : s, ids : new haxe.ds.StringMap()};
-			this.smap.set(s.name,sdat);
+			this.makeSheet(s);
 		}
 	}
 	,save: function() {
@@ -731,8 +1023,12 @@ Main.prototype = {
 		this.makeSheets();
 		this.initContent();
 	}
-	,changed: function() {
+	,changed: function(c) {
 		this.save();
+		if(c.type == ColumnType.TId) {
+			this.makeSheet(this.sheet);
+			this.refresh();
+		}
 	}
 	,onKey: function(e) {
 		if(e.keyCode == 112 && this.sheet != null) this.newLine();
@@ -746,10 +1042,6 @@ Main.prototype = {
 				return 0;
 			case 1:case 0:case 6:
 				return "";
-			case 8:
-				return { };
-			case 7:
-				return [];
 			case 2:
 				return false;
 			}
@@ -789,6 +1081,9 @@ $hxClasses["Std"] = Std;
 Std.__name__ = ["Std"];
 Std.string = function(s) {
 	return js.Boot.__string_rec(s,"");
+}
+Std["int"] = function(x) {
+	return x | 0;
 }
 Std.parseInt = function(x) {
 	var v = parseInt(x,10);
@@ -936,6 +1231,23 @@ Type["typeof"] = function(v) {
 	default:
 		return ValueType.TUnknown;
 	}
+}
+Type.enumEq = function(a,b) {
+	if(a == b) return true;
+	try {
+		if(a[0] != b[0]) return false;
+		var _g1 = 2;
+		var _g = a.length;
+		while(_g1 < _g) {
+			var i = _g1++;
+			if(!Type.enumEq(a[i],b[i])) return false;
+		}
+		var e = a.__enum__;
+		if(e != b.__enum__ || e == null) return false;
+	} catch( e ) {
+		return false;
+	}
+	return true;
 }
 var haxe = {}
 haxe.Json = function() { }
@@ -1632,12 +1944,6 @@ haxe.ds.StringMap.prototype = {
 		}
 		return HxOverrides.iter(a);
 	}
-	,remove: function(key) {
-		key = "$" + key;
-		if(!this.h.hasOwnProperty(key)) return false;
-		delete(this.h[key]);
-		return true;
-	}
 	,get: function(key) {
 		return this.h["$" + key];
 	}
@@ -1910,6 +2216,12 @@ js.Browser.getLocalStorage = function() {
 	} catch( e ) {
 		return null;
 	}
+}
+js.Lib = function() { }
+$hxClasses["js.Lib"] = js.Lib;
+js.Lib.__name__ = ["js","Lib"];
+js.Lib.alert = function(v) {
+	alert(js.Boot.__string_rec(v,""));
 }
 js.NodeC = function() { }
 $hxClasses["js.NodeC"] = js.NodeC;

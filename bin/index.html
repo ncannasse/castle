@@ -8,7 +8,8 @@
 
 <div id="newsheet" class="modal" style="display:none">
 	<div class="content">
-		<h1>New Sheet</h1>
+	<form id="sheet_form" onsubmit="return false">
+		<h1>Sheet Props</h1>
 		<p>
 			<span>Sheet Name</span> <input type="text" id="sheet_name"/>
 		</p>
@@ -16,13 +17,15 @@
 			<input type="submit" value="Create" onclick="_.createSheet($('#sheet_name').val())"/>
 			<input type="submit" value="Cancel" onclick="$(this).parents('.modal').hide()"/>
 		</p>
+	</form>
 	</div>
 </div>
 
 <div id="newcol" class="modal" style="display:none">
 	<div class="content">
-		<form id="col_form">
-		<h1>New Column</h1>
+		<form id="col_form" onsubmit="return false">
+		<h1>Column Props</h1>
+		<input type="hidden" name="ref"/>
 		<p>
 			<span>Column name</span> <input type="text" name="name"/>
 		</p>
@@ -37,18 +40,16 @@
 			<option value="float">Float Value</option>
 			<option value="enum">Enumeration</option>
 			<option value="ref">Reference</option>
-			<option value="struct">Structure</option>
 			</select>
 		</p>
 		<div id="col_options">
 			<div class="values"><span>Possible Values</span> <input type="text" name="values" name="vals"/></div>
 			<div class="sheet"><span>Sheet</span> <select name="sheet"></select> </div>
-			<div class="list">List <input type="checkbox" name="list"/></div>
 			<div class="opt">Optional <input type="checkbox" name="opt"/></div>
 		</div>
 		<p class="buttons">
-			<input type="submit" value="Create" onclick="_.createColumn(); return false"/>
-			<input type="submit" value="Cancel" onclick="$(this).parents('.modal').hide(); return false"/>
+			<input class="create" type="submit" value="Create" onclick="_.createColumn()"/>
+			<input type="submit" value="Cancel" onclick="$(this).parents('.modal').hide()"/>
 		</p>
 		</form>
 	</div>

@@ -6,12 +6,9 @@ enum ColumnType {
 	TFloat;
 	TEnum( values : Array<String> );
 	TRef( sheet : String );
-	TList( t : ColumnType );
-	TStruct( a : Array<{ name : String, t:ColumnType }> );
 }
 
 typedef Column = {
-	var id : String;
 	var name : String;
 	var type : ColumnType;
 	var opt : Bool;
