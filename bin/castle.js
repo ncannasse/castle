@@ -81,6 +81,18 @@ HxOverrides.substr = function(s,pos,len) {
 	} else if(len < 0) len = s.length + len - pos;
 	return s.substr(pos,len);
 }
+HxOverrides.remove = function(a,obj) {
+	var i = 0;
+	var l = a.length;
+	while(i < l) {
+		if(a[i] == obj) {
+			a.splice(i,1);
+			return true;
+		}
+		i++;
+	}
+	return false;
+}
 HxOverrides.iter = function(a) {
 	return { cur : 0, arr : a, hasNext : function() {
 		return this.cur < this.arr.length;
@@ -134,6 +146,9 @@ var Main = function() {
 	}
 	this.initMenu();
 	this["window"]["window"].addEventListener("keydown",$bind(this,this.onKey));
+	new js.JQuery("body").click(function(_) {
+		new js.JQuery("tr.selected").removeClass("selected");
+	});
 	this.load(true);
 };
 $hxClasses["Main"] = Main;
@@ -155,11 +170,11 @@ Main.prototype = {
 		var mopen = new nw.MenuItem({ label : "Open..."});
 		var msave = new nw.MenuItem({ label : "Save As..."});
 		var mfiles = new nw.Menu();
+		var mhelp = new nw.MenuItem({ label : "Help"});
 		var mdebug = new nw.MenuItem({ label : "Dev"});
 		mnew.click = function() {
-			_g.data = { sheets : []};
 			_g.prefs.curFile = null;
-			_g.initContent();
+			_g.load(true);
 		};
 		mdebug.click = function() {
 			_g["window"].showDevTools();
@@ -184,11 +199,15 @@ Main.prototype = {
 			i.appendTo(new js.JQuery("body"));
 			i.click();
 		};
+		mhelp.click = function() {
+			new js.JQuery("#help").show();
+		};
 		mfiles.append(mnew);
 		mfiles.append(mopen);
 		mfiles.append(msave);
 		mfile.submenu = mfiles;
 		menu.append(mfile);
+		menu.append(mhelp);
 		menu.append(mdebug);
 		this["window"].menu = menu;
 		this["window"].moveTo(this.prefs.windowPos.x,this.prefs.windowPos.y);
@@ -319,7 +338,7 @@ Main.prototype = {
 		default:
 			return;
 		}
-		var c = { type : t, opt : v.opt == "on", name : v.name, size : null};
+		var c = { type : t, typeStr : null, opt : v.opt == "on", name : v.name, size : null};
 		if(refColumn != null) {
 			var old = refColumn;
 			if(old.name != c.name) {
@@ -499,6 +518,7 @@ Main.prototype = {
 					}
 				}
 				old.type = c.type;
+				old.typeStr = null;
 			}
 			if(old.opt != c.opt) {
 				if(old.opt) {
@@ -591,6 +611,7 @@ Main.prototype = {
 		this.makeSheets();
 		this.initContent();
 		this.save();
+		this.selectSheet(s);
 	}
 	,newLine: function() {
 		var o = { };
@@ -602,11 +623,12 @@ Main.prototype = {
 			var d = this.getDefault(c);
 			if(d != null) o[c.name] = d;
 		}
-		this.sheet.lines.push(o);
+		var index = new js.JQuery("tr.selected").data("index");
+		if(index == null) this.sheet.lines.push(o); else this.sheet.lines.splice(index + 1,0,o);
 		this.refresh();
 	}
 	,newColumn: function(ref) {
-		var form = new js.JQuery("#newcol");
+		var form = new js.JQuery("#newcol form");
 		var sheets = new js.JQuery("[name=sheet]");
 		sheets.html("");
 		var _g1 = 0;
@@ -615,12 +637,13 @@ Main.prototype = {
 			var i = _g1++;
 			new js.JQuery("<option>").attr("value","" + i).text(this.data.sheets[i].name).appendTo(sheets);
 		}
+		form.removeClass("edit").removeClass("create");
 		if(ref != null) {
+			form.addClass("edit");
 			form.find("[name=name]").val(ref.name);
 			form.find("[name=type]").val(HxOverrides.substr(ref.type[0],1,null).toLowerCase()).change();
 			form.find("[name=opt]").attr("checked",ref.opt);
 			form.find("[name=ref]").val(ref.name);
-			form.find("input.create").val("Modify");
 			{
 				var _g = ref.type;
 				switch(_g[1]) {
@@ -635,8 +658,33 @@ Main.prototype = {
 				default:
 				}
 			}
-		} else form.find("input").val("");
+		} else {
+			form.addClass("create");
+			form.find("input").not("[type=submit]").val("");
+		}
 		new js.JQuery("#newcol").show();
+	}
+	,deleteColumn: function() {
+		var cname = new js.JQuery("#newcol form [name=ref]").val();
+		var _g = 0;
+		var _g1 = this.sheet.columns;
+		while(_g < _g1.length) {
+			var c = _g1[_g];
+			++_g;
+			if(c.name == cname) {
+				HxOverrides.remove(this.sheet.columns,c);
+				var _g2 = 0;
+				var _g3 = this.sheet.lines;
+				while(_g2 < _g3.length) {
+					var o = _g3[_g2];
+					++_g2;
+					Reflect.deleteField(o,c.name);
+				}
+			}
+		}
+		new js.JQuery("#newcol").hide();
+		this.refresh();
+		this.save();
 	}
 	,newSheet: function() {
 		new js.JQuery("#newsheet").show();
@@ -656,27 +704,42 @@ Main.prototype = {
 			return;
 		}
 		content.html("");
-		var lines;
-		var _g = [];
-		var _g1 = 0;
-		var _g2 = s.lines;
-		while(_g1 < _g2.length) {
-			var l = _g2[_g1];
-			++_g1;
-			_g.push(new js.JQuery("<tr>"));
-		}
-		lines = _g;
 		var cols = new js.JQuery("<tr>").addClass("head");
 		var types;
-		var _g1 = [];
-		var _g2 = 0;
-		var _g3 = Type.getEnumConstructs(ColumnType);
-		while(_g2 < _g3.length) {
-			var t = _g3[_g2];
-			++_g2;
-			_g1.push(HxOverrides.substr(t,1,null).toLowerCase());
+		var _g = [];
+		var _g1 = 0;
+		var _g2 = Type.getEnumConstructs(ColumnType);
+		while(_g1 < _g2.length) {
+			var t = _g2[_g1];
+			++_g1;
+			_g.push(HxOverrides.substr(t,1,null).toLowerCase());
 		}
-		types = _g1;
+		types = _g;
+		new js.JQuery("<td>").addClass("start").appendTo(cols);
+		var lines;
+		var _g1 = [];
+		var _g3 = 0;
+		var _g2 = s.lines.length;
+		while(_g3 < _g2) {
+			var i = _g3++;
+			_g1.push((function($this) {
+				var $r;
+				var l = [new js.JQuery("<tr>")];
+				l[0].data("index",i);
+				var head = new js.JQuery("<td>").addClass("start").text("" + i);
+				head.click((function(l) {
+					return function(e) {
+						if(!e.ctrlKey) new js.JQuery("tr.selected").removeClass("selected");
+						l[0].toggleClass("selected");
+						e.stopPropagation();
+					};
+				})(l));
+				head.appendTo(l[0]);
+				$r = l[0];
+				return $r;
+			}(this)));
+		}
+		lines = _g1;
 		var _g2 = 0;
 		var _g3 = s.columns;
 		while(_g2 < _g3.length) {
@@ -738,11 +801,11 @@ Main.prototype = {
 							switch(_g6[1]) {
 							case 3:case 4:case 1:case 0:
 								v1[0].html("");
-								var i = new js.JQuery("<input>");
+								var i1 = new js.JQuery("<input>");
 								v1[0].addClass("edit");
-								i.appendTo(v1[0]);
-								if(val[0] != null) i.val("" + Std.string(val[0]));
-								i.keydown((function(html,val,obj,c) {
+								i1.appendTo(v1[0]);
+								if(val[0] != null) i1.val("" + Std.string(val[0]));
+								i1.keydown((function(html,v1,val,obj,c) {
 									return function(e) {
 										var _g7 = e.keyCode;
 										switch(_g7) {
@@ -750,7 +813,14 @@ Main.prototype = {
 											editDone();
 											break;
 										case 13:
-											i.blur();
+											i1.blur();
+											break;
+										case 9:
+											i1.blur();
+											var n = v1[0].next("td");
+											while(n.hasClass("t_bool") || n.hasClass("t_enum") || n.hasClass("t_ref")) n = n.next("td");
+											n.click();
+											e.preventDefault();
 											break;
 										case 46:
 											var val2 = _g4.getDefault(c[0]);
@@ -763,11 +833,12 @@ Main.prototype = {
 											editDone();
 											break;
 										}
+										e.stopPropagation();
 									};
-								})(html,val,obj,c));
-								i.blur((function(html,val,obj,c) {
+								})(html,v1,val,obj,c));
+								i1.blur((function(html,val,obj,c) {
 									return function(_) {
-										var nv = i.val();
+										var nv = i1.val();
 										if(nv == "" && c[0].opt) {
 											if(val[0] != null) {
 												val[0] = html[0] = null;
@@ -801,7 +872,7 @@ Main.prototype = {
 										editDone();
 									};
 								})(html,val,obj,c));
-								i.focus();
+								i1.focus();
 								break;
 							case 5:
 								var values = _g6[2];
@@ -986,40 +1057,83 @@ Main.prototype = {
 			this.makeSheet(s);
 		}
 	}
-	,save: function() {
+	,quickLoad: function(data) {
+		return haxe.Unserializer.run(data);
+	}
+	,quickSave: function() {
+		return haxe.Serializer.run(this.data);
+	}
+	,save: function(history) {
+		if(history == null) history = true;
+		if(history) {
+			var sdata = this.quickSave();
+			if(sdata != this.curSavedData) {
+				if(this.curSavedData != null) {
+					this.history.push(this.curSavedData);
+					this.redo = [];
+				}
+				this.curSavedData = sdata;
+			}
+		}
 		if(this.prefs.curFile == null) return;
-		var data = { sheets : [], lines : []};
+		var save = [];
 		var _g = 0;
 		var _g1 = this.data.sheets;
 		while(_g < _g1.length) {
 			var s = _g1[_g];
 			++_g;
-			data.sheets.push({ name : s.name, props : s.props, schema : haxe.Serializer.run(s.columns)});
-			data.lines.push(s.lines);
+			var _g2 = 0;
+			var _g3 = s.columns;
+			while(_g2 < _g3.length) {
+				var c = _g3[_g2];
+				++_g2;
+				save.push(c.type);
+				if(c.typeStr == null) c.typeStr = haxe.Serializer.run(c.type);
+				c.type = null;
+			}
 		}
-		sys.io.File.saveContent(this.prefs.curFile,js.Node.stringify(data,null,"\t"));
+		sys.io.File.saveContent(this.prefs.curFile,js.Node.stringify(this.data,null,"\t"));
+		var _g = 0;
+		var _g1 = this.data.sheets;
+		while(_g < _g1.length) {
+			var s = _g1[_g];
+			++_g;
+			var _g2 = 0;
+			var _g3 = s.columns;
+			while(_g2 < _g3.length) {
+				var c = _g3[_g2];
+				++_g2;
+				c.type = save.shift();
+			}
+		}
 	}
 	,load: function(noError) {
 		if(noError == null) noError = false;
+		this.history = [];
+		this.redo = [];
 		try {
-			var sdata;
 			var jsonString = sys.io.File.getContent(this.prefs.curFile);
-			sdata = js.Node.parse(jsonString);
-			this.data = { sheets : []};
+			this.data = js.Node.parse(jsonString);
 			var _g = 0;
-			var _g1 = sdata.sheets;
+			var _g1 = this.data.sheets;
 			while(_g < _g1.length) {
 				var s = _g1[_g];
 				++_g;
-				this.data.sheets.push({ name : s.name, props : s.props, columns : haxe.Unserializer.run(s.schema), lines : sdata.lines.shift()});
+				var _g2 = 0;
+				var _g3 = s.columns;
+				while(_g2 < _g3.length) {
+					var c = _g3[_g2];
+					++_g2;
+					c.type = haxe.Unserializer.run(c.typeStr);
+				}
 			}
 		} catch( e ) {
-			if(noError) {
-				this.prefs.curFile = null;
-				this.prefs.curSheet = 0;
-				this.data = { sheets : []};
-			}
+			if(!noError) js.Lib.alert(e);
+			this.prefs.curFile = null;
+			this.prefs.curSheet = 0;
+			this.data = { sheets : []};
 		}
+		this.curSavedData = this.quickSave();
 		this.makeSheets();
 		this.initContent();
 	}
@@ -1031,7 +1145,89 @@ Main.prototype = {
 		}
 	}
 	,onKey: function(e) {
-		if(e.keyCode == 112 && this.sheet != null) this.newLine();
+		var _g = e.keyCode;
+		switch(_g) {
+		case 45:
+			if(this.sheet != null) this.newLine();
+			break;
+		case 46:
+			var indexes;
+			var _g1 = [];
+			var $it0 = (function($this) {
+				var $r;
+				var _this = new js.JQuery("tr.selected");
+				$r = (_this.iterator)();
+				return $r;
+			}(this));
+			while( $it0.hasNext() ) {
+				var i = $it0.next();
+				_g1.push(i.data("index"));
+			}
+			indexes = _g1;
+			indexes.sort(function(a,b) {
+				return b - a;
+			});
+			var _g2 = 0;
+			while(_g2 < indexes.length) {
+				var i = indexes[_g2];
+				++_g2;
+				this.sheet.lines.splice(i,1);
+			}
+			this.refresh();
+			this.save();
+			break;
+		case 38:
+			var index = new js.JQuery("tr.selected").data("index");
+			if(index > 0) {
+				var l = this.sheet.lines[index];
+				this.sheet.lines.splice(index,1);
+				this.sheet.lines.splice(index - 1,0,l);
+				this.refresh();
+				this.save();
+				((function($this) {
+					var $r;
+					var html = new js.JQuery("#content tr")[index];
+					$r = new js.JQuery(html);
+					return $r;
+				}(this))).addClass("selected");
+			}
+			break;
+		case 40:
+			var index = new js.JQuery("tr.selected").data("index");
+			if(this.sheet != null && index < this.sheet.lines.length - 1) {
+				var l = this.sheet.lines[index];
+				this.sheet.lines.splice(index,1);
+				this.sheet.lines.splice(index + 1,0,l);
+				this.refresh();
+				this.save();
+				((function($this) {
+					var $r;
+					var html = new js.JQuery("#content tr")[index + 2];
+					$r = new js.JQuery(html);
+					return $r;
+				}(this))).addClass("selected");
+			}
+			break;
+		case 90:
+			if(e.ctrlKey && this.history.length > 0) {
+				this.redo.push(this.curSavedData);
+				this.curSavedData = this.history.pop();
+				this.data = this.quickLoad(this.curSavedData);
+				this.initContent();
+				this.save(false);
+			}
+			break;
+		case 89:
+			if(e.ctrlKey && this.redo.length > 0) {
+				this.history.push(this.curSavedData);
+				this.curSavedData = this.redo.pop();
+				this.data = this.quickLoad(this.curSavedData);
+				this.initContent();
+				this.save(false);
+			}
+			break;
+		default:
+		}
 	}
 	,getDefault: function(c) {
 		if(c.opt) return null;
@@ -2266,6 +2462,12 @@ sys.io.File.write = function(path,binary) {
 function $iterator(o) { if( o instanceof Array ) return function() { return HxOverrides.iter(o); }; return typeof(o.iterator) == 'function' ? $bind(o,o.iterator) : o.iterator; };
 var $_, $fid = 0;
 function $bind(o,m) { if( m == null ) return null; if( m.__id__ == null ) m.__id__ = $fid++; var f; if( o.hx__closures__ == null ) o.hx__closures__ = {}; else f = o.hx__closures__[m.__id__]; if( f == null ) { f = function(){ return f.method.apply(f.scope, arguments); }; f.scope = o; f.method = m; o.hx__closures__[m.__id__] = f; } return f; };
+if(Array.prototype.indexOf) HxOverrides.remove = function(a,o) {
+	var i = a.indexOf(o);
+	if(i == -1) return false;
+	a.splice(i,1);
+	return true;
+};
 Math.__name__ = ["Math"];
 Math.NaN = Number.NaN;
 Math.NEGATIVE_INFINITY = Number.NEGATIVE_INFINITY;

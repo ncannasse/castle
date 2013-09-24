@@ -12,7 +12,11 @@ class Main {
 	var prefs : Prefs;
 	var data : Data;
 	var sheet : Data.Sheet;
-	var smap : Map<String, { s : Data.Sheet, ids : Map < String, String >, all : Array<{ id : String, disp : String }> } >;
+	var smap : Map < String, { s : Data.Sheet, ids : Map < String, String > , all : Array<{ id : String, disp : String }> } > ;
+	
+	var curSavedData : String;
+	var history : Array<String>;
+	var redo : Array<String>;
 	
 	static var r_id = ~/^[A-Za-z_][A-Za-z_0-9]*$/;
 	
@@ -31,6 +35,9 @@ class Main {
 
 		initMenu();
 		window.window.addEventListener("keydown", onKey);
+		J("body").click(function(_) {
+			J("tr.selected").removeClass("selected");
+		});
 
 		load(true);
 	}
@@ -46,9 +53,55 @@ class Main {
 	}
 	
 	function onKey( e : js.html.KeyboardEvent ) {
-		// F1
-		if( e.keyCode == 112 && sheet != null )
-			newLine();
+		switch( e.keyCode ) {
+		case 45: // Insert
+			if( sheet != null )
+				newLine();
+		case 46: // Delete
+			var indexes = [for( i in J("tr.selected") ) i.data("index")];
+			indexes.sort(function(a, b) return b - a);
+			for( i in indexes )
+				sheet.lines.splice(i, 1);
+			refresh();
+			save();
+		case 38: // Up Key
+			var index = J("tr.selected").data("index");
+			if( index > 0 ) {
+				var l = sheet.lines[index];
+				sheet.lines.splice(index, 1);
+				sheet.lines.insert(index - 1, l);
+				refresh();
+				save();
+				J(J("#content tr")[index]).addClass("selected");
+			}
+		case 40: // Down Key
+			var index = J("tr.selected").data("index");
+			if( sheet != null && index < sheet.lines.length-1 ) {
+				var l = sheet.lines[index];
+				sheet.lines.splice(index, 1);
+				sheet.lines.insert(index+1, l);
+				refresh();
+				save();
+				J(J("#content tr")[index+2]).addClass("selected");
+			}
+		case 'Z'.code:
+			if( e.ctrlKey && history.length > 0 ) {
+				redo.push(curSavedData);
+				curSavedData = history.pop();
+				data = quickLoad(curSavedData);
+				initContent();
+				save(false);
+			}
+		case 'Y'.code:
+			if( e.ctrlKey && redo.length > 0 ) {
+				history.push(curSavedData);
+				curSavedData = redo.pop();
+				data = quickLoad(curSavedData);
+				initContent();
+				save(false);
+			}
+		default:
+		}
 	}
 	
 	function changed( c : Data.Column ) {
@@ -59,49 +112,61 @@ class Main {
 		}
 	}
 	
-	function load(noError=false) {
+	function load(noError = false) {
+		history = [];
+		redo = [];
 		try {
-			var sdata : Data.SavedData = haxe.Json.parse(sys.io.File.getContent(prefs.curFile));
+			data = haxe.Json.parse(sys.io.File.getContent(prefs.curFile));
+			for( s in data.sheets )
+				for( c in s.columns )
+					c.type = haxe.Unserializer.run(c.typeStr);
+		} catch( e : Dynamic ) {
+			if( !noError ) js.Lib.alert(e);
+			prefs.curFile = null;
+			prefs.curSheet = 0;
 			data = {
 				sheets : [],
 			};
-			for( s in sdata.sheets ) {
-				data.sheets.push({
-					name : s.name,
-					props : s.props,
-					columns : haxe.Unserializer.run(s.schema),
-					lines : sdata.lines.shift(),
-				});
-			}
-		} catch( e : Dynamic ) {
-			if( noError ) {
-				prefs.curFile = null;
-				prefs.curSheet = 0;
-				data = {
-					sheets : [],
-				};
-			}
 		}
+		curSavedData = quickSave();
 		makeSheets();
 		initContent();
 	}
 	
-	function save() {
+	function save( history = true ) {
+		if( history ) {
+			var sdata = quickSave();
+			if( sdata != curSavedData ) {
+				if( curSavedData != null ) {
+					this.history.push(curSavedData);
+					this.redo = [];
+				}
+				curSavedData = sdata;
+			}
+		}
 		if( prefs.curFile == null )
 			return;
-		var data : Data.SavedData = {
-			sheets : [],
-			lines : [],
-		};
+		var save = [];
 		for( s in this.data.sheets ) {
-			data.sheets.push({
-				name : s.name,
-				props : s.props,
-				schema : haxe.Serializer.run(s.columns),
-			});
-			data.lines.push(s.lines);
+			for( c in s.columns ) {
+				save.push(c.type);
+				if( c.typeStr == null ) c.typeStr = haxe.Serializer.run(c.type);
+				c.type = null;
+			}
 		}
-		sys.io.File.saveContent(prefs.curFile, untyped haxe.Json.stringify(data,null,"\t"));
+		sys.io.File.saveContent(prefs.curFile, untyped haxe.Json.stringify(data, null, "\t"));
+		for( s in this.data.sheets )
+			for( c in s.columns )
+				c.type = save.shift();
+	}
+	
+	
+	function quickSave() {
+		return haxe.Serializer.run(data);
+	}
+
+	function quickLoad(data) : Data {
+		return haxe.Unserializer.run(data);
 	}
 	
 	function makeSheets() {
@@ -175,11 +240,28 @@ class Main {
 			content.html("<a href='javascript:_.newColumn()'>Add a column</a>");
 			return;
 		}
+		
 		content.html("");
 			
-		var lines = [for( l in s.lines ) J("<tr>")];
 		var cols = J("<tr>").addClass("head");
 		var types = [for( t in Type.getEnumConstructs(Data.ColumnType) ) t.substr(1).toLowerCase()];
+		
+		J("<td>").addClass("start").appendTo(cols);
+
+		var lines = [for( i in 0...s.lines.length ) {
+			var l = J("<tr>");
+			l.data("index", i);
+			var head = J("<td>").addClass("start").text("" + i);
+			head.click(function(e:js.JQuery.JqEvent) {
+				if( !e.ctrlKey )
+					J("tr.selected").removeClass("selected");
+				l.toggleClass("selected");
+				e.stopPropagation();
+			});
+			head.appendTo(l);
+			l;
+		}];
+		
 		for( c in s.columns ) {
 			var col = J("<td>");
 			col.html(c.name);
@@ -221,6 +303,13 @@ class Main {
 								editDone();
 							case 13:
 								i.blur();
+							case 9:
+								i.blur();
+								var n = v.next("td");
+								while( n.hasClass("t_bool") || n.hasClass("t_enum") || n.hasClass("t_ref") )
+									n = n.next("td");
+								n.click();
+								e.preventDefault();
 							case 46: // delete
 								var val2 = getDefault(c);
 								if( val2 != val ) {
@@ -234,6 +323,7 @@ class Main {
 								changed(c);
 								editDone();
 							}
+							e.stopPropagation();
 						});
 						i.blur(function(_) {
 							var nv = i.val();
@@ -347,20 +437,35 @@ class Main {
 		J("#newsheet").show();
 	}
 	
+	function deleteColumn() {
+		var cname = J("#newcol form [name=ref]").val();
+		for( c in sheet.columns )
+			if( c.name == cname ) {
+				sheet.columns.remove(c);
+				for( o in sheet.lines )
+					Reflect.deleteField(o, c.name);
+			}
+		J("#newcol").hide();
+		refresh();
+		save();
+	}
+	
 	function newColumn( ?ref : Data.Column ) {
-		var form = J("#newcol");
+		var form = J("#newcol form");
 		
 		var sheets = J("[name=sheet]");
 		sheets.html("");
 		for( i in 0...data.sheets.length )
 			J("<option>").attr("value", "" + i).text(data.sheets[i].name).appendTo(sheets);
-			
+
+		form.removeClass("edit").removeClass("create");
+		
 		if( ref != null ) {
+			form.addClass("edit");
 			form.find("[name=name]").val(ref.name);
 			form.find("[name=type]").val(ref.type.getName().substr(1).toLowerCase()).change();
 			form.find("[name=opt]").attr("checked", cast ref.opt);
 			form.find("[name=ref]").val(ref.name);
-			form.find("input.create").val("Modify");
 			switch( ref.type ) {
 			case TEnum(values):
 				form.find("[name=values]").val(values.join(","));
@@ -369,7 +474,8 @@ class Main {
 			default:
 			}
 		} else {
-			form.find("input").val("");
+			form.addClass("create");
+			form.find("input").not("[type=submit]").val("");
 		}
 		
 		J("#newcol").show();
@@ -383,7 +489,11 @@ class Main {
 			if( d != null )
 				Reflect.setField(o, c.name, d);
 		}
-		sheet.lines.push(o);
+		var index = J("tr.selected").data("index");
+		if( index == null )
+			sheet.lines.push(o);
+		else
+			sheet.lines.insert(index + 1, o);
 		refresh();
 	}
 		
@@ -405,6 +515,7 @@ class Main {
 		makeSheets();
 		initContent();
 		save();
+		selectSheet(s);
 	}
 	
 	function createColumn() {
@@ -453,6 +564,7 @@ class Main {
 		}
 		var c : Data.Column = {
 			type : t,
+			typeStr : null,
 			opt : v.opt == "on",
 			name : v.name,
 			size : null,
@@ -524,6 +636,7 @@ class Main {
 						}
 					}
 				old.type = c.type;
+				old.typeStr = null;
 			}
 			
 			if( old.opt != c.opt ) {
@@ -596,13 +709,11 @@ class Main {
 		var mopen = new nw.MenuItem( { label : "Open..." } );
 		var msave = new nw.MenuItem( { label : "Save As..." } );
 		var mfiles = new nw.Menu();
+		var mhelp = new nw.MenuItem( { label : "Help" } );
 		var mdebug = new nw.MenuItem( { label : "Dev" } );
 		mnew.click = function() {
-			data = {
-				sheets : [],
-			};
 			prefs.curFile = null;
-			initContent();
+			load(true);
 		};
 		mdebug.click = function() window.showDevTools();
 		mopen.click = function() {
@@ -625,11 +736,15 @@ class Main {
 			i.appendTo(J("body"));
 			i.click();
 		};
+		mhelp.click = function() {
+			J("#help").show();
+		};
 		mfiles.append(mnew);
 		mfiles.append(mopen);
 		mfiles.append(msave);
 		mfile.submenu = mfiles;
 		menu.append(mfile);
+		menu.append(mhelp);
 		menu.append(mdebug);
 		window.menu = menu;
 		window.moveTo(prefs.windowPos.x, prefs.windowPos.y);

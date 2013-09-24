@@ -11,6 +11,7 @@ enum ColumnType {
 typedef Column = {
 	var name : String;
 	var type : ColumnType;
+	var typeStr : String;
 	var opt : Bool;
 	var size : Null<Float>;
 }
@@ -28,15 +29,4 @@ typedef Sheet = {
 
 typedef Data = {
 	sheets : Array<Sheet>,
-}
-
-typedef SavedSheet = {
-	var name : String;
-	var schema : String;
-	var props : SheetProps;
-}
-
-typedef SavedData = {
-	var sheets : Array<SavedSheet>;
-	var lines : Array<Array<Dynamic>>;
 }

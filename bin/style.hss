@@ -60,6 +60,12 @@ div.modal {
 			margin-top : 3px;
 		}
 	}
+	form.edit input.create {
+		display : none;
+	}
+	form.create input.edit {
+		display : none;
+	}
 	#col_options .values, #col_options .sheet {
 		display : none;
 	}
@@ -125,12 +131,21 @@ table.castle {
 		overflow : hidden;
 	}
 	
+	td.start {
+		width : 30px;
+		text-align : center;
+	}
+	
 	tr.head {
 		font-weight: bold;
 		text-align: center;
 		border-bottom : 1px solid #888;
 		background-color : #333;
 		color : #EEE;
+	}
+	
+	tr.selected {
+		background-color : #EEE;
 	}
 	
 	td {

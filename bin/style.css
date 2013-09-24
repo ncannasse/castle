@@ -61,6 +61,12 @@ div.modal .content span {
 	float : left;
 	margin-top : 3px;
 }
+div.modal form.edit input.create {
+	display : none;
+}
+div.modal form.create input.edit {
+	display : none;
+}
 div.modal #col_options .values, div.modal #col_options .sheet {
 	display : none;
 }
@@ -127,12 +133,19 @@ table.castle td {
 	padding : 2px 4px;
 	overflow : hidden;
 }
+table.castle td.start {
+	width : 30px;
+	text-align : center;
+}
 table.castle tr.head {
 	font-weight : bold;
 	text-align : center;
 	border-bottom : 1px solid #888;
 	background-color : #333;
 	color : #EEE;
+}
+table.castle tr.selected {
+	background-color : #EEE;
 }
 table.castle td {
 	user-select : none;
