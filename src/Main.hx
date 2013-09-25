@@ -70,7 +70,7 @@ class Main {
 		switch( e.keyCode ) {
 		case 45: // Insert
 			if( sheet != null )
-				newLine();
+				newLine(Std.parseInt(J("tr.selected").data("index")));
 		case 46: // Delete
 			var indexes = [for( i in J(".selected") ) { i.change(); Std.parseInt(i.data("index")); } ];
 			while( indexes.remove(null) ) {
@@ -79,7 +79,7 @@ class Main {
 				return;
 			indexes.sort(function(a, b) return b - a);
 			for( i in indexes )
-				sheet.lines.splice(i, 1);
+				deleteLine(sheet,i);
 			refresh();
 			save();
 		case 38: // Up Key
@@ -108,6 +108,10 @@ class Main {
 		}
 	}
 	
+	function selectLine( index : Int ) {
+		J(J("#content tr").not(".separator")[index]).addClass("selected");
+	}
+	
 	function moveColumn( index : Int, delta : Int ) {
 		if( delta < 0 && index > 0 ) {
 			var l = sheet.lines[index];
@@ -115,14 +119,14 @@ class Main {
 			sheet.lines.insert(index - 1, l);
 			refresh();
 			save();
-			J(J("#content tr")[index]).addClass("selected");
+			selectLine(index);
 		} else if( delta > 0 && sheet != null && index < sheet.lines.length-1 ) {
 			var l = sheet.lines[index];
 			sheet.lines.splice(index, 1);
 			sheet.lines.insert(index+1, l);
 			refresh();
 			save();
-			J(J("#content tr")[index+2]).addClass("selected");
+			selectLine(index+2);
 		}
 	}
 	
@@ -286,12 +290,16 @@ class Main {
 		var n = new Menu();
 		var nup = new MenuItem( { label : "Move Up" } );
 		var ndown = new MenuItem( { label : "Move Down" } );
+		var nins = new MenuItem( { label : "Insert" } );
 		var ndel = new MenuItem( { label : "Delete" } );
 		var nsep = new MenuItem( { label : "Separator", type : MenuItemType.checkbox } );
-		for( m in [nup, ndown, ndel, nsep] )
+		for( m in [nup, ndown, nins, ndel, nsep] )
 			n.append(m);
 		var hasSep = Lambda.has(sheet.separators, index);
 		nsep.checked = hasSep;
+		nins.click = function() {
+			newLine(index);
+		};
 		nup.click = function() {
 			moveColumn(index, -1);
 		};
@@ -299,7 +307,7 @@ class Main {
 			moveColumn(index, 1);
 		};
 		ndel.click = function() {
-			sheet.lines.splice(index, 1);
+			deleteLine(sheet,index);
 			refresh();
 			save();
 		};
@@ -658,6 +666,22 @@ class Main {
 		save();
 	}
 	
+	function deleteLine( sheet : Data.Sheet, index : Int ) {
+		sheet.lines.splice(index, 1);
+		var prev = -1, toRemove = null;
+		for( i in 0...sheet.separators.length ) {
+			var s = sheet.separators[i];
+			if( s >= index ) {
+				if( prev == s - 1 ) toRemove = prev;
+				sheet.separators[i] = s - 1;
+			} else
+				prev = s;
+		}
+		// prevent duplicates
+		if( toRemove != null )
+			sheet.separators.remove(toRemove);
+	}
+	
 	function newColumn( ?ref : Data.Column ) {
 		var form = J("#newcol form");
 		
@@ -689,7 +713,7 @@ class Main {
 		J("#newcol").show();
 	}
 	
-	function newLine() {
+	function newLine( index : Null<Int> ) {
 		var o = {
 		};
 		for( c in sheet.columns ) {
@@ -697,12 +721,19 @@ class Main {
 			if( d != null )
 				Reflect.setField(o, c.name, d);
 		}
-		var index = J("tr.selected").data("index");
 		if( index == null )
 			sheet.lines.push(o);
-		else
+		else {
+			for( i in 0...sheet.separators.length ) {
+				var s = sheet.separators[i];
+				if( s >= index ) sheet.separators[i] = s + 1;
+			}
 			sheet.lines.insert(index + 1, o);
+		}
 		refresh();
+		save();
+		if( index != null )
+			selectLine(index + 2);
 	}
 		
 	function createSheet( name : String ) {

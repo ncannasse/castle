@@ -707,7 +707,7 @@ Main.prototype = {
 		this.save();
 		this.selectSheet(s);
 	}
-	,newLine: function() {
+	,newLine: function(index) {
 		var o = { };
 		var _g = 0;
 		var _g1 = this.sheet.columns;
@@ -717,9 +717,19 @@ Main.prototype = {
 			var d = this.getDefault(c);
 			if(d != null) o[c.name] = d;
 		}
-		var index = new js.JQuery("tr.selected").data("index");
-		if(index == null) this.sheet.lines.push(o); else this.sheet.lines.splice(index + 1,0,o);
+		if(index == null) this.sheet.lines.push(o); else {
+			var _g1 = 0;
+			var _g = this.sheet.separators.length;
+			while(_g1 < _g) {
+				var i = _g1++;
+				var s = this.sheet.separators[i];
+				if(s >= index) this.sheet.separators[i] = s + 1;
+			}
+			this.sheet.lines.splice(index + 1,0,o);
+		}
 		this.refresh();
+		this.save();
+		if(index != null) this.selectLine(index + 2);
 	}
 	,newColumn: function(ref) {
 		var form = new js.JQuery("#newcol form");
@@ -757,6 +767,22 @@ Main.prototype = {
 			form.find("input").not("[type=submit]").val("");
 		}
 		new js.JQuery("#newcol").show();
+	}
+	,deleteLine: function(sheet,index) {
+		sheet.lines.splice(index,1);
+		var prev = -1;
+		var toRemove = null;
+		var _g1 = 0;
+		var _g = sheet.separators.length;
+		while(_g1 < _g) {
+			var i = _g1++;
+			var s = sheet.separators[i];
+			if(s >= index) {
+				if(prev == s - 1) toRemove = prev;
+				sheet.separators[i] = s - 1;
+			} else prev = s;
+		}
+		if(toRemove != null) HxOverrides.remove(sheet.separators,toRemove);
 	}
 	,deleteColumn: function(cname) {
 		if(cname == null) cname = new js.JQuery("#newcol form [name=ref]").val();
@@ -1212,10 +1238,11 @@ Main.prototype = {
 		var n = new nodejs.webkit.Menu();
 		var nup = new nodejs.webkit.MenuItem({ label : "Move Up"});
 		var ndown = new nodejs.webkit.MenuItem({ label : "Move Down"});
+		var nins = new nodejs.webkit.MenuItem({ label : "Insert"});
 		var ndel = new nodejs.webkit.MenuItem({ label : "Delete"});
 		var nsep = new nodejs.webkit.MenuItem({ label : "Separator", type : "checkbox"});
 		var _g1 = 0;
-		var _g11 = [nup,ndown,ndel,nsep];
+		var _g11 = [nup,ndown,nins,ndel,nsep];
 		while(_g1 < _g11.length) {
 			var m = _g11[_g1];
 			++_g1;
@@ -1223,6 +1250,9 @@ Main.prototype = {
 		}
 		var hasSep = Lambda.has(this.sheet.separators,index);
 		nsep.checked = hasSep;
+		nins.click = function() {
+			_g.newLine(index);
+		};
 		nup.click = function() {
 			_g.moveColumn(index,-1);
 		};
@@ -1230,7 +1260,7 @@ Main.prototype = {
 			_g.moveColumn(index,1);
 		};
 		ndel.click = function() {
-			_g.sheet.lines.splice(index,1);
+			_g.deleteLine(_g.sheet,index);
 			_g.refresh();
 			_g.save();
 		};
@@ -1459,31 +1489,29 @@ Main.prototype = {
 			this.sheet.lines.splice(index - 1,0,l);
 			this.refresh();
 			this.save();
-			((function($this) {
-				var $r;
-				var html = new js.JQuery("#content tr")[index];
-				$r = new js.JQuery(html);
-				return $r;
-			}(this))).addClass("selected");
+			this.selectLine(index);
 		} else if(delta > 0 && this.sheet != null && index < this.sheet.lines.length - 1) {
 			var l = this.sheet.lines[index];
 			this.sheet.lines.splice(index,1);
 			this.sheet.lines.splice(index + 1,0,l);
 			this.refresh();
 			this.save();
-			((function($this) {
-				var $r;
-				var html = new js.JQuery("#content tr")[index + 2];
-				$r = new js.JQuery(html);
-				return $r;
-			}(this))).addClass("selected");
+			this.selectLine(index + 2);
 		}
+	}
+	,selectLine: function(index) {
+		((function($this) {
+			var $r;
+			var html = new js.JQuery("#content tr").not(".separator")[index];
+			$r = new js.JQuery(html);
+			return $r;
+		}(this))).addClass("selected");
 	}
 	,onKey: function(e) {
 		var _g = e.keyCode;
 		switch(_g) {
 		case 45:
-			if(this.sheet != null) this.newLine();
+			if(this.sheet != null) this.newLine(Std.parseInt(new js.JQuery("tr.selected").data("index")));
 			break;
 		case 46:
 			var indexes;
@@ -1514,7 +1542,7 @@ Main.prototype = {
 			while(_g2 < indexes.length) {
 				var i = indexes[_g2];
 				++_g2;
-				this.sheet.lines.splice(i,1);
+				this.deleteLine(this.sheet,i);
 			}
 			this.refresh();
 			this.save();
