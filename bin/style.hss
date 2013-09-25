@@ -131,9 +131,23 @@ table.castle {
 		overflow : hidden;
 	}
 	
+	img {
+		max-height: 64px;
+	}
+	
+	td.selected img {
+		opacity : 0.5;
+	}
+	
 	td.start {
 		width : 30px;
 		text-align : center;
+	}
+	
+	
+	tr.separator {
+		background-color : #CCC;
+		height : 10px;
 	}
 	
 	tr.head {
@@ -142,6 +156,9 @@ table.castle {
 		border-bottom : 1px solid #888;
 		background-color : #333;
 		color : #EEE;
+		td.display {
+			font-style : italic;
+		}
 	}
 	
 	tr.selected {

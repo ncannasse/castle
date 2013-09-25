@@ -1,6 +1,6 @@
 (function () { "use strict";
 var $hxClasses = {},$estr = function() { return js.Boot.__string_rec(this,''); };
-var ColumnType = $hxClasses["ColumnType"] = { __ename__ : ["ColumnType"], __constructs__ : ["TId","TString","TBool","TInt","TFloat","TEnum","TRef"] }
+var ColumnType = $hxClasses["ColumnType"] = { __ename__ : ["ColumnType"], __constructs__ : ["TId","TString","TBool","TInt","TFloat","TEnum","TRef","TImage"] }
 ColumnType.TId = ["TId",0];
 ColumnType.TId.toString = $estr;
 ColumnType.TId.__enum__ = ColumnType;
@@ -18,6 +18,9 @@ ColumnType.TFloat.toString = $estr;
 ColumnType.TFloat.__enum__ = ColumnType;
 ColumnType.TEnum = function(values) { var $x = ["TEnum",5,values]; $x.__enum__ = ColumnType; $x.toString = $estr; return $x; }
 ColumnType.TRef = function(sheet) { var $x = ["TRef",6,sheet]; $x.__enum__ = ColumnType; $x.toString = $estr; return $x; }
+ColumnType.TImage = ["TImage",7];
+ColumnType.TImage.toString = $estr;
+ColumnType.TImage.__enum__ = ColumnType;
 var EReg = function(r,opt) {
 	opt = opt.split("u").join("");
 	this.r = new RegExp(r,opt);
@@ -25,7 +28,10 @@ var EReg = function(r,opt) {
 $hxClasses["EReg"] = EReg;
 EReg.__name__ = ["EReg"];
 EReg.prototype = {
-	match: function(s) {
+	replace: function(s,by) {
+		return s.replace(this.r,by);
+	}
+	,match: function(s) {
 		if(this.r.global) this.r.lastIndex = 0;
 		this.r.m = this.r.exec(s);
 		this.r.s = s;
@@ -103,6 +109,14 @@ HxOverrides.iter = function(a) {
 var Lambda = function() { }
 $hxClasses["Lambda"] = Lambda;
 Lambda.__name__ = ["Lambda"];
+Lambda.has = function(it,elt) {
+	var $it0 = $iterator(it)();
+	while( $it0.hasNext() ) {
+		var x = $it0.next();
+		if(x == elt) return true;
+	}
+	return false;
+}
 Lambda.indexOf = function(it,v) {
 	var i = 0;
 	var $it0 = $iterator(it)();
@@ -138,16 +152,18 @@ List.prototype = {
 	,__class__: List
 }
 var Main = function() {
-	this["window"] = nw.Window.get();
+	this["window"] = nodejs.webkit.Window.get();
 	this.prefs = { windowPos : { x : 50, y : 50, w : 800, h : 600, max : false}, curFile : null, curSheet : 0};
 	try {
 		this.prefs = haxe.Unserializer.run(js.Browser.getLocalStorage().getItem("prefs"));
 	} catch( e ) {
 	}
 	this.initMenu();
+	this.mousePos = { x : 0, y : 0};
 	this["window"]["window"].addEventListener("keydown",$bind(this,this.onKey));
+	this["window"]["window"].addEventListener("mousemove",$bind(this,this.onMouseMove));
 	new js.JQuery("body").click(function(_) {
-		new js.JQuery("tr.selected").removeClass("selected");
+		new js.JQuery(".selected").removeClass("selected");
 	});
 	this.load(true);
 };
@@ -164,14 +180,15 @@ Main.prototype = {
 	}
 	,initMenu: function() {
 		var _g = this;
-		var menu = new nw.Menu({ type : "menubar"});
-		var mfile = new nw.MenuItem({ label : "File"});
-		var mnew = new nw.MenuItem({ label : "New"});
-		var mopen = new nw.MenuItem({ label : "Open..."});
-		var msave = new nw.MenuItem({ label : "Save As..."});
-		var mfiles = new nw.Menu();
-		var mhelp = new nw.MenuItem({ label : "Help"});
-		var mdebug = new nw.MenuItem({ label : "Dev"});
+		var menu = new nodejs.webkit.Menu({ type : "menubar"});
+		var mfile = new nodejs.webkit.MenuItem({ label : "File"});
+		var mfiles = new nodejs.webkit.Menu();
+		var mnew = new nodejs.webkit.MenuItem({ label : "New"});
+		var mopen = new nodejs.webkit.MenuItem({ label : "Open..."});
+		var msave = new nodejs.webkit.MenuItem({ label : "Save As..."});
+		var mclean = new nodejs.webkit.MenuItem({ label : "Clean Images"});
+		var mhelp = new nodejs.webkit.MenuItem({ label : "Help"});
+		var mdebug = new nodejs.webkit.MenuItem({ label : "Dev"});
 		mnew.click = function() {
 			_g.prefs.curFile = null;
 			_g.load(true);
@@ -202,9 +219,23 @@ Main.prototype = {
 		mhelp.click = function() {
 			new js.JQuery("#help").show();
 		};
+		mclean.click = function() {
+			if(_g.imageBank == null) {
+				_g.error("No image bank");
+				return;
+			}
+			var count = Reflect.fields(_g.imageBank).length;
+			_g.cleanImages();
+			var count2 = Reflect.fields(_g.imageBank).length;
+			_g.error(count - count2 + " unused images removed");
+			if(count2 == 0) _g.imageBank = null;
+			_g.refresh();
+			_g.saveImages();
+		};
 		mfiles.append(mnew);
 		mfiles.append(mopen);
 		mfiles.append(msave);
+		mfiles.append(mclean);
 		mfile.submenu = mfiles;
 		menu.append(mfile);
 		menu.append(mhelp);
@@ -226,7 +257,61 @@ Main.prototype = {
 			_g.prefs.windowPos.max = false;
 		});
 	}
+	,cleanImages: function() {
+		if(this.imageBank == null) return;
+		var used = new haxe.ds.StringMap();
+		var _g = 0;
+		var _g1 = this.data.sheets;
+		while(_g < _g1.length) {
+			var s = _g1[_g];
+			++_g;
+			var _g2 = 0;
+			var _g3 = s.columns;
+			while(_g2 < _g3.length) {
+				var c = _g3[_g2];
+				++_g2;
+				var _g4 = c.type;
+				switch(_g4[1]) {
+				case 7:
+					var _g5 = 0;
+					var _g6 = s.lines;
+					while(_g5 < _g6.length) {
+						var obj = _g6[_g5];
+						++_g5;
+						var v = (function($this) {
+							var $r;
+							var v1 = null;
+							try {
+								v1 = obj[c.name];
+							} catch( e ) {
+							}
+							$r = v1;
+							return $r;
+						}(this));
+						if(v != null) used.set(v,true);
+					}
+					break;
+				default:
+				}
+			}
+		}
+		var _g = 0;
+		var _g1 = Reflect.fields(this.imageBank);
+		while(_g < _g1.length) {
+			var f = _g1[_g];
+			++_g;
+			if(!used.get(f)) Reflect.deleteField(this.imageBank,f);
+		}
+	}
 	,initContent: function() {
+		this.smap = new haxe.ds.StringMap();
+		var _g = 0;
+		var _g1 = this.data.sheets;
+		while(_g < _g1.length) {
+			var s = _g1[_g];
+			++_g;
+			this.makeSheet(s);
+		}
 		var sheets = new js.JQuery("ul#sheets");
 		sheets.children().remove();
 		var _g1 = 0;
@@ -335,6 +420,9 @@ Main.prototype = {
 			}
 			t = ColumnType.TRef(s.name);
 			break;
+		case "image":
+			t = ColumnType.TImage;
+			break;
 		default:
 			return;
 		}
@@ -403,6 +491,10 @@ Main.prototype = {
 					case 1:
 						switch(_g2[1]) {
 						case 0:case 6:
+							var r_invalid = new EReg("[^A-Za-z0-9_]","g");
+							conv = function(r) {
+								return r_invalid.replace(r,"_");
+							};
 							break;
 						case 3:
 							conv = Std.parseInt;
@@ -493,6 +585,9 @@ Main.prototype = {
 							return;
 						}
 						break;
+					default:
+						this.error("Cannot convert " + HxOverrides.substr(old.type[0],1,null) + " to " + HxOverrides.substr(c.type[0],1,null));
+						return;
 					}
 				}
 				if(conv != null) {
@@ -605,10 +700,9 @@ Main.prototype = {
 		name = StringTools.trim(name);
 		if(name == "") return;
 		new js.JQuery("#newsheet").hide();
-		var s = { name : name, columns : [], lines : [], props : { displayColumn : null}};
+		var s = { name : name, columns : [], lines : [], separators : [], props : { displayColumn : null}};
 		this.prefs.curSheet = this.data.sheets.length - 1;
 		this.data.sheets.push(s);
-		this.makeSheets();
 		this.initContent();
 		this.save();
 		this.selectSheet(s);
@@ -664,8 +758,8 @@ Main.prototype = {
 		}
 		new js.JQuery("#newcol").show();
 	}
-	,deleteColumn: function() {
-		var cname = new js.JQuery("#newcol form [name=ref]").val();
+	,deleteColumn: function(cname) {
+		if(cname == null) cname = new js.JQuery("#newcol form [name=ref]").val();
 		var _g = 0;
 		var _g1 = this.sheet.columns;
 		while(_g < _g1.length) {
@@ -679,6 +773,10 @@ Main.prototype = {
 					var o = _g3[_g2];
 					++_g2;
 					Reflect.deleteField(o,c.name);
+				}
+				if(this.sheet.props.displayColumn == c.name) {
+					this.sheet.props.displayColumn = null;
+					this.makeSheet(this.sheet);
 				}
 			}
 		}
@@ -721,20 +819,39 @@ Main.prototype = {
 		var _g3 = 0;
 		var _g2 = s.lines.length;
 		while(_g3 < _g2) {
-			var i = _g3++;
+			var i = [_g3++];
 			_g1.push((function($this) {
 				var $r;
 				var l = [new js.JQuery("<tr>")];
-				l[0].data("index",i);
-				var head = new js.JQuery("<td>").addClass("start").text("" + i);
-				head.click((function(l) {
+				l[0].data("index",i[0]);
+				var head = [new js.JQuery("<td>").addClass("start").text("" + i[0])];
+				head[0].click((function(l) {
 					return function(e) {
 						if(!e.ctrlKey) new js.JQuery("tr.selected").removeClass("selected");
 						l[0].toggleClass("selected");
 						e.stopPropagation();
 					};
 				})(l));
-				head.appendTo(l[0]);
+				l[0].mousedown((function(head,i) {
+					return function(e) {
+						if(e.which == 3) {
+							head[0].click();
+							haxe.Timer.delay((function($this) {
+								var $r;
+								var f = $bind(_g4,_g4.popupLine), a1 = i[0];
+								$r = (function() {
+									return function() {
+										return f(a1);
+									};
+								})();
+								return $r;
+							}(this)),1);
+							e.preventDefault();
+							return;
+						}
+					};
+				})(head,i));
+				head[0].appendTo(l[0]);
 				$r = l[0];
 				return $r;
 			}(this)));
@@ -748,20 +865,33 @@ Main.prototype = {
 			var col = new js.JQuery("<td>");
 			col.html(c[0].name);
 			col.css("width",c[0].size == null?(100 / s.columns.length | 0) + "%":c[0].size + "%");
-			col.dblclick((function(c) {
-				return function(_) {
-					_g4.newColumn(c[0]);
+			if(s.props.displayColumn == c[0].name) col.addClass("display");
+			col.mousedown((function(c) {
+				return function(e) {
+					if(e.which == 3) {
+						haxe.Timer.delay((function($this) {
+							var $r;
+							var f1 = $bind(_g4,_g4.popupColumn), c1 = c[0];
+							$r = (function() {
+								return function() {
+									return f1(c1);
+								};
+							})();
+							return $r;
+						}(this)),1);
+						e.preventDefault();
+						return;
+					}
 				};
 			})(c));
 			cols.append(col);
 			var ctype = "t_" + types[c[0].type[1]];
-			var ids = new haxe.ds.StringMap();
 			var _g5 = 0;
 			var _g41 = s.lines.length;
 			while(_g5 < _g41) {
-				var index = _g5++;
-				var obj = [s.lines[index]];
-				var val = [(function($this) {
+				var index = [_g5++];
+				var obj = [s.lines[index[0]]];
+				var val = (function($this) {
 					var $r;
 					var v = null;
 					try {
@@ -770,202 +900,351 @@ Main.prototype = {
 					}
 					$r = v;
 					return $r;
-				}(this))];
+				}(this));
 				var v1 = [new js.JQuery("<td>").addClass(ctype)];
-				v1[0].appendTo(lines[index]);
-				var html = [this.valueHtml(c[0],val[0])];
-				if(c[0].type == ColumnType.TId && val[0] != null && val[0] != "") {
-					if((function($this) {
-						var $r;
-						var key = val[0];
-						$r = ids.get(key);
-						return $r;
-					}(this)) == null) {
-						var key = val[0];
-						ids.set(key,index);
-					} else html[0] = "<span class=\"error\">#DUP(" + Std.string(val[0]) + ")</span>";
-				}
-				v1[0].html(html[0]);
-				v1[0].click((function(html,v1,val,obj,c) {
-					return function() {
-						if(v1[0].hasClass("edit")) return;
-						var editDone = (function(html,v1) {
-							return function() {
-								v1[0].html(html[0]);
-								v1[0].removeClass("edit");
-								v1[0].removeClass("edit");
-							};
-						})(html,v1);
-						{
-							var _g6 = c[0].type;
-							switch(_g6[1]) {
-							case 3:case 4:case 1:case 0:
-								v1[0].html("");
-								var i1 = new js.JQuery("<input>");
-								v1[0].addClass("edit");
-								i1.appendTo(v1[0]);
-								if(val[0] != null) i1.val("" + Std.string(val[0]));
-								i1.keydown((function(html,v1,val,obj,c) {
-									return function(e) {
-										var _g7 = e.keyCode;
-										switch(_g7) {
-										case 27:
-											editDone();
-											break;
-										case 13:
-											i1.blur();
-											break;
-										case 9:
-											i1.blur();
-											var n = v1[0].next("td");
-											while(n.hasClass("t_bool") || n.hasClass("t_enum") || n.hasClass("t_ref")) n = n.next("td");
-											n.click();
-											e.preventDefault();
-											break;
-										case 46:
-											var val2 = _g4.getDefault(c[0]);
-											if(val2 != val[0]) {
-												val[0] = val2;
-												if(val[0] == null) Reflect.deleteField(obj[0],c[0].name); else obj[0][c[0].name] = val[0];
-											}
-											html[0] = _g4.valueHtml(c[0],val[0]);
-											_g4.changed(c[0]);
-											editDone();
-											break;
-										}
-										e.stopPropagation();
-									};
-								})(html,v1,val,obj,c));
-								i1.blur((function(html,val,obj,c) {
-									return function(_) {
-										var nv = i1.val();
-										if(nv == "" && c[0].opt) {
-											if(val[0] != null) {
-												val[0] = html[0] = null;
-												Reflect.deleteField(obj[0],c[0].name);
-												_g4.changed(c[0]);
-											}
-										} else {
-											var val2;
-											var _g7 = c[0].type;
-											switch(_g7[1]) {
-											case 3:
-												val2 = Std.parseInt(nv);
-												break;
-											case 4:
-												var f = Std.parseFloat(nv);
-												if(Math.isNaN(f)) val2 = null; else val2 = f;
-												break;
-											case 0:
-												if(Main.r_id.match(nv)) val2 = nv; else val2 = null;
-												break;
-											default:
-												val2 = nv;
-											}
-											if(val2 != val[0] && val2 != null) {
-												val[0] = val2;
-												html[0] = _g4.valueHtml(c[0],val[0]);
-												obj[0][c[0].name] = val[0];
-												_g4.changed(c[0]);
-											}
-										}
-										editDone();
-									};
-								})(html,val,obj,c));
-								i1.focus();
-								break;
-							case 5:
-								var values = _g6[2];
-								v1[0].html("");
-								var s1 = new js.JQuery("<select>");
-								v1[0].addClass("edit");
-								var _g8 = 0;
-								var _g7 = values.length;
-								while(_g8 < _g7) {
-									var i = _g8++;
-									new js.JQuery("<option>").attr("value","" + i).attr(val[0] == i?"selected":"_sel","selected").text(values[i]).appendTo(s1);
+				v1[0].appendTo(lines[index[0]]);
+				var html = this.valueHtml(c[0],val,this.sheet,obj[0]);
+				v1[0].html(html);
+				var _g6 = c[0].type;
+				switch(_g6[1]) {
+				case 7:
+					v1[0].click((function(v1) {
+						return function(e) {
+							new js.JQuery(".selected").removeClass("selected");
+							v1[0].addClass("selected");
+							e.stopPropagation();
+						};
+					})(v1));
+					v1[0].change((function(obj,c) {
+						return function(_) {
+							if((function($this) {
+								var $r;
+								var v = null;
+								try {
+									v = obj[0][c[0].name];
+								} catch( e ) {
 								}
-								if(c[0].opt) new js.JQuery("<option>").attr("value","-1").text("--- None ---").prependTo(s1);
-								v1[0].append(s1);
-								s1.change((function(html,val,obj,c) {
-									return function(_) {
-										val[0] = Std.parseInt(s1.val());
-										if(val[0] < 0) Reflect.deleteField(obj[0],c[0].name); else obj[0][c[0].name] = val[0];
-										html[0] = _g4.valueHtml(c[0],val[0]);
-										_g4.changed(c[0]);
-										editDone();
-									};
-								})(html,val,obj,c));
-								s1.blur((function() {
-									return function(_) {
-										editDone();
-									};
-								})());
-								s1.focus();
-								var event = window.document.createEvent("MouseEvents");
-								event.initMouseEvent("mousedown",true,true,window);
-								s1[0].dispatchEvent(event);
-								break;
-							case 6:
-								var sname = _g6[2];
-								var sdat = _g4.smap.get(sname);
-								if(sdat == null) return;
-								v1[0].html("");
-								var s2 = new js.JQuery("<select>");
-								v1[0].addClass("edit");
-								var _g7 = 0;
-								var _g8 = sdat.all;
-								while(_g7 < _g8.length) {
-									var l = _g8[_g7];
-									++_g7;
-									new js.JQuery("<option>").attr("value","" + l.id).attr(val[0] == l.id?"selected":"_sel","selected").text(l.disp).appendTo(s2);
-								}
-								if(c[0].opt) new js.JQuery("<option>").attr("value","").text("--- None ---").prependTo(s2);
-								v1[0].append(s2);
-								s2.change((function(html,val,obj,c) {
-									return function(_) {
-										val[0] = s2.val();
-										if(val[0] == "") {
-											val[0] = null;
-											Reflect.deleteField(obj[0],c[0].name);
-										} else obj[0][c[0].name] = val[0];
-										html[0] = _g4.valueHtml(c[0],val[0]);
-										_g4.changed(c[0]);
-										editDone();
-									};
-								})(html,val,obj,c));
-								s2.blur((function() {
-									return function(_) {
-										editDone();
-									};
-								})());
-								s2.focus();
-								var event = window.document.createEvent("MouseEvents");
-								event.initMouseEvent("mousedown",true,true,window);
-								s2[0].dispatchEvent(event);
-								break;
-							case 2:
-								val[0] = !val[0];
-								obj[0][c[0].name] = val[0];
-								v1[0].html(_g4.valueHtml(c[0],val[0]));
-								_g4.changed(c[0]);
-								break;
+								$r = v;
+								return $r;
+							}(this)) != null) {
+								Reflect.deleteField(obj[0],c[0].name);
+								_g4.refresh();
+								_g4.save();
 							}
-						}
-					};
-				})(html,v1,val,obj,c));
+						};
+					})(obj,c));
+					v1[0].dblclick((function(v1,index,c) {
+						return function(_) {
+							_g4.editCell(c[0],v1[0],_g4.sheet,index[0]);
+						};
+					})(v1,index,c));
+					break;
+				default:
+					v1[0].click((function(v1,index,c) {
+						return function() {
+							_g4.editCell(c[0],v1[0],_g4.sheet,index[0]);
+						};
+					})(v1,index,c));
+				}
 			}
 		}
 		content.html("");
 		content.append(cols);
-		var _g2 = 0;
-		while(_g2 < lines.length) {
-			var l = lines[_g2];
-			++_g2;
-			content.append(l);
+		var snext = 0;
+		var _g3 = 0;
+		var _g2 = lines.length;
+		while(_g3 < _g2) {
+			var i = _g3++;
+			content.append(lines[i]);
+			if(s.separators[snext] == i) {
+				new js.JQuery("<tr>").addClass("separator").append("<td colspan=\"" + (s.columns.length + 1) + "\">").appendTo(content);
+				snext++;
+			}
 		}
 	}
-	,valueHtml: function(c,v) {
+	,editCell: function(c,v,sheet,index) {
+		var _g = this;
+		var obj = sheet.lines[index];
+		var val = (function($this) {
+			var $r;
+			var v1 = null;
+			try {
+				v1 = obj[c.name];
+			} catch( e ) {
+			}
+			$r = v1;
+			return $r;
+		}(this));
+		var html = _g.valueHtml(c,val,sheet,obj);
+		if(v.hasClass("edit")) return;
+		var editDone = function() {
+			v.html(html);
+			v.removeClass("edit");
+		};
+		{
+			var _g1 = c.type;
+			switch(_g1[1]) {
+			case 3:case 4:case 1:case 0:
+				v.html("");
+				var i = new js.JQuery("<input>");
+				v.addClass("edit");
+				i.appendTo(v);
+				if(val != null) i.val("" + Std.string(val));
+				i.keydown(function(e) {
+					var _g11 = e.keyCode;
+					switch(_g11) {
+					case 27:
+						editDone();
+						break;
+					case 13:
+						i.blur();
+						break;
+					case 9:
+						i.blur();
+						var n = v.next("td");
+						while(n.hasClass("t_bool") || n.hasClass("t_enum") || n.hasClass("t_ref")) n = n.next("td");
+						n.click();
+						e.preventDefault();
+						break;
+					case 46:
+						var val2 = _g.getDefault(c);
+						if(val2 != val) {
+							val = val2;
+							if(val == null) Reflect.deleteField(obj,c.name); else obj[c.name] = val;
+						}
+						_g.changed(sheet,c);
+						html = _g.valueHtml(c,val,sheet,obj);
+						editDone();
+						break;
+					}
+					e.stopPropagation();
+				});
+				i.blur(function(_) {
+					var nv = i.val();
+					if(nv == "" && c.opt) {
+						if(val != null) {
+							val = html = null;
+							Reflect.deleteField(obj,c.name);
+							_g.changed(sheet,c);
+						}
+					} else {
+						var val2;
+						var _g11 = c.type;
+						switch(_g11[1]) {
+						case 3:
+							val2 = Std.parseInt(nv);
+							break;
+						case 4:
+							var f = Std.parseFloat(nv);
+							if(Math.isNaN(f)) val2 = null; else val2 = f;
+							break;
+						case 0:
+							if(Main.r_id.match(nv)) val2 = nv; else val2 = null;
+							break;
+						default:
+							val2 = nv;
+						}
+						if(val2 != val && val2 != null) {
+							val = val2;
+							obj[c.name] = val;
+							_g.changed(sheet,c);
+							html = _g.valueHtml(c,val,sheet,obj);
+						}
+					}
+					editDone();
+				});
+				i.focus();
+				break;
+			case 5:
+				var values = _g1[2];
+				v.html("");
+				var s = new js.JQuery("<select>");
+				v.addClass("edit");
+				var _g2 = 0;
+				var _g11 = values.length;
+				while(_g2 < _g11) {
+					var i = _g2++;
+					new js.JQuery("<option>").attr("value","" + i).attr(val == i?"selected":"_sel","selected").text(values[i]).appendTo(s);
+				}
+				if(c.opt) new js.JQuery("<option>").attr("value","-1").text("--- None ---").prependTo(s);
+				v.append(s);
+				s.change(function(_) {
+					val = Std.parseInt(s.val());
+					if(val < 0) {
+						val = null;
+						Reflect.deleteField(obj,c.name);
+					} else obj[c.name] = val;
+					html = _g.valueHtml(c,val,sheet,obj);
+					_g.changed(sheet,c);
+					editDone();
+				});
+				s.blur(function(_) {
+					editDone();
+				});
+				s.focus();
+				var event = window.document.createEvent("MouseEvents");
+				event.initMouseEvent("mousedown",true,true,window);
+				s[0].dispatchEvent(event);
+				break;
+			case 6:
+				var sname = _g1[2];
+				var sdat = this.smap.get(sname);
+				if(sdat == null) return;
+				v.html("");
+				var s1 = new js.JQuery("<select>");
+				v.addClass("edit");
+				var _g11 = 0;
+				var _g2 = sdat.all;
+				while(_g11 < _g2.length) {
+					var l = _g2[_g11];
+					++_g11;
+					new js.JQuery("<option>").attr("value","" + l.id).attr(val == l.id?"selected":"_sel","selected").text(l.disp).appendTo(s1);
+				}
+				if(c.opt) new js.JQuery("<option>").attr("value","").text("--- None ---").prependTo(s1);
+				v.append(s1);
+				s1.change(function(_) {
+					val = s1.val();
+					if(val == "") {
+						val = null;
+						Reflect.deleteField(obj,c.name);
+					} else obj[c.name] = val;
+					html = _g.valueHtml(c,val,sheet,obj);
+					_g.changed(sheet,c);
+					editDone();
+				});
+				s1.blur(function(_) {
+					editDone();
+				});
+				s1.focus();
+				var event = window.document.createEvent("MouseEvents");
+				event.initMouseEvent("mousedown",true,true,window);
+				s1[0].dispatchEvent(event);
+				break;
+			case 2:
+				val = !val;
+				obj[c.name] = val;
+				v.html(_g.valueHtml(c,val,sheet,obj));
+				_g.changed(sheet,c);
+				break;
+			case 7:
+				var i = new js.JQuery("<input>").attr("type","file").css("display","none").change(function(e) {
+					var j = $(this);
+					var file = j.val();
+					var ext = file.split(".").pop().toLowerCase();
+					if(ext == "jpeg") ext = "jpg";
+					if(ext != "png" && ext != "gif" && ext != "jpg") {
+						_g.error("Unsupported image extension " + ext);
+						return;
+					}
+					var bytes = sys.io.File.getBytes(file);
+					var md5 = haxe.crypto.Md5.make(bytes).toHex();
+					if(_g.imageBank == null) _g.imageBank = { };
+					if(!Reflect.hasField(_g.imageBank,md5)) {
+						var data = "data:image/" + ext + ";base64," + new haxe.crypto.BaseCode(haxe.io.Bytes.ofString("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/")).encodeBytes(bytes).toString();
+						_g.imageBank[md5] = data;
+					}
+					val = md5;
+					obj[c.name] = val;
+					v.html(_g.valueHtml(c,val,sheet,obj));
+					_g.changed(sheet,c);
+					j.remove();
+				});
+				i.appendTo(new js.JQuery("body"));
+				i.click();
+				break;
+			}
+		}
+	}
+	,popupColumn: function(c) {
+		var _g = this;
+		var n = new nodejs.webkit.Menu();
+		var nedit = new nodejs.webkit.MenuItem({ label : "Edit"});
+		var nins = new nodejs.webkit.MenuItem({ label : "Add Column"});
+		var nleft = new nodejs.webkit.MenuItem({ label : "Move Left"});
+		var nright = new nodejs.webkit.MenuItem({ label : "Move Right"});
+		var ndel = new nodejs.webkit.MenuItem({ label : "Delete"});
+		var ndisp = new nodejs.webkit.MenuItem({ label : "Display Column", type : "checkbox"});
+		var _g1 = 0;
+		var _g11 = [nedit,nins,nleft,nright,ndel,ndisp];
+		while(_g1 < _g11.length) {
+			var m = _g11[_g1];
+			++_g1;
+			n.append(m);
+		}
+		ndisp.checked = this.sheet.props.displayColumn == c.name;
+		nedit.click = function() {
+			_g.newColumn(c);
+		};
+		nleft.click = function() {
+			var index = Lambda.indexOf(_g.sheet.columns,c);
+			if(index > 0) {
+				HxOverrides.remove(_g.sheet.columns,c);
+				_g.sheet.columns.splice(index - 1,0,c);
+				_g.refresh();
+				_g.save();
+			}
+		};
+		nright.click = function() {
+			var index = Lambda.indexOf(_g.sheet.columns,c);
+			if(index < _g.sheet.columns.length - 1) {
+				HxOverrides.remove(_g.sheet.columns,c);
+				_g.sheet.columns.splice(index + 1,0,c);
+				_g.refresh();
+				_g.save();
+			}
+		};
+		ndel.click = function() {
+			_g.deleteColumn(c.name);
+		};
+		ndisp.click = function() {
+			if(_g.sheet.props.displayColumn == c.name) _g.sheet.props.displayColumn = null; else _g.sheet.props.displayColumn = c.name;
+			_g.makeSheet(_g.sheet);
+			_g.refresh();
+			_g.save();
+		};
+		nins.click = function() {
+			_g.newColumn();
+		};
+		n.popup(this.mousePos.x,this.mousePos.y);
+	}
+	,popupLine: function(index) {
+		var _g = this;
+		var n = new nodejs.webkit.Menu();
+		var nup = new nodejs.webkit.MenuItem({ label : "Move Up"});
+		var ndown = new nodejs.webkit.MenuItem({ label : "Move Down"});
+		var ndel = new nodejs.webkit.MenuItem({ label : "Delete"});
+		var nsep = new nodejs.webkit.MenuItem({ label : "Separator", type : "checkbox"});
+		var _g1 = 0;
+		var _g11 = [nup,ndown,ndel,nsep];
+		while(_g1 < _g11.length) {
+			var m = _g11[_g1];
+			++_g1;
+			n.append(m);
+		}
+		var hasSep = Lambda.has(this.sheet.separators,index);
+		nsep.checked = hasSep;
+		nup.click = function() {
+			_g.moveColumn(index,-1);
+		};
+		ndown.click = function() {
+			_g.moveColumn(index,1);
+		};
+		ndel.click = function() {
+			_g.sheet.lines.splice(index,1);
+			_g.refresh();
+			_g.save();
+		};
+		nsep.click = function() {
+			if(hasSep) HxOverrides.remove(_g.sheet.separators,index); else {
+				_g.sheet.separators.push(index);
+				_g.sheet.separators.sort(Reflect.compare);
+			}
+			_g.refresh();
+			_g.save();
+		};
+		n.popup(this.mousePos.x,this.mousePos.y);
+	}
+	,valueHtml: function(c,v,sheet,obj) {
 		if(v == null) {
 			if(c.opt) return "&nbsp;";
 			return "<span class=\"error\">#NULL</span>";
@@ -976,7 +1255,12 @@ Main.prototype = {
 			case 3:case 4:
 				return Std.string(v) + "";
 			case 0:
-				if(v == "") return "<span class=\"error\">#MISSING</span>"; else return v;
+				if(v == "") return "<span class=\"error\">#MISSING</span>"; else if(((function($this) {
+					var $r;
+					var key = v;
+					$r = $this.smap.get(sheet.name).index.get(key);
+					return $r;
+				}(this))).obj == obj) return v; else return "<span class=\"error\">#DUP(" + Std.string(v) + ")</span>";
 				break;
 			case 1:
 				if(v == "") return "&nbsp;"; else return StringTools.htmlEscape(v);
@@ -985,10 +1269,10 @@ Main.prototype = {
 				var sname = _g[2];
 				if(v == "") return "<span class=\"error\">#MISSING</span>"; else {
 					var s = this.smap.get(sname);
-					var disp;
+					var i;
 					var key = v;
-					disp = s.ids.get(key);
-					if(disp == null) return "<span class=\"error\">#REF(" + Std.string(v) + ")</span>"; else return StringTools.htmlEscape(disp);
+					i = s.index.get(key);
+					if(i == null) return "<span class=\"error\">#REF(" + Std.string(v) + ")</span>"; else return StringTools.htmlEscape(i.disp);
 				}
 				break;
 			case 2:
@@ -997,11 +1281,24 @@ Main.prototype = {
 			case 5:
 				var values = _g[2];
 				return values[v];
+			case 7:
+				if(v == "") return "<span class=\"error\">#MISSING</span>"; else {
+					var data;
+					var field = v;
+					var v1 = null;
+					try {
+						v1 = this.imageBank[field];
+					} catch( e ) {
+					}
+					data = v1;
+					if(data == null) return "<span class=\"error\">#NOTFOUND(" + Std.string(v) + ")</span>"; else return "<img src=\"" + data + "\"/>";
+				}
+				break;
 			}
 		}
 	}
 	,makeSheet: function(s) {
-		var sdat = { s : s, ids : new haxe.ds.StringMap(), all : []};
+		var sdat = { s : s, index : new haxe.ds.StringMap(), all : []};
 		var cid = null;
 		var _g = 0;
 		var _g1 = s.columns;
@@ -1029,14 +1326,15 @@ Main.prototype = {
 						if(s.props.displayColumn != null) {
 							var v1 = null;
 							try {
-								v1 = c.name[s.props.displayColumn];
+								v1 = l[s.props.displayColumn];
 							} catch( e ) {
 							}
 							disp = v1;
 							if(disp == null || disp == "") disp = "#" + v;
 						}
-						sdat.ids.set(v,disp);
-						sdat.all.push({ id : v, disp : disp});
+						var o = { id : v, disp : disp, obj : l};
+						if(sdat.index.get(v) == null) sdat.index.set(v,o);
+						sdat.all.push(o);
 					}
 				}
 				break;
@@ -1047,21 +1345,18 @@ Main.prototype = {
 	,error: function(msg) {
 		js.Lib.alert(msg);
 	}
-	,makeSheets: function() {
-		this.smap = new haxe.ds.StringMap();
-		var _g = 0;
-		var _g1 = this.data.sheets;
-		while(_g < _g1.length) {
-			var s = _g1[_g];
-			++_g;
-			this.makeSheet(s);
-		}
-	}
 	,quickLoad: function(data) {
 		return haxe.Unserializer.run(data);
 	}
 	,quickSave: function() {
 		return haxe.Serializer.run(this.data);
+	}
+	,saveImages: function() {
+		if(this.prefs.curFile == null) return;
+		var img = this.prefs.curFile.split(".");
+		img.pop();
+		var path = img.join(".") + ".img";
+		if(this.imageBank == null) js.Node.require("fs").unlinkSync(path); else sys.io.File.saveContent(path,js.Node.stringify(this.imageBank,null,"\t"));
 	}
 	,save: function(history) {
 		if(history == null) history = true;
@@ -1133,15 +1428,55 @@ Main.prototype = {
 			this.prefs.curSheet = 0;
 			this.data = { sheets : []};
 		}
+		try {
+			var img = this.prefs.curFile.split(".");
+			img.pop();
+			var jsonString = sys.io.File.getContent(img.join(".") + ".img");
+			this.imageBank = js.Node.parse(jsonString);
+		} catch( e ) {
+			this.imageBank = null;
+		}
 		this.curSavedData = this.quickSave();
-		this.makeSheets();
 		this.initContent();
 	}
-	,changed: function(c) {
+	,changed: function(sheet,c) {
 		this.save();
-		if(c.type == ColumnType.TId) {
-			this.makeSheet(this.sheet);
+		var _g = c.type;
+		switch(_g[1]) {
+		case 0:
+			this.makeSheet(sheet);
+			break;
+		case 7:
+			this.saveImages();
+			break;
+		default:
+		}
+	}
+	,moveColumn: function(index,delta) {
+		if(delta < 0 && index > 0) {
+			var l = this.sheet.lines[index];
+			this.sheet.lines.splice(index,1);
+			this.sheet.lines.splice(index - 1,0,l);
 			this.refresh();
+			this.save();
+			((function($this) {
+				var $r;
+				var html = new js.JQuery("#content tr")[index];
+				$r = new js.JQuery(html);
+				return $r;
+			}(this))).addClass("selected");
+		} else if(delta > 0 && this.sheet != null && index < this.sheet.lines.length - 1) {
+			var l = this.sheet.lines[index];
+			this.sheet.lines.splice(index,1);
+			this.sheet.lines.splice(index + 1,0,l);
+			this.refresh();
+			this.save();
+			((function($this) {
+				var $r;
+				var html = new js.JQuery("#content tr")[index + 2];
+				$r = new js.JQuery(html);
+				return $r;
+			}(this))).addClass("selected");
 		}
 	}
 	,onKey: function(e) {
@@ -1155,15 +1490,23 @@ Main.prototype = {
 			var _g1 = [];
 			var $it0 = (function($this) {
 				var $r;
-				var _this = new js.JQuery("tr.selected");
+				var _this = new js.JQuery(".selected");
 				$r = (_this.iterator)();
 				return $r;
 			}(this));
 			while( $it0.hasNext() ) {
 				var i = $it0.next();
-				_g1.push(i.data("index"));
+				_g1.push((function($this) {
+					var $r;
+					i.change();
+					$r = Std.parseInt(i.data("index"));
+					return $r;
+				}(this)));
 			}
 			indexes = _g1;
+			while(HxOverrides.remove(indexes,null)) {
+			}
+			if(indexes.length == 0) return;
 			indexes.sort(function(a,b) {
 				return b - a;
 			});
@@ -1178,35 +1521,11 @@ Main.prototype = {
 			break;
 		case 38:
 			var index = new js.JQuery("tr.selected").data("index");
-			if(index > 0) {
-				var l = this.sheet.lines[index];
-				this.sheet.lines.splice(index,1);
-				this.sheet.lines.splice(index - 1,0,l);
-				this.refresh();
-				this.save();
-				((function($this) {
-					var $r;
-					var html = new js.JQuery("#content tr")[index];
-					$r = new js.JQuery(html);
-					return $r;
-				}(this))).addClass("selected");
-			}
+			this.moveColumn(index,-1);
 			break;
 		case 40:
 			var index = new js.JQuery("tr.selected").data("index");
-			if(this.sheet != null && index < this.sheet.lines.length - 1) {
-				var l = this.sheet.lines[index];
-				this.sheet.lines.splice(index,1);
-				this.sheet.lines.splice(index + 1,0,l);
-				this.refresh();
-				this.save();
-				((function($this) {
-					var $r;
-					var html = new js.JQuery("#content tr")[index + 2];
-					$r = new js.JQuery(html);
-					return $r;
-				}(this))).addClass("selected");
-			}
+			this.moveColumn(index,1);
 			break;
 		case 90:
 			if(e.ctrlKey && this.history.length > 0) {
@@ -1229,6 +1548,10 @@ Main.prototype = {
 		default:
 		}
 	}
+	,onMouseMove: function(e) {
+		this.mousePos.x = e.clientX;
+		this.mousePos.y = e.clientY;
+	}
 	,getDefault: function(c) {
 		if(c.opt) return null;
 		{
@@ -1236,7 +1559,7 @@ Main.prototype = {
 			switch(_g[1]) {
 			case 3:case 4:case 5:
 				return 0;
-			case 1:case 0:case 6:
+			case 1:case 0:case 6:case 7:
 				return "";
 			case 2:
 				return false;
@@ -1248,6 +1571,9 @@ Main.prototype = {
 var IMap = function() { }
 $hxClasses["IMap"] = IMap;
 IMap.__name__ = ["IMap"];
+IMap.prototype = {
+	__class__: IMap
+}
 var Reflect = function() { }
 $hxClasses["Reflect"] = Reflect;
 Reflect.__name__ = ["Reflect"];
@@ -1266,6 +1592,9 @@ Reflect.fields = function(o) {
 }
 Reflect.isFunction = function(f) {
 	return typeof(f) == "function" && !(f.__name__ || f.__ename__);
+}
+Reflect.compare = function(a,b) {
+	if(a == b) return 0; else if(a > b) return 1; else return -1;
 }
 Reflect.deleteField = function(o,field) {
 	if(!Reflect.hasField(o,field)) return false;
@@ -1748,6 +2077,32 @@ haxe.Serializer.prototype = {
 	}
 	,__class__: haxe.Serializer
 }
+haxe.Timer = function(time_ms) {
+	var me = this;
+	this.id = setInterval(function() {
+		me.run();
+	},time_ms);
+};
+$hxClasses["haxe.Timer"] = haxe.Timer;
+haxe.Timer.__name__ = ["haxe","Timer"];
+haxe.Timer.delay = function(f,time_ms) {
+	var t = new haxe.Timer(time_ms);
+	t.run = function() {
+		t.stop();
+		f();
+	};
+	return t;
+}
+haxe.Timer.prototype = {
+	run: function() {
+	}
+	,stop: function() {
+		if(this.id == null) return;
+		clearInterval(this.id);
+		this.id = null;
+	}
+	,__class__: haxe.Timer
+}
 haxe.Unserializer = function(buf) {
 	this.buf = buf;
 	this.length = buf.length;
@@ -2080,6 +2435,222 @@ haxe.Unserializer.prototype = {
 	}
 	,__class__: haxe.Unserializer
 }
+haxe.crypto = {}
+haxe.crypto.BaseCode = function(base) {
+	var len = base.length;
+	var nbits = 1;
+	while(len > 1 << nbits) nbits++;
+	if(nbits > 8 || len != 1 << nbits) throw "BaseCode : base length must be a power of two.";
+	this.base = base;
+	this.nbits = nbits;
+};
+$hxClasses["haxe.crypto.BaseCode"] = haxe.crypto.BaseCode;
+haxe.crypto.BaseCode.__name__ = ["haxe","crypto","BaseCode"];
+haxe.crypto.BaseCode.prototype = {
+	encodeBytes: function(b) {
+		var nbits = this.nbits;
+		var base = this.base;
+		var size = b.length * 8 / nbits | 0;
+		var out = haxe.io.Bytes.alloc(size + (b.length * 8 % nbits == 0?0:1));
+		var buf = 0;
+		var curbits = 0;
+		var mask = (1 << nbits) - 1;
+		var pin = 0;
+		var pout = 0;
+		while(pout < size) {
+			while(curbits < nbits) {
+				curbits += 8;
+				buf <<= 8;
+				buf |= (function($this) {
+					var $r;
+					var pos = pin++;
+					$r = b.b[pos];
+					return $r;
+				}(this));
+			}
+			curbits -= nbits;
+			var pos = pout++;
+			out.b[pos] = base.b[buf >> curbits & mask];
+		}
+		if(curbits > 0) {
+			var pos = pout++;
+			out.b[pos] = base.b[buf << nbits - curbits & mask];
+		}
+		return out;
+	}
+	,__class__: haxe.crypto.BaseCode
+}
+haxe.crypto.Md5 = function() {
+};
+$hxClasses["haxe.crypto.Md5"] = haxe.crypto.Md5;
+haxe.crypto.Md5.__name__ = ["haxe","crypto","Md5"];
+haxe.crypto.Md5.make = function(b) {
+	var h = new haxe.crypto.Md5().doEncode(haxe.crypto.Md5.bytes2blks(b));
+	var out = haxe.io.Bytes.alloc(16);
+	var p = 0;
+	var _g = 0;
+	while(_g < 4) {
+		var i = _g++;
+		var pos = p++;
+		out.b[pos] = h[i] & 255;
+		var pos = p++;
+		out.b[pos] = h[i] >> 8 & 255;
+		var pos = p++;
+		out.b[pos] = h[i] >> 16 & 255;
+		var pos = p++;
+		out.b[pos] = h[i] >>> 24;
+	}
+	return out;
+}
+haxe.crypto.Md5.bytes2blks = function(b) {
+	var nblk = (b.length + 8 >> 6) + 1;
+	var blks = new Array();
+	var blksSize = nblk * 16;
+	var _g = 0;
+	while(_g < blksSize) {
+		var i = _g++;
+		blks[i] = 0;
+	}
+	var i = 0;
+	while(i < b.length) {
+		blks[i >> 2] |= b.b[i] << (((b.length << 3) + i & 3) << 3);
+		i++;
+	}
+	blks[i >> 2] |= 128 << (b.length * 8 + i) % 4 * 8;
+	var l = b.length * 8;
+	var k = nblk * 16 - 2;
+	blks[k] = l & 255;
+	blks[k] |= (l >>> 8 & 255) << 8;
+	blks[k] |= (l >>> 16 & 255) << 16;
+	blks[k] |= (l >>> 24 & 255) << 24;
+	return blks;
+}
+haxe.crypto.Md5.prototype = {
+	doEncode: function(x) {
+		var a = 1732584193;
+		var b = -271733879;
+		var c = -1732584194;
+		var d = 271733878;
+		var step;
+		var i = 0;
+		while(i < x.length) {
+			var olda = a;
+			var oldb = b;
+			var oldc = c;
+			var oldd = d;
+			step = 0;
+			a = this.ff(a,b,c,d,x[i],7,-680876936);
+			d = this.ff(d,a,b,c,x[i + 1],12,-389564586);
+			c = this.ff(c,d,a,b,x[i + 2],17,606105819);
+			b = this.ff(b,c,d,a,x[i + 3],22,-1044525330);
+			a = this.ff(a,b,c,d,x[i + 4],7,-176418897);
+			d = this.ff(d,a,b,c,x[i + 5],12,1200080426);
+			c = this.ff(c,d,a,b,x[i + 6],17,-1473231341);
+			b = this.ff(b,c,d,a,x[i + 7],22,-45705983);
+			a = this.ff(a,b,c,d,x[i + 8],7,1770035416);
+			d = this.ff(d,a,b,c,x[i + 9],12,-1958414417);
+			c = this.ff(c,d,a,b,x[i + 10],17,-42063);
+			b = this.ff(b,c,d,a,x[i + 11],22,-1990404162);
+			a = this.ff(a,b,c,d,x[i + 12],7,1804603682);
+			d = this.ff(d,a,b,c,x[i + 13],12,-40341101);
+			c = this.ff(c,d,a,b,x[i + 14],17,-1502002290);
+			b = this.ff(b,c,d,a,x[i + 15],22,1236535329);
+			a = this.gg(a,b,c,d,x[i + 1],5,-165796510);
+			d = this.gg(d,a,b,c,x[i + 6],9,-1069501632);
+			c = this.gg(c,d,a,b,x[i + 11],14,643717713);
+			b = this.gg(b,c,d,a,x[i],20,-373897302);
+			a = this.gg(a,b,c,d,x[i + 5],5,-701558691);
+			d = this.gg(d,a,b,c,x[i + 10],9,38016083);
+			c = this.gg(c,d,a,b,x[i + 15],14,-660478335);
+			b = this.gg(b,c,d,a,x[i + 4],20,-405537848);
+			a = this.gg(a,b,c,d,x[i + 9],5,568446438);
+			d = this.gg(d,a,b,c,x[i + 14],9,-1019803690);
+			c = this.gg(c,d,a,b,x[i + 3],14,-187363961);
+			b = this.gg(b,c,d,a,x[i + 8],20,1163531501);
+			a = this.gg(a,b,c,d,x[i + 13],5,-1444681467);
+			d = this.gg(d,a,b,c,x[i + 2],9,-51403784);
+			c = this.gg(c,d,a,b,x[i + 7],14,1735328473);
+			b = this.gg(b,c,d,a,x[i + 12],20,-1926607734);
+			a = this.hh(a,b,c,d,x[i + 5],4,-378558);
+			d = this.hh(d,a,b,c,x[i + 8],11,-2022574463);
+			c = this.hh(c,d,a,b,x[i + 11],16,1839030562);
+			b = this.hh(b,c,d,a,x[i + 14],23,-35309556);
+			a = this.hh(a,b,c,d,x[i + 1],4,-1530992060);
+			d = this.hh(d,a,b,c,x[i + 4],11,1272893353);
+			c = this.hh(c,d,a,b,x[i + 7],16,-155497632);
+			b = this.hh(b,c,d,a,x[i + 10],23,-1094730640);
+			a = this.hh(a,b,c,d,x[i + 13],4,681279174);
+			d = this.hh(d,a,b,c,x[i],11,-358537222);
+			c = this.hh(c,d,a,b,x[i + 3],16,-722521979);
+			b = this.hh(b,c,d,a,x[i + 6],23,76029189);
+			a = this.hh(a,b,c,d,x[i + 9],4,-640364487);
+			d = this.hh(d,a,b,c,x[i + 12],11,-421815835);
+			c = this.hh(c,d,a,b,x[i + 15],16,530742520);
+			b = this.hh(b,c,d,a,x[i + 2],23,-995338651);
+			a = this.ii(a,b,c,d,x[i],6,-198630844);
+			d = this.ii(d,a,b,c,x[i + 7],10,1126891415);
+			c = this.ii(c,d,a,b,x[i + 14],15,-1416354905);
+			b = this.ii(b,c,d,a,x[i + 5],21,-57434055);
+			a = this.ii(a,b,c,d,x[i + 12],6,1700485571);
+			d = this.ii(d,a,b,c,x[i + 3],10,-1894986606);
+			c = this.ii(c,d,a,b,x[i + 10],15,-1051523);
+			b = this.ii(b,c,d,a,x[i + 1],21,-2054922799);
+			a = this.ii(a,b,c,d,x[i + 8],6,1873313359);
+			d = this.ii(d,a,b,c,x[i + 15],10,-30611744);
+			c = this.ii(c,d,a,b,x[i + 6],15,-1560198380);
+			b = this.ii(b,c,d,a,x[i + 13],21,1309151649);
+			a = this.ii(a,b,c,d,x[i + 4],6,-145523070);
+			d = this.ii(d,a,b,c,x[i + 11],10,-1120210379);
+			c = this.ii(c,d,a,b,x[i + 2],15,718787259);
+			b = this.ii(b,c,d,a,x[i + 9],21,-343485551);
+			a = this.addme(a,olda);
+			b = this.addme(b,oldb);
+			c = this.addme(c,oldc);
+			d = this.addme(d,oldd);
+			i += 16;
+		}
+		return [a,b,c,d];
+	}
+	,ii: function(a,b,c,d,x,s,t) {
+		return this.cmn(this.bitXOR(c,this.bitOR(b,~d)),a,b,x,s,t);
+	}
+	,hh: function(a,b,c,d,x,s,t) {
+		return this.cmn(this.bitXOR(this.bitXOR(b,c),d),a,b,x,s,t);
+	}
+	,gg: function(a,b,c,d,x,s,t) {
+		return this.cmn(this.bitOR(this.bitAND(b,d),this.bitAND(c,~d)),a,b,x,s,t);
+	}
+	,ff: function(a,b,c,d,x,s,t) {
+		return this.cmn(this.bitOR(this.bitAND(b,c),this.bitAND(~b,d)),a,b,x,s,t);
+	}
+	,cmn: function(q,a,b,x,s,t) {
+		return this.addme(this.rol(this.addme(this.addme(a,q),this.addme(x,t)),s),b);
+	}
+	,rol: function(num,cnt) {
+		return num << cnt | num >>> 32 - cnt;
+	}
+	,addme: function(x,y) {
+		var lsw = (x & 65535) + (y & 65535);
+		var msw = (x >> 16) + (y >> 16) + (lsw >> 16);
+		return msw << 16 | lsw & 65535;
+	}
+	,bitAND: function(a,b) {
+		var lsb = a & 1 & (b & 1);
+		var msb31 = a >>> 1 & b >>> 1;
+		return msb31 << 1 | lsb;
+	}
+	,bitXOR: function(a,b) {
+		var lsb = a & 1 ^ b & 1;
+		var msb31 = a >>> 1 ^ b >>> 1;
+		return msb31 << 1 | lsb;
+	}
+	,bitOR: function(a,b) {
+		var lsb = a & 1 | b & 1;
+		var msb31 = a >>> 1 | b >>> 1;
+		return msb31 << 1 | lsb;
+	}
+	,__class__: haxe.crypto.Md5
+}
 haxe.ds = {}
 haxe.ds.IntMap = function() {
 	this.h = { };
@@ -2117,6 +2688,9 @@ haxe.ds.ObjectMap.prototype = {
 		if(this.h.hasOwnProperty(key)) a.push(this.h.__keys__[key]);
 		}
 		return HxOverrides.iter(a);
+	}
+	,get: function(key) {
+		return this.h[key.__id__];
 	}
 	,set: function(key,value) {
 		var id;
@@ -2168,6 +2742,26 @@ haxe.io.Bytes.ofData = function(b) {
 haxe.io.Bytes.prototype = {
 	getData: function() {
 		return this.b;
+	}
+	,toHex: function() {
+		var s = new StringBuf();
+		var chars = [];
+		var str = "0123456789abcdef";
+		var _g1 = 0;
+		var _g = str.length;
+		while(_g1 < _g) {
+			var i = _g1++;
+			chars.push(HxOverrides.cca(str,i));
+		}
+		var _g1 = 0;
+		var _g = this.length;
+		while(_g1 < _g) {
+			var i = _g1++;
+			var c = this.b[i];
+			s.b += String.fromCharCode(chars[c >> 4]);
+			s.b += String.fromCharCode(chars[c & 15]);
+		}
+		return s.b;
 	}
 	,toString: function() {
 		return this.readString(0,this.length);
@@ -2425,18 +3019,146 @@ js.NodeC.__name__ = ["js","NodeC"];
 js.Node = function() { }
 $hxClasses["js.Node"] = js.Node;
 js.Node.__name__ = ["js","Node"];
+js.Node.get_assert = function() {
+	return js.Node.require("assert");
+}
+js.Node.get_childProcess = function() {
+	return js.Node.require("child_process");
+}
+js.Node.get_cluster = function() {
+	return js.Node.require("cluster");
+}
+js.Node.get_crypto = function() {
+	return js.Node.require("crypto");
+}
+js.Node.get_dgram = function() {
+	return js.Node.require("dgram");
+}
+js.Node.get_dns = function() {
+	return js.Node.require("dns");
+}
+js.Node.get_fs = function() {
+	return js.Node.require("fs");
+}
+js.Node.get_http = function() {
+	return js.Node.require("http");
+}
+js.Node.get_https = function() {
+	return js.Node.require("https");
+}
+js.Node.get_net = function() {
+	return js.Node.require("net");
+}
+js.Node.get_os = function() {
+	return js.Node.require("os");
+}
+js.Node.get_path = function() {
+	return js.Node.require("path");
+}
+js.Node.get_querystring = function() {
+	return js.Node.require("querystring");
+}
+js.Node.get_repl = function() {
+	return js.Node.require("repl");
+}
+js.Node.get_tls = function() {
+	return js.Node.require("tls");
+}
+js.Node.get_url = function() {
+	return js.Node.require("url");
+}
+js.Node.get_util = function() {
+	return js.Node.require("util");
+}
+js.Node.get_vm = function() {
+	return js.Node.require("vm");
+}
+js.Node.get___filename = function() {
+	return __filename;
+}
+js.Node.get___dirname = function() {
+	return __dirname;
+}
 js.Node.newSocket = function(options) {
 	return new js.Node.net.Socket(options);
 }
-var nw = {}
-nw.$ui = function() { }
-$hxClasses["nw.$ui"] = nw.$ui;
-nw.$ui.__name__ = ["nw","$ui"];
-nw._MenuItem = {}
-nw._MenuItem.MenuItemType_Impl_ = function() { }
-$hxClasses["nw._MenuItem.MenuItemType_Impl_"] = nw._MenuItem.MenuItemType_Impl_;
-nw._MenuItem.MenuItemType_Impl_.__name__ = ["nw","_MenuItem","MenuItemType_Impl_"];
+var nodejs = {}
+nodejs.webkit = {}
+nodejs.webkit.$ui = function() { }
+$hxClasses["nodejs.webkit.$ui"] = nodejs.webkit.$ui;
+nodejs.webkit.$ui.__name__ = ["nodejs","webkit","$ui"];
+nodejs.webkit._MenuItemType = {}
+nodejs.webkit._MenuItemType.MenuItemType_Impl_ = function() { }
+$hxClasses["nodejs.webkit._MenuItemType.MenuItemType_Impl_"] = nodejs.webkit._MenuItemType.MenuItemType_Impl_;
+nodejs.webkit._MenuItemType.MenuItemType_Impl_.__name__ = ["nodejs","webkit","_MenuItemType","MenuItemType_Impl_"];
 var sys = {}
+sys.FileSystem = function() { }
+$hxClasses["sys.FileSystem"] = sys.FileSystem;
+sys.FileSystem.__name__ = ["sys","FileSystem"];
+sys.FileSystem.exists = function(path) {
+	return js.Node.require("fs").existsSync(path);
+}
+sys.FileSystem.rename = function(path,newpath) {
+	js.Node.require("fs").renameSync(path,newpath);
+}
+sys.FileSystem.stat = function(path) {
+	return js.Node.require("fs").statSync(path);
+}
+sys.FileSystem.fullPath = function(relpath) {
+	return js.Node.require("path").resolve(null,relpath);
+}
+sys.FileSystem.isDirectory = function(path) {
+	if(js.Node.require("fs").statSync(path).isSymbolicLink()) return false; else return js.Node.require("fs").statSync(path).isDirectory();
+}
+sys.FileSystem.createDirectory = function(path) {
+	js.Node.require("fs").mkdirSync(path);
+}
+sys.FileSystem.deleteFile = function(path) {
+	js.Node.require("fs").unlinkSync(path);
+}
+sys.FileSystem.deleteDirectory = function(path) {
+	js.Node.require("fs").rmdirSync(path);
+}
+sys.FileSystem.readDirectory = function(path) {
+	return js.Node.require("fs").readdirSync(path);
+}
+sys.FileSystem.signature = function(path) {
+	var shasum = js.Node.require("crypto").createHash("md5");
+	shasum.update(js.Node.require("fs").readFileSync(path));
+	return shasum.digest("hex");
+}
+sys.FileSystem.join = function(p1,p2,p3) {
+	return js.Node.require("path").join(p1 == null?"":p1,p2 == null?"":p2,p3 == null?"":p3);
+}
+sys.FileSystem.readRecursive = function(path,filter) {
+	var files = sys.FileSystem.readRecursiveInternal(path,null,filter);
+	if(files == null) return []; else return files;
+}
+sys.FileSystem.readRecursiveInternal = function(root,dir,filter) {
+	if(dir == null) dir = "";
+	if(root == null) return null;
+	var dirPath = js.Node.require("path").join(root == null?"":root,dir == null?"":dir,"");
+	if(!(js.Node.require("fs").existsSync(dirPath) && sys.FileSystem.isDirectory(dirPath))) return null;
+	var result = [];
+	var _g = 0;
+	var _g1 = js.Node.require("fs").readdirSync(dirPath);
+	while(_g < _g1.length) {
+		var file = _g1[_g];
+		++_g;
+		var fullPath = js.Node.require("path").join(dirPath == null?"":dirPath,file == null?"":file,"");
+		var relPath;
+		if(dir == "") relPath = file; else relPath = js.Node.require("path").join(dir == null?"":dir,file == null?"":file,"");
+		if(js.Node.require("fs").existsSync(fullPath)) {
+			if(sys.FileSystem.isDirectory(fullPath)) {
+				if(fullPath.charCodeAt(fullPath.length - 1) == 47) fullPath = HxOverrides.substr(fullPath,0,-1);
+				if(filter != null && !filter(relPath)) continue;
+				var recursedResults = sys.FileSystem.readRecursiveInternal(root,relPath,filter);
+				if(recursedResults != null && recursedResults.length > 0) result = result.concat(recursedResults);
+			} else if(filter == null || filter(relPath)) result.push(relPath);
+		}
+	}
+	return result;
+}
 sys.io = {}
 sys.io.File = function() { }
 $hxClasses["sys.io.File"] = sys.io.File;
@@ -2446,14 +3168,28 @@ sys.io.File.append = function(path,binary) {
 	return null;
 }
 sys.io.File.copy = function(src,dst) {
-	var content = js.Node.fs.readFileSync(src);
-	js.Node.fs.writeFileSync(dst,content);
+	var content = js.Node.require("fs").readFileSync(src);
+	js.Node.require("fs").writeFileSync(dst,content);
+}
+sys.io.File.getBytes = function(path) {
+	var o = js.Node.require("fs").openSync(path,"r");
+	var s = js.Node.require("fs").fstatSync(o);
+	var len = s.size;
+	var pos = 0;
+	var bytes = haxe.io.Bytes.alloc(s.size);
+	while(len > 0) {
+		var r = js.Node.require("fs").readSync(o,bytes.b,pos,len,null);
+		pos += r;
+		len -= r;
+	}
+	js.Node.require("fs").closeSync(o);
+	return bytes;
 }
 sys.io.File.getContent = function(path) {
-	return js.Node.fs.readFileSync(path);
+	return js.Node.require("fs").readFileSync(path);
 }
 sys.io.File.saveContent = function(path,content) {
-	js.Node.fs.writeFileSync(path,content);
+	js.Node.require("fs").writeFileSync(path,content);
 }
 sys.io.File.write = function(path,binary) {
 	throw "Not implemented";
@@ -2493,6 +3229,16 @@ var Bool = $hxClasses.Bool = Boolean;
 Bool.__ename__ = ["Bool"];
 var Class = $hxClasses.Class = { __name__ : ["Class"]};
 var Enum = { };
+if(Array.prototype.map == null) Array.prototype.map = function(f) {
+	var a = [];
+	var _g1 = 0;
+	var _g = this.length;
+	while(_g1 < _g) {
+		var i = _g1++;
+		a[i] = f(this[i]);
+	}
+	return a;
+};
 var q = window.jQuery;
 js.JQuery = q;
 q.fn.iterator = function() {
@@ -2502,9 +3248,7 @@ q.fn.iterator = function() {
 		return $(this.j[this.pos++]);
 	}};
 };
-var __filename, __dirname, module;
-js.Node.__filename = __filename;
-js.Node.__dirname = __dirname;
+var module, setImmediate, clearImmediate;
 js.Node.setTimeout = setTimeout;
 js.Node.clearTimeout = clearTimeout;
 js.Node.setInterval = setInterval;
@@ -2516,29 +3260,15 @@ js.Node.console = console;
 js.Node.module = module;
 js.Node.stringify = JSON.stringify;
 js.Node.parse = JSON.parse;
-js.Node.util = js.Node.require("util");
-js.Node.fs = js.Node.require("fs");
-js.Node.net = js.Node.require("net");
-js.Node.http = js.Node.require("http");
-js.Node.https = js.Node.require("https");
-js.Node.path = js.Node.require("path");
-js.Node.url = js.Node.require("url");
-js.Node.os = js.Node.require("os");
-js.Node.crypto = js.Node.require("crypto");
-js.Node.dns = js.Node.require("dns");
-js.Node.queryString = js.Node.require("querystring");
-js.Node.assert = js.Node.require("assert");
-js.Node.childProcess = js.Node.require("child_process");
-js.Node.vm = js.Node.require("vm");
-js.Node.tls = js.Node.require("tls");
-js.Node.dgram = js.Node.require("dgram");
-js.Node.assert = js.Node.require("assert");
-js.Node.repl = js.Node.require("repl");
-js.Node.cluster = js.Node.require("cluster");
-nw.$ui = require('nw.gui');
-nw.Menu = nw.$ui.Menu;
-nw.MenuItem = nw.$ui.MenuItem;
-nw.Window = nw.$ui.Window;
+var version = HxOverrides.substr(js.Node.process.version,1,null).split(".").map(Std.parseInt);
+if(version[0] > 0 || version[1] >= 9) {
+	js.Node.setImmediate = setImmediate;
+	js.Node.clearImmediate = clearImmediate;
+}
+nodejs.webkit.$ui = require('nw.gui');
+nodejs.webkit.Menu = nodejs.webkit.$ui.Menu;
+nodejs.webkit.MenuItem = nodejs.webkit.$ui.MenuItem;
+nodejs.webkit.Window = nodejs.webkit.$ui.Window;
 Main.r_id = new EReg("^[A-Za-z_][A-Za-z_0-9]*$","");
 haxe.Serializer.USE_CACHE = false;
 haxe.Serializer.USE_ENUM_INDEX = false;
@@ -2585,8 +3315,8 @@ js.NodeC.FILE_WRITE = "w";
 js.NodeC.FILE_WRITE_APPEND = "a+";
 js.NodeC.FILE_READWRITE = "a";
 js.NodeC.FILE_READWRITE_APPEND = "a+";
-nw._MenuItem.MenuItemType_Impl_.separator = "separator";
-nw._MenuItem.MenuItemType_Impl_.checkbox = "checkbox";
-nw._MenuItem.MenuItemType_Impl_.normal = "normal";
+nodejs.webkit._MenuItemType.MenuItemType_Impl_.separator = "separator";
+nodejs.webkit._MenuItemType.MenuItemType_Impl_.checkbox = "checkbox";
+nodejs.webkit._MenuItemType.MenuItemType_Impl_.normal = "normal";
 Main.main();
 })();

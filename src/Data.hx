@@ -6,6 +6,7 @@ enum ColumnType {
 	TFloat;
 	TEnum( values : Array<String> );
 	TRef( sheet : String );
+	TImage;
 }
 
 typedef Column = {
@@ -25,6 +26,7 @@ typedef Sheet = {
 	var columns : Array<Column>;
 	var lines : Array<Dynamic>;
 	var props : SheetProps;
+	var separators : Array<Int>;
 }
 
 typedef Data = {

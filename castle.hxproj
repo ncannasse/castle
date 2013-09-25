@@ -4,7 +4,7 @@
   <output>
     <movie outputType="Application" />
     <movie input="" />
-    <movie path="bin/castle.js" />
+    <movie path="bin\castle.js" />
     <movie fps="30" />
     <movie width="800" />
     <movie height="600" />
@@ -23,7 +23,7 @@
     <option flashStrict="False" />
     <option mainClass="Main" />
     <option enabledebug="False" />
-    <option additional="-lib nodejs" />
+    <option additional="-lib nodejs&#xA;-lib format" />
   </build>
   <!-- haxelib libraries -->
   <haxelib>
