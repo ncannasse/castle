@@ -1,6 +1,6 @@
 (function () { "use strict";
 var $hxClasses = {},$estr = function() { return js.Boot.__string_rec(this,''); };
-var ColumnType = $hxClasses["ColumnType"] = { __ename__ : ["ColumnType"], __constructs__ : ["TId","TString","TBool","TInt","TFloat","TEnum","TRef","TImage"] }
+var ColumnType = $hxClasses["ColumnType"] = { __ename__ : ["ColumnType"], __constructs__ : ["TId","TString","TBool","TInt","TFloat","TEnum","TRef","TImage","TList"] }
 ColumnType.TId = ["TId",0];
 ColumnType.TId.toString = $estr;
 ColumnType.TId.__enum__ = ColumnType;
@@ -21,6 +21,9 @@ ColumnType.TRef = function(sheet) { var $x = ["TRef",6,sheet]; $x.__enum__ = Col
 ColumnType.TImage = ["TImage",7];
 ColumnType.TImage.toString = $estr;
 ColumnType.TImage.__enum__ = ColumnType;
+ColumnType.TList = ["TList",8];
+ColumnType.TList.toString = $estr;
+ColumnType.TList.__enum__ = ColumnType;
 var EReg = function(r,opt) {
 	opt = opt.split("u").join("");
 	this.r = new RegExp(r,opt);
@@ -158,6 +161,7 @@ var Main = function() {
 		this.prefs = haxe.Unserializer.run(js.Browser.getLocalStorage().getItem("prefs"));
 	} catch( e ) {
 	}
+	this.openedList = new haxe.ds.StringMap();
 	this.initMenu();
 	this.mousePos = { x : 0, y : 0};
 	this["window"]["window"].addEventListener("keydown",$bind(this,this.onKey));
@@ -319,6 +323,7 @@ Main.prototype = {
 		while(_g1 < _g) {
 			var i = _g1++;
 			var s = this.data.sheets[i];
+			if(s.props.hide) continue;
 			new js.JQuery("<li>").text(s.name).attr("id","sheet_" + i).appendTo(sheets).click((function($this) {
 				var $r;
 				var f = [$bind($this,$this.selectSheet)], s1 = [s];
@@ -351,10 +356,12 @@ Main.prototype = {
 			} else value = i.val();
 			v[field] = value;
 		}
+		var sheet = this.viewSheet;
 		var refColumn = null;
+		if(v.sheetRef != "") sheet = this.smap.get(v.sheetRef).s;
 		if(v.ref != "") {
 			var _g = 0;
-			var _g1 = this.sheet.columns;
+			var _g1 = sheet.columns;
 			while(_g < _g1.length) {
 				var c = _g1[_g];
 				++_g;
@@ -367,7 +374,7 @@ Main.prototype = {
 		case "id":
 			if(refColumn == null) {
 				var _g1 = 0;
-				var _g2 = this.sheet.columns;
+				var _g2 = sheet.columns;
 				while(_g1 < _g2.length) {
 					var c = _g2[_g1];
 					++_g1;
@@ -423,6 +430,9 @@ Main.prototype = {
 		case "image":
 			t = ColumnType.TImage;
 			break;
+		case "list":
+			t = ColumnType.TList;
+			break;
 		default:
 			return;
 		}
@@ -431,7 +441,7 @@ Main.prototype = {
 			var old = refColumn;
 			if(old.name != c.name) {
 				var _g1 = 0;
-				var _g2 = this.sheet.lines;
+				var _g2 = sheet.lines;
 				while(_g1 < _g2.length) {
 					var o = _g2[_g1];
 					++_g1;
@@ -447,6 +457,10 @@ Main.prototype = {
 					}(this));
 					Reflect.deleteField(o,old.name);
 					if(v1 != null) o[c.name] = v1;
+				}
+				if(old.type == ColumnType.TList) {
+					var s = this.smap.get(sheet.name + "@" + old.name).s;
+					s.name = sheet.name + "@" + c.name;
 				}
 				old.name = c.name;
 			}
@@ -565,17 +579,19 @@ Main.prototype = {
 						case 5:
 							var values1 = _g1[2];
 							var values2 = _g2[2];
-							var map1 = [];
-							var _g3 = 0;
-							while(_g3 < values1.length) {
-								var v1 = values1[_g3];
-								++_g3;
-								var pos = Lambda.indexOf(values2,v1);
-								if(pos < 0) map1.push(null); else map1.push(pos);
-							}
-							conv = function(i) {
-								return map1[i];
-							};
+							if(values1.length != values2.length) {
+								var map1 = [];
+								var _g3 = 0;
+								while(_g3 < values1.length) {
+									var v1 = values1[_g3];
+									++_g3;
+									var pos = Lambda.indexOf(values2,v1);
+									if(pos < 0) map1.push(null); else map1.push(pos);
+								}
+								conv = function(i) {
+									return map1[i];
+								};
+							} else conv = null;
 							break;
 						case 3:
 							var values = _g1[2];
@@ -592,7 +608,7 @@ Main.prototype = {
 				}
 				if(conv != null) {
 					var _g3 = 0;
-					var _g4 = this.sheet.lines;
+					var _g4 = sheet.lines;
 					while(_g3 < _g4.length) {
 						var o = _g4[_g3];
 						++_g3;
@@ -618,7 +634,7 @@ Main.prototype = {
 			if(old.opt != c.opt) {
 				if(old.opt) {
 					var _g1 = 0;
-					var _g2 = this.sheet.lines;
+					var _g2 = sheet.lines;
 					while(_g1 < _g2.length) {
 						var o = _g2[_g1];
 						++_g1;
@@ -645,7 +661,7 @@ Main.prototype = {
 					default:
 						var def = this.getDefault(old);
 						var _g2 = 0;
-						var _g3 = this.sheet.lines;
+						var _g3 = sheet.lines;
 						while(_g2 < _g3.length) {
 							var o = _g3[_g2];
 							++_g2;
@@ -665,10 +681,10 @@ Main.prototype = {
 				}
 				old.opt = c.opt;
 			}
-			this.makeSheet(this.sheet);
+			this.makeSheet(sheet);
 		} else {
 			var _g1 = 0;
-			var _g2 = this.sheet.columns;
+			var _g2 = sheet.columns;
 			while(_g1 < _g2.length) {
 				var c2 = _g2[_g1];
 				++_g1;
@@ -677,14 +693,19 @@ Main.prototype = {
 					return;
 				}
 			}
-			this.sheet.columns.push(c);
+			sheet.columns.push(c);
 			var _g1 = 0;
-			var _g2 = this.sheet.lines;
+			var _g2 = sheet.lines;
 			while(_g1 < _g2.length) {
 				var i = _g2[_g1];
 				++_g1;
 				var def = this.getDefault(c);
 				if(def != null) i[c.name] = def;
+			}
+			if(c.type == ColumnType.TList) {
+				var s = { name : sheet.name + "@" + c.name, props : { hide : true}, separators : [], lines : [], columns : []};
+				this.data.sheets.push(s);
+				this.makeSheet(s);
 			}
 		}
 		new js.JQuery("#newcol").hide();
@@ -700,46 +721,47 @@ Main.prototype = {
 		name = StringTools.trim(name);
 		if(name == "") return;
 		new js.JQuery("#newsheet").hide();
-		var s = { name : name, columns : [], lines : [], separators : [], props : { displayColumn : null}};
+		var s = { name : name, columns : [], lines : [], separators : [], props : { }};
 		this.prefs.curSheet = this.data.sheets.length - 1;
 		this.data.sheets.push(s);
 		this.initContent();
 		this.save();
-		this.selectSheet(s);
 	}
-	,newLine: function(index) {
+	,newLine: function(sheet,index) {
 		var o = { };
 		var _g = 0;
-		var _g1 = this.sheet.columns;
+		var _g1 = sheet.columns;
 		while(_g < _g1.length) {
 			var c = _g1[_g];
 			++_g;
 			var d = this.getDefault(c);
 			if(d != null) o[c.name] = d;
 		}
-		if(index == null) this.sheet.lines.push(o); else {
+		if(index == null) sheet.lines.push(o); else {
 			var _g1 = 0;
-			var _g = this.sheet.separators.length;
+			var _g = sheet.separators.length;
 			while(_g1 < _g) {
 				var i = _g1++;
-				var s = this.sheet.separators[i];
-				if(s >= index) this.sheet.separators[i] = s + 1;
+				var s = sheet.separators[i];
+				if(s >= index) sheet.separators[i] = s + 1;
 			}
-			this.sheet.lines.splice(index + 1,0,o);
+			sheet.lines.splice(index + 1,0,o);
 		}
 		this.refresh();
 		this.save();
-		if(index != null) this.selectLine(index + 2);
+		if(index != null) this.selectLine(sheet,index + 1);
 	}
-	,newColumn: function(ref) {
+	,newColumn: function(sheetName,ref) {
 		var form = new js.JQuery("#newcol form");
 		var sheets = new js.JQuery("[name=sheet]");
-		sheets.html("");
+		sheets.empty();
 		var _g1 = 0;
 		var _g = this.data.sheets.length;
 		while(_g1 < _g) {
 			var i = _g1++;
-			new js.JQuery("<option>").attr("value","" + i).text(this.data.sheets[i].name).appendTo(sheets);
+			var s = this.data.sheets[i];
+			if(s.props.hide) continue;
+			new js.JQuery("<option>").attr("value","" + i).text(s.name).appendTo(sheets);
 		}
 		form.removeClass("edit").removeClass("create");
 		if(ref != null) {
@@ -766,6 +788,7 @@ Main.prototype = {
 			form.addClass("create");
 			form.find("input").not("[type=submit]").val("");
 		}
+		form.find("[name=sheetRef]").val(sheetName == null?"":sheetName);
 		new js.JQuery("#newcol").show();
 	}
 	,deleteLine: function(sheet,index) {
@@ -784,76 +807,88 @@ Main.prototype = {
 		}
 		if(toRemove != null) HxOverrides.remove(sheet.separators,toRemove);
 	}
-	,deleteColumn: function(cname) {
+	,deleteColumn: function(sheet,cname) {
 		if(cname == null) cname = new js.JQuery("#newcol form [name=ref]").val();
 		var _g = 0;
-		var _g1 = this.sheet.columns;
+		var _g1 = sheet.columns;
 		while(_g < _g1.length) {
 			var c = _g1[_g];
 			++_g;
 			if(c.name == cname) {
-				HxOverrides.remove(this.sheet.columns,c);
+				HxOverrides.remove(sheet.columns,c);
 				var _g2 = 0;
-				var _g3 = this.sheet.lines;
+				var _g3 = sheet.lines;
 				while(_g2 < _g3.length) {
 					var o = _g3[_g2];
 					++_g2;
 					Reflect.deleteField(o,c.name);
 				}
-				if(this.sheet.props.displayColumn == c.name) {
-					this.sheet.props.displayColumn = null;
-					this.makeSheet(this.sheet);
+				if(sheet.props.displayColumn == c.name) {
+					sheet.props.displayColumn = null;
+					this.makeSheet(sheet);
 				}
+				if(c.type == ColumnType.TList) HxOverrides.remove(this.data.sheets,this.smap.get(sheet.name + "@" + c.name).s);
 			}
 		}
 		new js.JQuery("#newcol").hide();
 		this.refresh();
 		this.save();
 	}
+	,getPseudoSheet: function(sheet,c) {
+		return this.smap.get(sheet.name + "@" + c.name).s;
+	}
+	,getSheet: function(name) {
+		return this.smap.get(name).s;
+	}
 	,newSheet: function() {
 		new js.JQuery("#newsheet").show();
 	}
 	,selectSheet: function(s) {
-		this.sheet = s;
+		this.viewSheet = this.set_curSheet(s);
 		this.prefs.curSheet = Lambda.indexOf(this.data.sheets,s);
 		new js.JQuery("#sheets li").removeClass("active").filter("#sheet_" + this.prefs.curSheet).addClass("active");
 		this.refresh();
 	}
-	,refresh: function() {
-		var _g4 = this;
-		var s = this.sheet;
-		var content = new js.JQuery("#content");
-		if(s.columns.length == 0) {
-			content.html("<a href='javascript:_.newColumn()'>Add a column</a>");
+	,fillTable: function(content,sheet) {
+		var _g1 = this;
+		if(sheet.columns.length == 0) {
+			content.html("<a href=\"javascript:_.newColumn('" + sheet.name + "')\">Add a column</a>");
 			return;
 		}
-		content.html("");
+		var todo = [];
 		var cols = new js.JQuery("<tr>").addClass("head");
 		var types;
 		var _g = [];
-		var _g1 = 0;
+		var _g11 = 0;
 		var _g2 = Type.getEnumConstructs(ColumnType);
-		while(_g1 < _g2.length) {
-			var t = _g2[_g1];
-			++_g1;
+		while(_g11 < _g2.length) {
+			var t = _g2[_g11];
+			++_g11;
 			_g.push(HxOverrides.substr(t,1,null).toLowerCase());
 		}
 		types = _g;
 		new js.JQuery("<td>").addClass("start").appendTo(cols);
+		content.attr("sheet",this.getPath(sheet));
+		content.unbind("click");
+		content.click(function(e) {
+			_g1.set_curSheet(sheet);
+			e.stopPropagation();
+		});
 		var lines;
-		var _g1 = [];
+		var _g11 = [];
 		var _g3 = 0;
-		var _g2 = s.lines.length;
+		var _g2 = sheet.lines.length;
 		while(_g3 < _g2) {
 			var i = [_g3++];
-			_g1.push((function($this) {
+			_g11.push((function($this) {
 				var $r;
 				var l = [new js.JQuery("<tr>")];
 				l[0].data("index",i[0]);
 				var head = [new js.JQuery("<td>").addClass("start").text("" + i[0])];
 				head[0].click((function(l) {
 					return function(e) {
-						if(!e.ctrlKey) new js.JQuery("tr.selected").removeClass("selected");
+						if(!e.ctrlKey) _g1.set_curSheet(null);
+						_g1.set_curSheet(sheet);
 						l[0].toggleClass("selected");
 						e.stopPropagation();
 					};
@@ -864,10 +899,10 @@ Main.prototype = {
 							head[0].click();
 							haxe.Timer.delay((function($this) {
 								var $r;
-								var f = $bind(_g4,_g4.popupLine), a1 = i[0];
+								var f = $bind(_g1,_g1.popupLine), a1 = sheet, a2 = i[0];
 								$r = (function() {
 									return function() {
-										return f(a1);
+										return f(a1,a2);
 									};
 								})();
 								return $r;
@@ -882,25 +917,25 @@ Main.prototype = {
 				return $r;
 			}(this)));
 		}
-		lines = _g1;
+		lines = _g11;
 		var _g2 = 0;
-		var _g3 = s.columns;
+		var _g3 = sheet.columns;
 		while(_g2 < _g3.length) {
 			var c = [_g3[_g2]];
 			++_g2;
 			var col = new js.JQuery("<td>");
 			col.html(c[0].name);
-			col.css("width",c[0].size == null?(100 / s.columns.length | 0) + "%":c[0].size + "%");
-			if(s.props.displayColumn == c[0].name) col.addClass("display");
+			col.css("width",c[0].size == null?(100 / sheet.columns.length | 0) + "%":c[0].size + "%");
+			if(sheet.props.displayColumn == c[0].name) col.addClass("display");
 			col.mousedown((function(c) {
 				return function(e) {
 					if(e.which == 3) {
 						haxe.Timer.delay((function($this) {
 							var $r;
-							var f1 = $bind(_g4,_g4.popupColumn), c1 = c[0];
+							var f1 = $bind(_g1,_g1.popupColumn), a11 = sheet, c1 = c[0];
 							$r = (function() {
 								return function() {
-									return f1(c1);
+									return f1(a11,c1);
 								};
 							})();
 							return $r;
@@ -913,11 +948,11 @@ Main.prototype = {
 			cols.append(col);
 			var ctype = "t_" + types[c[0].type[1]];
 			var _g5 = 0;
-			var _g41 = s.lines.length;
-			while(_g5 < _g41) {
+			var _g4 = sheet.lines.length;
+			while(_g5 < _g4) {
 				var index = [_g5++];
-				var obj = [s.lines[index[0]]];
-				var val = (function($this) {
+				var obj = [sheet.lines[index[0]]];
+				var val = [(function($this) {
 					var $r;
 					var v = null;
 					try {
@@ -926,11 +961,12 @@ Main.prototype = {
 					}
 					$r = v;
 					return $r;
-				}(this));
+				}(this))];
 				var v1 = [new js.JQuery("<td>").addClass(ctype)];
-				v1[0].appendTo(lines[index[0]]);
-				var html = this.valueHtml(c[0],val,this.sheet,obj[0]);
-				v1[0].html(html);
+				var l1 = [lines[index[0]]];
+				v1[0].appendTo(l1[0]);
+				var html = [this.valueHtml(c[0],val[0],sheet,obj[0])];
+				v1[0].html(html[0]);
 				var _g6 = c[0].type;
 				switch(_g6[1]) {
 				case 7:
@@ -954,27 +990,83 @@ Main.prototype = {
 								return $r;
 							}(this)) != null) {
 								Reflect.deleteField(obj[0],c[0].name);
-								_g4.refresh();
-								_g4.save();
+								_g1.refresh();
+								_g1.save();
 							}
 						};
 					})(obj,c));
 					v1[0].dblclick((function(v1,index,c) {
 						return function(_) {
-							_g4.editCell(c[0],v1[0],_g4.sheet,index[0]);
+							_g1.editCell(c[0],v1[0],sheet,index[0]);
 						};
 					})(v1,index,c));
+					break;
+				case 8:
+					var key = [this.getPath(sheet) + "@" + c[0].name + ":" + index[0]];
+					v1[0].click((function(key,html,l1,v1,val,obj,index,c) {
+						return function(e) {
+							var next = l1[0].next("tr.list");
+							if(next.length > 0) {
+								if(next.data("name") == c[0].name) {
+									next.dblclick();
+									return;
+								}
+								next.dblclick();
+							}
+							next = new js.JQuery("<tr>").addClass("list").data("name",c[0].name);
+							new js.JQuery("<td>").appendTo(next);
+							var cell = new js.JQuery("<td>").attr("colspan","" + sheet.columns.length).appendTo(next);
+							var content1 = new js.JQuery("<table>").appendTo(cell);
+							var psheet = _g1.smap.get(sheet.name + "@" + c[0].name).s;
+							psheet = { columns : psheet.columns, props : psheet.props, name : psheet.name, path : _g1.getPath(sheet) + ":" + index[0], lines : (function($this) {
+								var $r;
+								var v = null;
+								try {
+									v = obj[0][c[0].name];
+								} catch( e1 ) {
+								}
+								$r = v;
+								return $r;
+							}(this)), separators : []};
+							_g1.set_curSheet(psheet);
+							_g1.fillTable(content1,psheet);
+							next.insertAfter(l1[0]);
+							v1[0].html("...");
+							_g1.openedList.set(key[0],true);
+							next.dblclick((function(key,html,v1,val,obj,c) {
+								return function(e1) {
+									var v = null;
+									try {
+										v = obj[0][c[0].name];
+									} catch( e2 ) {
+									}
+									val[0] = v;
+									html[0] = _g1.valueHtml(c[0],val[0],sheet,obj[0]);
+									v1[0].html(html[0]);
+									next.remove();
+									_g1.openedList.remove(key[0]);
+									e1.stopPropagation();
+								};
+							})(key,html,v1,val,obj,c));
+							e.stopPropagation();
+						};
+					})(key,html,l1,v1,val,obj,index,c));
+					if(this.openedList.get(key[0])) todo.push((function(v1) {
+						return function() {
+							v1[0].click();
+						};
+					})(v1));
 					break;
 				default:
 					v1[0].click((function(v1,index,c) {
 						return function() {
-							_g4.editCell(c[0],v1[0],_g4.sheet,index[0]);
+							_g1.editCell(c[0],v1[0],sheet,index[0]);
 						};
 					})(v1,index,c));
 				}
 			}
 		}
-		content.html("");
+		content.empty();
 		content.append(cols);
 		var snext = 0;
 		var _g3 = 0;
@@ -982,11 +1074,23 @@ Main.prototype = {
 		while(_g3 < _g2) {
 			var i = _g3++;
 			content.append(lines[i]);
-			if(s.separators[snext] == i) {
-				new js.JQuery("<tr>").addClass("separator").append("<td colspan=\"" + (s.columns.length + 1) + "\">").appendTo(content);
+			if(sheet.separators[snext] == i) {
+				new js.JQuery("<tr>").addClass("separator").append("<td colspan=\"" + (sheet.columns.length + 1) + "\">").appendTo(content);
 				snext++;
 			}
 		}
+		var _g2 = 0;
+		while(_g2 < todo.length) {
+			var t = todo[_g2];
+			++_g2;
+			t();
+		}
+	}
+	,getPath: function(sheet) {
+		if(sheet.path == null) return sheet.name; else return sheet.path;
+	}
+	,refresh: function() {
+		this.fillTable(new js.JQuery("#content"),this.viewSheet);
 	}
 	,editCell: function(c,v,sheet,index) {
 		var _g = this;
@@ -1011,7 +1115,7 @@ Main.prototype = {
 			var _g1 = c.type;
 			switch(_g1[1]) {
 			case 3:case 4:case 1:case 0:
-				v.html("");
+				v.empty();
 				var i = new js.JQuery("<input>");
 				v.addClass("edit");
 				i.appendTo(v);
@@ -1083,7 +1187,7 @@ Main.prototype = {
 				break;
 			case 5:
 				var values = _g1[2];
-				v.html("");
+				v.empty();
 				var s = new js.JQuery("<select>");
 				v.addClass("edit");
 				var _g2 = 0;
@@ -1116,7 +1220,7 @@ Main.prototype = {
 				var sname = _g1[2];
 				var sdat = this.smap.get(sname);
 				if(sdat == null) return;
-				v.html("");
+				v.empty();
 				var s1 = new js.JQuery("<select>");
 				v.addClass("edit");
 				var _g11 = 0;
@@ -1178,10 +1282,13 @@ Main.prototype = {
 				i.appendTo(new js.JQuery("body"));
 				i.click();
 				break;
+			case 8:
+				throw "assert";
+				break;
 			}
 		}
 	}
-	,popupColumn: function(c) {
+	,popupColumn: function(sheet,c) {
 		var _g = this;
 		var n = new nodejs.webkit.Menu();
 		var nedit = new nodejs.webkit.MenuItem({ label : "Edit"});
@@ -1197,43 +1304,43 @@ Main.prototype = {
 			++_g1;
 			n.append(m);
 		}
-		ndisp.checked = this.sheet.props.displayColumn == c.name;
+		ndisp.checked = sheet.props.displayColumn == c.name;
 		nedit.click = function() {
-			_g.newColumn(c);
+			_g.newColumn(sheet.name,c);
 		};
 		nleft.click = function() {
-			var index = Lambda.indexOf(_g.sheet.columns,c);
+			var index = Lambda.indexOf(sheet.columns,c);
 			if(index > 0) {
-				HxOverrides.remove(_g.sheet.columns,c);
-				_g.sheet.columns.splice(index - 1,0,c);
+				HxOverrides.remove(sheet.columns,c);
+				sheet.columns.splice(index - 1,0,c);
 				_g.refresh();
 				_g.save();
 			}
 		};
 		nright.click = function() {
-			var index = Lambda.indexOf(_g.sheet.columns,c);
-			if(index < _g.sheet.columns.length - 1) {
-				HxOverrides.remove(_g.sheet.columns,c);
-				_g.sheet.columns.splice(index + 1,0,c);
+			var index = Lambda.indexOf(sheet.columns,c);
+			if(index < sheet.columns.length - 1) {
+				HxOverrides.remove(sheet.columns,c);
+				sheet.columns.splice(index + 1,0,c);
 				_g.refresh();
 				_g.save();
 			}
 		};
 		ndel.click = function() {
-			_g.deleteColumn(c.name);
+			_g.deleteColumn(sheet,c.name);
 		};
 		ndisp.click = function() {
-			if(_g.sheet.props.displayColumn == c.name) _g.sheet.props.displayColumn = null; else _g.sheet.props.displayColumn = c.name;
-			_g.makeSheet(_g.sheet);
+			if(sheet.props.displayColumn == c.name) sheet.props.displayColumn = null; else sheet.props.displayColumn = c.name;
+			_g.makeSheet(sheet);
 			_g.refresh();
 			_g.save();
 		};
 		nins.click = function() {
-			_g.newColumn();
+			_g.newColumn(sheet.name);
 		};
 		n.popup(this.mousePos.x,this.mousePos.y);
 	}
-	,popupLine: function(index) {
+	,popupLine: function(sheet,index) {
 		var _g = this;
 		var n = new nodejs.webkit.Menu();
 		var nup = new nodejs.webkit.MenuItem({ label : "Move Up"});
@@ -1248,30 +1355,31 @@ Main.prototype = {
 			++_g1;
 			n.append(m);
 		}
-		var hasSep = Lambda.has(this.sheet.separators,index);
+		var hasSep = Lambda.has(sheet.separators,index);
 		nsep.checked = hasSep;
 		nins.click = function() {
-			_g.newLine(index);
+			_g.newLine(sheet,index);
 		};
 		nup.click = function() {
-			_g.moveColumn(index,-1);
+			_g.moveLine(sheet,index,-1);
 		};
 		ndown.click = function() {
-			_g.moveColumn(index,1);
+			_g.moveLine(sheet,index,1);
 		};
 		ndel.click = function() {
-			_g.deleteLine(_g.sheet,index);
+			_g.deleteLine(sheet,index);
 			_g.refresh();
 			_g.save();
 		};
 		nsep.click = function() {
-			if(hasSep) HxOverrides.remove(_g.sheet.separators,index); else {
-				_g.sheet.separators.push(index);
-				_g.sheet.separators.sort(Reflect.compare);
+			if(hasSep) HxOverrides.remove(sheet.separators,index); else {
+				sheet.separators.push(index);
+				sheet.separators.sort(Reflect.compare);
 			}
 			_g.refresh();
 			_g.save();
 		};
+		if(sheet.props.hide) nsep.enabled = false;
 		n.popup(this.mousePos.x,this.mousePos.y);
 	}
 	,valueHtml: function(c,v,sheet,obj) {
@@ -1324,6 +1432,41 @@ Main.prototype = {
 					if(data == null) return "<span class=\"error\">#NOTFOUND(" + Std.string(v) + ")</span>"; else return "<img src=\"" + data + "\"/>";
 				}
 				break;
+			case 8:
+				var a = v;
+				var ps = this.smap.get(sheet.name + "@" + c.name).s;
+				var out = [];
+				var _g1 = 0;
+				while(_g1 < a.length) {
+					var v1 = a[_g1];
+					++_g1;
+					var vals = [];
+					var _g2 = 0;
+					var _g3 = ps.columns;
+					while(_g2 < _g3.length) {
+						var c1 = _g3[_g2];
+						++_g2;
+						var _g4 = c1.type;
+						switch(_g4[1]) {
+						case 8:
+							continue;
+							break;
+						default:
+							vals.push(this.valueHtml(c1,(function($this) {
+								var $r;
+								var v2 = null;
+								try {
+									v2 = v1[c1.name];
+								} catch( e ) {
+								}
+								$r = v2;
+								return $r;
+							}(this)),ps,v1));
+						}
+					}
+					out.push(vals.length == 1?vals[0]:vals);
+				}
+				return Std.string(out);
 			}
 		}
 	}
@@ -1375,11 +1518,13 @@ Main.prototype = {
 	,error: function(msg) {
 		js.Lib.alert(msg);
 	}
-	,quickLoad: function(data) {
-		return haxe.Unserializer.run(data);
+	,quickLoad: function(sdata) {
+		var t = haxe.Unserializer.run(sdata);
+		this.data = t.d;
+		this.openedList = t.o;
 	}
 	,quickSave: function() {
-		return haxe.Serializer.run(this.data);
+		return haxe.Serializer.run({ d : this.data, o : this.openedList});
 	}
 	,saveImages: function() {
 		if(this.prefs.curFile == null) return;
@@ -1482,36 +1627,41 @@ Main.prototype = {
 		default:
 		}
 	}
-	,moveColumn: function(index,delta) {
+	,moveLine: function(sheet,index,delta) {
+		this.getLine(sheet,index).next("tr.list").dblclick();
 		if(delta < 0 && index > 0) {
-			var l = this.sheet.lines[index];
-			this.sheet.lines.splice(index,1);
-			this.sheet.lines.splice(index - 1,0,l);
+			var l = sheet.lines[index];
+			sheet.lines.splice(index,1);
+			sheet.lines.splice(index - 1,0,l);
 			this.refresh();
 			this.save();
-			this.selectLine(index);
-		} else if(delta > 0 && this.sheet != null && index < this.sheet.lines.length - 1) {
-			var l = this.sheet.lines[index];
-			this.sheet.lines.splice(index,1);
-			this.sheet.lines.splice(index + 1,0,l);
+			this.selectLine(sheet,index - 1);
+		} else if(delta > 0 && sheet != null && index < sheet.lines.length - 1) {
+			var l = sheet.lines[index];
+			sheet.lines.splice(index,1);
+			sheet.lines.splice(index + 1,0,l);
 			this.refresh();
 			this.save();
-			this.selectLine(index + 2);
+			this.selectLine(sheet,index + 1);
 		}
 	}
-	,selectLine: function(index) {
-		((function($this) {
+	,selectLine: function(sheet,index) {
+		this.getLine(sheet,index).addClass("selected");
+	}
+	,getLine: function(sheet,index) {
+		var html = ((function($this) {
 			var $r;
-			var html = new js.JQuery("#content tr").not(".separator")[index];
-			$r = new js.JQuery(html);
+			var html1 = "table[sheet='" + $this.getPath(sheet) + "'] > tbody > tr";
+			$r = new js.JQuery(html1);
 			return $r;
-		}(this))).addClass("selected");
+		}(this))).not(".head,.separator,.list")[index];
+		return new js.JQuery(html);
 	}
 	,onKey: function(e) {
 		var _g = e.keyCode;
 		switch(_g) {
 		case 45:
-			if(this.sheet != null) this.newLine(Std.parseInt(new js.JQuery("tr.selected").data("index")));
+			if(this.curSheet != null) this.newLine(this.curSheet,new js.JQuery("tr.selected").data("index"));
 			break;
 		case 46:
 			var indexes;
@@ -1527,7 +1677,7 @@ Main.prototype = {
 				_g1.push((function($this) {
 					var $r;
 					i.change();
-					$r = Std.parseInt(i.data("index"));
+					$r = i.data("index");
 					return $r;
 				}(this)));
 			}
@@ -1542,24 +1692,25 @@ Main.prototype = {
 			while(_g2 < indexes.length) {
 				var i = indexes[_g2];
 				++_g2;
-				this.deleteLine(this.sheet,i);
+				this.deleteLine(this.curSheet,i);
 			}
 			this.refresh();
+			if(indexes.length == 1) this.selectLine(this.curSheet,indexes[0] == this.curSheet.lines.length?indexes[0] - 1:indexes[0]);
 			this.save();
 			break;
 		case 38:
 			var index = new js.JQuery("tr.selected").data("index");
-			this.moveColumn(index,-1);
+			if(index != null) this.moveLine(this.curSheet,index,-1);
 			break;
 		case 40:
 			var index = new js.JQuery("tr.selected").data("index");
-			this.moveColumn(index,1);
+			if(index != null) this.moveLine(this.curSheet,index,1);
 			break;
 		case 90:
 			if(e.ctrlKey && this.history.length > 0) {
 				this.redo.push(this.curSavedData);
 				this.curSavedData = this.history.pop();
-				this.data = this.quickLoad(this.curSavedData);
+				this.quickLoad(this.curSavedData);
 				this.initContent();
 				this.save(false);
 			}
@@ -1568,7 +1719,7 @@ Main.prototype = {
 			if(e.ctrlKey && this.redo.length > 0) {
 				this.history.push(this.curSavedData);
 				this.curSavedData = this.redo.pop();
-				this.data = this.quickLoad(this.curSavedData);
+				this.quickLoad(this.curSavedData);
 				this.initContent();
 				this.save(false);
 			}
@@ -1591,8 +1742,14 @@ Main.prototype = {
 				return "";
 			case 2:
 				return false;
+			case 8:
+				return [];
 			}
 		}
+	}
+	,set_curSheet: function(s) {
+		if(this.curSheet != s) new js.JQuery(".selected").removeClass("selected");
+		return this.curSheet = s;
 	}
 	,__class__: Main
 }
@@ -2741,6 +2898,12 @@ haxe.ds.StringMap.prototype = {
 		if(this.h.hasOwnProperty(key)) a.push(key.substr(1));
 		}
 		return HxOverrides.iter(a);
+	}
+	,remove: function(key) {
+		key = "$" + key;
+		if(!this.h.hasOwnProperty(key)) return false;
+		delete(this.h[key]);
+		return true;
 	}
 	,get: function(key) {
 		return this.h["$" + key];

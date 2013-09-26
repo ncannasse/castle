@@ -26,6 +26,7 @@
 		<form id="col_form" onsubmit="return false">
 		<h1>Column Props</h1>
 		<input type="hidden" name="ref"/>
+		<input type="hidden" name="sheetRef"/>
 		<p>
 			<span>Column name</span> <input type="text" name="name"/>
 		</p>
@@ -41,6 +42,7 @@
 			<option value="enum">Enumeration</option>
 			<option value="ref">Reference</option>
 			<option value="image">Image</option>
+			<option value="list">List</option>
 			</select>
 		</p>
 		<div id="col_options">
@@ -89,8 +91,9 @@
 	</ul>
 	
 </div>
-	
-<table class="castle" id="content">
+
+<div class="castle">
+<table id="content">
 	<tr class="head">
 		<td>ID</td>
 		<td>Name</td>
@@ -106,6 +109,7 @@
 		<td>1230</td>
 	</tr>
 </table>
+</div>
 
 <script type="text/javascript" src="castle.js"></script>
 

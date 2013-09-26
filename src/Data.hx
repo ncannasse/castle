@@ -7,6 +7,7 @@ enum ColumnType {
 	TEnum( values : Array<String> );
 	TRef( sheet : String );
 	TImage;
+	TList;
 }
 
 typedef Column = {
@@ -18,7 +19,8 @@ typedef Column = {
 }
 
 typedef SheetProps = {
-	var displayColumn : Null<String>;
+	@:optional var displayColumn : Null<String>;
+	@:optional var hide : Bool;
 }
 
 typedef Sheet = {
@@ -27,6 +29,7 @@ typedef Sheet = {
 	var lines : Array<Dynamic>;
 	var props : SheetProps;
 	var separators : Array<Int>;
+	@:optional var path : String;
 }
 
 typedef Data = {

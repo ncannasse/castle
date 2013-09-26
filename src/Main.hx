@@ -17,13 +17,15 @@ class Main {
 	var prefs : Prefs;
 	var data : Data;
 	var imageBank : Dynamic<String>;
-	var sheet : Data.Sheet;
+	var viewSheet : Data.Sheet;
+	var curSheet(default,set) : Data.Sheet;
 	var smap : Map< String, { s : Data.Sheet, index : Map<String,Index> , all : Array<Index> } >;
 	
 	var curSavedData : String;
 	var history : Array<String>;
 	var redo : Array<String>;
 	var mousePos : { x : Int, y : Int };
+	var openedList : Map<String,Bool>;
 	
 	static var r_id = ~/^[A-Za-z_][A-Za-z_0-9]*$/;
 	
@@ -40,6 +42,7 @@ class Main {
 		} catch( e : Dynamic ) {
 		}
 
+		openedList = new Map();
 		initMenu();
 		mousePos = { x : 0, y : 0 };
 		window.window.addEventListener("keydown", onKey);
@@ -47,8 +50,12 @@ class Main {
 		J("body").click(function(_) {
 			J(".selected").removeClass("selected");
 		});
-
 		load(true);
+	}
+	
+	function set_curSheet( s : Data.Sheet ) {
+		if( curSheet != s ) J(".selected").removeClass("selected");
+		return curSheet = s;
 	}
 	
 	function getDefault( c : Data.Column ) : Dynamic {
@@ -58,6 +65,7 @@ class Main {
 		case TInt, TFloat, TEnum(_): 0;
 		case TString, TId, TRef(_), TImage: "";
 		case TBool: false;
+		case TList: [];
 		}
 	}
 	
@@ -69,30 +77,34 @@ class Main {
 	function onKey( e : js.html.KeyboardEvent ) {
 		switch( e.keyCode ) {
 		case 45: // Insert
-			if( sheet != null )
-				newLine(Std.parseInt(J("tr.selected").data("index")));
+			if( curSheet != null )
+				newLine(curSheet, J("tr.selected").data("index"));
 		case 46: // Delete
-			var indexes = [for( i in J(".selected") ) { i.change(); Std.parseInt(i.data("index")); } ];
+			var indexes = [for( i in J(".selected") ) { i.change(); i.data("index"); } ];
 			while( indexes.remove(null) ) {
 			}
 			if( indexes.length == 0 )
 				return;
 			indexes.sort(function(a, b) return b - a);
 			for( i in indexes )
-				deleteLine(sheet,i);
+				deleteLine(curSheet, i);
 			refresh();
+			if( indexes.length == 1 )
+				selectLine(curSheet, indexes[0] == curSheet.lines.length ? indexes[0] - 1 : indexes[0]);
 			save();
 		case 38: // Up Key
 			var index = J("tr.selected").data("index");
-			moveColumn(index, -1);
+			if( index != null )
+				moveLine(curSheet, index, -1);
 		case 40: // Down Key
 			var index = J("tr.selected").data("index");
-			moveColumn(index, 1);
+			if( index != null )
+				moveLine(curSheet, index, 1);
 		case 'Z'.code:
 			if( e.ctrlKey && history.length > 0 ) {
 				redo.push(curSavedData);
 				curSavedData = history.pop();
-				data = quickLoad(curSavedData);
+				quickLoad(curSavedData);
 				initContent();
 				save(false);
 			}
@@ -100,33 +112,39 @@ class Main {
 			if( e.ctrlKey && redo.length > 0 ) {
 				history.push(curSavedData);
 				curSavedData = redo.pop();
-				data = quickLoad(curSavedData);
+				quickLoad(curSavedData);
 				initContent();
 				save(false);
 			}
 		default:
 		}
 	}
-	
-	function selectLine( index : Int ) {
-		J(J("#content tr").not(".separator")[index]).addClass("selected");
+
+	function getLine( sheet : Data.Sheet, index : Int ) {
+		return J(J("table[sheet='"+getPath(sheet)+"'] > tbody > tr").not(".head,.separator,.list")[index]);
 	}
 	
-	function moveColumn( index : Int, delta : Int ) {
+	function selectLine( sheet : Data.Sheet, index : Int ) {
+		getLine(sheet, index).addClass("selected");
+	}
+	
+	function moveLine( sheet : Data.Sheet, index : Int, delta : Int ) {
+		// remove opened list
+		getLine(sheet, index).next("tr.list").dblclick();
 		if( delta < 0 && index > 0 ) {
 			var l = sheet.lines[index];
 			sheet.lines.splice(index, 1);
 			sheet.lines.insert(index - 1, l);
 			refresh();
 			save();
-			selectLine(index);
+			selectLine(sheet, index - 1);
 		} else if( delta > 0 && sheet != null && index < sheet.lines.length-1 ) {
 			var l = sheet.lines[index];
 			sheet.lines.splice(index, 1);
 			sheet.lines.insert(index+1, l);
 			refresh();
 			save();
-			selectLine(index+2);
+			selectLine(sheet, index + 1);
 		}
 	}
 	
@@ -209,11 +227,13 @@ class Main {
 	}
 	
 	function quickSave() {
-		return haxe.Serializer.run(data);
+		return haxe.Serializer.run({ d : data, o : openedList });
 	}
 
-	function quickLoad(data) : Data {
-		return haxe.Unserializer.run(data);
+	function quickLoad(sdata) {
+		var t = haxe.Unserializer.run(sdata);
+		data = t.d;
+		openedList = t.o;
 	}
 	
 	function error( msg ) {
@@ -283,10 +303,26 @@ class Main {
 				else
 					'<img src="$data"/>';
 			}
+		case TList:
+			var a : Array<Dynamic> = v;
+			var ps = getPseudoSheet(sheet, c);
+			var out : Array<Dynamic> = [];
+			for( v in a ) {
+				var vals = [];
+				for( c in ps.columns )
+					switch( c.type ) {
+					case TList:
+						continue;
+					default:
+						vals.push(valueHtml(c, Reflect.field(v, c.name), ps, v));
+					}
+				out.push(vals.length == 1 ? vals[0] : vals);
+			}
+			Std.string(out);
 		}
 	}
 	
-	function popupLine( index : Int ) {
+	function popupLine( sheet : Data.Sheet, index : Int ) {
 		var n = new Menu();
 		var nup = new MenuItem( { label : "Move Up" } );
 		var ndown = new MenuItem( { label : "Move Down" } );
@@ -298,13 +334,13 @@ class Main {
 		var hasSep = Lambda.has(sheet.separators, index);
 		nsep.checked = hasSep;
 		nins.click = function() {
-			newLine(index);
+			newLine(sheet, index);
 		};
 		nup.click = function() {
-			moveColumn(index, -1);
+			moveLine(sheet, index, -1);
 		};
 		ndown.click = function() {
-			moveColumn(index, 1);
+			moveLine(sheet, index, 1);
 		};
 		ndel.click = function() {
 			deleteLine(sheet,index);
@@ -321,10 +357,12 @@ class Main {
 			refresh();
 			save();
 		};
+		if( sheet.props.hide )
+			nsep.enabled = false;
 		n.popup(mousePos.x, mousePos.y);
 	}
 	
-	function popupColumn( c : Data.Column ) {
+	function popupColumn( sheet : Data.Sheet, c : Data.Column ) {
 		var n = new Menu();
 		var nedit = new MenuItem( { label : "Edit" } );
 		var nins = new MenuItem( { label : "Add Column" } );
@@ -336,7 +374,7 @@ class Main {
 			n.append(m);
 		ndisp.checked = sheet.props.displayColumn == c.name;
 		nedit.click = function() {
-			newColumn(c);
+			newColumn(sheet.name, c);
 		};
 		nleft.click = function() {
 			var index = Lambda.indexOf(sheet.columns, c);
@@ -357,7 +395,7 @@ class Main {
 			}
 		}
 		ndel.click = function() {
-			deleteColumn(c.name);
+			deleteColumn(sheet, c.name);
 		};
 		ndisp.click = function() {
 			if( sheet.props.displayColumn == c.name ) {
@@ -370,7 +408,7 @@ class Main {
 			save();
 		};
 		nins.click = function() {
-			newColumn();
+			newColumn(sheet.name);
 		};
 		n.popup(mousePos.x, mousePos.y);
 	}
@@ -392,7 +430,7 @@ class Main {
 		}
 		switch( c.type ) {
 		case TInt, TFloat, TString, TId:
-			v.html("");
+			v.empty();
 			var i = J("<input>");
 			v.addClass("edit");
 			i.appendTo(v);
@@ -456,7 +494,7 @@ class Main {
 			});
 			i.focus();
 		case TEnum(values):
-			v.html("");
+			v.empty();
 			var s = J("<select>");
 			v.addClass("edit");
 			for( i in 0...values.length )
@@ -486,7 +524,7 @@ class Main {
 			var sdat = smap.get(sname);
 			if( sdat == null ) return;
 
-			v.html("");
+			v.empty();
 			var s = J("<select>");
 			v.addClass("edit");
 			for( l in sdat.all )
@@ -542,38 +580,53 @@ class Main {
 			});
 			i.appendTo(J("body"));
 			i.click();
+		case TList:
+			throw "assert";
 		}
 	}
 	
 	function refresh() {
-		var s = sheet;
-		var content = J("#content");
-		if( s.columns.length == 0 ) {
-			content.html("<a href='javascript:_.newColumn()'>Add a column</a>");
+		fillTable(J("#content"), viewSheet);
+	}
+	
+	function getPath( sheet : Data.Sheet ) {
+		return sheet.path == null ? sheet.name : sheet.path;
+	}
+	
+	function fillTable( content : js.JQuery, sheet : Data.Sheet ) {
+		if( sheet.columns.length == 0 ) {
+			content.html('<a href="javascript:_.newColumn(\'${sheet.name}\')">Add a column</a>');
 			return;
 		}
 		
-		content.html("");
-			
+		var todo = [];
 		var cols = J("<tr>").addClass("head");
 		var types = [for( t in Type.getEnumConstructs(Data.ColumnType) ) t.substr(1).toLowerCase()];
 		
 		J("<td>").addClass("start").appendTo(cols);
+		
+		content.attr("sheet", getPath(sheet));
+		content.unbind("click");
+		content.click(function(e) {
+			curSheet = sheet;
+			e.stopPropagation();
+		});
 
-		var lines = [for( i in 0...s.lines.length ) {
+		var lines = [for( i in 0...sheet.lines.length ) {
 			var l = J("<tr>");
 			l.data("index", i);
 			var head = J("<td>").addClass("start").text("" + i);
 			head.click(function(e:js.JQuery.JqEvent) {
-				if( !e.ctrlKey )
-					J("tr.selected").removeClass("selected");
+				if( !e.ctrlKey  )
+					curSheet = null;
+				curSheet = sheet;
 				l.toggleClass("selected");
 				e.stopPropagation();
 			});
 			l.mousedown(function(e) {
 				if( e.which == 3 ) {
 					head.click();
-					haxe.Timer.delay(popupLine.bind(i),1);
+					haxe.Timer.delay(popupLine.bind(sheet,i),1);
 					e.preventDefault();
 					return;
 				}
@@ -582,26 +635,27 @@ class Main {
 			l;
 		}];
 		
-		for( c in s.columns ) {
+		for( c in sheet.columns ) {
 			var col = J("<td>");
 			col.html(c.name);
-			col.css("width", c.size == null ? Std.int(100 / s.columns.length) + "%" : c.size + "%");
-			if( s.props.displayColumn == c.name )
+			col.css("width", c.size == null ? Std.int(100 / sheet.columns.length) + "%" : c.size + "%");
+			if( sheet.props.displayColumn == c.name )
 				col.addClass("display");
 			col.mousedown(function(e) {
 				if( e.which == 3 ) {
-					haxe.Timer.delay(popupColumn.bind(c),1);
+					haxe.Timer.delay(popupColumn.bind(sheet,c),1);
 					e.preventDefault();
 					return;
 				}
 			});
 			cols.append(col);
 			var ctype = "t_" + types[Type.enumIndex(c.type)];
-			for( index in 0...s.lines.length ) {
-				var obj = s.lines[index];
+			for( index in 0...sheet.lines.length ) {
+				var obj = sheet.lines[index];
 				var val : Dynamic = Reflect.field(obj,c.name);
 				var v = J("<td>").addClass(ctype);
-				v.appendTo(lines[index]);
+				var l = lines[index];
+				v.appendTo(l);
 				var html = valueHtml(c, val, sheet, obj);
 				v.html(html);
 				switch( c.type ) {
@@ -619,26 +673,68 @@ class Main {
 						}
 					});
 					v.dblclick(function(_) editCell(c, v, sheet, index));
+				case TList:
+					var key = getPath(sheet) + "@" + c.name + ":" + index;
+					v.click(function(e) {
+						var next = l.next("tr.list");
+						if( next.length > 0 ) {
+							if( next.data("name") == c.name ) {
+								next.dblclick();
+								return;
+							}
+							next.dblclick();
+						}
+						next = J("<tr>").addClass("list").data("name", c.name);
+						J("<td>").appendTo(next);
+						var cell = J("<td>").attr("colspan", "" + (sheet.columns.length)).appendTo(next);
+						var content = J("<table>").appendTo(cell);
+						var psheet = getPseudoSheet(sheet, c);
+						psheet = {
+							columns : psheet.columns, // SHARE
+							props : psheet.props, // SHARE
+							name : psheet.name, // same
+							path : getPath(sheet)+":"+index, // unique
+							lines : Reflect.field(obj, c.name), // ref
+							separators : [], // none
+						};
+						curSheet = psheet; // set current
+						fillTable(content, psheet);
+						next.insertAfter(l);
+						v.html("...");
+						openedList.set(key,true);
+						next.dblclick(function(e) {
+							val = Reflect.field(obj, c.name);
+							html = valueHtml(c, val, sheet, obj);
+							v.html(html);
+							next.remove();
+							openedList.remove(key);
+							e.stopPropagation();
+						});
+						e.stopPropagation();
+					});
+					if( openedList.get(key) )
+						todo.push(function() v.click());
 				default:
 					v.click(function() editCell(c, v, sheet, index));
 				}
 			}
 		}
-		content.html("");
+		content.empty();
 		content.append(cols);
 
 		var snext = 0;
 		for( i in 0...lines.length ) {
 			content.append(lines[i]);
-			if( s.separators[snext] == i ) {
-				J("<tr>").addClass("separator").append('<td colspan="${s.columns.length+1}">').appendTo(content);
+			if( sheet.separators[snext] == i ) {
+				J("<tr>").addClass("separator").append('<td colspan="${sheet.columns.length+1}">').appendTo(content);
 				snext++;
 			}
 		}
+		for( t in todo ) t();
 	}
 	
 	function selectSheet( s : Data.Sheet ) {
-		sheet = s;
+		viewSheet = curSheet = s;
 		prefs.curSheet = Lambda.indexOf(data.sheets, s);
 		J("#sheets li").removeClass("active").filter("#sheet_" + prefs.curSheet).addClass("active");
 		refresh();
@@ -648,7 +744,15 @@ class Main {
 		J("#newsheet").show();
 	}
 	
-	function deleteColumn(?cname) {
+	inline function getSheet( name : String ) {
+		return smap.get(name).s;
+	}
+	
+	inline function getPseudoSheet( sheet : Data.Sheet, c : Data.Column ) {
+		return getSheet(sheet.name + "@" + c.name);
+	}
+	
+	function deleteColumn( sheet : Data.Sheet, ?cname) {
 		if( cname == null )
 			cname = J("#newcol form [name=ref]").val();
 		for( c in sheet.columns )
@@ -660,6 +764,8 @@ class Main {
 					sheet.props.displayColumn = null;
 					makeSheet(sheet);
 				}
+				if( c.type == TList )
+					data.sheets.remove(getPseudoSheet(sheet,c));
 			}
 		J("#newcol").hide();
 		refresh();
@@ -682,13 +788,16 @@ class Main {
 			sheet.separators.remove(toRemove);
 	}
 	
-	function newColumn( ?ref : Data.Column ) {
+	function newColumn( ?sheetName : String, ?ref : Data.Column ) {
 		var form = J("#newcol form");
 		
 		var sheets = J("[name=sheet]");
-		sheets.html("");
-		for( i in 0...data.sheets.length )
-			J("<option>").attr("value", "" + i).text(data.sheets[i].name).appendTo(sheets);
+		sheets.empty();
+		for( i in 0...data.sheets.length ) {
+			var s = data.sheets[i];
+			if( s.props.hide ) continue;
+			J("<option>").attr("value", "" + i).text(s.name).appendTo(sheets);
+		}
 
 		form.removeClass("edit").removeClass("create");
 		
@@ -709,11 +818,12 @@ class Main {
 			form.addClass("create");
 			form.find("input").not("[type=submit]").val("");
 		}
+		form.find("[name=sheetRef]").val(sheetName == null ? "" : sheetName);
 		
 		J("#newcol").show();
 	}
 	
-	function newLine( index : Null<Int> ) {
+	function newLine( sheet : Data.Sheet, index : Null<Int> ) {
 		var o = {
 		};
 		for( c in sheet.columns ) {
@@ -733,7 +843,7 @@ class Main {
 		refresh();
 		save();
 		if( index != null )
-			selectLine(index + 2);
+			selectLine(sheet, index + 1);
 	}
 		
 	function createSheet( name : String ) {
@@ -741,20 +851,18 @@ class Main {
 		if( name == "" )
 			return;
 		J("#newsheet").hide();
-		var s = {
+		var s : Data.Sheet = {
 			name : name,
 			columns : [],
 			lines : [],
 			separators : [],
 			props : {
-				displayColumn : null,
 			},
 		};
 		prefs.curSheet = data.sheets.length - 1;
 		data.sheets.push(s);
 		initContent();
 		save();
-		selectSheet(s);
 	}
 	
 	function createColumn() {
@@ -764,7 +872,12 @@ class Main {
 		for( i in cols )
 			Reflect.setField(v, i.attr("name"), i.attr("type") == "checkbox" ? (i.is(":checked")?"on":null) : i.val());
 
+		var sheet = viewSheet;
 		var refColumn = null;
+		
+		if( v.sheetRef != "" )
+			sheet = getSheet(v.sheetRef);
+		
 		if( v.ref != "" ) {
 			for( c in sheet.columns )
 				if( c.name == v.ref )
@@ -800,6 +913,8 @@ class Main {
 			TRef(s.name);
 		case "image":
 			TImage;
+		case "list":
+			TList;
 		default:
 			return;
 		}
@@ -821,6 +936,10 @@ class Main {
 					Reflect.deleteField(o, old.name);
 					if( v != null )
 						Reflect.setField(o, c.name, v);
+				}
+				if( old.type == TList ) {
+					var s = getPseudoSheet(sheet, old);
+					s.name = sheet.name + "@" + c.name;
 				}
 				old.name = c.name;
 			}
@@ -855,12 +974,15 @@ class Main {
 				case [(TFloat|TInt), TBool]:
 					conv = function(v:Float) return v != 0;
 				case [TEnum(values1), TEnum(values2)]:
-					var map = [];
-					for( v in values1 ) {
-						var pos = Lambda.indexOf(values2, v);
-						if( pos < 0 ) map.push(null) else map.push(pos);
-					}
-					conv = function(i) return map[i];
+					if( values1.length != values2.length ) {
+						var map = [];
+						for( v in values1 ) {
+							var pos = Lambda.indexOf(values2, v);
+							if( pos < 0 ) map.push(null) else map.push(pos);
+						}
+						conv = function(i) return map[i];
+					} else
+						conv = null; // assume rename
 				case [TInt, TEnum(values)]:
 					conv = function(i) return if( i < 0 || i >= values.length ) null else i;
 				case [TEnum(values), TInt]:
@@ -919,6 +1041,18 @@ class Main {
 				var def = getDefault(c);
 				if( def != null ) Reflect.setField(i, c.name, def);
 			}
+			if( c.type == TList ) {
+				// create an hidden sheet for the model
+				var s : Data.Sheet = {
+					name : sheet.name + "@" + c.name,
+					props : { hide : true },
+					separators : [],
+					lines : [],
+					columns : [],
+				};
+				data.sheets.push(s);
+				makeSheet(s);
+			}
 		}
 		
 		J("#newcol").hide();
@@ -936,6 +1070,7 @@ class Main {
 		sheets.children().remove();
 		for( i in 0...data.sheets.length ) {
 			var s = data.sheets[i];
+			if( s.props.hide ) continue;
 			J("<li>").text(s.name).attr("id", "sheet_" + i).appendTo(sheets).click(selectSheet.bind(s));
 		}
 		if( data.sheets.length == 0 ) {

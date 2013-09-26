@@ -2,7 +2,6 @@ body {
 	margin : 0;
 	padding : 0;
 	background-color : #CCC;
-	overflow-x : hidden;
 }
 ul, li {
 	margin : 0;
@@ -123,80 +122,94 @@ div#menu ul.sheets li.active {
 	color : #252596;
 	background-color : #E0E0FF;
 }
-table.castle {
+.castle table {
 	width : 100%;
+	table-layout : fixed;
 	background-color : white;
 	border-collapse : collapse;
 	border-spacing : 0;
 }
-table.castle td {
+.castle td {
 	padding : 2px 4px;
 	overflow : hidden;
 }
-table.castle img {
+.castle td.t_image img {
+	cursor : pointer;
 	max-height : 64px;
 }
-table.castle td.selected img {
+.castle td.selected img {
 	opacity : 0.5;
 	filter : alpha(opacity=50);
 	zoom : 1;
 }
-table.castle td.start {
-	width : 30px;
+.castle td.start {
+	min-width : 20px;
+	width : 20px;
 	text-align : center;
 }
-table.castle tr.separator {
+.castle tr.separator {
 	background-color : #CCC;
 	height : 10px;
 }
-table.castle tr.head {
+.castle tr.list {
+	background-color : #CCC;
+	border-bottom : 0px;
+}
+.castle tr.list>td {
+	padding : 0;
+}
+.castle tr.head {
 	font-weight : bold;
 	text-align : center;
 	border-bottom : 1px solid #888;
 	background-color : #333;
 	color : #EEE;
 }
-table.castle tr.head td.display {
+.castle tr.head td.display {
 	font-style : italic;
 }
-table.castle tr.selected {
+.castle tr.selected {
 	background-color : #EEE;
 }
-table.castle td {
+.castle td {
 	user-select : none;
 	-moz-user-select : none;
 	-webkit-user-select : none;
 	border-left : 1px solid #CCC;
 }
-table.castle td.t_bool {
+.castle td.t_bool {
 	text-align : center;
 }
-table.castle td.t_int, table.castle td.t_float {
+.castle td.t_int, .castle td.t_float {
 	text-align : right;
 }
-table.castle td.t_int input, table.castle td.t_float input {
+.castle td.t_int input, .castle td.t_float input {
 	text-align : right;
 }
-table.castle td.t_enum {
+.castle td.t_list {
+	white-space : nowrap;
+	cursor : pointer;
+}
+.castle td.t_enum {
 	padding-left : 5px;
 }
-table.castle tr {
+.castle tr {
 	border-bottom : 1px solid #F8F8F8;
 }
-table.castle td.edit {
+.castle td.edit {
 	padding : 0px;
 }
-table.castle td.edit input {
+.castle td.edit input {
 	padding : 1px 4px;
 	width : 100%;
 	height : 20px;
 	border : none;
 }
-table.castle td.edit select {
+.castle td.edit select {
 	padding-left : 0px;
 	height : 20px;
 	width : 100%;
 }
-table.castle span.error {
+.castle span.error {
 	color : #A00;
 }
