@@ -66,13 +66,16 @@ div.modal form.edit input.create {
 div.modal form.create input.edit {
 	display : none;
 }
-div.modal #col_options .values, div.modal #col_options .sheet {
+div.modal #col_options .values, div.modal #col_options .sheet, div.modal #col_options .custom {
 	display : none;
 }
 div.modal #col_options.t_enum .values {
 	display : block;
 }
 div.modal #col_options.t_ref .sheet {
+	display : block;
+}
+div.modal #col_options.t_custom .custom {
 	display : block;
 }
 div#menu {

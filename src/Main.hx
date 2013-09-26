@@ -3,46 +3,18 @@ import nodejs.webkit.Menu;
 import nodejs.webkit.MenuItem;
 import nodejs.webkit.MenuItemType;
 
-typedef Prefs = {
-	windowPos : { x : Int, y : Int, w : Int, h : Int, max : Bool },
-	curFile : String,
-	curSheet : Int,
-}
-
-typedef Index = { id : String, disp : String, obj : Dynamic }
-
-class Main {
+class Main extends Model {
 
 	var window : nodejs.webkit.Window;
-	var prefs : Prefs;
-	var data : Data;
-	var imageBank : Dynamic<String>;
 	var viewSheet : Data.Sheet;
 	var curSheet(default,set) : Data.Sheet;
-	var smap : Map< String, { s : Data.Sheet, index : Map<String,Index> , all : Array<Index> } >;
-	
-	var curSavedData : String;
-	var history : Array<String>;
-	var redo : Array<String>;
 	var mousePos : { x : Int, y : Int };
-	var openedList : Map<String,Bool>;
 	
 	static var r_id = ~/^[A-Za-z_][A-Za-z_0-9]*$/;
 	
 	function new() {
+		super();
 		window = nodejs.webkit.Window.get();
-		
-		prefs = {
-			windowPos : { x : 50, y : 50, w : 800, h : 600, max : false },
-			curFile : null,
-			curSheet : 0,
-		};
-		try {
-			prefs = haxe.Unserializer.run(js.Browser.getLocalStorage().getItem("prefs"));
-		} catch( e : Dynamic ) {
-		}
-
-		openedList = new Map();
 		initMenu();
 		mousePos = { x : 0, y : 0 };
 		window.window.addEventListener("keydown", onKey);
@@ -56,17 +28,6 @@ class Main {
 	function set_curSheet( s : Data.Sheet ) {
 		if( curSheet != s ) J(".selected").removeClass("selected");
 		return curSheet = s;
-	}
-	
-	function getDefault( c : Data.Column ) : Dynamic {
-		if( c.opt )
-			return null;
-		return switch( c.type ) {
-		case TInt, TFloat, TEnum(_): 0;
-		case TString, TId, TRef(_), TImage: "";
-		case TBool: false;
-		case TList: [];
-		}
 	}
 	
 	function onMouseMove( e : js.html.MouseEvent ) {
@@ -128,27 +89,19 @@ class Main {
 		getLine(sheet, index).addClass("selected");
 	}
 	
-	function moveLine( sheet : Data.Sheet, index : Int, delta : Int ) {
+	override function moveLine( sheet : Data.Sheet, index : Int, delta : Int ) {
 		// remove opened list
 		getLine(sheet, index).next("tr.list").dblclick();
-		if( delta < 0 && index > 0 ) {
-			var l = sheet.lines[index];
-			sheet.lines.splice(index, 1);
-			sheet.lines.insert(index - 1, l);
+		var index = super.moveLine(sheet, index, delta);
+		if( index != null ) {
 			refresh();
 			save();
-			selectLine(sheet, index - 1);
-		} else if( delta > 0 && sheet != null && index < sheet.lines.length-1 ) {
-			var l = sheet.lines[index];
-			sheet.lines.splice(index, 1);
-			sheet.lines.insert(index+1, l);
-			refresh();
-			save();
-			selectLine(sheet, index + 1);
+			selectLine(sheet, index);
 		}
+		return index;
 	}
 	
-	function changed( sheet : Data.Sheet, c : Data.Column ) {
+	function changed( sheet : Data.Sheet, c : Data.Column, index : Int ) {
 		save();
 		switch( c.type ) {
 		case TId:
@@ -156,116 +109,24 @@ class Main {
 		case TImage:
 			saveImages();
 		default:
-			// TODO : update display if( sheet.props.displayColumn == c.name )
-		}
-	}
-	
-	function load(noError = false) {
-		history = [];
-		redo = [];
-		try {
-			data = haxe.Json.parse(sys.io.File.getContent(prefs.curFile));
-			for( s in data.sheets )
-				for( c in s.columns )
-					c.type = haxe.Unserializer.run(c.typeStr);
-		} catch( e : Dynamic ) {
-			if( !noError ) js.Lib.alert(e);
-			prefs.curFile = null;
-			prefs.curSheet = 0;
-			data = {
-				sheets : [],
-			};
-		}
-		try {
-			var img = prefs.curFile.split(".");
-			img.pop();
-			imageBank = haxe.Json.parse(sys.io.File.getContent(img.join(".") + ".img"));
-		} catch( e : Dynamic ) {
-			imageBank = null;
-		}
-		curSavedData = quickSave();
-		initContent();
-	}
-	
-	function save( history = true ) {
-		if( history ) {
-			var sdata = quickSave();
-			if( sdata != curSavedData ) {
-				if( curSavedData != null ) {
-					this.history.push(curSavedData);
-					this.redo = [];
-				}
-				curSavedData = sdata;
+			if( sheet.props.displayColumn == c.name ) {
+				var obj = sheet.lines[index];
+				var s = smap.get(sheet.name);
+				for( cid in sheet.columns )
+					if( cid.type == TId ) {
+						var id = Reflect.field(obj, cid.name);
+						if( id != null ) {
+							var disp = Reflect.field(obj, c.name);
+							if( disp == null ) disp = "#" + id;
+							s.index.get(id).disp = disp;
+						}
+					}
 			}
 		}
-		if( prefs.curFile == null )
-			return;
-		var save = [];
-		for( s in this.data.sheets ) {
-			for( c in s.columns ) {
-				save.push(c.type);
-				if( c.typeStr == null ) c.typeStr = haxe.Serializer.run(c.type);
-				c.type = null;
-			}
-		}
-		sys.io.File.saveContent(prefs.curFile, untyped haxe.Json.stringify(data, null, "\t"));
-		for( s in this.data.sheets )
-			for( c in s.columns )
-				c.type = save.shift();
-	}
-	
-	function saveImages() {
-		if( prefs.curFile == null )
-			return;
-		var img = prefs.curFile.split(".");
-		img.pop();
-		var path = img.join(".") + ".img";
-		if( imageBank == null )
-			sys.FileSystem.deleteFile(path);
-		else
-			sys.io.File.saveContent(path, untyped haxe.Json.stringify(imageBank, null, "\t"));
-	}
-	
-	function quickSave() {
-		return haxe.Serializer.run({ d : data, o : openedList });
 	}
 
-	function quickLoad(sdata) {
-		var t = haxe.Unserializer.run(sdata);
-		data = t.d;
-		openedList = t.o;
-	}
-	
 	function error( msg ) {
 		js.Lib.alert(msg);
-	}
-	
-	function makeSheet( s : Data.Sheet ) {
-		var sdat = {
-			s : s,
-			index : new Map(),
-			all : [],
-		};
-		var cid = null;
-		for( c in s.columns )
-			if( c.type == TId ) {
-				for( l in s.lines ) {
-					var v = Reflect.field(l, c.name);
-					if( v != null && v != "" ) {
-						var disp = v;
-						if( s.props.displayColumn != null ) {
-							disp = Reflect.field(l, s.props.displayColumn);
-							if( disp == null || disp == "" ) disp = "#"+v;
-						}
-						var o = { id : v, disp:disp, obj : l };
-						if( sdat.index.get(v) == null )
-							sdat.index.set(v, o);
-						sdat.all.push(o);
-					}
-				}
-				break;
-			}
-		this.smap.set(s.name, sdat);
 	}
 	
 	function valueHtml( c : Data.Column, v : Dynamic, sheet : Data.Sheet, obj : Dynamic ) : String {
@@ -319,6 +180,21 @@ class Main {
 				out.push(vals.length == 1 ? vals[0] : vals);
 			}
 			Std.string(out);
+		case TCustom(name):
+			var t = tmap.get(name);
+			var a : Array<Dynamic> = v;
+			var cas = t.cases[a[0]];
+			var str = cas.name;
+			if( cas.args.length > 0 ) {
+				str += "(";
+				var out = [];
+				var pos = 1;
+				for( c in cas.args )
+					out.push(valueHtml(c, a[pos++], sheet, this));
+				str += out.join(",");
+				str += ")";
+			}
+			str;
 		}
 	}
 	
@@ -420,7 +296,7 @@ class Main {
 			return valueHtml(c, val, sheet, obj);
 		}
 		inline function changed() {
-			this.changed(sheet, c);
+			this.changed(sheet, c, index);
 		}
 		var html = getValue();
 		if( v.hasClass("edit") ) return;
@@ -429,7 +305,7 @@ class Main {
 			v.removeClass("edit");
 		}
 		switch( c.type ) {
-		case TInt, TFloat, TString, TId:
+		case TInt, TFloat, TString, TId, TCustom(_):
 			v.empty();
 			var i = J("<input>");
 			v.addClass("edit");
@@ -523,10 +399,12 @@ class Main {
 		case TRef(sname):
 			var sdat = smap.get(sname);
 			if( sdat == null ) return;
-
 			v.empty();
-			var s = J("<select>");
 			v.addClass("edit");
+			
+			// TODO if too many items, use autocomplete
+			
+			var s = J("<select>");
 			for( l in sdat.all )
 				J("<option>").attr("value", "" + l.id).attr(val == l.id ? "selected" : "_sel", "selected").text(l.disp).appendTo(s);
 			if( c.opt )
@@ -550,9 +428,15 @@ class Main {
 			var event : Dynamic = cast js.Browser.document.createEvent('MouseEvents');
 			event.initMouseEvent('mousedown', true, true, js.Browser.window);
 			s[0].dispatchEvent(event);
+			
 		case TBool:
-			val = !val;
-			Reflect.setField(obj, c.name, val);
+			if( c.opt && val == false ) {
+				val = null;
+				Reflect.deleteField(obj, c.name);
+			} else {
+				val = !val;
+				Reflect.setField(obj, c.name, val);
+			}
 			v.html(getValue());
 			changed();
 		case TImage:
@@ -587,10 +471,6 @@ class Main {
 	
 	function refresh() {
 		fillTable(J("#content"), viewSheet);
-	}
-	
-	function getPath( sheet : Data.Sheet ) {
-		return sheet.path == null ? sheet.name : sheet.path;
 	}
 	
 	function fillTable( content : js.JQuery, sheet : Data.Sheet ) {
@@ -744,48 +624,15 @@ class Main {
 		J("#newsheet").show();
 	}
 	
-	inline function getSheet( name : String ) {
-		return smap.get(name).s;
-	}
-	
-	inline function getPseudoSheet( sheet : Data.Sheet, c : Data.Column ) {
-		return getSheet(sheet.name + "@" + c.name);
-	}
-	
-	function deleteColumn( sheet : Data.Sheet, ?cname) {
+	override function deleteColumn( sheet : Data.Sheet, ?cname) {
 		if( cname == null )
 			cname = J("#newcol form [name=ref]").val();
-		for( c in sheet.columns )
-			if( c.name == cname ) {
-				sheet.columns.remove(c);
-				for( o in sheet.lines )
-					Reflect.deleteField(o, c.name);
-				if( sheet.props.displayColumn == c.name ) {
-					sheet.props.displayColumn = null;
-					makeSheet(sheet);
-				}
-				if( c.type == TList )
-					data.sheets.remove(getPseudoSheet(sheet,c));
-			}
+		if( !super.deleteColumn(sheet, cname) )
+			return false;
 		J("#newcol").hide();
 		refresh();
 		save();
-	}
-	
-	function deleteLine( sheet : Data.Sheet, index : Int ) {
-		sheet.lines.splice(index, 1);
-		var prev = -1, toRemove = null;
-		for( i in 0...sheet.separators.length ) {
-			var s = sheet.separators[i];
-			if( s >= index ) {
-				if( prev == s - 1 ) toRemove = prev;
-				sheet.separators[i] = s - 1;
-			} else
-				prev = s;
-		}
-		// prevent duplicates
-		if( toRemove != null )
-			sheet.separators.remove(toRemove);
+		return true;
 	}
 	
 	function newColumn( ?sheetName : String, ?ref : Data.Column ) {
@@ -823,23 +670,8 @@ class Main {
 		J("#newcol").show();
 	}
 	
-	function newLine( sheet : Data.Sheet, index : Null<Int> ) {
-		var o = {
-		};
-		for( c in sheet.columns ) {
-			var d = getDefault(c);
-			if( d != null )
-				Reflect.setField(o, c.name, d);
-		}
-		if( index == null )
-			sheet.lines.push(o);
-		else {
-			for( i in 0...sheet.separators.length ) {
-				var s = sheet.separators[i];
-				if( s >= index ) sheet.separators[i] = s + 1;
-			}
-			sheet.lines.insert(index + 1, o);
-		}
+	override function newLine( sheet : Data.Sheet, ?index : Int ) {
+		super.newLine(sheet,index);
 		refresh();
 		save();
 		if( index != null )
@@ -850,6 +682,10 @@ class Main {
 		name = StringTools.trim(name);
 		if( name == "" )
 			return;
+		// name already exists
+		for( s in data.sheets )
+			if( s.name == name )
+				return;
 		J("#newsheet").hide();
 		var s : Data.Sheet = {
 			name : name,
@@ -885,14 +721,7 @@ class Main {
 		}
 	
 		var t : Data.ColumnType = switch( v.type ) {
-		case "id":
-			if( refColumn == null )
-				for( c in sheet.columns )
-					if( c.type == TId ) {
-						error("Only one ID allowed");
-						return;
-					}
-			TId;
+		case "id": TId;
 		case "int": TInt;
 		case "float": TFloat;
 		case "string": TString;
@@ -927,131 +756,19 @@ class Main {
 		};
 		
 		if( refColumn != null ) {
-			// modify
-			
-			var old = refColumn;
-			if( old.name != c.name ) {
-				for( o in sheet.lines ) {
-					var v = Reflect.field(o, old.name);
-					Reflect.deleteField(o, old.name);
-					if( v != null )
-						Reflect.setField(o, c.name, v);
-				}
-				if( old.type == TList ) {
-					var s = getPseudoSheet(sheet, old);
-					s.name = sheet.name + "@" + c.name;
-				}
-				old.name = c.name;
+			var err = super.updateColumn(sheet, refColumn, c);
+			if( err != null ) {
+				// might have partial change
+				refresh();
+				save();
+				error(err);
+				return;
 			}
-			
-			if( !old.type.equals(c.type) ) {
-				var conv : Dynamic -> Dynamic = null;
-				switch( [old.type, c.type] ) {
-				case [TInt, TFloat]:
-					// nothing
-				case [TId | TRef(_), TString]:
-					// nothing
-				case [TString, (TId | TRef(_))]:
-					var r_invalid = ~/[^A-Za-z0-9_]/g;
-					conv = function(r:String) return r_invalid.replace(r, "_");
-				case [TBool, (TInt | TFloat)]:
-					conv = function(b) return b ? 1 : 0;
-				case [TString, TInt]:
-					conv = Std.parseInt;
-				case [TString, TFloat]:
-					conv = Std.parseFloat;
-				case [TString, TBool]:
-					conv = function(s) return s != "";
-				case [TString, TEnum(values)]:
-					var map = new Map();
-					for( i in 0...values.length )
-						map.set(values[i].toLowerCase(), i);
-					conv = function(s:String) return map.get(s.toLowerCase());
-				case [TFloat, TInt]:
-					conv = Std.int;
-				case [(TInt | TFloat | TBool), TString]:
-					conv = Std.string;
-				case [(TFloat|TInt), TBool]:
-					conv = function(v:Float) return v != 0;
-				case [TEnum(values1), TEnum(values2)]:
-					if( values1.length != values2.length ) {
-						var map = [];
-						for( v in values1 ) {
-							var pos = Lambda.indexOf(values2, v);
-							if( pos < 0 ) map.push(null) else map.push(pos);
-						}
-						conv = function(i) return map[i];
-					} else
-						conv = null; // assume rename
-				case [TInt, TEnum(values)]:
-					conv = function(i) return if( i < 0 || i >= values.length ) null else i;
-				case [TEnum(values), TInt]:
-					// nothing
-				default:
-					error("Cannot convert " + old.type.getName().substr(1) + " to " + c.type.getName().substr(1));
-					return;
-				}
-				if( conv != null )
-					for( o in sheet.lines ) {
-						var v = Reflect.field(o, c.name);
-						if( v != null ) {
-							v = conv(v);
-							if( v != null ) Reflect.setField(o, c.name, v) else Reflect.deleteField(o, c.name);
-						}
-					}
-				old.type = c.type;
-				old.typeStr = null;
-			}
-			
-			if( old.opt != c.opt ) {
-				if( old.opt ) {
-					for( o in sheet.lines ) {
-						var v = Reflect.field(o, c.name);
-						if( v == null ) {
-							v = getDefault(c);
-							if( v != null ) Reflect.setField(o, c.name, v);
-						}
-					}
-				} else {
-					switch( old.type ) {
-					case TEnum(_):
-						// first choice should not be removed
-					default:
-						var def = getDefault(old);
-						for( o in sheet.lines ) {
-							var v = Reflect.field(o, c.name);
-							if( v == def )
-								Reflect.deleteField(o, c.name);
-						}
-					}
-				}
-				old.opt = c.opt;
-			}
-			makeSheet(sheet);
-				
 		} else {
-			// create
-			for( c2 in sheet.columns )
-				if( c2.name == c.name ) {
-					error("Column already exists");
-					return;
-				}
-			sheet.columns.push(c);
-			for( i in sheet.lines ) {
-				var def = getDefault(c);
-				if( def != null ) Reflect.setField(i, c.name, def);
-			}
-			if( c.type == TList ) {
-				// create an hidden sheet for the model
-				var s : Data.Sheet = {
-					name : sheet.name + "@" + c.name,
-					props : { hide : true },
-					separators : [],
-					lines : [],
-					columns : [],
-				};
-				data.sheets.push(s);
-				makeSheet(s);
+			var err = super.addColumn(sheet, c);
+			if( err != null ) {
+				error(err);
+				return;
 			}
 		}
 		
@@ -1062,10 +779,8 @@ class Main {
 		save();
 	}
 	
-	function initContent() {
-		smap = new Map();
-		for( s in data.sheets )
-			makeSheet(s);
+	override function initContent() {
+		super.initContent();
 		var sheets = J("ul#sheets");
 		sheets.children().remove();
 		for( i in 0...data.sheets.length ) {
@@ -1082,25 +797,6 @@ class Main {
 		selectSheet(s);
 	}
 	
-	function cleanImages() {
-		if( imageBank == null )
-			return;
-		var used = new Map();
-		for( s in data.sheets )
-			for( c in s.columns )
-				switch( c.type ) {
-				case TImage:
-					for( obj in s.lines ) {
-						var v = Reflect.field(obj, c.name);
-						if( v != null ) used.set(v, true);
-					}
-				default:
-				}
-		for( f in Reflect.fields(imageBank) )
-			if( !used.get(f) )
-				Reflect.deleteField(imageBank, f);
-	}
-
 	function initMenu() {
 		var menu = Menu.createWindowMenu();
 		var mfile = new MenuItem({ label : "File" });
@@ -1183,10 +879,6 @@ class Main {
 		window.on('unmaximize', function() {
 			prefs.windowPos.max = false;
 		});
-	}
-	
-	function savePrefs() {
-		js.Browser.getLocalStorage().setItem("prefs", haxe.Serializer.run(prefs));
 	}
 	
 	static function main() {

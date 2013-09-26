@@ -65,8 +65,10 @@ div.modal {
 	form.create input.edit {
 		display : none;
 	}
-	#col_options .values, #col_options .sheet {
-		display : none;
+	#col_options {
+		.values, .sheet, .custom  {
+			display : none;
+		}
 	}
 	#col_options.t_enum .values {
 		display : block;
@@ -74,7 +76,9 @@ div.modal {
 	#col_options.t_ref .sheet {
 		display : block;
 	}
-	
+	#col_options.t_custom .custom {
+		display : block;
+	}
 }
 
 div#menu {

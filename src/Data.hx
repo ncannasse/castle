@@ -8,6 +8,7 @@ enum ColumnType {
 	TRef( sheet : String );
 	TImage;
 	TList;
+	TCustom( name : String );
 }
 
 typedef Column = {
@@ -32,6 +33,17 @@ typedef Sheet = {
 	@:optional var path : String;
 }
 
+typedef CustomTypeCase = {
+	var name : String;
+	var args : Array<Column>;
+}
+
+typedef CustomType = {
+	var name : String;
+	var cases : Array<CustomTypeCase>;
+}
+
 typedef Data = {
 	sheets : Array<Sheet>,
+	customTypes : Array<CustomType>,
 }
