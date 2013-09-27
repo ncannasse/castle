@@ -68,7 +68,7 @@
 		<h1>Type Props</h1>
 		<input type="hidden" name="ref"/>
 		<p>
-			<span>Type Name</span> <input type="text" id="name"/>
+			<span>Type Name</span> <input type="text" name="name"/>
 		</p>
 		<p>
 			<textarea name="tdesc"></textarea>
@@ -103,6 +103,11 @@
 </div>
 
 <div id="menu">
+	
+	<div id="error" style="display:none">
+		ERROR
+	</div>
+	
 	<a href="javascript:_.newLine()">New Line</a>
 	<a href="javascript:_.newColumn()">New Column</a>
 	<a href="javascript:_.newSheet()">New Sheet</a>

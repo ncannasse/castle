@@ -15,8 +15,7 @@ typedef Column = {
 	var name : String;
 	var type : ColumnType;
 	var typeStr : String;
-	var opt : Bool;
-	var size : Null<Float>;
+	@:optional var opt : Bool;
 }
 
 typedef SheetProps = {

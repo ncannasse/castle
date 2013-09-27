@@ -41,6 +41,10 @@ EReg.prototype = {
 	replace: function(s,by) {
 		return s.replace(this.r,by);
 	}
+	,split: function(s) {
+		var d = "#__delim__#";
+		return s.replace(this.r,d).split(d);
+	}
 	,match: function(s) {
 		if(this.r.global) this.r.lastIndex = 0;
 		this.r.m = this.r.exec(s);
@@ -172,7 +176,254 @@ var Model = function() {
 $hxClasses["Model"] = Model;
 Model.__name__ = ["Model"];
 Model.prototype = {
-	savePrefs: function() {
+	parseTypeCases: function(def) {
+		var cases = [];
+		var r_ident = new EReg("^[A-Za-z_][A-Za-z0-9_]*$","");
+		var cmap = new haxe.ds.StringMap();
+		var _g = 0;
+		var _g1 = new EReg("[\n;]","g").split(def);
+		while(_g < _g1.length) {
+			var line = _g1[_g];
+			++_g;
+			var line1 = StringTools.trim(line);
+			if(line1 == "") continue;
+			if(HxOverrides.cca(line1,line1.length - 1) == 59) line1 = HxOverrides.substr(line1,1,null);
+			var pos = line1.indexOf("(");
+			var name = null;
+			var args = [];
+			if(pos < 0) name = line1; else {
+				name = HxOverrides.substr(line1,0,pos);
+				line1 = HxOverrides.substr(line1,pos + 1,null);
+				if(HxOverrides.cca(line1,line1.length - 1) != 41) throw "Missing closing parent in " + line1;
+				line1 = HxOverrides.substr(line1,0,line1.length - 1);
+				var _g2 = 0;
+				var _g3 = line1.split(",");
+				while(_g2 < _g3.length) {
+					var arg = _g3[_g2];
+					++_g2;
+					var tname = arg.split(":");
+					if(tname.length != 2) throw "Required name:type in '" + arg + "'";
+					var opt = false;
+					var id = StringTools.trim(tname[0]);
+					if(id.charAt(0) == "?") {
+						opt = true;
+						id = StringTools.trim(HxOverrides.substr(id,1,null));
+					}
+					var t = StringTools.trim(tname[1]);
+					if(!r_ident.match(id)) throw "Invalid identifier " + id;
+					var c = { name : id, type : this.parseType(t), typeStr : null};
+					if(opt) c.opt = true;
+					args.push(c);
+				}
+			}
+			if(!r_ident.match(name)) throw "Invalid identifier " + line1;
+			if(cmap.exists(name)) throw "Duplicate identifier " + name;
+			cmap.set(name,true);
+			cases.push({ name : name, args : args});
+		}
+		return cases;
+	}
+	,parseType: function(tstr) {
+		switch(tstr) {
+		case "Int":
+			return ColumnType.TInt;
+		case "Float":
+			return ColumnType.TFloat;
+		case "Bool":
+			return ColumnType.TBool;
+		case "String":
+			return ColumnType.TString;
+		default:
+			if(this.tmap.exists(tstr)) return ColumnType.TCustom(tstr); else if(this.smap.exists(tstr)) return ColumnType.TRef(tstr); else {
+				if(StringTools.endsWith(tstr,">")) {
+					var tname = tstr.split("<").shift();
+					var tparam;
+					var _this = HxOverrides.substr(tstr,tname.length + 1,null);
+					tparam = HxOverrides.substr(_this,0,-1);
+				}
+				throw "Unknown type " + tstr;
+			}
+		}
+	}
+	,parseTypeVal: function(t,val) {
+		if(t == null || val == null) throw "Missing val/type";
+		val = StringTools.trim(val);
+		var missingCloseParent = false;
+		var pos = val.indexOf("(");
+		var id;
+		var args = null;
+		if(pos < 0) {
+			id = val;
+			args = [];
+		} else {
+			id = HxOverrides.substr(val,0,pos);
+			val = HxOverrides.substr(val,pos + 1,null);
+			if(StringTools.endsWith(val,")")) val = HxOverrides.substr(val,0,val.length - 1); else missingCloseParent = true;
+			args = [];
+			var p = 0;
+			var start = 0;
+			var pc = 0;
+			while(p < val.length) {
+				var _g;
+				var index = p++;
+				_g = HxOverrides.cca(val,index);
+				switch(_g) {
+				case 40:
+					pc++;
+					break;
+				case 41:
+					if(pc == 0) throw "Extra )";
+					pc--;
+					break;
+				case 34:
+					var esc = false;
+					try {
+						while(true) {
+							if(p == val.length) throw "Unclosed \"";
+							var c;
+							var index = p++;
+							c = HxOverrides.cca(val,index);
+							if(esc) esc = false; else switch(c) {
+							case 34:
+								throw "__break__";
+								break;
+							case 47:
+								esc = true;
+								break;
+							}
+						}
+					} catch( e ) { if( e != "__break__" ) throw e; }
+					break;
+				case 44:
+					if(pc == 0) {
+						args.push(HxOverrides.substr(val,start,p - start - 1));
+						start = p;
+					}
+					break;
+				default:
+				}
+			}
+			if(pc > 0) throw "Missing )";
+			if(p > start || start > 0 && p == start) args.push(HxOverrides.substr(val,start,p - start));
+		}
+		var _g1 = 0;
+		var _g = t.cases.length;
+		while(_g1 < _g) {
+			var i = _g1++;
+			var c = t.cases[i];
+			if(c.name == id) {
+				var vals = [i];
+				var _g2 = 0;
+				var _g3 = c.args;
+				while(_g2 < _g3.length) {
+					var a = _g3[_g2];
+					++_g2;
+					var v = args.shift();
+					if(v == null) {
+						if(a.opt) vals.push(null); else throw "Missing argument " + a.name + " : " + this.typeStr(a.type);
+					} else {
+						v = StringTools.trim(v);
+						if(a.opt && v == "null") {
+							vals.push(null);
+							continue;
+						}
+						var val1 = this.parseVal(a.type,v);
+						vals.push(val1);
+					}
+				}
+				if(args.length > 0) throw "Extra argument '" + args.shift() + "'";
+				if(missingCloseParent) throw "Missing closing )";
+				while(vals[vals.length - 1] == null) vals.pop();
+				return vals;
+			}
+		}
+		throw "Unkown value '" + id + "'";
+		return null;
+	}
+	,parseVal: function(t,val) {
+		switch(t[1]) {
+		case 3:
+			if(new EReg("^-?[0-9]+$","").match(val)) return Std.parseInt(val);
+			break;
+		case 1:
+			if(HxOverrides.cca(val,0) == 34) {
+				var esc = false;
+				var p = 0;
+				try {
+					while(true) {
+						if(p == val.length) throw "Unclosed \"";
+						var c;
+						var index = p++;
+						c = HxOverrides.cca(val,index);
+						if(esc) esc = false; else switch(c) {
+						case 34:
+							if(p < val.length) throw "Invalid content after string '" + val + "'";
+							throw "__break__";
+							break;
+						case 47:
+							esc = true;
+							break;
+						}
+					}
+				} catch( e ) { if( e != "__break__" ) throw e; }
+			} else if(new EReg("^[A-Za-z0-9_]+$","").match(val)) return val;
+			throw "String requires quotes '" + val + "'";
+			break;
+		case 2:
+			if(val == "true") return true;
+			if(val == "false") return false;
+			break;
+		case 4:
+			var f = Std.parseFloat(val);
+			if(!Math.isNaN(f)) return f;
+			break;
+		default:
+		}
+		throw "'" + val + "' should be " + this.typeStr(t);
+	}
+	,typeStr: function(t) {
+		var _this = Std.string(t);
+		return HxOverrides.substr(_this,1,null);
+	}
+	,typeValToString: function(t,val) {
+		var c = t.cases[val[0]];
+		var str = c.name;
+		if(c.args.length > 0) {
+			str += "(";
+			var out = [];
+			var _g1 = 1;
+			var _g = val.length;
+			while(_g1 < _g) {
+				var i = _g1++;
+				out.push(this.valToString(c.args[i - 1].type,val[i]));
+			}
+			str += out.join(",");
+			str += ")";
+		}
+		return str;
+	}
+	,valToString: function(t,val) {
+		if(val == null) return "null";
+		switch(t[1]) {
+		case 3:case 4:case 2:case 7:
+			return Std.string(val);
+		case 0:case 6:
+			return val;
+		case 1:
+			var val1 = val;
+			if(new EReg("^[A-Za-z0-9_]+$","g").match(val1)) return val1; else return "\"" + val1.split("\\").join("\\\\").split("\"").join("\\\"") + "\"";
+			break;
+		case 5:
+			var values = t[2];
+			return this.valToString(ColumnType.TString,values[val]);
+		case 8:
+			return "????";
+		case 9:
+			var t1 = t[2];
+			return this.typeValToString(this.tmap.get(t1),val);
+		}
+	}
+	,savePrefs: function() {
 		js.Browser.getLocalStorage().setItem("prefs",haxe.Serializer.run(this.prefs));
 	}
 	,cleanImages: function() {
@@ -414,7 +665,10 @@ Model.prototype = {
 						conv = Std.parseInt;
 						break;
 					case 4:
-						conv = Std.parseFloat;
+						conv = function(str) {
+							var f = Std.parseFloat(str);
+							if(Math.isNaN(f)) return null; else return f;
+						};
 						break;
 					case 2:
 						conv = function(s) {
@@ -570,7 +824,15 @@ Model.prototype = {
 							$r = v1;
 							return $r;
 						}(this));
-						if(v == def) Reflect.deleteField(o,c.name);
+						var _g3 = c.type;
+						switch(_g3[1]) {
+						case 8:
+							var v1 = v;
+							if(v1.length == 0) Reflect.deleteField(o,c.name);
+							break;
+						default:
+							if(v == def) Reflect.deleteField(o,c.name);
+						}
 					}
 				}
 			}
@@ -699,7 +961,7 @@ Model.prototype = {
 				++_g2;
 				save.push(c.type);
 				if(c.typeStr == null) c.typeStr = haxe.Serializer.run(c.type);
-				c.type = null;
+				Reflect.deleteField(c,"type");
 			}
 		}
 		var _g = 0;
@@ -719,7 +981,7 @@ Model.prototype = {
 					++_g4;
 					save.push(a.type);
 					if(a.typeStr == null) a.typeStr = haxe.Serializer.run(a.type);
-					a.type = null;
+					Reflect.deleteField(a,"type");
 				}
 			}
 		}
@@ -1061,7 +1323,8 @@ Main.prototype = $extend(Model.prototype,{
 		default:
 			return;
 		}
-		var c = { type : t, typeStr : null, opt : v.opt == "on", name : v.name, size : null};
+		var c = { type : t, typeStr : null, name : v.name};
+		if(v.opt == "on") c.opt = true;
 		if(refColumn != null) {
 			var err = Model.prototype.updateColumn.call(this,sheet,refColumn,c);
 			if(err != null) {
@@ -1167,7 +1430,34 @@ Main.prototype = $extend(Model.prototype,{
 		return true;
 	}
 	,createType: function() {
-		console.log("TODO");
+		var form = new js.JQuery("#newtype form");
+		var tdef;
+		try {
+			tdef = this.parseTypeCases(form.find("[name=tdesc]").val());
+		} catch( msg ) {
+			if( js.Boot.__instanceof(msg,String) ) {
+				this.error(msg);
+				return;
+			} else throw(msg);
+		}
+		var t = { name : StringTools.trim(form.find("[name=name]").val()), cases : tdef};
+		if(!new EReg("^[A-Z][a-z0-9_]*$","").match(t.name)) {
+			this.error("Invalid Type name");
+			return;
+		}
+		var refType;
+		var key = form.find("[name=ref]").val();
+		refType = this.tmap.get(key);
+		if(refType != null) {
+			this.error("TODO");
+			return;
+		}
+		if(this.tmap.exists(t.name)) {
+			this.error("Duplicate Type name");
+			return;
+		}
+		this.tmap.set(t.name,t);
+		this.data.customTypes.push(t);
 		new js.JQuery(".modal").hide();
 	}
 	,newType: function(t) {
@@ -1267,7 +1557,7 @@ Main.prototype = $extend(Model.prototype,{
 			++_g2;
 			var col = new js.JQuery("<td>");
 			col.html(c[0].name);
-			col.css("width",c[0].size == null?(100 / sheet.columns.length | 0) + "%":c[0].size + "%");
+			col.css("width",(100 / sheet.columns.length | 0) + "%");
 			if(sheet.props.displayColumn == c[0].name) col.addClass("display");
 			col.mousedown((function(c) {
 				return function(e) {
@@ -1361,16 +1651,11 @@ Main.prototype = $extend(Model.prototype,{
 							var cell = new js.JQuery("<td>").attr("colspan","" + sheet.columns.length).appendTo(next);
 							var content1 = new js.JQuery("<table>").appendTo(cell);
 							var psheet = _g1.smap.get(sheet.name + "@" + c[0].name).s;
-							psheet = { columns : psheet.columns, props : psheet.props, name : psheet.name, path : _g1.getPath(sheet) + ":" + index[0], lines : (function($this) {
-								var $r;
-								var v = null;
-								try {
-									v = obj[0][c[0].name];
-								} catch( e1 ) {
-								}
-								$r = v;
-								return $r;
-							}(this)), separators : []};
+							if(val[0] == null) {
+								val[0] = [];
+								obj[0][c[0].name] = val[0];
+							}
+							psheet = { columns : psheet.columns, props : psheet.props, name : psheet.name, path : _g1.getPath(sheet) + ":" + index[0], lines : val[0], separators : []};
 							_g1.set_curSheet(psheet);
 							_g1.fillTable(content1,psheet);
 							next.insertAfter(l1[0]);
@@ -1378,12 +1663,10 @@ Main.prototype = $extend(Model.prototype,{
 							_g1.openedList.set(key[0],true);
 							next.change((function(key,html,v1,val,obj,c) {
 								return function(e1) {
-									var v = null;
-									try {
-										v = obj[0][c[0].name];
-									} catch( e2 ) {
-									}
-									val[0] = v;
+									if(c[0].opt && val[0].length == 0) {
+										val[0] = null;
+										Reflect.deleteField(obj[0],c[0].name);
+									} else obj[0][c[0].name] = val[0];
 									html[0] = _g1.valueHtml(c[0],val[0],sheet,obj[0]);
 									v1[0].html(html[0]);
 									next.remove();
@@ -1450,6 +1733,7 @@ Main.prototype = $extend(Model.prototype,{
 		var editDone = function() {
 			v.html(html);
 			v.removeClass("edit");
+			_g.setErrorMessage();
 		};
 		{
 			var _g1 = c.type;
@@ -1459,10 +1743,20 @@ Main.prototype = $extend(Model.prototype,{
 				var i = new js.JQuery("<input>");
 				v.addClass("edit");
 				i.appendTo(v);
-				if(val != null) i.val("" + Std.string(val));
+				if(val != null) {
+					var _g11 = c.type;
+					switch(_g11[1]) {
+					case 9:
+						var t = _g11[2];
+						i.val(this.typeValToString(this.tmap.get(t),val));
+						break;
+					default:
+						i.val("" + Std.string(val));
+					}
+				}
 				i.keydown(function(e) {
-					var _g11 = e.keyCode;
-					switch(_g11) {
+					var _g2 = e.keyCode;
+					switch(_g2) {
 					case 27:
 						editDone();
 						break;
@@ -1499,20 +1793,30 @@ Main.prototype = $extend(Model.prototype,{
 						}
 					} else {
 						var val2;
-						var _g11 = c.type;
-						switch(_g11[1]) {
-						case 3:
-							val2 = Std.parseInt(nv);
-							break;
-						case 4:
-							var f = Std.parseFloat(nv);
-							if(Math.isNaN(f)) val2 = null; else val2 = f;
-							break;
-						case 0:
-							if(Main.r_id.match(nv)) val2 = nv; else val2 = null;
-							break;
-						default:
-							val2 = nv;
+						{
+							var _g2 = c.type;
+							switch(_g2[1]) {
+							case 3:
+								val2 = Std.parseInt(nv);
+								break;
+							case 4:
+								var f = Std.parseFloat(nv);
+								if(Math.isNaN(f)) val2 = null; else val2 = f;
+								break;
+							case 0:
+								if(Main.r_id.match(nv)) val2 = nv; else val2 = null;
+								break;
+							case 9:
+								var t = _g2[2];
+								try {
+									val2 = _g.parseTypeVal(_g.tmap.get(t),nv);
+								} catch( e ) {
+									val2 = null;
+								}
+								break;
+							default:
+								val2 = nv;
+							}
 						}
 						if(val2 != val && val2 != null) {
 							val = val2;
@@ -1523,6 +1827,29 @@ Main.prototype = $extend(Model.prototype,{
 					}
 					editDone();
 				});
+				{
+					var _g2 = c.type;
+					switch(_g2[1]) {
+					case 9:
+						var t = _g2[2];
+						var t1 = this.tmap.get(t);
+						i.keyup(function(_) {
+							var str = i.val();
+							try {
+								if(str != "") _g.parseTypeVal(t1,str);
+								_g.setErrorMessage();
+								i.removeClass("error");
+							} catch( msg ) {
+								if( js.Boot.__instanceof(msg,String) ) {
+									_g.setErrorMessage(msg);
+									i.addClass("error");
+								} else throw(msg);
+							}
+						});
+						break;
+					default:
+					}
+				}
 				i.focus();
 				break;
 			case 5:
@@ -1822,12 +2149,11 @@ Main.prototype = $extend(Model.prototype,{
 					str += "(";
 					var out = [];
 					var pos = 1;
-					var _g1 = 0;
-					var _g2 = cas.args;
-					while(_g1 < _g2.length) {
-						var c1 = _g2[_g1];
-						++_g1;
-						out.push(this.valueHtml(c1,a[pos++],sheet,this));
+					var _g2 = 1;
+					var _g1 = a.length;
+					while(_g2 < _g1) {
+						var i = _g2++;
+						out.push(this.valueHtml(cas.args[i - 1],a[i],sheet,this));
 					}
 					str += out.join(",");
 					str += ")";
@@ -1835,6 +2161,9 @@ Main.prototype = $extend(Model.prototype,{
 				return str;
 			}
 		}
+	}
+	,setErrorMessage: function(msg) {
+		if(msg == null) new js.JQuery("#error").hide(); else new js.JQuery("#error").text(msg).show();
 	}
 	,error: function(msg) {
 		js.Lib.alert(msg);
@@ -2057,6 +2386,11 @@ StringTools.urlDecode = function(s) {
 StringTools.htmlEscape = function(s,quotes) {
 	s = s.split("&").join("&amp;").split("<").join("&lt;").split(">").join("&gt;");
 	if(quotes) return s.split("\"").join("&quot;").split("'").join("&#039;"); else return s;
+}
+StringTools.endsWith = function(s,end) {
+	var elen = end.length;
+	var slen = s.length;
+	return slen >= elen && HxOverrides.substr(s,slen - elen,elen) == end;
 }
 StringTools.isSpace = function(s,pos) {
 	var c = HxOverrides.cca(s,pos);
@@ -3137,6 +3471,9 @@ haxe.ds.StringMap.prototype = {
 		if(!this.h.hasOwnProperty(key)) return false;
 		delete(this.h[key]);
 		return true;
+	}
+	,exists: function(key) {
+		return this.h.hasOwnProperty("$" + key);
 	}
 	,get: function(key) {
 		return this.h["$" + key];

@@ -130,6 +130,13 @@ class Main extends Model {
 		js.Lib.alert(msg);
 	}
 	
+	function setErrorMessage( ?msg ) {
+		if( msg == null )
+			J("#error").hide();
+		else
+			J("#error").text(msg).show();
+	}
+	
 	function valueHtml( c : Data.Column, v : Dynamic, sheet : Data.Sheet, obj : Dynamic ) : String {
 		if( v == null ) {
 			if( c.opt )
@@ -190,8 +197,8 @@ class Main extends Model {
 				str += "(";
 				var out = [];
 				var pos = 1;
-				for( c in cas.args )
-					out.push(valueHtml(c, a[pos++], sheet, this));
+				for( i in 1...a.length )
+					out.push(valueHtml(cas.args[i-1], a[i], sheet, this));
 				str += out.join(",");
 				str += ")";
 			}
@@ -304,6 +311,7 @@ class Main extends Model {
 		function editDone() {
 			v.html(html);
 			v.removeClass("edit");
+			setErrorMessage();
 		}
 		switch( c.type ) {
 		case TInt, TFloat, TString, TId, TCustom(_):
@@ -311,7 +319,13 @@ class Main extends Model {
 			var i = J("<input>");
 			v.addClass("edit");
 			i.appendTo(v);
-			if( val != null ) i.val(""+val);
+			if( val != null )
+				switch( c.type ) {
+				case TCustom(t):
+					i.val(typeValToString(tmap.get(t),val));
+				default:
+					i.val(""+val);
+				}
 			i.keydown(function(e:js.JQuery.JqEvent) {
 				switch( e.keyCode ) {
 				case 27:
@@ -357,6 +371,8 @@ class Main extends Model {
 						if( Math.isNaN(f) ) null else f;
 					case TId:
 						r_id.match(nv) ? nv : null;
+					case TCustom(t):
+						try parseTypeVal(tmap.get(t), nv) catch( e : Dynamic ) null;
 					default:
 						nv;
 					}
@@ -369,6 +385,23 @@ class Main extends Model {
 				}
 				editDone();
 			});
+			switch( c.type ) {
+			case TCustom(t):
+				var t = tmap.get(t);
+				i.keyup(function(_) {
+					var str = i.val();
+					try {
+						if( str != "" )
+							parseTypeVal(t, str);
+						setErrorMessage();
+						i.removeClass("error");
+					} catch( msg : String ) {
+						setErrorMessage(msg);
+						i.addClass("error");
+					}
+				});
+			default:
+			}
 			i.focus();
 		case TEnum(values):
 			v.empty();
@@ -519,7 +552,7 @@ class Main extends Model {
 		for( c in sheet.columns ) {
 			var col = J("<td>");
 			col.html(c.name);
-			col.css("width", c.size == null ? Std.int(100 / sheet.columns.length) + "%" : c.size + "%");
+			col.css("width", Std.int(100 / sheet.columns.length) + "%");
 			if( sheet.props.displayColumn == c.name )
 				col.addClass("display");
 			col.mousedown(function(e) {
@@ -571,12 +604,16 @@ class Main extends Model {
 						var cell = J("<td>").attr("colspan", "" + (sheet.columns.length)).appendTo(next);
 						var content = J("<table>").appendTo(cell);
 						var psheet = getPseudoSheet(sheet, c);
+						if( val == null ) {
+							val = [];
+							Reflect.setField(obj, c.name, val);
+						}
 						psheet = {
 							columns : psheet.columns, // SHARE
 							props : psheet.props, // SHARE
 							name : psheet.name, // same
 							path : getPath(sheet) + ":" + index, // unique
-							lines : Reflect.field(obj, c.name), // ref
+							lines : val, // ref
 							separators : [], // none
 						};
 						curSheet = psheet; // set current
@@ -585,7 +622,11 @@ class Main extends Model {
 						v.html("...");
 						openedList.set(key,true);
 						next.change(function(e) {
-							val = Reflect.field(obj, c.name);
+							if( c.opt && val.length == 0 ) {
+								val = null;
+								Reflect.deleteField(obj, c.name);
+							} else
+								Reflect.setField(obj, c.name, val);
 							html = valueHtml(c, val, sheet, obj);
 							v.html(html);
 							next.remove();
@@ -636,14 +677,41 @@ class Main extends Model {
 		} else {
 			form.find("[name=ref]").val(t.name);
 			form.find("[name=name]").val(t.name);
-			//form.find("[name=desc]").val(customTypeToString(t));
+			//form.find("[name=tdesc]").val(customTypeToString(t));
 		}
 
 		J("#newtype").show();
 	}
 	
 	function createType() {
-		trace("TODO");
+		var form = J("#newtype form");
+		
+		var tdef;
+		try tdef = parseTypeCases(form.find("[name=tdesc]").val()) catch( msg : String ) { error(msg); return; };
+		var t : Data.CustomType = {
+			name : StringTools.trim(form.find("[name=name]").val()),
+			cases : tdef,
+		};
+		
+		if( !~/^[A-Z][a-z0-9_]*$/.match(t.name) ) {
+			error("Invalid Type name");
+			return;
+		}
+		
+		var refType = tmap.get(form.find("[name=ref]").val());
+		if( refType != null ) {
+			error("TODO");
+			return;
+		}
+		
+		if( tmap.exists(t.name) ) {
+			error("Duplicate Type name");
+			return;
+		}
+		
+		tmap.set(t.name, t);
+		data.customTypes.push(t);
+		
 		J(".modal").hide();
 	}
 	
@@ -785,10 +853,9 @@ class Main extends Model {
 		var c : Data.Column = {
 			type : t,
 			typeStr : null,
-			opt : v.opt == "on",
 			name : v.name,
-			size : null,
 		};
+		if( v.opt == "on" ) c.opt = true;
 		
 		if( refColumn != null ) {
 			var err = super.updateColumn(sheet, refColumn, c);
