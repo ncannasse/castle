@@ -62,6 +62,27 @@
 	</div>
 </div>
 
+<div id="newtype" class="modal" style="display:none">
+	<div class="content">
+	<form id="type_form" onsubmit="return false">
+		<h1>Type Props</h1>
+		<input type="hidden" name="ref"/>
+		<p>
+			<span>Type Name</span> <input type="text" id="name"/>
+		</p>
+		<p>
+			<textarea name="tdesc"></textarea>
+		</p>
+		<p class="buttons">
+			<input class="edit" type="submit" value="Delete" onclick="_.deleteType()"/>
+			<input class="edit" type="submit" value="Modify" onclick="_.createType()"/>
+			<input class="create" type="submit" value="Create" onclick="_.createType()"/>
+			<input type="submit" value="Cancel" onclick="$(this).parents('.modal').hide()"/>
+		</p>
+	</form>
+	</div>
+</div>
+
 <div id="help" class="modal" style="display:none">
 	<div class="content">
 	<h1>Help</h1>

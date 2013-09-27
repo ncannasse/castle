@@ -41,7 +41,8 @@ class Main extends Model {
 			if( curSheet != null )
 				newLine(curSheet, J("tr.selected").data("index"));
 		case 46: // Delete
-			var indexes = [for( i in J(".selected") ) { i.change(); i.data("index"); } ];
+			J(".selected.deletable").change();
+			var indexes = [for( i in J(".selected") ) { i.data("index"); } ];
 			while( indexes.remove(null) ) {
 			}
 			if( indexes.length == 0 )
@@ -91,7 +92,7 @@ class Main extends Model {
 	
 	override function moveLine( sheet : Data.Sheet, index : Int, delta : Int ) {
 		// remove opened list
-		getLine(sheet, index).next("tr.list").dblclick();
+		getLine(sheet, index).next("tr.list").change();
 		var index = super.moveLine(sheet, index, delta);
 		if( index != null ) {
 			refresh();
@@ -540,6 +541,7 @@ class Main extends Model {
 				v.html(html);
 				switch( c.type ) {
 				case TImage:
+					v.addClass("deletable");
 					v.click(function(e) {
 						J(".selected").removeClass("selected");
 						v.addClass("selected");
@@ -559,10 +561,10 @@ class Main extends Model {
 						var next = l.next("tr.list");
 						if( next.length > 0 ) {
 							if( next.data("name") == c.name ) {
-								next.dblclick();
+								next.change();
 								return;
 							}
-							next.dblclick();
+							next.change();
 						}
 						next = J("<tr>").addClass("list").data("name", c.name);
 						J("<td>").appendTo(next);
@@ -573,7 +575,7 @@ class Main extends Model {
 							columns : psheet.columns, // SHARE
 							props : psheet.props, // SHARE
 							name : psheet.name, // same
-							path : getPath(sheet)+":"+index, // unique
+							path : getPath(sheet) + ":" + index, // unique
 							lines : Reflect.field(obj, c.name), // ref
 							separators : [], // none
 						};
@@ -582,7 +584,7 @@ class Main extends Model {
 						next.insertAfter(l);
 						v.html("...");
 						openedList.set(key,true);
-						next.dblclick(function(e) {
+						next.change(function(e) {
 							val = Reflect.field(obj, c.name);
 							html = valueHtml(c, val, sheet, obj);
 							v.html(html);
@@ -624,6 +626,27 @@ class Main extends Model {
 		J("#newsheet").show();
 	}
 	
+	function newType( ?t : Data.CustomType ) {
+		var form = J("#newtype form");
+		
+		form.removeClass("edit").removeClass("create");
+		if( t == null ) {
+			form.addClass("create");
+			form.find("input,textarea").not("[type=submit]").val();
+		} else {
+			form.find("[name=ref]").val(t.name);
+			form.find("[name=name]").val(t.name);
+			//form.find("[name=desc]").val(customTypeToString(t));
+		}
+
+		J("#newtype").show();
+	}
+	
+	function createType() {
+		trace("TODO");
+		J(".modal").hide();
+	}
+	
 	override function deleteColumn( sheet : Data.Sheet, ?cname) {
 		if( cname == null )
 			cname = J("#newcol form [name=ref]").val();
@@ -645,6 +668,11 @@ class Main extends Model {
 			if( s.props.hide ) continue;
 			J("<option>").attr("value", "" + i).text(s.name).appendTo(sheets);
 		}
+		
+		var types = J("[name=ctype]");
+		types.empty();
+		for( t in data.customTypes )
+			J("<option>").attr("value", "" + t.name).text(t.name).appendTo(types);
 
 		form.removeClass("edit").removeClass("create");
 		
@@ -744,6 +772,13 @@ class Main extends Model {
 			TImage;
 		case "list":
 			TList;
+		case "custom":
+			var t = tmap.get(v.ctype);
+			if( t == null ) {
+				error("Type not found");
+				return;
+			}
+			TCustom(t.name);
 		default:
 			return;
 		}

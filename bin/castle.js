@@ -192,7 +192,7 @@ Model.prototype = {
 				switch(_g4[1]) {
 				case 7:
 					var _g5 = 0;
-					var _g6 = s.lines;
+					var _g6 = this.getSheetLines(s);
 					while(_g5 < _g6.length) {
 						var obj = _g6[_g5];
 						++_g5;
@@ -224,6 +224,7 @@ Model.prototype = {
 	,makeSheet: function(s) {
 		var sdat = { s : s, index : new haxe.ds.StringMap(), all : []};
 		var cid = null;
+		var lines = this.getSheetLines(s);
 		var _g = 0;
 		var _g1 = s.columns;
 		while(_g < _g1.length) {
@@ -231,9 +232,8 @@ Model.prototype = {
 			++_g;
 			if(c.type == ColumnType.TId) {
 				var _g2 = 0;
-				var _g3 = s.lines;
-				while(_g2 < _g3.length) {
-					var l = _g3[_g2];
+				while(_g2 < lines.length) {
+					var l = lines[_g2];
 					++_g2;
 					var v = (function($this) {
 						var $r;
@@ -343,7 +343,7 @@ Model.prototype = {
 	,updateColumn: function(sheet,old,c) {
 		if(old.name != c.name) {
 			var _g = 0;
-			var _g1 = sheet.lines;
+			var _g1 = this.getSheetLines(sheet);
 			while(_g < _g1.length) {
 				var o = _g1[_g];
 				++_g;
@@ -503,7 +503,7 @@ Model.prototype = {
 			}
 			if(conv != null) {
 				var _g2 = 0;
-				var _g3 = sheet.lines;
+				var _g3 = this.getSheetLines(sheet);
 				while(_g2 < _g3.length) {
 					var o = _g3[_g2];
 					++_g2;
@@ -529,7 +529,7 @@ Model.prototype = {
 		if(old.opt != c.opt) {
 			if(old.opt) {
 				var _g = 0;
-				var _g1 = sheet.lines;
+				var _g1 = this.getSheetLines(sheet);
 				while(_g < _g1.length) {
 					var o = _g1[_g];
 					++_g;
@@ -556,7 +556,7 @@ Model.prototype = {
 				default:
 					var def = this.getDefault(old);
 					var _g1 = 0;
-					var _g2 = sheet.lines;
+					var _g2 = this.getSheetLines(sheet);
 					while(_g1 < _g2.length) {
 						var o = _g2[_g1];
 						++_g1;
@@ -589,7 +589,7 @@ Model.prototype = {
 		}
 		sheet.columns.push(c);
 		var _g = 0;
-		var _g1 = sheet.lines;
+		var _g1 = this.getSheetLines(sheet);
 		while(_g < _g1.length) {
 			var i = _g1[_g];
 			++_g;
@@ -612,7 +612,7 @@ Model.prototype = {
 			if(c.name == cname) {
 				HxOverrides.remove(sheet.columns,c);
 				var _g2 = 0;
-				var _g3 = sheet.lines;
+				var _g3 = this.getSheetLines(sheet);
 				while(_g2 < _g3.length) {
 					var o = _g3[_g2];
 					++_g2;
@@ -798,6 +798,42 @@ Model.prototype = {
 			}
 			sheet.lines.splice(index + 1,0,o);
 		}
+	}
+	,getSheetLines: function(sheet) {
+		if(sheet.props.hide) {
+			var parts = sheet.name.split("@");
+			var colName = parts.pop();
+			var parent;
+			var name = parts.join("@");
+			parent = this.smap.get(name).s;
+			var all = [];
+			var _g = 0;
+			var _g1 = this.getSheetLines(parent);
+			while(_g < _g1.length) {
+				var obj = _g1[_g];
+				++_g;
+				var v = (function($this) {
+					var $r;
+					var v1 = null;
+					try {
+						v1 = obj[colName];
+					} catch( e ) {
+					}
+					$r = v1;
+					return $r;
+				}(this));
+				if(v != null) {
+					var _g2 = 0;
+					while(_g2 < v.length) {
+						var v1 = v[_g2];
+						++_g2;
+						all.push(v1);
+					}
+				}
+			}
+			return all;
+		}
+		return sheet.lines;
 	}
 	,getPseudoSheet: function(sheet,c) {
 		return this.smap.get(sheet.name + "@" + c.name).s;
@@ -1014,6 +1050,14 @@ Main.prototype = $extend(Model.prototype,{
 		case "list":
 			t = ColumnType.TList;
 			break;
+		case "custom":
+			var t1 = this.tmap.get(v.ctype);
+			if(t1 == null) {
+				this.error("Type not found");
+				return;
+			}
+			t = ColumnType.TCustom(t1.name);
+			break;
 		default:
 			return;
 		}
@@ -1077,6 +1121,15 @@ Main.prototype = $extend(Model.prototype,{
 			if(s.props.hide) continue;
 			new js.JQuery("<option>").attr("value","" + i).text(s.name).appendTo(sheets);
 		}
+		var types = new js.JQuery("[name=ctype]");
+		types.empty();
+		var _g = 0;
+		var _g1 = this.data.customTypes;
+		while(_g < _g1.length) {
+			var t = _g1[_g];
+			++_g;
+			new js.JQuery("<option>").attr("value","" + t.name).text(t.name).appendTo(types);
+		}
 		form.removeClass("edit").removeClass("create");
 		if(ref != null) {
 			form.addClass("edit");
@@ -1112,6 +1165,22 @@ Main.prototype = $extend(Model.prototype,{
 		this.refresh();
 		this.save();
 		return true;
+	}
+	,createType: function() {
+		console.log("TODO");
+		new js.JQuery(".modal").hide();
+	}
+	,newType: function(t) {
+		var form = new js.JQuery("#newtype form");
+		form.removeClass("edit").removeClass("create");
+		if(t == null) {
+			form.addClass("create");
+			form.find("input,textarea").not("[type=submit]").val();
+		} else {
+			form.find("[name=ref]").val(t.name);
+			form.find("[name=name]").val(t.name);
+		}
+		new js.JQuery("#newtype").show();
 	}
 	,newSheet: function() {
 		new js.JQuery("#newsheet").show();
@@ -1243,6 +1312,7 @@ Main.prototype = $extend(Model.prototype,{
 				var _g6 = c[0].type;
 				switch(_g6[1]) {
 				case 7:
+					v1[0].addClass("deletable");
 					v1[0].click((function(v1) {
 						return function(e) {
 							new js.JQuery(".selected").removeClass("selected");
@@ -1281,10 +1351,10 @@ Main.prototype = $extend(Model.prototype,{
 							var next = l1[0].next("tr.list");
 							if(next.length > 0) {
 								if(next.data("name") == c[0].name) {
-									next.dblclick();
+									next.change();
 									return;
 								}
-								next.dblclick();
+								next.change();
 							}
 							next = new js.JQuery("<tr>").addClass("list").data("name",c[0].name);
 							new js.JQuery("<td>").appendTo(next);
@@ -1306,7 +1376,7 @@ Main.prototype = $extend(Model.prototype,{
 							next.insertAfter(l1[0]);
 							v1[0].html("...");
 							_g1.openedList.set(key[0],true);
-							next.dblclick((function(key,html,v1,val,obj,c) {
+							next.change((function(key,html,v1,val,obj,c) {
 								return function(e1) {
 									var v = null;
 									try {
@@ -1819,7 +1889,7 @@ Main.prototype = $extend(Model.prototype,{
 		}
 	}
 	,moveLine: function(sheet,index,delta) {
-		this.getLine(sheet,index).next("tr.list").dblclick();
+		this.getLine(sheet,index).next("tr.list").change();
 		var index1 = Model.prototype.moveLine.call(this,sheet,index,delta);
 		if(index1 != null) {
 			this.refresh();
@@ -1847,6 +1917,7 @@ Main.prototype = $extend(Model.prototype,{
 			if(this.curSheet != null) this.newLine(this.curSheet,new js.JQuery("tr.selected").data("index"));
 			break;
 		case 46:
+			new js.JQuery(".selected.deletable").change();
 			var indexes;
 			var _g1 = [];
 			var $it0 = (function($this) {
@@ -1857,12 +1928,7 @@ Main.prototype = $extend(Model.prototype,{
 			}(this));
 			while( $it0.hasNext() ) {
 				var i = $it0.next();
-				_g1.push((function($this) {
-					var $r;
-					i.change();
-					$r = i.data("index");
-					return $r;
-				}(this)));
+				_g1.push(i.data("index"));
 			}
 			indexes = _g1;
 			while(HxOverrides.remove(indexes,null)) {

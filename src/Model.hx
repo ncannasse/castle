@@ -40,6 +40,23 @@ class Model {
 		return getSheet(sheet.name + "@" + c.name);
 	}
 	
+	function getSheetLines( sheet : Data.Sheet ) : Array<Dynamic> {
+		if( sheet.props.hide ) {
+			var parts = sheet.name.split("@");
+			var colName = parts.pop();
+			var parent = getSheet(parts.join("@"));
+			var all = [];
+			for( obj in getSheetLines(parent) ) {
+				var v : Array<Dynamic> = Reflect.field(obj, colName);
+				if( v != null )
+					for( v in v )
+						all.push(v);
+			}
+			return all;
+		}
+		return sheet.lines;
+	}
+	
 	function newLine( sheet : Data.Sheet, ?index : Int ) {
 		var o = {
 		};
@@ -170,7 +187,7 @@ class Model {
 		for( c in sheet.columns )
 			if( c.name == cname ) {
 				sheet.columns.remove(c);
-				for( o in sheet.lines )
+				for( o in getSheetLines(sheet) )
 					Reflect.deleteField(o, c.name);
 				if( sheet.props.displayColumn == c.name ) {
 					sheet.props.displayColumn = null;
@@ -191,7 +208,7 @@ class Model {
 			else if( c2.type == TId && c.type == TId )
 				return "Only one ID allowed";
 		sheet.columns.push(c);
-		for( i in sheet.lines ) {
+		for( i in getSheetLines(sheet) ) {
 			var def = getDefault(c);
 			if( def != null ) Reflect.setField(i, c.name, def);
 		}
@@ -212,7 +229,7 @@ class Model {
 	
 	function updateColumn( sheet : Data.Sheet, old : Data.Column, c : Data.Column ) {
 		if( old.name != c.name ) {
-			for( o in sheet.lines ) {
+			for( o in getSheetLines(sheet) ) {
 				var v = Reflect.field(o, old.name);
 				Reflect.deleteField(o, old.name);
 				if( v != null )
@@ -272,7 +289,7 @@ class Model {
 				return "Cannot convert " + old.type.getName().substr(1) + " to " + c.type.getName().substr(1);
 			}
 			if( conv != null )
-				for( o in sheet.lines ) {
+				for( o in getSheetLines(sheet) ) {
 					var v = Reflect.field(o, c.name);
 					if( v != null ) {
 						v = conv(v);
@@ -285,7 +302,7 @@ class Model {
 		
 		if( old.opt != c.opt ) {
 			if( old.opt ) {
-				for( o in sheet.lines ) {
+				for( o in getSheetLines(sheet) ) {
 					var v = Reflect.field(o, c.name);
 					if( v == null ) {
 						v = getDefault(c);
@@ -298,7 +315,7 @@ class Model {
 					// first choice should not be removed
 				default:
 					var def = getDefault(old);
-					for( o in sheet.lines ) {
+					for( o in getSheetLines(sheet) ) {
 						var v = Reflect.field(o, c.name);
 						if( v == def )
 							Reflect.deleteField(o, c.name);
@@ -359,9 +376,10 @@ class Model {
 			all : [],
 		};
 		var cid = null;
+		var lines = getSheetLines(s);
 		for( c in s.columns )
 			if( c.type == TId ) {
-				for( l in s.lines ) {
+				for( l in lines ) {
 					var v = Reflect.field(l, c.name);
 					if( v != null && v != "" ) {
 						var disp = v;
@@ -385,15 +403,16 @@ class Model {
 			return;
 		var used = new Map();
 		for( s in data.sheets )
-			for( c in s.columns )
+			for( c in s.columns ) {
 				switch( c.type ) {
 				case TImage:
-					for( obj in s.lines ) {
+					for( obj in getSheetLines(s) ) {
 						var v = Reflect.field(obj, c.name);
 						if( v != null ) used.set(v, true);
 					}
 				default:
 				}
+			}
 		for( f in Reflect.fields(imageBank) )
 			if( !used.get(f) )
 				Reflect.deleteField(imageBank, f);
