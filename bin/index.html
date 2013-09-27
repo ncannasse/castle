@@ -49,7 +49,7 @@
 		<div id="col_options">
 			<div class="values"><span>Possible Values</span> <input type="text" name="values" name="vals"/></div>
 			<div class="sheet"><span>Sheet</span> <select name="sheet"></select> </div>
-			<div class="custom"><span>Type <a href="javascript:_.newType()">[create]</a></span> <select name="ctype"></select> </div>
+			<div class="custom"><span>Type</span> <a href="javascript:_.newType()" class="tcreate">[create]</a> <a href="#" onclick="_.newType($(this).parents('form').find('[name=ctype]').val())" class="tedit">[edit]</a></span> <select name="ctype"></select> </div>
 			<div class="opt">Optional <input type="checkbox" name="opt"/></div>
 		</div>
 		<p class="buttons">
@@ -58,6 +58,7 @@
 			<input class="create" type="submit" value="Create" onclick="_.createColumn()"/>
 			<input type="submit" value="Cancel" onclick="$(this).parents('.modal').hide()"/>
 		</p>
+		
 		</form>
 	</div>
 </div>
@@ -77,8 +78,12 @@
 			<input class="edit" type="submit" value="Delete" onclick="_.deleteType()"/>
 			<input class="edit" type="submit" value="Modify" onclick="_.createType()"/>
 			<input class="create" type="submit" value="Create" onclick="_.createType()"/>
-			<input type="submit" value="Cancel" onclick="$(this).parents('.modal').hide()"/>
+			<input type="submit" value="Cancel" onclick="_.hideType()"/>
 		</p>
+		
+		<div class="errorMsg" style="display:none">
+		</div>
+		
 	</form>
 	</div>
 </div>
@@ -104,7 +109,7 @@
 
 <div id="menu">
 	
-	<div id="error" style="display:none">
+	<div class="errorMsg" style="display:none">
 		ERROR
 	</div>
 	

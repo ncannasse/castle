@@ -227,6 +227,57 @@ class Model {
 		return null;
 	}
 	
+	function getConvFunction( old : Data.ColumnType, t : Data.ColumnType ) {
+		var conv : Dynamic -> Dynamic = null;
+		if( Type.enumEq(old, t) )
+			return { f : null };
+		switch( [old, t] ) {
+		case [TInt, TFloat]:
+			// nothing
+		case [TId | TRef(_), TString]:
+			// nothing
+		case [TString, (TId | TRef(_))]:
+			var r_invalid = ~/[^A-Za-z0-9_]/g;
+			conv = function(r:String) return r_invalid.replace(r, "_");
+		case [TBool, (TInt | TFloat)]:
+			conv = function(b) return b ? 1 : 0;
+		case [TString, TInt]:
+			conv = Std.parseInt;
+		case [TString, TFloat]:
+			conv = function(str) { var f = Std.parseFloat(str); return Math.isNaN(f) ? null : f; }
+		case [TString, TBool]:
+			conv = function(s) return s != "";
+		case [TString, TEnum(values)]:
+			var map = new Map();
+			for( i in 0...values.length )
+				map.set(values[i].toLowerCase(), i);
+			conv = function(s:String) return map.get(s.toLowerCase());
+		case [TFloat, TInt]:
+			conv = Std.int;
+		case [(TInt | TFloat | TBool), TString]:
+			conv = Std.string;
+		case [(TFloat|TInt), TBool]:
+			conv = function(v:Float) return v != 0;
+		case [TEnum(values1), TEnum(values2)]:
+			if( values1.length != values2.length ) {
+				var map = [];
+				for( v in values1 ) {
+					var pos = Lambda.indexOf(values2, v);
+					if( pos < 0 ) map.push(null) else map.push(pos);
+				}
+				conv = function(i) return map[i];
+			} else
+				conv = null; // assume rename
+		case [TInt, TEnum(values)]:
+			conv = function(i) return if( i < 0 || i >= values.length ) null else i;
+		case [TEnum(values), TInt]:
+			// nothing
+		default:
+			return null;
+		}
+		return { f : conv };
+	}
+	
 	function updateColumn( sheet : Data.Sheet, old : Data.Column, c : Data.Column ) {
 		if( old.name != c.name ) {
 			for( o in getSheetLines(sheet) ) {
@@ -243,51 +294,10 @@ class Model {
 		}
 		
 		if( !old.type.equals(c.type) ) {
-			var conv : Dynamic -> Dynamic = null;
-			switch( [old.type, c.type] ) {
-			case [TInt, TFloat]:
-				// nothing
-			case [TId | TRef(_), TString]:
-				// nothing
-			case [TString, (TId | TRef(_))]:
-				var r_invalid = ~/[^A-Za-z0-9_]/g;
-				conv = function(r:String) return r_invalid.replace(r, "_");
-			case [TBool, (TInt | TFloat)]:
-				conv = function(b) return b ? 1 : 0;
-			case [TString, TInt]:
-				conv = Std.parseInt;
-			case [TString, TFloat]:
-				conv = function(str) { var f = Std.parseFloat(str); return Math.isNaN(f) ? null : f; }
-			case [TString, TBool]:
-				conv = function(s) return s != "";
-			case [TString, TEnum(values)]:
-				var map = new Map();
-				for( i in 0...values.length )
-					map.set(values[i].toLowerCase(), i);
-				conv = function(s:String) return map.get(s.toLowerCase());
-			case [TFloat, TInt]:
-				conv = Std.int;
-			case [(TInt | TFloat | TBool), TString]:
-				conv = Std.string;
-			case [(TFloat|TInt), TBool]:
-				conv = function(v:Float) return v != 0;
-			case [TEnum(values1), TEnum(values2)]:
-				if( values1.length != values2.length ) {
-					var map = [];
-					for( v in values1 ) {
-						var pos = Lambda.indexOf(values2, v);
-						if( pos < 0 ) map.push(null) else map.push(pos);
-					}
-					conv = function(i) return map[i];
-				} else
-					conv = null; // assume rename
-			case [TInt, TEnum(values)]:
-				conv = function(i) return if( i < 0 || i >= values.length ) null else i;
-			case [TEnum(values), TInt]:
-				// nothing
-			default:
-				return "Cannot convert " + old.type.getName().substr(1) + " to " + c.type.getName().substr(1);
-			}
+			var conv = getConvFunction(old.type, c.type);
+			if( conv == null )
+				return "Cannot convert " + typeStr(old.type) + " to " + typeStr(c.type);
+			var conv = conv.f;
 			if( conv != null )
 				for( o in getSheetLines(sheet) ) {
 					var v = Reflect.field(o, c.name);
@@ -572,7 +582,7 @@ class Model {
 							vals.push(null);
 							continue;
 						}
-						var val = parseVal(a.type, v);
+						var val = try parseVal(a.type, v) catch( e : String ) throw e + " for " + a.name;
 						vals.push(val);
 					}
 				}
@@ -608,6 +618,28 @@ class Model {
 				throw "Unknown type "+tstr;
 			}
 		}
+	}
+	
+	function typeCasesToString( t : Data.CustomType ) {
+		var arr = [];
+		for( c in t.cases ) {
+			var str = c.name;
+			if( c.args.length > 0 ) {
+				str += "( ";
+				var out = [];
+				for( a in c.args ) {
+					var k = "";
+					if( a.opt ) k += "?";
+					k += a.name + " : " + typeStr(a.type);
+					out.push(k);
+				}
+				str += out.join(", ");
+				str += " )";
+			}
+			str += ";";
+			arr.push(str);
+		}
+		return arr.join("\n");
 	}
 	
 	function parseTypeCases( def : String ) : Array<Data.CustomTypeCase> {
@@ -661,5 +693,100 @@ class Model {
 		return cases;
 	}
 	
+	function makePairs < T: { name:String } > ( oldA : Array<T>, newA : Array<T> ) : Array<{ a : T, b : T }> {
+		var pairs = [];
+		var oldL = Lambda.list(oldA);
+		var newL = Lambda.list(newA);
+		// first pass, by name
+		for( a in oldA ) {
+			for( b in newL )
+				if( a.name == b.name ) {
+					pairs.push( { a : a, b : b } );
+					oldL.remove(a);
+					newL.remove(b);
+					break;
+				}
+		}
+		// second pass, by same-index (handle renames)
+		for( a in oldL )
+			for( b in newL )
+				if( Lambda.indexOf(oldA, a) == Lambda.indexOf(newA, b) ) {
+					pairs.push( { a : a, b : b } );
+					oldL.remove(a);
+					newL.remove(b);
+					break;
+				}
+		return pairs;
+	}
+	
+	function updateType( old : Data.CustomType, t : Data.CustomType ) {
+		var casesPairs = makePairs(old.cases, t.cases);
+		
+		// build convert map
+		var convMap = [];
+		for( p in casesPairs ) {
+			var id = Lambda.indexOf(t.cases, p.b);
+			var conv = {
+				def : [id],
+				args : [],
+			};
+			var args = makePairs(p.a.args, p.b.args);
+			for( a in args ) {
+				if( a.b == null ) {
+					conv.args.push(function(_) return null); // discard
+					continue;
+				}
+				var b = a.b, a = a.a;
+				var c = getConvFunction(a.type, b.type);
+				if( c == null )
+					throw "Cannot convert " + p.a.name + "." + a.name + ":" + typeStr(a.type) + " to " + p.b.name + "." + b.name + ":" + typeStr(b.type);
+				var f : Dynamic -> Dynamic = c.f;
+				if( f == null ) f = function(x) return x;
+				if( a.opt != b.opt ) {
+					var oldf = f;
+					throw "Cannot change opt [TODO]";
+				}
+				var index = Lambda.indexOf(p.b.args, b);
+				conv.args[Lambda.indexOf(p.a.args,a)] = function(v) return { index : index, v : f(v) };
+			}
+			convMap[Lambda.indexOf(old.cases, p.b)] = conv;
+		}
+		
+		function convert(v:Array<Dynamic>) : Array<Dynamic> {
+			var conv = convMap[v[0]];
+			if( conv == null )
+				return null;
+			var out = conv.def.copy();
+			for( i in 0...conv.args.length ) {
+				var v = conv.args[i](v[i + 1]);
+				if( v == null ) continue;
+				out[v.index] = v.v;
+			}
+			return out;
+		}
+		
+		// TODO : we need to apply the convertion to args of custom types that reference ourself as well !!!
+		
+		// apply convert
+		for( s in data.sheets )
+			for( c in s.columns )
+				switch( c.type ) {
+				case TCustom(tname) if( tname == old.name ):
+					for( obj in getSheetLines(s) ) {
+						var v = Reflect.field(obj, c.name);
+						if( v != null ) {
+							v = convert(v);
+							if( v == null )
+								Reflect.deleteField(obj, c.name);
+							else
+								Reflect.setField(obj, c.name, v);
+						}
+					}
+					// if renamed
+					c.type = TCustom(t.name);
+					c.typeStr = null;
+				default:
+				}
+	}
 	
 }

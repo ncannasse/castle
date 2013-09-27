@@ -15,6 +15,13 @@ body, td, li, p, a, input, select {
 a {
 	text-decoration : none;
 }
+.errorMsg {
+	background-color : #FEE;
+	border : 1px solid #A00;
+	color : #A00;
+	text-align : right;
+	padding : 5px 15px;
+}
 input[type=submit] {
 	border : 1px solid #888;
 	background-color : #F0F0F0;
@@ -73,6 +80,15 @@ div.modal form.create input.edit {
 div.modal #col_options .values, div.modal #col_options .sheet, div.modal #col_options .custom {
 	display : none;
 }
+div.modal #col_options a.tedit {
+	display : none;
+}
+div.modal #col_options.t_edit a.tedit {
+	display : inline;
+}
+div.modal #col_options.t_edit a.tcreate {
+	display : none;
+}
 div.modal #col_options.t_enum .values {
 	display : block;
 }
@@ -97,15 +113,11 @@ div#menu {
 	-moz-user-select : none;
 	-webkit-user-select : none;
 }
-div#menu #error {
+div#menu .errorMsg {
+	z-index : 11;
 	position : absolute;
 	margin-top : -25px;
-	background-color : #FEE;
-	border : 1px solid #A00;
-	color : #A00;
-	text-align : right;
 	right : 1px;
-	padding : 5px 15px;
 }
 div#menu a {
 	line-height : 25px;

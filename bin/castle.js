@@ -123,6 +123,15 @@ HxOverrides.iter = function(a) {
 var Lambda = function() { }
 $hxClasses["Lambda"] = Lambda;
 Lambda.__name__ = ["Lambda"];
+Lambda.list = function(it) {
+	var l = new List();
+	var $it0 = $iterator(it)();
+	while( $it0.hasNext() ) {
+		var i = $it0.next();
+		l.add(i);
+	}
+	return l;
+}
 Lambda.has = function(it,elt) {
 	var $it0 = $iterator(it)();
 	while( $it0.hasNext() ) {
@@ -157,6 +166,21 @@ List.prototype = {
 			return x;
 		}};
 	}
+	,remove: function(v) {
+		var prev = null;
+		var l = this.h;
+		while(l != null) {
+			if(l[0] == v) {
+				if(prev == null) this.h = l[1]; else prev[1] = l[1];
+				if(this.q == l) this.q = prev;
+				this.length--;
+				return true;
+			}
+			prev = l;
+			l = l[1];
+		}
+		return false;
+	}
 	,add: function(item) {
 		var x = [item];
 		if(this.h == null) this.h = x; else this.q[1] = x;
@@ -176,7 +200,148 @@ var Model = function() {
 $hxClasses["Model"] = Model;
 Model.__name__ = ["Model"];
 Model.prototype = {
-	parseTypeCases: function(def) {
+	updateType: function(old,t) {
+		var casesPairs = this.makePairs(old.cases,t.cases);
+		var convMap = [];
+		var _g = 0;
+		while(_g < casesPairs.length) {
+			var p = casesPairs[_g];
+			++_g;
+			var id = Lambda.indexOf(t.cases,p.b);
+			var conv = { def : [id], args : []};
+			var args = this.makePairs(p.a.args,p.b.args);
+			var _g1 = 0;
+			while(_g1 < args.length) {
+				var a = args[_g1];
+				++_g1;
+				if(a.b == null) {
+					conv.args.push((function() {
+						return function(_) {
+							return null;
+						};
+					})());
+					continue;
+				}
+				var b = a.b;
+				var a1 = a.a;
+				var c = this.getConvFunction(a1.type,b.type);
+				if(c == null) throw "Cannot convert " + p.a.name + "." + a1.name + ":" + this.typeStr(a1.type) + " to " + p.b.name + "." + b.name + ":" + this.typeStr(b.type);
+				var f = [c.f];
+				if(f[0] == null) f[0] = (function() {
+					return function(x) {
+						return x;
+					};
+				})();
+				if(a1.opt != b.opt) {
+					var oldf = f[0];
+					throw "Cannot change opt [TODO]";
+				}
+				var index = [Lambda.indexOf(p.b.args,b)];
+				conv.args[Lambda.indexOf(p.a.args,a1)] = (function(index,f) {
+					return function(v) {
+						return { index : index[0], v : f[0](v)};
+					};
+				})(index,f);
+			}
+			convMap[Lambda.indexOf(old.cases,p.b)] = conv;
+		}
+		var convert = function(v) {
+			var conv = convMap[v[0]];
+			if(conv == null) return null;
+			var out = conv.def.slice();
+			var _g1 = 0;
+			var _g = conv.args.length;
+			while(_g1 < _g) {
+				var i = _g1++;
+				var v1 = conv.args[i](v[i + 1]);
+				if(v1 == null) continue;
+				out[v1.index] = v1.v;
+			}
+			return out;
+		};
+		var _g = 0;
+		var _g1 = this.data.sheets;
+		while(_g < _g1.length) {
+			var s = _g1[_g];
+			++_g;
+			var _g2 = 0;
+			var _g3 = s.columns;
+			while(_g2 < _g3.length) {
+				var c = _g3[_g2];
+				++_g2;
+				{
+					var _g4 = c.type;
+					switch(_g4[1]) {
+					case 9:
+						var tname = _g4[2];
+						if(tname == old.name) {
+							var _g5 = 0;
+							var _g6 = this.getSheetLines(s);
+							while(_g5 < _g6.length) {
+								var obj = _g6[_g5];
+								++_g5;
+								var v = (function($this) {
+									var $r;
+									var v1 = null;
+									try {
+										v1 = obj[c.name];
+									} catch( e ) {
+									}
+									$r = v1;
+									return $r;
+								}(this));
+								if(v != null) {
+									v = convert(v);
+									if(v == null) Reflect.deleteField(obj,c.name); else obj[c.name] = v;
+								}
+							}
+							c.type = ColumnType.TCustom(t.name);
+							c.typeStr = null;
+						} else {
+						}
+						break;
+					default:
+					}
+				}
+			}
+		}
+	}
+	,makePairs: function(oldA,newA) {
+		var pairs = [];
+		var oldL = Lambda.list(oldA);
+		var newL = Lambda.list(newA);
+		var _g = 0;
+		while(_g < oldA.length) {
+			var a = oldA[_g];
+			++_g;
+			var $it0 = newL.iterator();
+			while( $it0.hasNext() ) {
+				var b = $it0.next();
+				if(a.name == b.name) {
+					pairs.push({ a : a, b : b});
+					oldL.remove(a);
+					newL.remove(b);
+					break;
+				}
+			}
+		}
+		var $it1 = oldL.iterator();
+		while( $it1.hasNext() ) {
+			var a = $it1.next();
+			var $it2 = newL.iterator();
+			while( $it2.hasNext() ) {
+				var b = $it2.next();
+				if(Lambda.indexOf(oldA,a) == Lambda.indexOf(newA,b)) {
+					pairs.push({ a : a, b : b});
+					oldL.remove(a);
+					newL.remove(b);
+					break;
+				}
+			}
+		}
+		return pairs;
+	}
+	,parseTypeCases: function(def) {
 		var cases = [];
 		var r_ident = new EReg("^[A-Za-z_][A-Za-z0-9_]*$","");
 		var cmap = new haxe.ds.StringMap();
@@ -222,6 +387,35 @@ Model.prototype = {
 			cases.push({ name : name, args : args});
 		}
 		return cases;
+	}
+	,typeCasesToString: function(t) {
+		var arr = [];
+		var _g = 0;
+		var _g1 = t.cases;
+		while(_g < _g1.length) {
+			var c = _g1[_g];
+			++_g;
+			var str = c.name;
+			if(c.args.length > 0) {
+				str += "( ";
+				var out = [];
+				var _g2 = 0;
+				var _g3 = c.args;
+				while(_g2 < _g3.length) {
+					var a = _g3[_g2];
+					++_g2;
+					var k = "";
+					if(a.opt) k += "?";
+					k += a.name + " : " + this.typeStr(a.type);
+					out.push(k);
+				}
+				str += out.join(", ");
+				str += " )";
+			}
+			str += ";";
+			arr.push(str);
+		}
+		return arr.join("\n");
 	}
 	,parseType: function(tstr) {
 		switch(tstr) {
@@ -327,7 +521,14 @@ Model.prototype = {
 							vals.push(null);
 							continue;
 						}
-						var val1 = this.parseVal(a.type,v);
+						var val1;
+						try {
+							val1 = this.parseVal(a.type,v);
+						} catch( e ) {
+							if( js.Boot.__instanceof(e,String) ) {
+								throw e + " for " + a.name;
+							} else throw(e);
+						}
 						vals.push(val1);
 					}
 				}
@@ -618,149 +819,15 @@ Model.prototype = {
 			old.name = c.name;
 		}
 		if(!Type.enumEq(old.type,c.type)) {
-			var conv = null;
-			{
-				var _g = old.type;
-				var _g1 = c.type;
-				switch(_g[1]) {
-				case 3:
-					switch(_g1[1]) {
-					case 4:
-						break;
-					case 1:
-						conv = Std.string;
-						break;
-					case 2:
-						conv = function(v) {
-							return v != 0;
-						};
-						break;
-					case 5:
-						var values = _g1[2];
-						conv = function(i) {
-							if(i < 0 || i >= values.length) return null; else return i;
-						};
-						break;
-					default:
-						return "Cannot convert " + HxOverrides.substr(old.type[0],1,null) + " to " + HxOverrides.substr(c.type[0],1,null);
-					}
-					break;
-				case 0:case 6:
-					switch(_g1[1]) {
-					case 1:
-						break;
-					default:
-						return "Cannot convert " + HxOverrides.substr(old.type[0],1,null) + " to " + HxOverrides.substr(c.type[0],1,null);
-					}
-					break;
-				case 1:
-					switch(_g1[1]) {
-					case 0:case 6:
-						var r_invalid = new EReg("[^A-Za-z0-9_]","g");
-						conv = function(r) {
-							return r_invalid.replace(r,"_");
-						};
-						break;
-					case 3:
-						conv = Std.parseInt;
-						break;
-					case 4:
-						conv = function(str) {
-							var f = Std.parseFloat(str);
-							if(Math.isNaN(f)) return null; else return f;
-						};
-						break;
-					case 2:
-						conv = function(s) {
-							return s != "";
-						};
-						break;
-					case 5:
-						var values = _g1[2];
-						var map = new haxe.ds.StringMap();
-						var _g3 = 0;
-						var _g2 = values.length;
-						while(_g3 < _g2) {
-							var i = _g3++;
-							var key = values[i].toLowerCase();
-							map.set(key,i);
-						}
-						conv = function(s) {
-							var key = s.toLowerCase();
-							return map.get(key);
-						};
-						break;
-					default:
-						return "Cannot convert " + HxOverrides.substr(old.type[0],1,null) + " to " + HxOverrides.substr(c.type[0],1,null);
-					}
-					break;
-				case 2:
-					switch(_g1[1]) {
-					case 3:case 4:
-						conv = function(b) {
-							if(b) return 1; else return 0;
-						};
-						break;
-					case 1:
-						conv = Std.string;
-						break;
-					default:
-						return "Cannot convert " + HxOverrides.substr(old.type[0],1,null) + " to " + HxOverrides.substr(c.type[0],1,null);
-					}
-					break;
-				case 4:
-					switch(_g1[1]) {
-					case 3:
-						conv = Std["int"];
-						break;
-					case 1:
-						conv = Std.string;
-						break;
-					case 2:
-						conv = function(v) {
-							return v != 0;
-						};
-						break;
-					default:
-						return "Cannot convert " + HxOverrides.substr(old.type[0],1,null) + " to " + HxOverrides.substr(c.type[0],1,null);
-					}
-					break;
-				case 5:
-					switch(_g1[1]) {
-					case 5:
-						var values1 = _g[2];
-						var values2 = _g1[2];
-						if(values1.length != values2.length) {
-							var map1 = [];
-							var _g2 = 0;
-							while(_g2 < values1.length) {
-								var v = values1[_g2];
-								++_g2;
-								var pos = Lambda.indexOf(values2,v);
-								if(pos < 0) map1.push(null); else map1.push(pos);
-							}
-							conv = function(i) {
-								return map1[i];
-							};
-						} else conv = null;
-						break;
-					case 3:
-						var values = _g[2];
-						break;
-					default:
-						return "Cannot convert " + HxOverrides.substr(old.type[0],1,null) + " to " + HxOverrides.substr(c.type[0],1,null);
-					}
-					break;
-				default:
-					return "Cannot convert " + HxOverrides.substr(old.type[0],1,null) + " to " + HxOverrides.substr(c.type[0],1,null);
-				}
-			}
-			if(conv != null) {
-				var _g2 = 0;
-				var _g3 = this.getSheetLines(sheet);
-				while(_g2 < _g3.length) {
-					var o = _g3[_g2];
-					++_g2;
+			var conv = this.getConvFunction(old.type,c.type);
+			if(conv == null) return "Cannot convert " + this.typeStr(old.type) + " to " + this.typeStr(c.type);
+			var conv1 = conv.f;
+			if(conv1 != null) {
+				var _g = 0;
+				var _g1 = this.getSheetLines(sheet);
+				while(_g < _g1.length) {
+					var o = _g1[_g];
+					++_g;
 					var v = (function($this) {
 						var $r;
 						var v1 = null;
@@ -772,7 +839,7 @@ Model.prototype = {
 						return $r;
 					}(this));
 					if(v != null) {
-						v = conv(v);
+						v = conv1(v);
 						if(v != null) o[c.name] = v; else Reflect.deleteField(o,c.name);
 					}
 				}
@@ -840,6 +907,143 @@ Model.prototype = {
 		}
 		this.makeSheet(sheet);
 		return null;
+	}
+	,getConvFunction: function(old,t) {
+		var conv = null;
+		if(Type.enumEq(old,t)) return { f : null};
+		switch(old[1]) {
+		case 3:
+			switch(t[1]) {
+			case 4:
+				break;
+			case 1:
+				conv = Std.string;
+				break;
+			case 2:
+				conv = function(v) {
+					return v != 0;
+				};
+				break;
+			case 5:
+				var values = t[2];
+				conv = function(i) {
+					if(i < 0 || i >= values.length) return null; else return i;
+				};
+				break;
+			default:
+				return null;
+			}
+			break;
+		case 0:case 6:
+			switch(t[1]) {
+			case 1:
+				break;
+			default:
+				return null;
+			}
+			break;
+		case 1:
+			switch(t[1]) {
+			case 0:case 6:
+				var r_invalid = new EReg("[^A-Za-z0-9_]","g");
+				conv = function(r) {
+					return r_invalid.replace(r,"_");
+				};
+				break;
+			case 3:
+				conv = Std.parseInt;
+				break;
+			case 4:
+				conv = function(str) {
+					var f = Std.parseFloat(str);
+					if(Math.isNaN(f)) return null; else return f;
+				};
+				break;
+			case 2:
+				conv = function(s) {
+					return s != "";
+				};
+				break;
+			case 5:
+				var values = t[2];
+				var map = new haxe.ds.StringMap();
+				var _g1 = 0;
+				var _g = values.length;
+				while(_g1 < _g) {
+					var i = _g1++;
+					var key = values[i].toLowerCase();
+					map.set(key,i);
+				}
+				conv = function(s) {
+					var key = s.toLowerCase();
+					return map.get(key);
+				};
+				break;
+			default:
+				return null;
+			}
+			break;
+		case 2:
+			switch(t[1]) {
+			case 3:case 4:
+				conv = function(b) {
+					if(b) return 1; else return 0;
+				};
+				break;
+			case 1:
+				conv = Std.string;
+				break;
+			default:
+				return null;
+			}
+			break;
+		case 4:
+			switch(t[1]) {
+			case 3:
+				conv = Std["int"];
+				break;
+			case 1:
+				conv = Std.string;
+				break;
+			case 2:
+				conv = function(v) {
+					return v != 0;
+				};
+				break;
+			default:
+				return null;
+			}
+			break;
+		case 5:
+			switch(t[1]) {
+			case 5:
+				var values1 = old[2];
+				var values2 = t[2];
+				if(values1.length != values2.length) {
+					var map1 = [];
+					var _g = 0;
+					while(_g < values1.length) {
+						var v = values1[_g];
+						++_g;
+						var pos = Lambda.indexOf(values2,v);
+						if(pos < 0) map1.push(null); else map1.push(pos);
+					}
+					conv = function(i) {
+						return map1[i];
+					};
+				} else conv = null;
+				break;
+			case 3:
+				var values = old[2];
+				break;
+			default:
+				return null;
+			}
+			break;
+		default:
+			return null;
+		}
+		return { f : conv};
 	}
 	,addColumn: function(sheet,c) {
 		var _g = 0;
@@ -1386,6 +1590,11 @@ Main.prototype = $extend(Model.prototype,{
 		}
 		var types = new js.JQuery("[name=ctype]");
 		types.empty();
+		types.unbind("change");
+		types.change(function(_) {
+			new js.JQuery("#col_options").toggleClass("t_edit",types.val() != "");
+		});
+		new js.JQuery("<option>").attr("value","").text("--- Select ---").appendTo(types);
 		var _g = 0;
 		var _g1 = this.data.customTypes;
 		while(_g < _g1.length) {
@@ -1411,6 +1620,10 @@ Main.prototype = $extend(Model.prototype,{
 					var sname = _g[2];
 					form.find("[name=sheet]").val(sname);
 					break;
+				case 9:
+					var name = _g[2];
+					form.find("[name=ctype]").val(name);
+					break;
 				default:
 				}
 			}
@@ -1419,6 +1632,7 @@ Main.prototype = $extend(Model.prototype,{
 			form.find("input").not("[type=submit]").val("");
 		}
 		form.find("[name=sheetRef]").val(sheetName == null?"":sheetName);
+		types.change();
 		new js.JQuery("#newcol").show();
 	}
 	,deleteColumn: function(sheet,cname) {
@@ -1440,6 +1654,7 @@ Main.prototype = $extend(Model.prototype,{
 				return;
 			} else throw(msg);
 		}
+		this.setErrorMessage();
 		var t = { name : StringTools.trim(form.find("[name=name]").val()), cases : tdef};
 		if(!new EReg("^[A-Z][a-z0-9_]*$","").match(t.name)) {
 			this.error("Invalid Type name");
@@ -1449,7 +1664,16 @@ Main.prototype = $extend(Model.prototype,{
 		var key = form.find("[name=ref]").val();
 		refType = this.tmap.get(key);
 		if(refType != null) {
-			this.error("TODO");
+			try {
+				this.updateType(refType,t);
+				this.refresh();
+				this.save();
+				new js.JQuery(".modal").hide();
+			} catch( msg ) {
+				if( js.Boot.__instanceof(msg,String) ) {
+					this.error(msg);
+				} else throw(msg);
+			}
 			return;
 		}
 		if(this.tmap.exists(t.name)) {
@@ -1460,16 +1684,103 @@ Main.prototype = $extend(Model.prototype,{
 		this.data.customTypes.push(t);
 		new js.JQuery(".modal").hide();
 	}
-	,newType: function(t) {
+	,deleteType: function() {
 		var form = new js.JQuery("#newtype form");
+		var t;
+		var key = form.find("[name=ref]").val();
+		t = this.tmap.get(key);
+		if(t == null) return;
+		var _g = 0;
+		var _g1 = this.data.sheets;
+		while(_g < _g1.length) {
+			var s = _g1[_g];
+			++_g;
+			var _g2 = 0;
+			var _g3 = s.columns;
+			while(_g2 < _g3.length) {
+				var c = _g3[_g2];
+				++_g2;
+				{
+					var _g4 = c.type;
+					switch(_g4[1]) {
+					case 9:
+						var name = _g4[2];
+						if(name == t.name) {
+							this.error("Type used by " + s.name + "@" + c.name);
+							return;
+						} else {
+						}
+						break;
+					default:
+					}
+				}
+			}
+		}
+		var _g = 0;
+		var _g1 = this.data.customTypes;
+		while(_g < _g1.length) {
+			var t2 = _g1[_g];
+			++_g;
+			if(t == t2) continue;
+			var _g2 = 0;
+			var _g3 = t2.cases;
+			while(_g2 < _g3.length) {
+				var c = _g3[_g2];
+				++_g2;
+				var _g4 = 0;
+				var _g5 = c.args;
+				while(_g4 < _g5.length) {
+					var a = _g5[_g4];
+					++_g4;
+					{
+						var _g6 = a.type;
+						switch(_g6[1]) {
+						case 9:
+							var name = _g6[2];
+							if(name == t.name) {
+								this.error("Type used by " + t2.name + "." + c.name + "(" + a.name + ")");
+								return;
+							} else {
+							}
+							break;
+						default:
+						}
+					}
+				}
+			}
+		}
+		this.tmap.remove(t.name);
+		HxOverrides.remove(this.data.customTypes,t);
+		this.initContent();
+		this.save();
+		this.setErrorMessage();
+		new js.JQuery(".modal").hide();
+	}
+	,newType: function(tname) {
+		var _g = this;
+		var form = new js.JQuery("#newtype form");
+		var t = this.tmap.get(tname);
 		form.removeClass("edit").removeClass("create");
 		if(t == null) {
 			form.addClass("create");
-			form.find("input,textarea").not("[type=submit]").val();
+			form.find("input,textarea").not("[type=submit]").val("");
 		} else {
+			form.addClass("edit");
 			form.find("[name=ref]").val(t.name);
 			form.find("[name=name]").val(t.name);
+			form.find("[name=tdesc]").val(this.typeCasesToString(t));
 		}
+		form.find("[name=tdesc]").unbind("keyup");
+		form.find("[name=tdesc]").keyup(function(_) {
+			try {
+				_g.parseTypeCases($(this).val());
+				_g.setErrorMessage();
+			} catch( msg ) {
+				if( js.Boot.__instanceof(msg,String) ) {
+					_g.setErrorMessage(msg);
+				} else throw(msg);
+			}
+		});
 		new js.JQuery("#newtype").show();
 	}
 	,newSheet: function() {
@@ -1771,14 +2082,6 @@ Main.prototype = $extend(Model.prototype,{
 						e.preventDefault();
 						break;
 					case 46:
-						var val2 = _g.getDefault(c);
-						if(val2 != val) {
-							val = val2;
-							if(val == null) Reflect.deleteField(obj,c.name); else obj[c.name] = val;
-						}
-						_g.changed(sheet,c,index);
-						html = _g.valueHtml(c,val,sheet,obj);
-						editDone();
 						break;
 					}
 					e.stopPropagation();
@@ -2163,7 +2466,7 @@ Main.prototype = $extend(Model.prototype,{
 		}
 	}
 	,setErrorMessage: function(msg) {
-		if(msg == null) new js.JQuery("#error").hide(); else new js.JQuery("#error").text(msg).show();
+		if(msg == null) new js.JQuery(".errorMsg").hide(); else new js.JQuery(".errorMsg").text(msg).show();
 	}
 	,error: function(msg) {
 		js.Lib.alert(msg);
@@ -2229,6 +2532,10 @@ Main.prototype = $extend(Model.prototype,{
 	}
 	,selectLine: function(sheet,index) {
 		this.getLine(sheet,index).addClass("selected");
+	}
+	,hideType: function() {
+		this.setErrorMessage();
+		new js.JQuery("#newtype").hide();
 	}
 	,getLine: function(sheet,index) {
 		var html = ((function($this) {

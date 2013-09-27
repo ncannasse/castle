@@ -86,6 +86,11 @@ class Main extends Model {
 		return J(J("table[sheet='"+getPath(sheet)+"'] > tbody > tr").not(".head,.separator,.list")[index]);
 	}
 	
+	function hideType() {
+		setErrorMessage();
+		J("#newtype").hide();
+	}
+	
 	function selectLine( sheet : Data.Sheet, index : Int ) {
 		getLine(sheet, index).addClass("selected");
 	}
@@ -132,9 +137,9 @@ class Main extends Model {
 	
 	function setErrorMessage( ?msg ) {
 		if( msg == null )
-			J("#error").hide();
+			J(".errorMsg").hide();
 		else
-			J("#error").text(msg).show();
+			J(".errorMsg").text(msg).show();
 	}
 	
 	function valueHtml( c : Data.Column, v : Dynamic, sheet : Data.Sheet, obj : Dynamic ) : String {
@@ -340,6 +345,7 @@ class Main extends Model {
 					n.click();
 					e.preventDefault();
 				case 46: // delete
+					/* disable, not very friendly
 					var val2 = getDefault(c);
 					if( val2 != val ) {
 						val = val2;
@@ -351,6 +357,7 @@ class Main extends Model {
 					changed();
 					html = getValue();
 					editDone();
+					*/
 				}
 				e.stopPropagation();
 			});
@@ -667,20 +674,65 @@ class Main extends Model {
 		J("#newsheet").show();
 	}
 	
-	function newType( ?t : Data.CustomType ) {
+	function newType( ?tname : String ) {
 		var form = J("#newtype form");
+		var t = tmap.get(tname);
 		
 		form.removeClass("edit").removeClass("create");
 		if( t == null ) {
 			form.addClass("create");
-			form.find("input,textarea").not("[type=submit]").val();
+			form.find("input,textarea").not("[type=submit]").val("");
 		} else {
+			form.addClass("edit");
 			form.find("[name=ref]").val(t.name);
 			form.find("[name=name]").val(t.name);
-			//form.find("[name=tdesc]").val(customTypeToString(t));
+			form.find("[name=tdesc]").val(typeCasesToString(t));
 		}
+		form.find("[name=tdesc]").unbind('keyup');
+		form.find("[name=tdesc]").keyup(function(_) {
+			try {
+				parseTypeCases(JTHIS.val());
+				setErrorMessage();
+			} catch( msg : String ) {
+				setErrorMessage(msg);
+			}
+		});
 
 		J("#newtype").show();
+	}
+	
+	function deleteType() {
+		var form = J("#newtype form");
+		var t = tmap.get(form.find("[name=ref]").val());
+		if( t == null )
+			return;
+		for( s in data.sheets )
+			for( c in s.columns )
+				switch( c.type ) {
+				case TCustom(name) if( name == t.name ):
+					error("Type used by " + s.name + "@" + c.name);
+					return;
+				default:
+				}
+		for( t2 in data.customTypes ) {
+			if( t == t2 ) continue;
+			for( c in t2.cases )
+				for( a in c.args )
+					switch( a.type ) {
+					case TCustom(name) if( name == t.name ):
+						error("Type used by " + t2.name + "." + c.name+"("+a.name+")");
+						return;
+					default:
+					}
+		}
+		
+		tmap.remove(t.name);
+		data.customTypes.remove(t);
+		initContent();
+		save();
+		
+		setErrorMessage();
+		J(".modal").hide();
 	}
 	
 	function createType() {
@@ -688,6 +740,8 @@ class Main extends Model {
 		
 		var tdef;
 		try tdef = parseTypeCases(form.find("[name=tdesc]").val()) catch( msg : String ) { error(msg); return; };
+		setErrorMessage();
+		
 		var t : Data.CustomType = {
 			name : StringTools.trim(form.find("[name=name]").val()),
 			cases : tdef,
@@ -700,7 +754,14 @@ class Main extends Model {
 		
 		var refType = tmap.get(form.find("[name=ref]").val());
 		if( refType != null ) {
-			error("TODO");
+			try {
+				updateType(refType, t);
+				refresh();
+				save();
+				J(".modal").hide();
+			} catch( msg : String ) {
+				error(msg);
+			}
 			return;
 		}
 		
@@ -739,6 +800,11 @@ class Main extends Model {
 		
 		var types = J("[name=ctype]");
 		types.empty();
+		types.unbind("change");
+		types.change(function(_) {
+			J("#col_options").toggleClass("t_edit",types.val() != "");
+		});
+		J("<option>").attr("value", "").text("--- Select ---").appendTo(types);
 		for( t in data.customTypes )
 			J("<option>").attr("value", "" + t.name).text(t.name).appendTo(types);
 
@@ -755,6 +821,8 @@ class Main extends Model {
 				form.find("[name=values]").val(values.join(","));
 			case TRef(sname):
 				form.find("[name=sheet]").val(sname);
+			case TCustom(name):
+				form.find("[name=ctype]").val(name);
 			default:
 			}
 		} else {
@@ -762,6 +830,7 @@ class Main extends Model {
 			form.find("input").not("[type=submit]").val("");
 		}
 		form.find("[name=sheetRef]").val(sheetName == null ? "" : sheetName);
+		types.change();
 		
 		J("#newcol").show();
 	}
