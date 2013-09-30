@@ -474,7 +474,10 @@ class Model {
 	}
 	
 	function typeStr( t : Data.ColumnType ) {
-		return Std.string(t).substr(1);
+		return switch( t ) {
+		case TRef(n), TCustom(n): n;
+		default: Std.string(t).substr(1);
+		}
 	}
 	
 	function parseVal( t : Data.ColumnType, val : String ) : Dynamic {
@@ -563,7 +566,7 @@ class Model {
 				default:
 				}
 			}
-			if( pc > 0 ) throw "Missing )";
+			if( pc > 0 ) missingCloseParent = true;
 			if( p > start || (start > 0 && p == start) ) args.push(val.substr(start, p - start));
 		}
 		for( i in 0...t.cases.length ) {
@@ -590,7 +593,7 @@ class Model {
 				if( args.length > 0 )
 					throw "Extra argument '" + args.shift() + "'";
 				if( missingCloseParent )
-					throw "Missing closing )";
+					throw "Missing )";
 				while( vals[vals.length - 1] == null )
 					vals.pop();
 				return vals;
@@ -621,7 +624,7 @@ class Model {
 		}
 	}
 	
-	function typeCasesToString( t : Data.CustomType ) {
+	function typeCasesToString( t : Data.CustomType, prefix = "" ) {
 		var arr = [];
 		for( c in t.cases ) {
 			var str = c.name;
@@ -638,7 +641,7 @@ class Model {
 				str += " )";
 			}
 			str += ";";
-			arr.push(str);
+			arr.push(prefix+str);
 		}
 		return arr.join("\n");
 	}
@@ -768,6 +771,8 @@ class Model {
 		}
 		
 		function convertTypeRec( t : Data.CustomType, v : Array<Dynamic> ) : Array<Dynamic> {
+			if( t == null )
+				return null;
 			if( t == old ) {
 				var conv = convMap[v[0]];
 				if( conv == null )

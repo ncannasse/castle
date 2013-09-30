@@ -9,6 +9,7 @@ class Main extends Model {
 	var viewSheet : Data.Sheet;
 	var curSheet(default,set) : Data.Sheet;
 	var mousePos : { x : Int, y : Int };
+	var typesStr : String;
 	
 	function new() {
 		super();
@@ -82,11 +83,6 @@ class Main extends Model {
 
 	function getLine( sheet : Data.Sheet, index : Int ) {
 		return J(J("table[sheet='"+getPath(sheet)+"'] > tbody > tr").not(".head,.separator,.list")[index]);
-	}
-	
-	function hideType() {
-		setErrorMessage();
-		J("#newtype").hide();
 	}
 	
 	function selectLine( sheet : Data.Sheet, index : Int ) {
@@ -511,7 +507,11 @@ class Main extends Model {
 	}
 	
 	function refresh() {
-		fillTable(J("#content"), viewSheet);
+		var t = J("<table>");
+		fillTable(t, viewSheet);
+		var content = J("#content");
+		content.empty();
+		t.appendTo(content);
 	}
 	
 	function fillTable( content : js.JQuery, sheet : Data.Sheet ) {
@@ -673,109 +673,7 @@ class Main extends Model {
 	function newSheet() {
 		J("#newsheet").show();
 	}
-	
-	function newType( ?tname : String ) {
-		var form = J("#newtype form");
-		var t = tmap.get(tname);
-		
-		form.removeClass("edit").removeClass("create");
-		if( t == null ) {
-			form.addClass("create");
-			form.find("input,textarea").not("[type=submit]").val("");
-		} else {
-			form.addClass("edit");
-			form.find("[name=ref]").val(t.name);
-			form.find("[name=name]").val(t.name);
-			form.find("[name=tdesc]").val(typeCasesToString(t));
-		}
-		form.find("[name=tdesc]").unbind('keyup');
-		form.find("[name=tdesc]").keyup(function(_) {
-			try {
-				parseTypeCases(JTHIS.val());
-				setErrorMessage();
-			} catch( msg : String ) {
-				setErrorMessage(msg);
-			}
-		});
 
-		J("#newtype").show();
-	}
-	
-	function deleteType() {
-		var form = J("#newtype form");
-		var t = tmap.get(form.find("[name=ref]").val());
-		if( t == null )
-			return;
-		for( s in data.sheets )
-			for( c in s.columns )
-				switch( c.type ) {
-				case TCustom(name) if( name == t.name ):
-					error("Type used by " + s.name + "@" + c.name);
-					return;
-				default:
-				}
-		for( t2 in data.customTypes ) {
-			if( t == t2 ) continue;
-			for( c in t2.cases )
-				for( a in c.args )
-					switch( a.type ) {
-					case TCustom(name) if( name == t.name ):
-						error("Type used by " + t2.name + "." + c.name+"("+a.name+")");
-						return;
-					default:
-					}
-		}
-		
-		tmap.remove(t.name);
-		data.customTypes.remove(t);
-		initContent();
-		save();
-		
-		setErrorMessage();
-		J(".modal").hide();
-	}
-	
-	function createType() {
-		var form = J("#newtype form");
-		
-		var tdef;
-		try tdef = parseTypeCases(form.find("[name=tdesc]").val()) catch( msg : String ) { error(msg); return; };
-		setErrorMessage();
-		
-		var t : Data.CustomType = {
-			name : StringTools.trim(form.find("[name=name]").val()),
-			cases : tdef,
-		};
-		
-		if( !r_ident.match(t.name) ) {
-			error("Invalid Type name");
-			return;
-		}
-		
-		var refType = tmap.get(form.find("[name=ref]").val());
-		if( refType != null ) {
-			try {
-				updateType(refType, t);
-				refresh();
-				save();
-				J(".modal").hide();
-			} catch( msg : String ) {
-				error(msg);
-			}
-			return;
-		}
-		
-		if( tmap.exists(t.name) ) {
-			error("Duplicate Type name");
-			return;
-		}
-		
-		tmap.set(t.name, t);
-		data.customTypes.push(t);
-		
-		J(".modal").hide();
-	}
-	
 	override function deleteColumn( sheet : Data.Sheet, ?cname) {
 		if( cname == null )
 			cname = J("#newcol form [name=ref]").val();
@@ -785,6 +683,110 @@ class Main extends Model {
 		refresh();
 		save();
 		return true;
+	}
+	
+	function editTypes() {
+		if( typesStr == null ) {
+			var tl = [];
+			for( t in data.customTypes )
+				tl.push("enum " + t.name + " {\n" + typeCasesToString(t, "\t") + "\n}");
+			typesStr = tl.join("\n\n");
+		}
+		var content = J("#content");
+		content.html("<div class='tedit'><input class='button' type='submit' name='apply' value='Apply'/> <input class='button' type='submit' value='Cancel'/><textarea></textarea></div>");
+		var text = content.find("textarea");
+		var apply = J(content.find("input.button")[0]);
+		var cancel = J(content.find("input.button")[1]);
+		var types : Array<Data.CustomType>;
+		text.change(function(_) {
+			var nstr = text.val();
+			if( nstr == typesStr ) return;
+			typesStr = nstr;
+			var errors = [];
+			var t = StringTools.trim(typesStr);
+			var r = ~/^enum[ \r\n\t]+([A-Za-z0-9_]+)[ \r\n\t]*\{([^}]*)\}/;
+			var oldTMap = tmap;
+			var descs = [];
+			tmap = new Map();
+			types = [];
+			while( r.match(t) ) {
+				var name = r.matched(1);
+				var desc = r.matched(2);
+				if( tmap.get(name) != null )
+					errors.push("Duplicate type " + name);
+				var td = { name : name, cases : [] } ;
+				tmap.set(name, td);
+				descs.push(desc);
+				types.push(td);
+				t = StringTools.trim(r.matchedRight());
+			}
+			for( t in types ) {
+				try
+					t.cases = parseTypeCases(descs.shift())
+				catch( msg : Dynamic )
+					errors.push(msg);
+			}
+			tmap = oldTMap;
+			if( t != "" )
+				errors.push("Invalid " + StringTools.htmlEscape(t));
+			setErrorMessage(errors.length == 0 ? null : errors.join("<br>"));
+			if( errors.length == 0 ) apply.removeAttr("disabled") else apply.attr("disabled","");
+		});
+		text.keydown(function(e) {
+			if( e.keyCode == 9 ) { // TAB
+				e.preventDefault();
+				new js.Selection(cast text[0]).insert("\t", "", "");
+			}
+			e.stopPropagation();
+		});
+		text.keyup(function(e) {
+			text.change();
+			e.stopPropagation();
+		});
+		text.val(typesStr);
+		cancel.click(function(_) {
+			typesStr = null;
+			setErrorMessage();
+			// prevent partial changes being made
+			quickLoad(curSavedData);
+			initContent();
+		});
+		apply.click(function(_) {
+			var tpairs = makePairs(data.customTypes, types);
+			// check if we can remove some types used in sheets
+			for( p in tpairs )
+				if( p.b == null ) {
+					var t = p.a;
+					for( s in data.sheets )
+						for( c in s.columns )
+							switch( c.type ) {
+							case TCustom(name) if( name == t.name ):
+								error("Type "+name+" used by " + s.name + "@" + c.name+" cannot be removed");
+								return;
+							default:
+							}
+				}
+			// add new types
+			for( t in types )
+				if( !tmap.exists(t.name) )
+					data.customTypes.push(t);
+			// update existing types
+			for( p in tpairs ) {
+				if( p.b == null )
+					data.customTypes.remove(p.a);
+				else
+					try updateType(p.a, p.b) catch( msg : String ) {
+						error("Error while updating " + p.b.name + " : " + msg);
+						return;
+					}
+			}
+			// full rebuild
+			initContent();
+			typesStr = null;
+			save();
+		});
+		typesStr = null;
+		text.change();
 	}
 	
 	function newColumn( ?sheetName : String, ?ref : Data.Column ) {

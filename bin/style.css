@@ -29,7 +29,10 @@ input[type=submit] {
 	color : #333;
 	cursor : pointer;
 }
-input[type=submit]:hover {
+input[type=submit]:disabled {
+	cursor : default;
+}
+input[type=submit]:hover, input[type=submit]:disabled {
 	color : #888;
 	background-color : #F4F4F4;
 	border-color : #AAA;
@@ -153,6 +156,14 @@ div#menu ul.sheets li:hover {
 div#menu ul.sheets li.active {
 	color : #252596;
 	background-color : #E0E0FF;
+}
+.castle .tedit {
+	height : 100%;
+}
+.castle .tedit textarea {
+	padding : 5px;
+	width : 100%;
+	height : 90%;
 }
 .castle table {
 	width : 100%;

@@ -45,6 +45,14 @@ EReg.prototype = {
 		var d = "#__delim__#";
 		return s.replace(this.r,d).split(d);
 	}
+	,matchedRight: function() {
+		if(this.r.m == null) throw "No string matched";
+		var sz = this.r.m.index + this.r.m[0].length;
+		return this.r.s.substr(sz,this.r.s.length - sz);
+	}
+	,matched: function(n) {
+		if(this.r.m != null && n >= 0 && n < this.r.m.length) return this.r.m[n]; else throw "EReg::matched";
+	}
 	,match: function(s) {
 		if(this.r.global) this.r.lastIndex = 0;
 		this.r.m = this.r.exec(s);
@@ -272,6 +280,7 @@ Model.prototype = {
 		var convertTypeRec;
 		var convertTypeRec1 = null;
 		convertTypeRec1 = function(t1,v) {
+			if(t1 == null) return null;
 			if(t1 == old) {
 				var conv = convMap[v[0]];
 				if(conv == null) return null;
@@ -477,7 +486,8 @@ Model.prototype = {
 		}
 		return cases;
 	}
-	,typeCasesToString: function(t) {
+	,typeCasesToString: function(t,prefix) {
+		if(prefix == null) prefix = "";
 		var arr = [];
 		var _g = 0;
 		var _g1 = t.cases;
@@ -502,7 +512,7 @@ Model.prototype = {
 				str += " )";
 			}
 			str += ";";
-			arr.push(str);
+			arr.push(prefix + str);
 		}
 		return arr.join("\n");
 	}
@@ -586,7 +596,7 @@ Model.prototype = {
 				default:
 				}
 			}
-			if(pc > 0) throw "Missing )";
+			if(pc > 0) missingCloseParent = true;
 			if(p > start || start > 0 && p == start) args.push(HxOverrides.substr(val,start,p - start));
 		}
 		var _g1 = 0;
@@ -622,7 +632,7 @@ Model.prototype = {
 					}
 				}
 				if(args.length > 0) throw "Extra argument '" + args.shift() + "'";
-				if(missingCloseParent) throw "Missing closing )";
+				if(missingCloseParent) throw "Missing )";
 				while(vals[vals.length - 1] == null) vals.pop();
 				return vals;
 			}
@@ -675,8 +685,17 @@ Model.prototype = {
 		throw "'" + val + "' should be " + this.typeStr(t);
 	}
 	,typeStr: function(t) {
-		var _this = Std.string(t);
-		return HxOverrides.substr(_this,1,null);
+		switch(t[1]) {
+		case 6:
+			var n = t[2];
+			return n;
+		case 9:
+			var n = t[2];
+			return n;
+		default:
+			var _this = Std.string(t);
+			return HxOverrides.substr(_this,1,null);
+		}
 	}
 	,typeValToString: function(t,val) {
 		var c = t.cases[val[0]];
@@ -1842,6 +1861,145 @@ Main.prototype = $extend(Model.prototype,{
 		types.change();
 		new js.JQuery("#newcol").show();
 	}
+	,editTypes: function() {
+		var _g = this;
+		if(this.typesStr == null) {
+			var tl = [];
+			var _g1 = 0;
+			var _g11 = this.data.customTypes;
+			while(_g1 < _g11.length) {
+				var t = _g11[_g1];
+				++_g1;
+				tl.push("enum " + t.name + " {\n" + this.typeCasesToString(t,"\t") + "\n}");
+			}
+			this.typesStr = tl.join("\n\n");
+		}
+		var content = new js.JQuery("#content");
+		content.html("<div class='tedit'><input class='button' type='submit' name='apply' value='Apply'/> <input class='button' type='submit' value='Cancel'/><textarea></textarea></div>");
+		var text = content.find("textarea");
+		var apply;
+		var html = content.find("input.button")[0];
+		apply = new js.JQuery(html);
+		var cancel;
+		var html = content.find("input.button")[1];
+		cancel = new js.JQuery(html);
+		var types;
+		text.change(function(_) {
+			var nstr = text.val();
+			if(nstr == _g.typesStr) return;
+			_g.typesStr = nstr;
+			var errors = [];
+			var t = StringTools.trim(_g.typesStr);
+			var r = new EReg("^enum[ \r\n\t]+([A-Za-z0-9_]+)[ \r\n\t]*\\{([^}]*)\\}","");
+			var oldTMap = _g.tmap;
+			var descs = [];
+			_g.tmap = new haxe.ds.StringMap();
+			types = [];
+			while(r.match(t)) {
+				var name = r.matched(1);
+				var desc = r.matched(2);
+				if(_g.tmap.get(name) != null) errors.push("Duplicate type " + name);
+				var td = { name : name, cases : []};
+				_g.tmap.set(name,td);
+				descs.push(desc);
+				types.push(td);
+				t = StringTools.trim(r.matchedRight());
+			}
+			var _g1 = 0;
+			while(_g1 < types.length) {
+				var t1 = types[_g1];
+				++_g1;
+				try {
+					t1.cases = _g.parseTypeCases(descs.shift());
+				} catch( msg ) {
+					errors.push(msg);
+				}
+			}
+			_g.tmap = oldTMap;
+			if(t != "") errors.push("Invalid " + StringTools.htmlEscape(t));
+			_g.setErrorMessage(errors.length == 0?null:errors.join("<br>"));
+			if(errors.length == 0) apply.removeAttr("disabled"); else apply.attr("disabled","");
+		});
+		text.keydown(function(e) {
+			if(e.keyCode == 9) {
+				e.preventDefault();
+				new js.Selection(text[0]).insert("\t","","");
+			}
+			e.stopPropagation();
+		});
+		text.keyup(function(e) {
+			text.change();
+			e.stopPropagation();
+		});
+		text.val(this.typesStr);
+		cancel.click(function(_) {
+			_g.typesStr = null;
+			_g.setErrorMessage();
+			_g.quickLoad(_g.curSavedData);
+			_g.initContent();
+		});
+		apply.click(function(_) {
+			var tpairs = _g.makePairs(_g.data.customTypes,types);
+			var _g1 = 0;
+			while(_g1 < tpairs.length) {
+				var p = tpairs[_g1];
+				++_g1;
+				if(p.b == null) {
+					var t = p.a;
+					var _g2 = 0;
+					var _g3 = _g.data.sheets;
+					while(_g2 < _g3.length) {
+						var s = _g3[_g2];
+						++_g2;
+						var _g4 = 0;
+						var _g5 = s.columns;
+						while(_g4 < _g5.length) {
+							var c = _g5[_g4];
+							++_g4;
+							{
+								var _g6 = c.type;
+								switch(_g6[1]) {
+								case 9:
+									var name = _g6[2];
+									if(name == t.name) {
+										_g.error("Type " + name + " used by " + s.name + "@" + c.name + " cannot be removed");
+										return;
+									} else {
+									}
+									break;
+								default:
+								}
+							}
+						}
+					}
+				}
+			}
+			var _g1 = 0;
+			while(_g1 < types.length) {
+				var t = types[_g1];
+				++_g1;
+				if(!_g.tmap.exists(t.name)) _g.data.customTypes.push(t);
+			}
+			var _g1 = 0;
+			while(_g1 < tpairs.length) {
+				var p = tpairs[_g1];
+				++_g1;
+				if(p.b == null) HxOverrides.remove(_g.data.customTypes,p.a); else try {
+					_g.updateType(p.a,p.b);
+				} catch( msg ) {
+					if( js.Boot.__instanceof(msg,String) ) {
+						_g.error("Error while updating " + p.b.name + " : " + msg);
+						return;
+					} else throw(msg);
+				}
+			}
+			_g.initContent();
+			_g.typesStr = null;
+			_g.save();
+		});
+		this.typesStr = null;
+		text.change();
+	}
 	,deleteColumn: function(sheet,cname) {
 		if(cname == null) cname = new js.JQuery("#newcol form [name=ref]").val();
 		if(!Model.prototype.deleteColumn.call(this,sheet,cname)) return false;
@@ -1849,146 +2007,6 @@ Main.prototype = $extend(Model.prototype,{
 		this.refresh();
 		this.save();
 		return true;
-	}
-	,createType: function() {
-		var form = new js.JQuery("#newtype form");
-		var tdef;
-		try {
-			tdef = this.parseTypeCases(form.find("[name=tdesc]").val());
-		} catch( msg ) {
-			if( js.Boot.__instanceof(msg,String) ) {
-				this.error(msg);
-				return;
-			} else throw(msg);
-		}
-		this.setErrorMessage();
-		var t = { name : StringTools.trim(form.find("[name=name]").val()), cases : tdef};
-		if(!this.r_ident.match(t.name)) {
-			this.error("Invalid Type name");
-			return;
-		}
-		var refType;
-		var key = form.find("[name=ref]").val();
-		refType = this.tmap.get(key);
-		if(refType != null) {
-			try {
-				this.updateType(refType,t);
-				this.refresh();
-				this.save();
-				new js.JQuery(".modal").hide();
-			} catch( msg ) {
-				if( js.Boot.__instanceof(msg,String) ) {
-					this.error(msg);
-				} else throw(msg);
-			}
-			return;
-		}
-		if(this.tmap.exists(t.name)) {
-			this.error("Duplicate Type name");
-			return;
-		}
-		this.tmap.set(t.name,t);
-		this.data.customTypes.push(t);
-		new js.JQuery(".modal").hide();
-	}
-	,deleteType: function() {
-		var form = new js.JQuery("#newtype form");
-		var t;
-		var key = form.find("[name=ref]").val();
-		t = this.tmap.get(key);
-		if(t == null) return;
-		var _g = 0;
-		var _g1 = this.data.sheets;
-		while(_g < _g1.length) {
-			var s = _g1[_g];
-			++_g;
-			var _g2 = 0;
-			var _g3 = s.columns;
-			while(_g2 < _g3.length) {
-				var c = _g3[_g2];
-				++_g2;
-				{
-					var _g4 = c.type;
-					switch(_g4[1]) {
-					case 9:
-						var name = _g4[2];
-						if(name == t.name) {
-							this.error("Type used by " + s.name + "@" + c.name);
-							return;
-						} else {
-						}
-						break;
-					default:
-					}
-				}
-			}
-		}
-		var _g = 0;
-		var _g1 = this.data.customTypes;
-		while(_g < _g1.length) {
-			var t2 = _g1[_g];
-			++_g;
-			if(t == t2) continue;
-			var _g2 = 0;
-			var _g3 = t2.cases;
-			while(_g2 < _g3.length) {
-				var c = _g3[_g2];
-				++_g2;
-				var _g4 = 0;
-				var _g5 = c.args;
-				while(_g4 < _g5.length) {
-					var a = _g5[_g4];
-					++_g4;
-					{
-						var _g6 = a.type;
-						switch(_g6[1]) {
-						case 9:
-							var name = _g6[2];
-							if(name == t.name) {
-								this.error("Type used by " + t2.name + "." + c.name + "(" + a.name + ")");
-								return;
-							} else {
-							}
-							break;
-						default:
-						}
-					}
-				}
-			}
-		}
-		this.tmap.remove(t.name);
-		HxOverrides.remove(this.data.customTypes,t);
-		this.initContent();
-		this.save();
-		this.setErrorMessage();
-		new js.JQuery(".modal").hide();
-	}
-	,newType: function(tname) {
-		var _g = this;
-		var form = new js.JQuery("#newtype form");
-		var t = this.tmap.get(tname);
-		form.removeClass("edit").removeClass("create");
-		if(t == null) {
-			form.addClass("create");
-			form.find("input,textarea").not("[type=submit]").val("");
-		} else {
-			form.addClass("edit");
-			form.find("[name=ref]").val(t.name);
-			form.find("[name=name]").val(t.name);
-			form.find("[name=tdesc]").val(this.typeCasesToString(t));
-		}
-		form.find("[name=tdesc]").unbind("keyup");
-		form.find("[name=tdesc]").keyup(function(_) {
-			try {
-				_g.parseTypeCases($(this).val());
-				_g.setErrorMessage();
-			} catch( msg ) {
-				if( js.Boot.__instanceof(msg,String) ) {
-					_g.setErrorMessage(msg);
-				} else throw(msg);
-			}
-		});
-		new js.JQuery("#newtype").show();
 	}
 	,newSheet: function() {
 		new js.JQuery("#newsheet").show();
@@ -2231,7 +2249,11 @@ Main.prototype = $extend(Model.prototype,{
 		}
 	}
 	,refresh: function() {
-		this.fillTable(new js.JQuery("#content"),this.viewSheet);
+		var t = new js.JQuery("<table>");
+		this.fillTable(t,this.viewSheet);
+		var content = new js.JQuery("#content");
+		content.empty();
+		t.appendTo(content);
 	}
 	,editCell: function(c,v,sheet,index) {
 		var _g = this;
@@ -2741,10 +2763,6 @@ Main.prototype = $extend(Model.prototype,{
 	}
 	,selectLine: function(sheet,index) {
 		this.getLine(sheet,index).addClass("selected");
-	}
-	,hideType: function() {
-		this.setErrorMessage();
-		new js.JQuery("#newtype").hide();
 	}
 	,getLine: function(sheet,index) {
 		var html = ((function($this) {
@@ -4358,6 +4376,32 @@ js.Node.get___dirname = function() {
 }
 js.Node.newSocket = function(options) {
 	return new js.Node.net.Socket(options);
+}
+js.Selection = function(doc) {
+	this.doc = doc;
+};
+$hxClasses["js.Selection"] = js.Selection;
+js.Selection.__name__ = ["js","Selection"];
+js.Selection.prototype = {
+	insert: function(left,text,right) {
+		this.doc.focus();
+		if(this.doc.selectionStart != null) {
+			var top = this.doc.scrollTop;
+			var start = this.doc.selectionStart;
+			var end = this.doc.selectionEnd;
+			this.doc.value = Std.string(this.doc.value.substr(0,start)) + left + text + right + Std.string(this.doc.value.substr(end));
+			this.doc.selectionStart = start + left.length;
+			this.doc.selectionEnd = start + left.length + text.length;
+			this.doc.scrollTop = top;
+			return;
+		}
+		var range = js.Lib.document.selection.createRange();
+		range.text = left + text + right;
+		range.moveStart("character",-text.length - right.length);
+		range.moveEnd("character",-right.length);
+		range.select();
+	}
+	,__class__: js.Selection
 }
 var nodejs = {}
 nodejs.webkit = {}

@@ -35,7 +35,11 @@ input[type="submit"] {
 	cursor : pointer;
 }
 
-input[type="submit"]:hover {
+input[type="submit"]:disabled {
+	cursor : default;
+}
+
+input[type="submit"]:hover, input[type="submit"]:disabled {
 	color : #888;
 	background-color : #F4F4F4;
 	border-color : #AAA;
@@ -160,6 +164,15 @@ div#menu {
 }
 
 .castle {
+	
+	.tedit {
+		height : 100%;
+		textarea {
+			padding : 5px;
+			width : 100%;
+			height : 90%;
+		}
+	}
 	
 	table {
 		width : 100%;

@@ -63,31 +63,6 @@
 	</div>
 </div>
 
-<div id="newtype" class="modal" style="display:none">
-	<div class="content">
-	<form id="type_form" onsubmit="return false">
-		<h1>Type Props</h1>
-		<input type="hidden" name="ref"/>
-		<p>
-			<span>Type Name</span> <input type="text" name="name"/>
-		</p>
-		<p>
-			<textarea name="tdesc"></textarea>
-		</p>
-		<p class="buttons">
-			<input class="edit" type="submit" value="Delete" onclick="_.deleteType()"/>
-			<input class="edit" type="submit" value="Modify" onclick="_.createType()"/>
-			<input class="create" type="submit" value="Create" onclick="_.createType()"/>
-			<input type="submit" value="Cancel" onclick="_.hideType()"/>
-		</p>
-		
-		<div class="errorMsg" style="display:none">
-		</div>
-		
-	</form>
-	</div>
-</div>
-
 <div id="help" class="modal" style="display:none">
 	<div class="content">
 	<h1>Help</h1>
@@ -113,6 +88,7 @@
 		ERROR
 	</div>
 	
+	<a href="javascript:_.editTypes()">Edit Types</a>
 	<a href="javascript:_.newLine()">New Line</a>
 	<a href="javascript:_.newColumn()">New Column</a>
 	<a href="javascript:_.newSheet()">New Sheet</a>
@@ -125,8 +101,8 @@
 	
 </div>
 
-<div class="castle">
-<table id="content">
+<div class="castle" id="content">
+<table>
 	<tr class="head">
 		<td>ID</td>
 		<td>Name</td>
