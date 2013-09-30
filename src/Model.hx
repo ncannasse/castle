@@ -261,15 +261,12 @@ class Model {
 		case [(TFloat|TInt), TBool]:
 			conv = function(v:Float) return v != 0;
 		case [TEnum(values1), TEnum(values2)]:
-			if( values1.length != values2.length ) {
-				var map = [];
-				for( v in values1 ) {
-					var pos = Lambda.indexOf(values2, v);
-					if( pos < 0 ) map.push(null) else map.push(pos);
-				}
-				conv = function(i) return map[i];
-			} else
-				conv = null; // assume rename
+			var map = [];
+			for( p in makePairs([for( i in 0...values1.length ) { name : values1[i], i : i } ], [for( i in 0...values2.length ) { name : values2[i], i : i } ]) ) {
+				if( p.b == null ) continue;
+				map[p.a.i] = p.b.i;
+			}
+			conv = function(i) return map[i];
 		case [TInt, TEnum(values)]:
 			conv = function(i) return if( i < 0 || i >= values.length ) null else i;
 		case [TEnum(values), TInt]:

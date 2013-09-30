@@ -1111,19 +1111,44 @@ Model.prototype = {
 			case 5:
 				var values1 = old[2];
 				var values2 = t[2];
-				if(values1.length != values2.length) {
-					var map1 = [];
-					var _g = 0;
-					while(_g < values1.length) {
-						var v = values1[_g];
-						++_g;
-						var pos = Lambda.indexOf(values2,v);
-						if(pos < 0) map1.push(null); else map1.push(pos);
+				var map1 = [];
+				var _g2 = 0;
+				var _g3 = this.makePairs((function($this) {
+					var $r;
+					var _g = [];
+					{
+						var _g21 = 0;
+						var _g1 = values1.length;
+						while(_g21 < _g1) {
+							var i = _g21++;
+							_g.push({ name : values1[i], i : i});
+						}
 					}
-					conv = function(i) {
-						return map1[i];
-					};
-				} else conv = null;
+					$r = _g;
+					return $r;
+				}(this)),(function($this) {
+					var $r;
+					var _g1 = [];
+					{
+						var _g31 = 0;
+						var _g21 = values2.length;
+						while(_g31 < _g21) {
+							var i = _g31++;
+							_g1.push({ name : values2[i], i : i});
+						}
+					}
+					$r = _g1;
+					return $r;
+				}(this)));
+				while(_g2 < _g3.length) {
+					var p = _g3[_g2];
+					++_g2;
+					if(p.b == null) continue;
+					map1[p.a.i] = p.b.i;
+				}
+				conv = function(i) {
+					return map1[i];
+				};
 				break;
 			case 3:
 				var values = old[2];
