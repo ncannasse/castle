@@ -10,8 +10,6 @@ class Main extends Model {
 	var curSheet(default,set) : Data.Sheet;
 	var mousePos : { x : Int, y : Int };
 	
-	static var r_id = ~/^[A-Za-z_][A-Za-z_0-9]*$/;
-	
 	function new() {
 		super();
 		window = nodejs.webkit.Window.get();
@@ -377,7 +375,7 @@ class Main extends Model {
 						var f = Std.parseFloat(nv);
 						if( Math.isNaN(f) ) null else f;
 					case TId:
-						r_id.match(nv) ? nv : null;
+						r_ident.match(nv) ? nv : null;
 					case TCustom(t):
 						try parseTypeVal(tmap.get(t), nv) catch( e : Dynamic ) null;
 					default:
@@ -419,7 +417,7 @@ class Main extends Model {
 			if( c.opt )
 				J("<option>").attr("value","-1").text("--- None ---").prependTo(s);
 			v.append(s);
-			s.change(function(_) {
+			s.change(function(e) {
 				val = Std.parseInt(s.val());
 				if( val < 0 ) {
 					val = null;
@@ -429,6 +427,7 @@ class Main extends Model {
 				html = getValue();
 				changed();
 				editDone();
+				e.stopPropagation();
 			});
 			s.blur(function(_) {
 				editDone();
@@ -451,7 +450,7 @@ class Main extends Model {
 			if( c.opt )
 				J("<option>").attr("value", "").text("--- None ---").prependTo(s);
 			v.append(s);
-			s.change(function(_) {
+			s.change(function(e) {
 				val = s.val();
 				if( val == "" ) {
 					val = null;
@@ -461,6 +460,7 @@ class Main extends Model {
 				html = getValue();
 				changed();
 				editDone();
+				e.stopPropagation();
 			});
 			s.blur(function(_) {
 				editDone();
@@ -747,7 +747,7 @@ class Main extends Model {
 			cases : tdef,
 		};
 		
-		if( !~/^[A-Z][a-z0-9_]*$/.match(t.name) ) {
+		if( !r_ident.match(t.name) ) {
 			error("Invalid Type name");
 			return;
 		}
@@ -845,12 +845,16 @@ class Main extends Model {
 		
 	function createSheet( name : String ) {
 		name = StringTools.trim(name);
-		if( name == "" )
+		if( !r_ident.match(name) ) {
+			error("Invalid sheet name");
 			return;
+		}
 		// name already exists
 		for( s in data.sheets )
-			if( s.name == name )
+			if( s.name == name ) {
+				error("Sheet name already in use");
 				return;
+			}
 		J("#newsheet").hide();
 		var s : Data.Sheet = {
 			name : name,
@@ -957,7 +961,45 @@ class Main extends Model {
 		for( i in 0...data.sheets.length ) {
 			var s = data.sheets[i];
 			if( s.props.hide ) continue;
-			J("<li>").text(s.name).attr("id", "sheet_" + i).appendTo(sheets).click(selectSheet.bind(s));
+			var li = J("<li>");
+			li.text(s.name).attr("id", "sheet_" + i).appendTo(sheets).click(selectSheet.bind(s)).dblclick(function(_) {
+				li.empty();
+				J("<input>").val(s.name).appendTo(li).focus().blur(function(_) {
+					li.text(s.name);
+					var name = JTHIS.val();
+					if( !r_ident.match(name) ) {
+						error("Invalid sheet identifier");
+						return;
+					}
+					var f = smap.get(name);
+					if( f != null ) {
+						if( f.s != s ) error("Sheet name already in use");
+						return;
+					}
+					var old = s.name;
+					smap.remove(old);
+					s.name = name;
+					for( s in data.sheets )
+						for( c in s.columns )
+							switch( c.type ) {
+							case TRef(o) if( o == old ):
+								c.type = TRef(name);
+								c.typeStr = null;
+							default:
+							}
+					for( t in data.customTypes )
+						for( c in t.cases )
+							for( a in c.args )
+								switch( a.type ) {
+								case TRef(o) if( o == old ):
+									a.type = TRef(name);
+									a.typeStr = null;
+								default:
+								}
+					initContent();
+					save();
+				});
+			});
 		}
 		if( data.sheets.length == 0 ) {
 			J("#content").html("<a href='javascript:_.newSheet()'>Create a sheet</a>");

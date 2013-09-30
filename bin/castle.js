@@ -191,6 +191,7 @@ List.prototype = {
 }
 var Model = function() {
 	this.openedList = new haxe.ds.StringMap();
+	this.r_ident = new EReg("^[A-Za-z_][A-Za-z0-9_]*$","");
 	this.prefs = { windowPos : { x : 50, y : 50, w : 800, h : 600, max : false}, curFile : null, curSheet : 0};
 	try {
 		this.prefs = haxe.Unserializer.run(js.Browser.getLocalStorage().getItem("prefs"));
@@ -201,12 +202,14 @@ $hxClasses["Model"] = Model;
 Model.__name__ = ["Model"];
 Model.prototype = {
 	updateType: function(old,t) {
+		var _g2 = this;
 		var casesPairs = this.makePairs(old.cases,t.cases);
 		var convMap = [];
 		var _g = 0;
 		while(_g < casesPairs.length) {
 			var p = casesPairs[_g];
 			++_g;
+			if(p.b == null) continue;
 			var id = Lambda.indexOf(t.cases,p.b);
 			var conv = { def : [id], args : []};
 			var args = this.makePairs(p.a.args,p.b.args);
@@ -215,89 +218,133 @@ Model.prototype = {
 				var a = args[_g1];
 				++_g1;
 				if(a.b == null) {
-					conv.args.push((function() {
+					conv.args[Lambda.indexOf(p.a.args,a.a)] = (function() {
 						return function(_) {
 							return null;
 						};
-					})());
+					})();
 					continue;
 				}
-				var b = a.b;
+				var b = [a.b];
 				var a1 = a.a;
-				var c = this.getConvFunction(a1.type,b.type);
-				if(c == null) throw "Cannot convert " + p.a.name + "." + a1.name + ":" + this.typeStr(a1.type) + " to " + p.b.name + "." + b.name + ":" + this.typeStr(b.type);
+				var c = this.getConvFunction(a1.type,b[0].type);
+				if(c == null) throw "Cannot convert " + p.a.name + "." + a1.name + ":" + this.typeStr(a1.type) + " to " + p.b.name + "." + b[0].name + ":" + this.typeStr(b[0].type);
 				var f = [c.f];
 				if(f[0] == null) f[0] = (function() {
 					return function(x) {
 						return x;
 					};
 				})();
-				if(a1.opt != b.opt) {
-					var oldf = f[0];
-					throw "Cannot change opt [TODO]";
+				if(a1.opt != b[0].opt) {
+					var oldf = [f[0]];
+					if(a1.opt) f[0] = (function(oldf,b) {
+						return function(v) {
+							v = oldf[0](v);
+							if(v == null) return _g2.getDefault(b[0]); else return v;
+						};
+					})(oldf,b); else {
+						var def = [this.getDefault(a1)];
+						f[0] = (function(def,oldf) {
+							return function(v) {
+								if(v == def[0]) return null; else return oldf[0](v);
+							};
+						})(def,oldf);
+					}
 				}
-				var index = [Lambda.indexOf(p.b.args,b)];
-				conv.args[Lambda.indexOf(p.a.args,a1)] = (function(index,f) {
+				var index = [Lambda.indexOf(p.b.args,b[0])];
+				conv.args[Lambda.indexOf(p.a.args,a1)] = (function(index,f,b) {
 					return function(v) {
-						return { index : index[0], v : f[0](v)};
+						v = f[0](v);
+						if(v == null && b[0].opt) return null; else return { index : index[0], v : v};
 					};
-				})(index,f);
+				})(index,f,b);
 			}
-			convMap[Lambda.indexOf(old.cases,p.b)] = conv;
-		}
-		var convert = function(v) {
-			var conv = convMap[v[0]];
-			if(conv == null) return null;
-			var out = conv.def.slice();
 			var _g1 = 0;
-			var _g = conv.args.length;
+			var _g21 = p.b.args;
+			while(_g1 < _g21.length) {
+				var b = _g21[_g1];
+				++_g1;
+				conv.def.push(this.getDefault(b));
+			}
+			while(conv.def[conv.def.length - 1] == null) conv.def.pop();
+			convMap[Lambda.indexOf(old.cases,p.a)] = conv;
+		}
+		var convertTypeRec;
+		var convertTypeRec1 = null;
+		convertTypeRec1 = function(t1,v) {
+			if(t1 == old) {
+				var conv = convMap[v[0]];
+				if(conv == null) return null;
+				var out = conv.def.slice();
+				var _g1 = 0;
+				var _g = conv.args.length;
+				while(_g1 < _g) {
+					var i = _g1++;
+					var v1 = conv.args[i](v[i + 1]);
+					if(v1 == null) continue;
+					out[v1.index + 1] = v1.v;
+				}
+				return out;
+			}
+			var c = t1.cases[v[0]];
+			var _g1 = 0;
+			var _g = c.args.length;
 			while(_g1 < _g) {
 				var i = _g1++;
-				var v1 = conv.args[i](v[i + 1]);
-				if(v1 == null) continue;
-				out[v1.index] = v1.v;
+				{
+					var _g21 = c.args[i].type;
+					switch(_g21[1]) {
+					case 9:
+						var tname = _g21[2];
+						var av = v[i + 1];
+						if(av != null) v[i + 1] = convertTypeRec1(_g2.tmap.get(tname),av);
+						break;
+					default:
+					}
+				}
 			}
-			return out;
+			return v;
 		};
+		convertTypeRec = convertTypeRec1;
 		var _g = 0;
 		var _g1 = this.data.sheets;
 		while(_g < _g1.length) {
 			var s = _g1[_g];
 			++_g;
-			var _g2 = 0;
+			var _g21 = 0;
 			var _g3 = s.columns;
-			while(_g2 < _g3.length) {
-				var c = _g3[_g2];
-				++_g2;
+			while(_g21 < _g3.length) {
+				var c = _g3[_g21];
+				++_g21;
 				{
 					var _g4 = c.type;
 					switch(_g4[1]) {
 					case 9:
 						var tname = _g4[2];
-						if(tname == old.name) {
-							var _g5 = 0;
-							var _g6 = this.getSheetLines(s);
-							while(_g5 < _g6.length) {
-								var obj = _g6[_g5];
-								++_g5;
-								var v = (function($this) {
-									var $r;
-									var v1 = null;
-									try {
-										v1 = obj[c.name];
-									} catch( e ) {
-									}
-									$r = v1;
-									return $r;
-								}(this));
-								if(v != null) {
-									v = convert(v);
-									if(v == null) Reflect.deleteField(obj,c.name); else obj[c.name] = v;
+						var t2 = this.tmap.get(tname);
+						var _g5 = 0;
+						var _g6 = this.getSheetLines(s);
+						while(_g5 < _g6.length) {
+							var obj = _g6[_g5];
+							++_g5;
+							var v = (function($this) {
+								var $r;
+								var v1 = null;
+								try {
+									v1 = obj[c.name];
+								} catch( e ) {
 								}
+								$r = v1;
+								return $r;
+							}(this));
+							if(v != null) {
+								v = convertTypeRec(t2,v);
+								if(v == null) Reflect.deleteField(obj,c.name); else obj[c.name] = v;
 							}
+						}
+						if(tname == old.name && t.name != old.name) {
 							c.type = ColumnType.TCustom(t.name);
 							c.typeStr = null;
-						} else {
 						}
 						break;
 					default:
@@ -305,6 +352,44 @@ Model.prototype = {
 				}
 			}
 		}
+		if(t.name != old.name) {
+			var _g = 0;
+			var _g1 = this.data.customTypes;
+			while(_g < _g1.length) {
+				var t2 = _g1[_g];
+				++_g;
+				var _g21 = 0;
+				var _g3 = t2.cases;
+				while(_g21 < _g3.length) {
+					var c = _g3[_g21];
+					++_g21;
+					var _g4 = 0;
+					var _g5 = c.args;
+					while(_g4 < _g5.length) {
+						var a = _g5[_g4];
+						++_g4;
+						{
+							var _g6 = a.type;
+							switch(_g6[1]) {
+							case 9:
+								var n = _g6[2];
+								if(n == old.name) {
+									a.type = ColumnType.TCustom(t.name);
+									a.typeStr = null;
+								} else {
+								}
+								break;
+							default:
+							}
+						}
+					}
+				}
+			}
+			this.tmap.remove(old.name);
+			old.name = t.name;
+			this.tmap.set(old.name,old);
+		}
+		old.cases = t.cases;
 	}
 	,makePairs: function(oldA,newA) {
 		var pairs = [];
@@ -339,11 +424,15 @@ Model.prototype = {
 				}
 			}
 		}
+		var $it3 = oldL.iterator();
+		while( $it3.hasNext() ) {
+			var a = $it3.next();
+			pairs.push({ a : a, b : null});
+		}
 		return pairs;
 	}
 	,parseTypeCases: function(def) {
 		var cases = [];
-		var r_ident = new EReg("^[A-Za-z_][A-Za-z0-9_]*$","");
 		var cmap = new haxe.ds.StringMap();
 		var _g = 0;
 		var _g1 = new EReg("[\n;]","g").split(def);
@@ -375,13 +464,13 @@ Model.prototype = {
 						id = StringTools.trim(HxOverrides.substr(id,1,null));
 					}
 					var t = StringTools.trim(tname[1]);
-					if(!r_ident.match(id)) throw "Invalid identifier " + id;
+					if(!this.r_ident.match(id)) throw "Invalid identifier " + id;
 					var c = { name : id, type : this.parseType(t), typeStr : null};
 					if(opt) c.opt = true;
 					args.push(c);
 				}
 			}
-			if(!r_ident.match(name)) throw "Invalid identifier " + line1;
+			if(!this.r_ident.match(name)) throw "Invalid identifier " + line1;
 			if(cmap.exists(name)) throw "Duplicate identifier " + name;
 			cmap.set(name,true);
 			cases.push({ name : name, args : args});
@@ -578,6 +667,9 @@ Model.prototype = {
 			var f = Std.parseFloat(val);
 			if(!Math.isNaN(f)) return f;
 			break;
+		case 9:
+			var t1 = t[2];
+			return this.parseTypeVal(this.tmap.get(t1),val);
 		default:
 		}
 		throw "'" + val + "' should be " + this.typeStr(t);
@@ -1410,6 +1502,7 @@ Main.prototype = $extend(Model.prototype,{
 		});
 	}
 	,initContent: function() {
+		var _g2 = this;
 		Model.prototype.initContent.call(this);
 		var sheets = new js.JQuery("ul#sheets");
 		sheets.children().remove();
@@ -1417,18 +1510,101 @@ Main.prototype = $extend(Model.prototype,{
 		var _g = this.data.sheets.length;
 		while(_g1 < _g) {
 			var i = _g1++;
-			var s = this.data.sheets[i];
-			if(s.props.hide) continue;
-			new js.JQuery("<li>").text(s.name).attr("id","sheet_" + i).appendTo(sheets).click((function($this) {
+			var s = [this.data.sheets[i]];
+			if(s[0].props.hide) continue;
+			var li = [new js.JQuery("<li>")];
+			li[0].text(s[0].name).attr("id","sheet_" + i).appendTo(sheets).click((function($this) {
 				var $r;
-				var f = [$bind($this,$this.selectSheet)], s1 = [s];
+				var f = [$bind($this,$this.selectSheet)], s1 = [s[0]];
 				$r = (function(s1,f) {
 					return function() {
 						return f[0](s1[0]);
 					};
 				})(s1,f);
 				return $r;
-			}(this)));
+			}(this))).dblclick((function(li,s) {
+				return function(_) {
+					li[0].empty();
+					new js.JQuery("<input>").val(s[0].name).appendTo(li[0]).focus().blur((function(li,s) {
+						return function(_1) {
+							li[0].text(s[0].name);
+							var name = $(this).val();
+							if(!_g2.r_ident.match(name)) {
+								_g2.error("Invalid sheet identifier");
+								return;
+							}
+							var f = _g2.smap.get(name);
+							if(f != null) {
+								if(f.s != s[0]) _g2.error("Sheet name already in use");
+								return;
+							}
+							var old = s[0].name;
+							_g2.smap.remove(old);
+							s[0].name = name;
+							var _g3 = 0;
+							var _g4 = _g2.data.sheets;
+							while(_g3 < _g4.length) {
+								var s1 = _g4[_g3];
+								++_g3;
+								var _g5 = 0;
+								var _g6 = s1.columns;
+								while(_g5 < _g6.length) {
+									var c = _g6[_g5];
+									++_g5;
+									{
+										var _g7 = c.type;
+										switch(_g7[1]) {
+										case 6:
+											var o = _g7[2];
+											if(o == old) {
+												c.type = ColumnType.TRef(name);
+												c.typeStr = null;
+											} else {
+											}
+											break;
+										default:
+										}
+									}
+								}
+							}
+							var _g3 = 0;
+							var _g4 = _g2.data.customTypes;
+							while(_g3 < _g4.length) {
+								var t = _g4[_g3];
+								++_g3;
+								var _g5 = 0;
+								var _g6 = t.cases;
+								while(_g5 < _g6.length) {
+									var c = _g6[_g5];
+									++_g5;
+									var _g7 = 0;
+									var _g8 = c.args;
+									while(_g7 < _g8.length) {
+										var a = _g8[_g7];
+										++_g7;
+										{
+											var _g9 = a.type;
+											switch(_g9[1]) {
+											case 6:
+												var o = _g9[2];
+												if(o == old) {
+													a.type = ColumnType.TRef(name);
+													a.typeStr = null;
+												} else {
+												}
+												break;
+											default:
+											}
+										}
+									}
+								}
+							}
+							_g2.initContent();
+							_g2.save();
+						};
+					})(li,s));
+				};
+			})(li,s));
 		}
 		if(this.data.sheets.length == 0) {
 			new js.JQuery("#content").html("<a href='javascript:_.newSheet()'>Create a sheet</a>");
@@ -1555,13 +1731,19 @@ Main.prototype = $extend(Model.prototype,{
 	}
 	,createSheet: function(name) {
 		name = StringTools.trim(name);
-		if(name == "") return;
+		if(!this.r_ident.match(name)) {
+			this.error("Invalid sheet name");
+			return;
+		}
 		var _g = 0;
 		var _g1 = this.data.sheets;
 		while(_g < _g1.length) {
 			var s = _g1[_g];
 			++_g;
-			if(s.name == name) return;
+			if(s.name == name) {
+				this.error("Sheet name already in use");
+				return;
+			}
 		}
 		new js.JQuery("#newsheet").hide();
 		var s = { name : name, columns : [], lines : [], separators : [], props : { }};
@@ -1656,7 +1838,7 @@ Main.prototype = $extend(Model.prototype,{
 		}
 		this.setErrorMessage();
 		var t = { name : StringTools.trim(form.find("[name=name]").val()), cases : tdef};
-		if(!new EReg("^[A-Z][a-z0-9_]*$","").match(t.name)) {
+		if(!this.r_ident.match(t.name)) {
 			this.error("Invalid Type name");
 			return;
 		}
@@ -2107,7 +2289,7 @@ Main.prototype = $extend(Model.prototype,{
 								if(Math.isNaN(f)) val2 = null; else val2 = f;
 								break;
 							case 0:
-								if(Main.r_id.match(nv)) val2 = nv; else val2 = null;
+								if(_g.r_ident.match(nv)) val2 = nv; else val2 = null;
 								break;
 							case 9:
 								var t = _g2[2];
@@ -2168,7 +2350,7 @@ Main.prototype = $extend(Model.prototype,{
 				}
 				if(c.opt) new js.JQuery("<option>").attr("value","-1").text("--- None ---").prependTo(s);
 				v.append(s);
-				s.change(function(_) {
+				s.change(function(e) {
 					val = Std.parseInt(s.val());
 					if(val < 0) {
 						val = null;
@@ -2177,6 +2359,7 @@ Main.prototype = $extend(Model.prototype,{
 					html = _g.valueHtml(c,val,sheet,obj);
 					_g.changed(sheet,c,index);
 					editDone();
+					e.stopPropagation();
 				});
 				s.blur(function(_) {
 					editDone();
@@ -2202,7 +2385,7 @@ Main.prototype = $extend(Model.prototype,{
 				}
 				if(c.opt) new js.JQuery("<option>").attr("value","").text("--- None ---").prependTo(s1);
 				v.append(s1);
-				s1.change(function(_) {
+				s1.change(function(e) {
 					val = s1.val();
 					if(val == "") {
 						val = null;
@@ -2211,6 +2394,7 @@ Main.prototype = $extend(Model.prototype,{
 					html = _g.valueHtml(c,val,sheet,obj);
 					_g.changed(sheet,c,index);
 					editDone();
+					e.stopPropagation();
 				});
 				s1.blur(function(_) {
 					editDone();
@@ -4337,7 +4521,6 @@ nodejs.webkit.$ui = require('nw.gui');
 nodejs.webkit.Menu = nodejs.webkit.$ui.Menu;
 nodejs.webkit.MenuItem = nodejs.webkit.$ui.MenuItem;
 nodejs.webkit.Window = nodejs.webkit.$ui.Window;
-Main.r_id = new EReg("^[A-Za-z_][A-Za-z_0-9]*$","");
 haxe.Serializer.USE_CACHE = false;
 haxe.Serializer.USE_ENUM_INDEX = false;
 haxe.Serializer.BASE64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789%:";

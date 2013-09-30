@@ -18,9 +18,11 @@ class Model {
 	var curSavedData : String;
 	var history : Array<String>;
 	var redo : Array<String>;
+	var r_ident : EReg;
 
 	function new() {
 		openedList = new Map();
+		r_ident = ~/^[A-Za-z_][A-Za-z0-9_]*$/;
 		prefs = {
 			windowPos : { x : 50, y : 50, w : 800, h : 600, max : false },
 			curFile : null,
@@ -510,6 +512,8 @@ class Model {
 			var f = Std.parseFloat(val);
 			if( !Math.isNaN(f) )
 				return f;
+		case TCustom(t):
+			return parseTypeVal(tmap.get(t), val);
 		default:
 		}
 		throw "'" + val + "' should be "+typeStr(t);
@@ -644,7 +648,6 @@ class Model {
 	
 	function parseTypeCases( def : String ) : Array<Data.CustomTypeCase> {
 		var cases = [];
-		var r_ident = ~/^[A-Za-z_][A-Za-z0-9_]*$/;
 		var cmap = new Map();
 		for( line in ~/[\n;]/g.split(def) ) {
 			var line = StringTools.trim(line);
@@ -716,6 +719,9 @@ class Model {
 					newL.remove(b);
 					break;
 				}
+		// add nulls
+		for( a in oldL )
+			pairs.push({ a : a, b : null });
 		return pairs;
 	}
 	
@@ -725,15 +731,18 @@ class Model {
 		// build convert map
 		var convMap = [];
 		for( p in casesPairs ) {
+			
+			if( p.b == null ) continue;
+			
 			var id = Lambda.indexOf(t.cases, p.b);
 			var conv = {
-				def : [id],
+				def : ([id] : Array<Dynamic>),
 				args : [],
 			};
 			var args = makePairs(p.a.args, p.b.args);
 			for( a in args ) {
 				if( a.b == null ) {
-					conv.args.push(function(_) return null); // discard
+					conv.args[Lambda.indexOf(p.a.args, a.a)] = function(_) return null; // discard
 					continue;
 				}
 				var b = a.b, a = a.a;
@@ -744,38 +753,59 @@ class Model {
 				if( f == null ) f = function(x) return x;
 				if( a.opt != b.opt ) {
 					var oldf = f;
-					throw "Cannot change opt [TODO]";
+					if( a.opt ) {
+						f = function(v) { v = oldf(v); return v == null ? getDefault(b) : v; };
+					} else {
+						var def = getDefault(a);
+						f = function(v) return if( v == def ) null else oldf(v);
+					}
 				}
 				var index = Lambda.indexOf(p.b.args, b);
-				conv.args[Lambda.indexOf(p.a.args,a)] = function(v) return { index : index, v : f(v) };
+				conv.args[Lambda.indexOf(p.a.args, a)] = function(v) return { v = f(v); return if( v == null && b.opt ) null else { index : index, v : v }; };
 			}
-			convMap[Lambda.indexOf(old.cases, p.b)] = conv;
+			for( b in p.b.args )
+				conv.def.push(getDefault(b));
+			while( conv.def[conv.def.length - 1] == null )
+				conv.def.pop();
+			convMap[Lambda.indexOf(old.cases, p.a)] = conv;
 		}
 		
-		function convert(v:Array<Dynamic>) : Array<Dynamic> {
-			var conv = convMap[v[0]];
-			if( conv == null )
-				return null;
-			var out = conv.def.copy();
-			for( i in 0...conv.args.length ) {
-				var v = conv.args[i](v[i + 1]);
-				if( v == null ) continue;
-				out[v.index] = v.v;
+		function convertTypeRec( t : Data.CustomType, v : Array<Dynamic> ) : Array<Dynamic> {
+			if( t == old ) {
+				var conv = convMap[v[0]];
+				if( conv == null )
+					return null;
+				var out = conv.def.copy();
+				for( i in 0...conv.args.length ) {
+					var v = conv.args[i](v[i + 1]);
+					if( v == null ) continue;
+					out[v.index+1] = v.v;
+				}
+				return out;
 			}
-			return out;
+			var c = t.cases[v[0]];
+			for( i in 0...c.args.length ) {
+				switch( c.args[i].type ) {
+				case TCustom(tname):
+					var av = v[i + 1];
+					if( av != null )
+						v[i+1] = convertTypeRec(tmap.get(tname), av);
+				default:
+				}
+			}
+			return v;
 		}
-		
-		// TODO : we need to apply the convertion to args of custom types that reference ourself as well !!!
 		
 		// apply convert
 		for( s in data.sheets )
 			for( c in s.columns )
 				switch( c.type ) {
-				case TCustom(tname) if( tname == old.name ):
+				case TCustom(tname):
+					var t2 = tmap.get(tname);
 					for( obj in getSheetLines(s) ) {
 						var v = Reflect.field(obj, c.name);
 						if( v != null ) {
-							v = convert(v);
+							v = convertTypeRec(t2, v);
 							if( v == null )
 								Reflect.deleteField(obj, c.name);
 							else
@@ -783,10 +813,30 @@ class Model {
 						}
 					}
 					// if renamed
-					c.type = TCustom(t.name);
-					c.typeStr = null;
+					if( tname == old.name && t.name != old.name ) {
+						c.type = TCustom(t.name);
+						c.typeStr = null;
+					}
 				default:
 				}
+	
+				
+		if( t.name != old.name ) {
+			for( t2 in data.customTypes )
+				for( c in t2.cases )
+					for( a in c.args ) {
+						switch( a.type ) {
+						case TCustom(n) if( n == old.name ):
+							a.type = TCustom(t.name);
+							a.typeStr = null;
+						default:
+						}
+					}
+			tmap.remove(old.name);
+			old.name = t.name;
+			tmap.set(old.name, old);
+		}
+		old.cases = t.cases;
 	}
 	
 }
