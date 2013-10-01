@@ -1,3 +1,5 @@
+package cdb;
+
 enum ColumnType {
 	TId;
 	TString;

@@ -6,31 +6,6 @@ function $extend(from, fields) {
 	if( fields.toString !== Object.prototype.toString ) proto.toString = fields.toString;
 	return proto;
 }
-var ColumnType = $hxClasses["ColumnType"] = { __ename__ : ["ColumnType"], __constructs__ : ["TId","TString","TBool","TInt","TFloat","TEnum","TRef","TImage","TList","TCustom"] }
-ColumnType.TId = ["TId",0];
-ColumnType.TId.toString = $estr;
-ColumnType.TId.__enum__ = ColumnType;
-ColumnType.TString = ["TString",1];
-ColumnType.TString.toString = $estr;
-ColumnType.TString.__enum__ = ColumnType;
-ColumnType.TBool = ["TBool",2];
-ColumnType.TBool.toString = $estr;
-ColumnType.TBool.__enum__ = ColumnType;
-ColumnType.TInt = ["TInt",3];
-ColumnType.TInt.toString = $estr;
-ColumnType.TInt.__enum__ = ColumnType;
-ColumnType.TFloat = ["TFloat",4];
-ColumnType.TFloat.toString = $estr;
-ColumnType.TFloat.__enum__ = ColumnType;
-ColumnType.TEnum = function(values) { var $x = ["TEnum",5,values]; $x.__enum__ = ColumnType; $x.toString = $estr; return $x; }
-ColumnType.TRef = function(sheet) { var $x = ["TRef",6,sheet]; $x.__enum__ = ColumnType; $x.toString = $estr; return $x; }
-ColumnType.TImage = ["TImage",7];
-ColumnType.TImage.toString = $estr;
-ColumnType.TImage.__enum__ = ColumnType;
-ColumnType.TList = ["TList",8];
-ColumnType.TList.toString = $estr;
-ColumnType.TList.__enum__ = ColumnType;
-ColumnType.TCustom = function(name) { var $x = ["TCustom",9,name]; $x.__enum__ = ColumnType; $x.toString = $estr; return $x; }
 var EReg = function(r,opt) {
 	opt = opt.split("u").join("");
 	this.r = new RegExp(r,opt);
@@ -352,7 +327,7 @@ Model.prototype = {
 							}
 						}
 						if(tname == old.name && t.name != old.name) {
-							c.type = ColumnType.TCustom(t.name);
+							c.type = cdb.ColumnType.TCustom(t.name);
 							c.typeStr = null;
 						}
 						break;
@@ -383,7 +358,7 @@ Model.prototype = {
 							case 9:
 								var n = _g6[2];
 								if(n == old.name) {
-									a.type = ColumnType.TCustom(t.name);
+									a.type = cdb.ColumnType.TCustom(t.name);
 									a.typeStr = null;
 								} else {
 								}
@@ -519,15 +494,15 @@ Model.prototype = {
 	,parseType: function(tstr) {
 		switch(tstr) {
 		case "Int":
-			return ColumnType.TInt;
+			return cdb.ColumnType.TInt;
 		case "Float":
-			return ColumnType.TFloat;
+			return cdb.ColumnType.TFloat;
 		case "Bool":
-			return ColumnType.TBool;
+			return cdb.ColumnType.TBool;
 		case "String":
-			return ColumnType.TString;
+			return cdb.ColumnType.TString;
 		default:
-			if(this.tmap.exists(tstr)) return ColumnType.TCustom(tstr); else if(this.smap.exists(tstr)) return ColumnType.TRef(tstr); else {
+			if(this.tmap.exists(tstr)) return cdb.ColumnType.TCustom(tstr); else if(this.smap.exists(tstr)) return cdb.ColumnType.TRef(tstr); else {
 				if(StringTools.endsWith(tstr,">")) {
 					var tname = tstr.split("<").shift();
 					var tparam;
@@ -732,7 +707,7 @@ Model.prototype = {
 			break;
 		case 5:
 			var values = t[2];
-			return this.valToString(ColumnType.TString,values[val]);
+			return this.valToString(cdb.ColumnType.TString,values[val]);
 		case 8:
 			return "????";
 		case 9:
@@ -798,7 +773,7 @@ Model.prototype = {
 		while(_g < _g1.length) {
 			var c = _g1[_g];
 			++_g;
-			if(c.type == ColumnType.TId) {
+			if(c.type == cdb.ColumnType.TId) {
 				var _g2 = 0;
 				while(_g2 < lines.length) {
 					var l = lines[_g2];
@@ -857,40 +832,7 @@ Model.prototype = {
 		this.history = [];
 		this.redo = [];
 		try {
-			var jsonString = sys.io.File.getContent(this.prefs.curFile);
-			this.data = js.Node.parse(jsonString);
-			var _g = 0;
-			var _g1 = this.data.sheets;
-			while(_g < _g1.length) {
-				var s = _g1[_g];
-				++_g;
-				var _g2 = 0;
-				var _g3 = s.columns;
-				while(_g2 < _g3.length) {
-					var c = _g3[_g2];
-					++_g2;
-					c.type = haxe.Unserializer.run(c.typeStr);
-				}
-			}
-			var _g = 0;
-			var _g1 = this.data.customTypes;
-			while(_g < _g1.length) {
-				var t = _g1[_g];
-				++_g;
-				var _g2 = 0;
-				var _g3 = t.cases;
-				while(_g2 < _g3.length) {
-					var c = _g3[_g2];
-					++_g2;
-					var _g4 = 0;
-					var _g5 = c.args;
-					while(_g4 < _g5.length) {
-						var a = _g5[_g4];
-						++_g4;
-						a.type = haxe.Unserializer.run(a.typeStr);
-					}
-				}
-			}
+			this.data = cdb.Parser.parse(sys.io.File.getContent(this.prefs.curFile));
 		} catch( e ) {
 			if(!noError) js.Lib.alert(e);
 			this.prefs.curFile = null;
@@ -928,7 +870,7 @@ Model.prototype = {
 				Reflect.deleteField(o,old.name);
 				if(v != null) o[c.name] = v;
 			}
-			if(old.type == ColumnType.TList) {
+			if(old.type == cdb.ColumnType.TList) {
 				var s = this.smap.get(sheet.name + "@" + old.name).s;
 				s.name = sheet.name + "@" + c.name;
 			}
@@ -1192,7 +1134,7 @@ Model.prototype = {
 		while(_g < _g1.length) {
 			var c2 = _g1[_g];
 			++_g;
-			if(c2.name == c.name) return "Column already exists"; else if(c2.type == ColumnType.TId && c.type == ColumnType.TId) return "Only one ID allowed";
+			if(c2.name == c.name) return "Column already exists"; else if(c2.type == cdb.ColumnType.TId && c.type == cdb.ColumnType.TId) return "Only one ID allowed";
 		}
 		sheet.columns.push(c);
 		var _g = 0;
@@ -1203,7 +1145,7 @@ Model.prototype = {
 			var def = this.getDefault(c);
 			if(def != null) i[c.name] = def;
 		}
-		if(c.type == ColumnType.TList) {
+		if(c.type == cdb.ColumnType.TList) {
 			var s = { name : sheet.name + "@" + c.name, props : { hide : true}, separators : [], lines : [], columns : []};
 			this.data.sheets.push(s);
 			this.makeSheet(s);
@@ -1229,7 +1171,7 @@ Model.prototype = {
 					sheet.props.displayColumn = null;
 					this.makeSheet(sheet);
 				}
-				if(c.type == ColumnType.TList) HxOverrides.remove(this.data.sheets,this.smap.get(sheet.name + "@" + c.name).s);
+				if(c.type == cdb.ColumnType.TList) HxOverrides.remove(this.data.sheets,this.smap.get(sheet.name + "@" + c.name).s);
 				return true;
 			}
 		}
@@ -1305,7 +1247,7 @@ Model.prototype = {
 				var c = _g3[_g2];
 				++_g2;
 				save.push(c.type);
-				if(c.typeStr == null) c.typeStr = haxe.Serializer.run(c.type);
+				if(c.typeStr == null) c.typeStr = cdb.Parser.saveType(c.type);
 				Reflect.deleteField(c,"type");
 			}
 		}
@@ -1325,7 +1267,7 @@ Model.prototype = {
 					var a = _g5[_g4];
 					++_g4;
 					save.push(a.type);
-					if(a.typeStr == null) a.typeStr = haxe.Serializer.run(a.type);
+					if(a.typeStr == null) a.typeStr = cdb.Parser.saveType(a.type);
 					Reflect.deleteField(a,"type");
 				}
 			}
@@ -1606,7 +1548,7 @@ Main.prototype = $extend(Model.prototype,{
 										case 6:
 											var o = _g7[2];
 											if(o == old) {
-												c.type = ColumnType.TRef(name);
+												c.type = cdb.ColumnType.TRef(name);
 												c.typeStr = null;
 											} else {
 											}
@@ -1637,7 +1579,7 @@ Main.prototype = $extend(Model.prototype,{
 											case 6:
 												var o = _g9[2];
 												if(o == old) {
-													a.type = ColumnType.TRef(name);
+													a.type = cdb.ColumnType.TRef(name);
 													a.typeStr = null;
 												} else {
 												}
@@ -1692,19 +1634,19 @@ Main.prototype = $extend(Model.prototype,{
 		var _g = v.type;
 		switch(_g) {
 		case "id":
-			t = ColumnType.TId;
+			t = cdb.ColumnType.TId;
 			break;
 		case "int":
-			t = ColumnType.TInt;
+			t = cdb.ColumnType.TInt;
 			break;
 		case "float":
-			t = ColumnType.TFloat;
+			t = cdb.ColumnType.TFloat;
 			break;
 		case "string":
-			t = ColumnType.TString;
+			t = cdb.ColumnType.TString;
 			break;
 		case "bool":
-			t = ColumnType.TBool;
+			t = cdb.ColumnType.TBool;
 			break;
 		case "enum":
 			var vals = StringTools.trim(v.values).split(",");
@@ -1712,7 +1654,7 @@ Main.prototype = $extend(Model.prototype,{
 				this.error("Missing value list");
 				return;
 			}
-			t = ColumnType.TEnum((function($this) {
+			t = cdb.ColumnType.TEnum((function($this) {
 				var $r;
 				var _g1 = [];
 				{
@@ -1733,13 +1675,13 @@ Main.prototype = $extend(Model.prototype,{
 				this.error("Sheet not found");
 				return;
 			}
-			t = ColumnType.TRef(s.name);
+			t = cdb.ColumnType.TRef(s.name);
 			break;
 		case "image":
-			t = ColumnType.TImage;
+			t = cdb.ColumnType.TImage;
 			break;
 		case "list":
-			t = ColumnType.TList;
+			t = cdb.ColumnType.TList;
 			break;
 		case "custom":
 			var t1 = this.tmap.get(v.ctype);
@@ -1747,7 +1689,7 @@ Main.prototype = $extend(Model.prototype,{
 				this.error("Type not found");
 				return;
 			}
-			t = ColumnType.TCustom(t1.name);
+			t = cdb.ColumnType.TCustom(t1.name);
 			break;
 		default:
 			return;
@@ -2036,7 +1978,7 @@ Main.prototype = $extend(Model.prototype,{
 		var types;
 		var _g = [];
 		var _g11 = 0;
-		var _g2 = Type.getEnumConstructs(ColumnType);
+		var _g2 = Type.getEnumConstructs(cdb.ColumnType);
 		while(_g11 < _g2.length) {
 			var t = _g2[_g11];
 			++_g11;
@@ -2729,7 +2671,7 @@ Main.prototype = $extend(Model.prototype,{
 				while(_g1 < _g2.length) {
 					var cid = _g2[_g1];
 					++_g1;
-					if(cid.type == ColumnType.TId) {
+					if(cid.type == cdb.ColumnType.TId) {
 						var id = (function($this) {
 							var $r;
 							var v = null;
@@ -3067,6 +3009,126 @@ Type.enumEq = function(a,b) {
 		return false;
 	}
 	return true;
+}
+var cdb = {}
+cdb.ColumnType = $hxClasses["cdb.ColumnType"] = { __ename__ : ["cdb","ColumnType"], __constructs__ : ["TId","TString","TBool","TInt","TFloat","TEnum","TRef","TImage","TList","TCustom"] }
+cdb.ColumnType.TId = ["TId",0];
+cdb.ColumnType.TId.toString = $estr;
+cdb.ColumnType.TId.__enum__ = cdb.ColumnType;
+cdb.ColumnType.TString = ["TString",1];
+cdb.ColumnType.TString.toString = $estr;
+cdb.ColumnType.TString.__enum__ = cdb.ColumnType;
+cdb.ColumnType.TBool = ["TBool",2];
+cdb.ColumnType.TBool.toString = $estr;
+cdb.ColumnType.TBool.__enum__ = cdb.ColumnType;
+cdb.ColumnType.TInt = ["TInt",3];
+cdb.ColumnType.TInt.toString = $estr;
+cdb.ColumnType.TInt.__enum__ = cdb.ColumnType;
+cdb.ColumnType.TFloat = ["TFloat",4];
+cdb.ColumnType.TFloat.toString = $estr;
+cdb.ColumnType.TFloat.__enum__ = cdb.ColumnType;
+cdb.ColumnType.TEnum = function(values) { var $x = ["TEnum",5,values]; $x.__enum__ = cdb.ColumnType; $x.toString = $estr; return $x; }
+cdb.ColumnType.TRef = function(sheet) { var $x = ["TRef",6,sheet]; $x.__enum__ = cdb.ColumnType; $x.toString = $estr; return $x; }
+cdb.ColumnType.TImage = ["TImage",7];
+cdb.ColumnType.TImage.toString = $estr;
+cdb.ColumnType.TImage.__enum__ = cdb.ColumnType;
+cdb.ColumnType.TList = ["TList",8];
+cdb.ColumnType.TList.toString = $estr;
+cdb.ColumnType.TList.__enum__ = cdb.ColumnType;
+cdb.ColumnType.TCustom = function(name) { var $x = ["TCustom",9,name]; $x.__enum__ = cdb.ColumnType; $x.toString = $estr; return $x; }
+cdb.Parser = function() { }
+$hxClasses["cdb.Parser"] = cdb.Parser;
+cdb.Parser.__name__ = ["cdb","Parser"];
+cdb.Parser.saveType = function(t) {
+	switch(t[1]) {
+	case 6:case 9:
+		return t[1] + ":" + t.slice(2)[0];
+	case 5:
+		var values = t[2];
+		return t[1] + ":" + values.join(",");
+	default:
+		return Std.string(t[1]);
+	}
+}
+cdb.Parser.getType = function(str) {
+	var _g = Std.parseInt(str);
+	switch(_g) {
+	case 0:
+		return cdb.ColumnType.TId;
+	case 1:
+		return cdb.ColumnType.TString;
+	case 2:
+		return cdb.ColumnType.TBool;
+	case 3:
+		return cdb.ColumnType.TInt;
+	case 4:
+		return cdb.ColumnType.TFloat;
+	case 5:
+		return cdb.ColumnType.TEnum(((function($this) {
+			var $r;
+			var pos = str.indexOf(":") + 1;
+			$r = HxOverrides.substr(str,pos,null);
+			return $r;
+		}(this))).split(","));
+	case 6:
+		return cdb.ColumnType.TRef((function($this) {
+			var $r;
+			var pos = str.indexOf(":") + 1;
+			$r = HxOverrides.substr(str,pos,null);
+			return $r;
+		}(this)));
+	case 7:
+		return cdb.ColumnType.TImage;
+	case 8:
+		return cdb.ColumnType.TList;
+	case 9:
+		return cdb.ColumnType.TCustom((function($this) {
+			var $r;
+			var pos = str.indexOf(":") + 1;
+			$r = HxOverrides.substr(str,pos,null);
+			return $r;
+		}(this)));
+	default:
+		throw "Unknown type " + str;
+	}
+}
+cdb.Parser.parse = function(content) {
+	var data = js.Node.parse(content);
+	var _g = 0;
+	var _g1 = data.sheets;
+	while(_g < _g1.length) {
+		var s = _g1[_g];
+		++_g;
+		var _g2 = 0;
+		var _g3 = s.columns;
+		while(_g2 < _g3.length) {
+			var c = _g3[_g2];
+			++_g2;
+			c.type = cdb.Parser.getType(c.typeStr);
+			c.typeStr = null;
+		}
+	}
+	var _g = 0;
+	var _g1 = data.customTypes;
+	while(_g < _g1.length) {
+		var t = _g1[_g];
+		++_g;
+		var _g2 = 0;
+		var _g3 = t.cases;
+		while(_g2 < _g3.length) {
+			var c = _g3[_g2];
+			++_g2;
+			var _g4 = 0;
+			var _g5 = c.args;
+			while(_g4 < _g5.length) {
+				var a = _g5[_g4];
+				++_g4;
+				a.type = cdb.Parser.getType(a.typeStr);
+				a.typeStr = null;
+			}
+		}
+	}
+	return data;
 }
 var haxe = {}
 haxe.Json = function() { }

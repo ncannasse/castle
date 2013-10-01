@@ -1,3 +1,5 @@
+import cdb.Data;
+
 import js.JQuery.JQueryHelper.*;
 import nodejs.webkit.Menu;
 import nodejs.webkit.MenuItem;
@@ -6,8 +8,8 @@ import nodejs.webkit.MenuItemType;
 class Main extends Model {
 
 	var window : nodejs.webkit.Window;
-	var viewSheet : Data.Sheet;
-	var curSheet(default,set) : Data.Sheet;
+	var viewSheet : Sheet;
+	var curSheet(default,set) : Sheet;
 	var mousePos : { x : Int, y : Int };
 	var typesStr : String;
 	
@@ -24,7 +26,7 @@ class Main extends Model {
 		load(true);
 	}
 	
-	function set_curSheet( s : Data.Sheet ) {
+	function set_curSheet( s : Sheet ) {
 		if( curSheet != s ) J(".selected").removeClass("selected");
 		return curSheet = s;
 	}
@@ -81,15 +83,15 @@ class Main extends Model {
 		}
 	}
 
-	function getLine( sheet : Data.Sheet, index : Int ) {
+	function getLine( sheet : Sheet, index : Int ) {
 		return J(J("table[sheet='"+getPath(sheet)+"'] > tbody > tr").not(".head,.separator,.list")[index]);
 	}
 	
-	function selectLine( sheet : Data.Sheet, index : Int ) {
+	function selectLine( sheet : Sheet, index : Int ) {
 		getLine(sheet, index).addClass("selected");
 	}
 	
-	override function moveLine( sheet : Data.Sheet, index : Int, delta : Int ) {
+	override function moveLine( sheet : Sheet, index : Int, delta : Int ) {
 		// remove opened list
 		getLine(sheet, index).next("tr.list").change();
 		var index = super.moveLine(sheet, index, delta);
@@ -101,7 +103,7 @@ class Main extends Model {
 		return index;
 	}
 	
-	function changed( sheet : Data.Sheet, c : Data.Column, index : Int ) {
+	function changed( sheet : Sheet, c : Column, index : Int ) {
 		save();
 		switch( c.type ) {
 		case TId:
@@ -136,7 +138,7 @@ class Main extends Model {
 			J(".errorMsg").text(msg).show();
 	}
 	
-	function valueHtml( c : Data.Column, v : Dynamic, sheet : Data.Sheet, obj : Dynamic ) : String {
+	function valueHtml( c : Column, v : Dynamic, sheet : Sheet, obj : Dynamic ) : String {
 		if( v == null ) {
 			if( c.opt )
 				return "&nbsp;";
@@ -205,7 +207,7 @@ class Main extends Model {
 		}
 	}
 	
-	function popupLine( sheet : Data.Sheet, index : Int ) {
+	function popupLine( sheet : Sheet, index : Int ) {
 		var n = new Menu();
 		var nup = new MenuItem( { label : "Move Up" } );
 		var ndown = new MenuItem( { label : "Move Down" } );
@@ -245,7 +247,7 @@ class Main extends Model {
 		n.popup(mousePos.x, mousePos.y);
 	}
 	
-	function popupColumn( sheet : Data.Sheet, c : Data.Column ) {
+	function popupColumn( sheet : Sheet, c : Column ) {
 		var n = new Menu();
 		var nedit = new MenuItem( { label : "Edit" } );
 		var nins = new MenuItem( { label : "Add Column" } );
@@ -296,7 +298,7 @@ class Main extends Model {
 		n.popup(mousePos.x, mousePos.y);
 	}
 	
-	function editCell( c : Data.Column, v : js.JQuery, sheet : Data.Sheet, index : Int ) {
+	function editCell( c : Column, v : js.JQuery, sheet : Sheet, index : Int ) {
 		var obj = sheet.lines[index];
 		var val : Dynamic = Reflect.field(obj, c.name);
 		inline function getValue() {
@@ -514,7 +516,7 @@ class Main extends Model {
 		t.appendTo(content);
 	}
 	
-	function fillTable( content : js.JQuery, sheet : Data.Sheet ) {
+	function fillTable( content : js.JQuery, sheet : Sheet ) {
 		if( sheet.columns.length == 0 ) {
 			content.html('<a href="javascript:_.newColumn(\'${sheet.name}\')">Add a column</a>');
 			return;
@@ -522,7 +524,7 @@ class Main extends Model {
 		
 		var todo = [];
 		var cols = J("<tr>").addClass("head");
-		var types = [for( t in Type.getEnumConstructs(Data.ColumnType) ) t.substr(1).toLowerCase()];
+		var types = [for( t in Type.getEnumConstructs(ColumnType) ) t.substr(1).toLowerCase()];
 		
 		J("<td>").addClass("start").appendTo(cols);
 		
@@ -663,7 +665,7 @@ class Main extends Model {
 		for( t in todo ) t();
 	}
 	
-	function selectSheet( s : Data.Sheet ) {
+	function selectSheet( s : Sheet ) {
 		viewSheet = curSheet = s;
 		prefs.curSheet = Lambda.indexOf(data.sheets, s);
 		J("#sheets li").removeClass("active").filter("#sheet_" + prefs.curSheet).addClass("active");
@@ -674,7 +676,7 @@ class Main extends Model {
 		J("#newsheet").show();
 	}
 
-	override function deleteColumn( sheet : Data.Sheet, ?cname) {
+	override function deleteColumn( sheet : Sheet, ?cname) {
 		if( cname == null )
 			cname = J("#newcol form [name=ref]").val();
 		if( !super.deleteColumn(sheet, cname) )
@@ -697,7 +699,7 @@ class Main extends Model {
 		var text = content.find("textarea");
 		var apply = J(content.find("input.button")[0]);
 		var cancel = J(content.find("input.button")[1]);
-		var types : Array<Data.CustomType>;
+		var types : Array<CustomType>;
 		text.change(function(_) {
 			var nstr = text.val();
 			if( nstr == typesStr ) return;
@@ -789,7 +791,7 @@ class Main extends Model {
 		text.change();
 	}
 	
-	function newColumn( ?sheetName : String, ?ref : Data.Column ) {
+	function newColumn( ?sheetName : String, ?ref : Column ) {
 		var form = J("#newcol form");
 		
 		var sheets = J("[name=sheet]");
@@ -837,7 +839,7 @@ class Main extends Model {
 		J("#newcol").show();
 	}
 	
-	override function newLine( sheet : Data.Sheet, ?index : Int ) {
+	override function newLine( sheet : Sheet, ?index : Int ) {
 		super.newLine(sheet,index);
 		refresh();
 		save();
@@ -862,7 +864,7 @@ class Main extends Model {
 				return;
 			}
 		J("#newsheet").hide();
-		var s : Data.Sheet = {
+		var s : Sheet = {
 			name : name,
 			columns : [],
 			lines : [],
@@ -895,7 +897,7 @@ class Main extends Model {
 					refColumn = c;
 		}
 	
-		var t : Data.ColumnType = switch( v.type ) {
+		var t : ColumnType = switch( v.type ) {
 		case "id": TId;
 		case "int": TInt;
 		case "float": TFloat;
@@ -929,7 +931,7 @@ class Main extends Model {
 		default:
 			return;
 		}
-		var c : Data.Column = {
+		var c : Column = {
 			type : t,
 			typeStr : null,
 			name : v.name,

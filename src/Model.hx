@@ -1,3 +1,5 @@
+import cdb.Data;
+
 typedef Prefs = {
 	windowPos : { x : Int, y : Int, w : Int, h : Int, max : Bool },
 	curFile : String,
@@ -11,8 +13,8 @@ class Model {
 	var prefs : Prefs;
 	var data : Data;
 	var imageBank : Dynamic<String>;
-	var smap : Map< String, { s : Data.Sheet, index : Map<String,Index> , all : Array<Index> } >;
-	var tmap : Map< String, Data.CustomType >;
+	var smap : Map< String, { s : Sheet, index : Map<String,Index> , all : Array<Index> } >;
+	var tmap : Map< String, CustomType >;
 	var openedList : Map<String,Bool>;
 	
 	var curSavedData : String;
@@ -38,11 +40,11 @@ class Model {
 		return smap.get(name).s;
 	}
 	
-	inline function getPseudoSheet( sheet : Data.Sheet, c : Data.Column ) {
+	inline function getPseudoSheet( sheet : Sheet, c : Column ) {
 		return getSheet(sheet.name + "@" + c.name);
 	}
 	
-	function getSheetLines( sheet : Data.Sheet ) : Array<Dynamic> {
+	function getSheetLines( sheet : Sheet ) : Array<Dynamic> {
 		if( sheet.props.hide ) {
 			var parts = sheet.name.split("@");
 			var colName = parts.pop();
@@ -59,7 +61,7 @@ class Model {
 		return sheet.lines;
 	}
 	
-	function newLine( sheet : Data.Sheet, ?index : Int ) {
+	function newLine( sheet : Sheet, ?index : Int ) {
 		var o = {
 		};
 		for( c in sheet.columns ) {
@@ -78,11 +80,11 @@ class Model {
 		}
 	}
 
-	function getPath( sheet : Data.Sheet ) {
+	function getPath( sheet : Sheet ) {
 		return sheet.path == null ? sheet.name : sheet.path;
 	}
 
-	function getDefault( c : Data.Column ) : Dynamic {
+	function getDefault( c : Column ) : Dynamic {
 		if( c.opt )
 			return null;
 		return switch( c.type ) {
@@ -111,7 +113,7 @@ class Model {
 		for( s in data.sheets ) {
 			for( c in s.columns ) {
 				save.push(c.type);
-				if( c.typeStr == null ) c.typeStr = haxe.Serializer.run(c.type);
+				if( c.typeStr == null ) c.typeStr = cdb.Parser.saveType(c.type);
 				Reflect.deleteField(c, "type");
 			}
 		}
@@ -119,7 +121,7 @@ class Model {
 			for( c in t.cases )
 				for( a in c.args ) {
 					save.push(a.type);
-					if( a.typeStr == null ) a.typeStr = haxe.Serializer.run(a.type);
+					if( a.typeStr == null ) a.typeStr = cdb.Parser.saveType(a.type);
 					Reflect.deleteField(a, "type");
 				}
 		sys.io.File.saveContent(prefs.curFile, untyped haxe.Json.stringify(data, null, "\t"));
@@ -154,7 +156,7 @@ class Model {
 		openedList = t.o;
 	}
 
-	function moveLine( sheet : Data.Sheet, index : Int, delta : Int ) : Null<Int> {
+	function moveLine( sheet : Sheet, index : Int, delta : Int ) : Null<Int> {
 		if( delta < 0 && index > 0 ) {
 			var l = sheet.lines[index];
 			sheet.lines.splice(index, 1);
@@ -169,7 +171,7 @@ class Model {
 		return null;
 	}
 	
-	function deleteLine( sheet : Data.Sheet, index : Int ) {
+	function deleteLine( sheet : Sheet, index : Int ) {
 		sheet.lines.splice(index, 1);
 		var prev = -1, toRemove = null;
 		for( i in 0...sheet.separators.length ) {
@@ -185,7 +187,7 @@ class Model {
 			sheet.separators.remove(toRemove);
 	}
 	
-	function deleteColumn( sheet : Data.Sheet, ?cname : String ) {
+	function deleteColumn( sheet : Sheet, ?cname : String ) {
 		for( c in sheet.columns )
 			if( c.name == cname ) {
 				sheet.columns.remove(c);
@@ -202,7 +204,7 @@ class Model {
 		return false;
 	}
 	
-	function addColumn( sheet : Data.Sheet, c : Data.Column ) {
+	function addColumn( sheet : Sheet, c : Column ) {
 		// create
 		for( c2 in sheet.columns )
 			if( c2.name == c.name )
@@ -216,7 +218,7 @@ class Model {
 		}
 		if( c.type == TList ) {
 			// create an hidden sheet for the model
-			var s : Data.Sheet = {
+			var s : Sheet = {
 				name : sheet.name + "@" + c.name,
 				props : { hide : true },
 				separators : [],
@@ -229,7 +231,7 @@ class Model {
 		return null;
 	}
 	
-	function getConvFunction( old : Data.ColumnType, t : Data.ColumnType ) {
+	function getConvFunction( old : ColumnType, t : ColumnType ) {
 		var conv : Dynamic -> Dynamic = null;
 		if( Type.enumEq(old, t) )
 			return { f : null };
@@ -277,7 +279,7 @@ class Model {
 		return { f : conv };
 	}
 	
-	function updateColumn( sheet : Data.Sheet, old : Data.Column, c : Data.Column ) {
+	function updateColumn( sheet : Sheet, old : Column, c : Column ) {
 		if( old.name != c.name ) {
 			for( o in getSheetLines(sheet) ) {
 				var v = Reflect.field(o, old.name);
@@ -348,14 +350,7 @@ class Model {
 		history = [];
 		redo = [];
 		try {
-			data = haxe.Json.parse(sys.io.File.getContent(prefs.curFile));
-			for( s in data.sheets )
-				for( c in s.columns )
-					c.type = haxe.Unserializer.run(c.typeStr);
-			for( t in data.customTypes )
-				for( c in t.cases )
-					for( a in c.args )
-						a.type = haxe.Unserializer.run(a.typeStr);
+			data = cdb.Parser.parse(sys.io.File.getContent(prefs.curFile));
 		} catch( e : Dynamic ) {
 			if( !noError ) js.Lib.alert(e);
 			prefs.curFile = null;
@@ -385,7 +380,7 @@ class Model {
 			tmap.set(t.name, t);
 	}
 	
-	function makeSheet( s : Data.Sheet ) {
+	function makeSheet( s : Sheet ) {
 		var sdat = {
 			s : s,
 			index : new Map(),
@@ -438,7 +433,7 @@ class Model {
 		js.Browser.getLocalStorage().setItem("prefs", haxe.Serializer.run(prefs));
 	}
 	
-	function valToString( t : Data.ColumnType, val : Dynamic ) {
+	function valToString( t : ColumnType, val : Dynamic ) {
 		if( val == null )
 			return "null";
 		return switch( t ) {
@@ -459,7 +454,7 @@ class Model {
 		}
 	}
 	
-	function typeValToString( t : Data.CustomType, val : Array<Dynamic> ) {
+	function typeValToString( t : CustomType, val : Array<Dynamic> ) {
 		var c = t.cases[val[0]];
 		var str = c.name;
 		if( c.args.length > 0 ) {
@@ -473,14 +468,14 @@ class Model {
 		return str;
 	}
 	
-	function typeStr( t : Data.ColumnType ) {
+	function typeStr( t : ColumnType ) {
 		return switch( t ) {
 		case TRef(n), TCustom(n): n;
 		default: Std.string(t).substr(1);
 		}
 	}
 	
-	function parseVal( t : Data.ColumnType, val : String ) : Dynamic {
+	function parseVal( t : ColumnType, val : String ) : Dynamic {
 		switch( t ) {
 		case TInt:
 			if( ~/^-?[0-9]+$/.match(val) )
@@ -523,7 +518,7 @@ class Model {
 		throw "'" + val + "' should be "+typeStr(t);
 	}
 	
-	function parseTypeVal( t : Data.CustomType, val : String ) : Dynamic {
+	function parseTypeVal( t : CustomType, val : String ) : Dynamic {
 		if( t == null || val == null )
 			throw "Missing val/type";
 		val = StringTools.trim(val);
@@ -607,7 +602,7 @@ class Model {
 		return null;
 	}
 	
-	function parseType( tstr : String ) : Data.ColumnType {
+	function parseType( tstr : String ) : ColumnType {
 		return switch( tstr ) {
 		case "Int": TInt;
 		case "Float": TFloat;
@@ -628,7 +623,7 @@ class Model {
 		}
 	}
 	
-	function typeCasesToString( t : Data.CustomType, prefix = "" ) {
+	function typeCasesToString( t : CustomType, prefix = "" ) {
 		var arr = [];
 		for( c in t.cases ) {
 			var str = c.name;
@@ -650,7 +645,7 @@ class Model {
 		return arr.join("\n");
 	}
 	
-	function parseTypeCases( def : String ) : Array<Data.CustomTypeCase> {
+	function parseTypeCases( def : String ) : Array<CustomTypeCase> {
 		var cases = [];
 		var cmap = new Map();
 		for( line in ~/[\n;]/g.split(def) ) {
@@ -681,7 +676,7 @@ class Model {
 					var t = StringTools.trim(tname[1]);
 					if( !r_ident.match(id) )
 						throw "Invalid identifier " + id;
-					var c : Data.Column = {
+					var c : Column = {
 						name : id,
 						type : parseType(t),
 						typeStr : null,
@@ -729,7 +724,7 @@ class Model {
 		return pairs;
 	}
 	
-	function updateType( old : Data.CustomType, t : Data.CustomType ) {
+	function updateType( old : CustomType, t : CustomType ) {
 		var casesPairs = makePairs(old.cases, t.cases);
 		
 		// build convert map
@@ -774,7 +769,7 @@ class Model {
 			convMap[Lambda.indexOf(old.cases, p.a)] = conv;
 		}
 		
-		function convertTypeRec( t : Data.CustomType, v : Array<Dynamic> ) : Array<Dynamic> {
+		function convertTypeRec( t : CustomType, v : Array<Dynamic> ) : Array<Dynamic> {
 			if( t == null )
 				return null;
 			if( t == old ) {
