@@ -123,6 +123,14 @@ Lambda.has = function(it,elt) {
 	}
 	return false;
 }
+Lambda.exists = function(it,f) {
+	var $it0 = $iterator(it)();
+	while( $it0.hasNext() ) {
+		var x = $it0.next();
+		if(f(x)) return true;
+	}
+	return false;
+}
 Lambda.indexOf = function(it,v) {
 	var i = 0;
 	var $it0 = $iterator(it)();
@@ -1695,7 +1703,7 @@ Main.prototype = $extend(Model.prototype,{
 			return;
 		}
 		var c = { type : t, typeStr : null, name : v.name};
-		if(v.opt == "on") c.opt = true;
+		if(v.req != "on") c.opt = true;
 		if(refColumn != null) {
 			var err = Model.prototype.updateColumn.call(this,sheet,refColumn,c);
 			if(err != null) {
@@ -1783,7 +1791,7 @@ Main.prototype = $extend(Model.prototype,{
 			form.addClass("edit");
 			form.find("[name=name]").val(ref.name);
 			form.find("[name=type]").val(HxOverrides.substr(ref.type[0],1,null).toLowerCase()).change();
-			form.find("[name=opt]").attr("checked",ref.opt);
+			if(ref.opt) form.find("[name=req]").removeAttr("checked"); else form.find("[name=req]").attr("checked","");
 			form.find("[name=ref]").val(ref.name);
 			{
 				var _g = ref.type;
@@ -1806,6 +1814,7 @@ Main.prototype = $extend(Model.prototype,{
 		} else {
 			form.addClass("create");
 			form.find("input").not("[type=submit]").val("");
+			form.find("[name=req]").attr("checked","");
 		}
 		form.find("[name=sheetRef]").val(sheetName == null?"":sheetName);
 		types.change();
@@ -1926,9 +1935,13 @@ Main.prototype = $extend(Model.prototype,{
 			}
 			var _g1 = 0;
 			while(_g1 < types.length) {
-				var t = types[_g1];
+				var t2 = [types[_g1]];
 				++_g1;
-				if(!_g.tmap.exists(t.name)) _g.data.customTypes.push(t);
+				if(!Lambda.exists(tpairs,(function(t2) {
+					return function(p) {
+						return p.b == t2[0];
+					};
+				})(t2))) _g.data.customTypes.push(t2[0]);
 			}
 			var _g1 = 0;
 			while(_g1 < tpairs.length) {
@@ -2244,6 +2257,9 @@ Main.prototype = $extend(Model.prototype,{
 						i.val("" + Std.string(val));
 					}
 				}
+				i.change(function(e) {
+					e.stopPropagation();
+				});
 				i.keydown(function(e) {
 					var _g2 = e.keyCode;
 					switch(_g2) {
@@ -2380,7 +2396,7 @@ Main.prototype = $extend(Model.prototype,{
 					++_g11;
 					new js.JQuery("<option>").attr("value","" + l.id).attr(val == l.id?"selected":"_sel","selected").text(l.disp).appendTo(s1);
 				}
-				if(c.opt) new js.JQuery("<option>").attr("value","").text("--- None ---").prependTo(s1);
+				if(c.opt || val == null) new js.JQuery("<option>").attr("value","").text("--- None ---").prependTo(s1);
 				v.append(s1);
 				s1.change(function(e) {
 					val = s1.val();

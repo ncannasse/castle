@@ -327,6 +327,7 @@ class Main extends Model {
 				default:
 					i.val(""+val);
 				}
+			i.change(function(e) e.stopPropagation());
 			i.keydown(function(e:js.JQuery.JqEvent) {
 				switch( e.keyCode ) {
 				case 27:
@@ -445,7 +446,7 @@ class Main extends Model {
 			var s = J("<select>");
 			for( l in sdat.all )
 				J("<option>").attr("value", "" + l.id).attr(val == l.id ? "selected" : "_sel", "selected").text(l.disp).appendTo(s);
-			if( c.opt )
+			if( c.opt || val == null )
 				J("<option>").attr("value", "").text("--- None ---").prependTo(s);
 			v.append(s);
 			s.change(function(e) {
@@ -770,7 +771,7 @@ class Main extends Model {
 				}
 			// add new types
 			for( t in types )
-				if( !tmap.exists(t.name) )
+				if( !Lambda.exists(tpairs,function(p) return p.b == t) )
 					data.customTypes.push(t);
 			// update existing types
 			for( p in tpairs ) {
@@ -818,7 +819,10 @@ class Main extends Model {
 			form.addClass("edit");
 			form.find("[name=name]").val(ref.name);
 			form.find("[name=type]").val(ref.type.getName().substr(1).toLowerCase()).change();
-			form.find("[name=opt]").attr("checked", cast ref.opt);
+			if( ref.opt )
+				form.find("[name=req]").removeAttr("checked");
+			else
+				form.find("[name=req]").attr("checked", "");
 			form.find("[name=ref]").val(ref.name);
 			switch( ref.type ) {
 			case TEnum(values):
@@ -832,6 +836,7 @@ class Main extends Model {
 		} else {
 			form.addClass("create");
 			form.find("input").not("[type=submit]").val("");
+			form.find("[name=req]").attr("checked", "");
 		}
 		form.find("[name=sheetRef]").val(sheetName == null ? "" : sheetName);
 		types.change();
@@ -936,7 +941,7 @@ class Main extends Model {
 			typeStr : null,
 			name : v.name,
 		};
-		if( v.opt == "on" ) c.opt = true;
+		if( v.req != "on" ) c.opt = true;
 		
 		if( refColumn != null ) {
 			var err = super.updateColumn(sheet, refColumn, c);
