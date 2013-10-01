@@ -680,6 +680,11 @@ Model.prototype = {
 		case 9:
 			var t1 = t[2];
 			return this.parseTypeVal(this.tmap.get(t1),val);
+		case 6:
+			var t1 = t[2];
+			var r = this.smap.get(t1).index.get(val);
+			if(r == null) throw val + " is not a known " + t1 + " id";
+			return r.id;
 		default:
 		}
 		throw "'" + val + "' should be " + this.typeStr(t);

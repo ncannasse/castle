@@ -514,6 +514,10 @@ class Model {
 				return f;
 		case TCustom(t):
 			return parseTypeVal(tmap.get(t), val);
+		case TRef(t):
+			var r = smap.get(t).index.get(val);
+			if( r == null ) throw val + " is not a known " + t + " id";
+			return r.id;
 		default:
 		}
 		throw "'" + val + "' should be "+typeStr(t);
