@@ -2396,7 +2396,7 @@ Main.prototype = $extend(Model.prototype,{
 					++_g11;
 					new js.JQuery("<option>").attr("value","" + l.id).attr(val == l.id?"selected":"_sel","selected").text(l.disp).appendTo(s1);
 				}
-				if(c.opt || val == null) new js.JQuery("<option>").attr("value","").text("--- None ---").prependTo(s1);
+				if(c.opt || val == null || val == "") new js.JQuery("<option>").attr("value","").text("--- None ---").prependTo(s1);
 				v.append(s1);
 				s1.change(function(e) {
 					val = s1.val();

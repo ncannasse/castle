@@ -446,7 +446,7 @@ class Main extends Model {
 			var s = J("<select>");
 			for( l in sdat.all )
 				J("<option>").attr("value", "" + l.id).attr(val == l.id ? "selected" : "_sel", "selected").text(l.disp).appendTo(s);
-			if( c.opt || val == null )
+			if( c.opt || val == null || val == "" )
 				J("<option>").attr("value", "").text("--- None ---").prependTo(s);
 			v.append(s);
 			s.change(function(e) {
