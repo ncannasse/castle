@@ -693,7 +693,7 @@ class Main extends Model {
 			typesStr = tl.join("\n\n");
 		}
 		var content = J("#content");
-		content.html("<div class='tedit'><input class='button' type='submit' name='apply' value='Apply'/> <input class='button' type='submit' value='Cancel'/><textarea></textarea></div>");
+		content.html(J("#editTypes").html());
 		var text = content.find("textarea");
 		var apply = J(content.find("input.button")[0]);
 		var cancel = J(content.find("input.button")[1]);
@@ -843,6 +843,10 @@ class Main extends Model {
 		save();
 		if( index != null )
 			selectLine(sheet, index + 1);
+	}
+	
+	function insertLine() {
+		newLine(curSheet);
 	}
 		
 	function createSheet( name : String ) {
@@ -1038,7 +1042,7 @@ class Main extends Model {
 			i.click();
 		};
 		msave.click = function() {
-			var i = J("<input>").attr("type", "file").attr("nwsaveas","new.cas").css("display","none").change(function(e) {
+			var i = J("<input>").attr("type", "file").attr("nwsaveas","new.cdb").css("display","none").change(function(e) {
 				var j = JTHIS;
 				prefs.curFile = j.val();
 				save();

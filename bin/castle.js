@@ -1495,7 +1495,7 @@ Main.prototype = $extend(Model.prototype,{
 			i.click();
 		};
 		msave.click = function() {
-			var i = new js.JQuery("<input>").attr("type","file").attr("nwsaveas","new.cas").css("display","none").change(function(e) {
+			var i = new js.JQuery("<input>").attr("type","file").attr("nwsaveas","new.cdb").css("display","none").change(function(e) {
 				var j = $(this);
 				_g.prefs.curFile = j.val();
 				_g.save();
@@ -1796,6 +1796,9 @@ Main.prototype = $extend(Model.prototype,{
 		this.initContent();
 		this.save();
 	}
+	,insertLine: function() {
+		this.newLine(this.curSheet);
+	}
 	,newLine: function(sheet,index) {
 		Model.prototype.newLine.call(this,sheet,index);
 		this.refresh();
@@ -1875,7 +1878,7 @@ Main.prototype = $extend(Model.prototype,{
 			this.typesStr = tl.join("\n\n");
 		}
 		var content = new js.JQuery("#content");
-		content.html("<div class='tedit'><input class='button' type='submit' name='apply' value='Apply'/> <input class='button' type='submit' value='Cancel'/><textarea></textarea></div>");
+		content.html(new js.JQuery("#editTypes").html());
 		var text = content.find("textarea");
 		var apply;
 		var html = content.find("input.button")[0];
