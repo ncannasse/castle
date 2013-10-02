@@ -342,6 +342,12 @@ class Model {
 			}
 			old.opt = c.opt;
 		}
+		
+		if( c.display == null )
+			Reflect.deleteField(old,"display");
+		else
+			old.display = c.display;
+			
 		makeSheet(sheet);
 		return null;
 	}

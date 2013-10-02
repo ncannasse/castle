@@ -49,6 +49,12 @@
 		<div id="col_options">
 			<div class="values"><span>Possible Values</span> <input type="text" name="values" name="vals"/></div>
 			<div class="sheet"><span>Sheet</span> <select name="sheet"></select> </div>
+			<div class="disp"><span>Display</span>
+				<select name="display">
+				<option value="0">Default</option>
+				<option value="1">Percentage</option>
+				</select>
+			</div>
 			<div class="custom"><span>Type</span> <a href="javascript:_.newType()" class="tcreate">[create]</a> <a href="#" onclick="_.newType($(this).parents('form').find('[name=ctype]').val())" class="tedit">[edit]</a></span> <select name="ctype"></select> </div>
 			<div class="opt">Required <input type="checkbox" name="req"/></div>
 		</div>

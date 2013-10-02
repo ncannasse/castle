@@ -80,11 +80,14 @@ div.modal form.edit input.create {
 div.modal form.create input.edit {
 	display : none;
 }
-div.modal #col_options .values, div.modal #col_options .sheet, div.modal #col_options .custom {
+div.modal #col_options .values, div.modal #col_options .sheet, div.modal #col_options .custom, div.modal #col_options .disp {
 	display : none;
 }
 div.modal #col_options a.tedit {
 	display : none;
+}
+div.modal #col_options.t_int .disp, div.modal #col_options.t_float .disp {
+	display : block;
 }
 div.modal #col_options.t_edit a.tedit {
 	display : inline;
@@ -157,6 +160,9 @@ div#menu ul.sheets li.active {
 	color : #252596;
 	background-color : #E0E0FF;
 }
+.castle {
+	padding-bottom : 300px;
+}
 .castle .tedit {
 	height : 100%;
 }
@@ -191,6 +197,7 @@ div#menu ul.sheets li.active {
 	min-width : 20px;
 	width : 20px;
 	text-align : center;
+	cursor : pointer;
 }
 .castle tr.separator {
 	background-color : #CCC;
@@ -200,9 +207,22 @@ div#menu ul.sheets li.active {
 	background-color : #CCC;
 	border-bottom : 0px;
 }
+.castle tr.list tr.head {
+	color : #fff;
+	background-color : #777;
+	font-weight : normal;
+	height : 8px;
+}
+.castle tr.list tr {
+	background-color : #EEE;
+	border-color : #E0E0E0;
+}
+.castle tr.list input, .castle tr.list select {
+	background-color : #EEE;
+}
 .castle tr.list>td {
 	padding : 0;
-	padding-bottom : 2px;
+	padding-bottom : 5px;
 }
 .castle tr.head {
 	font-weight : bold;
@@ -240,7 +260,7 @@ div#menu ul.sheets li.active {
 	padding-left : 5px;
 }
 .castle tr {
-	border-bottom : 1px solid #F8F8F8;
+	border-bottom : 1px solid #F0F0F0;
 }
 .castle td.edit {
 	padding : 0px;

@@ -79,6 +79,10 @@ class Main extends Model {
 				initContent();
 				save(false);
 			}
+		case 9 if( e.shiftKey): // Shift+TAB
+			var sheets = data.sheets.filter(function(s) return !s.props.hide);
+			var s = sheets[(Lambda.indexOf(sheets, viewSheet) + 1) % sheets.length];
+			if( s != null ) selectSheet(s);
 		default:
 		}
 	}
@@ -146,7 +150,12 @@ class Main extends Model {
 		}
 		return switch( c.type ) {
 		case TInt, TFloat:
-			v + "";
+			switch( c.display ) {
+			case Percent:
+				(v * 100) + "%";
+			default:
+				v + "";
+			}
 		case TId:
 			v == "" ? '<span class="error">#MISSING</span>' : (smap.get(sheet.name).index.get(v).obj == obj ? v : '<span class="error">#DUP($v)</span>');
 		case TString:
@@ -407,6 +416,7 @@ class Main extends Model {
 			default:
 			}
 			i.focus();
+			i.select();
 		case TEnum(values):
 			v.empty();
 			var s = J("<select>");
@@ -524,10 +534,16 @@ class Main extends Model {
 		}
 		
 		var todo = [];
+		var inTodo = false;
 		var cols = J("<tr>").addClass("head");
 		var types = [for( t in Type.getEnumConstructs(ColumnType) ) t.substr(1).toLowerCase()];
 		
-		J("<td>").addClass("start").appendTo(cols);
+		J("<td>").addClass("start").appendTo(cols).click(function(_) {
+			if( sheet.props.hide )
+				content.change();
+			else
+				J("tr.list table").change();
+		});
 		
 		content.attr("sheet", getPath(sheet));
 		content.unbind("click");
@@ -612,7 +628,10 @@ class Main extends Model {
 						next = J("<tr>").addClass("list").data("name", c.name);
 						J("<td>").appendTo(next);
 						var cell = J("<td>").attr("colspan", "" + (sheet.columns.length)).appendTo(next);
-						var content = J("<table>").appendTo(cell);
+						var div = J("<div>").appendTo(cell);
+						if( !inTodo )
+							div.hide();
+						var content = J("<table>").appendTo(div);
 						var psheet = getPseudoSheet(sheet, c);
 						if( val == null ) {
 							val = [];
@@ -635,14 +654,15 @@ class Main extends Model {
 							if( c.opt && val.length == 0 ) {
 								val = null;
 								Reflect.deleteField(obj, c.name);
-							} else
-								Reflect.setField(obj, c.name, val);
+							}
 							html = valueHtml(c, val, sheet, obj);
 							v.html(html);
-							next.remove();
+							div.slideUp(100, function() next.remove());
 							openedList.remove(key);
 							e.stopPropagation();
 						});
+						if( !inTodo )
+							div.slideDown(100);
 						e.stopPropagation();
 					});
 					if( openedList.get(key) )
@@ -663,7 +683,10 @@ class Main extends Model {
 				snext++;
 			}
 		}
+		
+		inTodo = true;
 		for( t in todo ) t();
+		inTodo = false;
 	}
 	
 	function selectSheet( s : Sheet ) {
@@ -824,6 +847,7 @@ class Main extends Model {
 			else
 				form.find("[name=req]").attr("checked", "");
 			form.find("[name=ref]").val(ref.name);
+			form.find("[name=display]").val(ref.display == null ? "0" : Std.string(ref.display));
 			switch( ref.type ) {
 			case TEnum(values):
 				form.find("[name=values]").val(values.join(","));
@@ -877,7 +901,7 @@ class Main extends Model {
 			props : {
 			},
 		};
-		prefs.curSheet = data.sheets.length - 1;
+		prefs.curSheet = data.sheets.length;
 		data.sheets.push(s);
 		initContent();
 		save();
@@ -942,6 +966,7 @@ class Main extends Model {
 			name : v.name,
 		};
 		if( v.req != "on" ) c.opt = true;
+		if( v.display != "0" ) c.display = cast Std.parseInt(v.display);
 		
 		if( refColumn != null ) {
 			var err = super.updateColumn(sheet, refColumn, c);

@@ -82,11 +82,17 @@ div.modal {
 		display : none;
 	}
 	#col_options {
-		.values, .sheet, .custom  {
+		.values, .sheet, .custom, .disp  {
 			display : none;
 		}
 		a.tedit {
 			display : none;
+		}
+	}
+	
+	#col_options.t_int, #col_options.t_float {
+		.disp {
+			display : block;
 		}
 	}
 	
@@ -165,6 +171,8 @@ div#menu {
 
 .castle {
 	
+	padding-bottom : 300px;
+	
 	.tedit {
 		height : 100%;
 		textarea {
@@ -202,6 +210,7 @@ div#menu {
 		min-width : 20px;
 		width : 20px;
 		text-align : center;
+		cursor : pointer;
 	}
 	
 	
@@ -213,10 +222,23 @@ div#menu {
 	tr.list {
 		background-color : #CCC;
 		border-bottom : 0px;
+		tr.head {
+			color : #fff;
+			background-color : #777;
+			font-weight : normal;
+			height : 8px;
+		}
+		tr {
+			background-color : #EEE;
+			border-color : #E0E0E0;
+		}
+		input, select {
+			background-color : #EEE;
+		}
 	}
 	tr.list > td {
 		padding : 0;
-		padding-bottom: 2px;
+		padding-bottom: 5px;
 	}
 	
 	tr.head {
@@ -260,7 +282,7 @@ div#menu {
 	}
 	
 	tr {
-		border-bottom : 1px solid #F8F8F8;
+		border-bottom : 1px solid #F0F0F0;
 	}
 	
 	td.edit {

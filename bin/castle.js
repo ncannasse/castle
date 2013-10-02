@@ -971,6 +971,7 @@ Model.prototype = {
 			}
 			old.opt = c.opt;
 		}
+		if(c.display == null) Reflect.deleteField(old,"display"); else old.display = c.display;
 		this.makeSheet(sheet);
 		return null;
 	}
@@ -1704,6 +1705,7 @@ Main.prototype = $extend(Model.prototype,{
 		}
 		var c = { type : t, typeStr : null, name : v.name};
 		if(v.req != "on") c.opt = true;
+		if(v.display != "0") c.display = Std.parseInt(v.display);
 		if(refColumn != null) {
 			var err = Model.prototype.updateColumn.call(this,sheet,refColumn,c);
 			if(err != null) {
@@ -1746,7 +1748,7 @@ Main.prototype = $extend(Model.prototype,{
 		}
 		new js.JQuery("#newsheet").hide();
 		var s = { name : name, columns : [], lines : [], separators : [], props : { }};
-		this.prefs.curSheet = this.data.sheets.length - 1;
+		this.prefs.curSheet = this.data.sheets.length;
 		this.data.sheets.push(s);
 		this.initContent();
 		this.save();
@@ -1793,6 +1795,7 @@ Main.prototype = $extend(Model.prototype,{
 			form.find("[name=type]").val(HxOverrides.substr(ref.type[0],1,null).toLowerCase()).change();
 			if(ref.opt) form.find("[name=req]").removeAttr("checked"); else form.find("[name=req]").attr("checked","");
 			form.find("[name=ref]").val(ref.name);
+			form.find("[name=display]").val(ref.display == null?"0":Std.string(ref.display));
 			{
 				var _g = ref.type;
 				switch(_g[1]) {
@@ -1987,6 +1990,7 @@ Main.prototype = $extend(Model.prototype,{
 			return;
 		}
 		var todo = [];
+		var inTodo = false;
 		var cols = new js.JQuery("<tr>").addClass("head");
 		var types;
 		var _g = [];
@@ -1998,7 +2002,9 @@ Main.prototype = $extend(Model.prototype,{
 			_g.push(HxOverrides.substr(t,1,null).toLowerCase());
 		}
 		types = _g;
-		new js.JQuery("<td>").addClass("start").appendTo(cols);
+		new js.JQuery("<td>").addClass("start").appendTo(cols).click(function(_) {
+			if(sheet.props.hide) content.change(); else new js.JQuery("tr.list table").change();
+		});
 		content.attr("sheet",this.getPath(sheet));
 		content.unbind("click");
 		content.click(function(e) {
@@ -2148,7 +2154,9 @@ Main.prototype = $extend(Model.prototype,{
 							next = new js.JQuery("<tr>").addClass("list").data("name",c[0].name);
 							new js.JQuery("<td>").appendTo(next);
 							var cell = new js.JQuery("<td>").attr("colspan","" + sheet.columns.length).appendTo(next);
-							var content1 = new js.JQuery("<table>").appendTo(cell);
+							var div = new js.JQuery("<div>").appendTo(cell);
+							if(!inTodo) div.hide();
+							var content1 = new js.JQuery("<table>").appendTo(div);
 							var psheet = _g1.smap.get(sheet.name + "@" + c[0].name).s;
 							if(val[0] == null) {
 								val[0] = [];
@@ -2165,14 +2173,19 @@ Main.prototype = $extend(Model.prototype,{
 									if(c[0].opt && val[0].length == 0) {
 										val[0] = null;
 										Reflect.deleteField(obj[0],c[0].name);
-									} else obj[0][c[0].name] = val[0];
+									}
 									html[0] = _g1.valueHtml(c[0],val[0],sheet,obj[0]);
 									v1[0].html(html[0]);
-									next.remove();
+									div.slideUp(100,(function() {
+										return function() {
+											next.remove();
+										};
+									})());
 									_g1.openedList.remove(key[0]);
 									e1.stopPropagation();
 								};
 							})(key,html,v1,val,obj,c));
+							if(!inTodo) div.slideDown(100);
 							e.stopPropagation();
 						};
 					})(key,html,l1,v1,val,obj,index,c));
@@ -2204,12 +2217,14 @@ Main.prototype = $extend(Model.prototype,{
 				snext++;
 			}
 		}
+		inTodo = true;
 		var _g2 = 0;
 		while(_g2 < todo.length) {
 			var t = todo[_g2];
 			++_g2;
 			t();
 		}
+		inTodo = false;
 	}
 	,refresh: function() {
 		var t = new js.JQuery("<table>");
@@ -2349,6 +2364,7 @@ Main.prototype = $extend(Model.prototype,{
 					}
 				}
 				i.focus();
+				i.select();
 				break;
 			case 5:
 				var values = _g1[2];
@@ -2563,7 +2579,14 @@ Main.prototype = $extend(Model.prototype,{
 			var _g = c.type;
 			switch(_g[1]) {
 			case 3:case 4:
-				return Std.string(v) + "";
+				var _g1 = c.display;
+				switch(_g1) {
+				case 1:
+					return v * 100 + "%";
+				default:
+					return Std.string(v) + "";
+				}
+				break;
 			case 0:
 				if(v == "") return "<span class=\"error\">#MISSING</span>"; else if(((function($this) {
 					var $r;
@@ -2800,6 +2823,16 @@ Main.prototype = $extend(Model.prototype,{
 				this.quickLoad(this.curSavedData);
 				this.initContent();
 				this.save(false);
+			}
+			break;
+		case 9:
+			if(e.shiftKey) {
+				var sheets = this.data.sheets.filter(function(s) {
+					return !s.props.hide;
+				});
+				var s = sheets[(Lambda.indexOf(sheets,this.viewSheet) + 1) % sheets.length];
+				if(s != null) this.selectSheet(s);
+			} else {
 			}
 			break;
 		default:
@@ -3052,6 +3085,10 @@ cdb.ColumnType.TList = ["TList",8];
 cdb.ColumnType.TList.toString = $estr;
 cdb.ColumnType.TList.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TCustom = function(name) { var $x = ["TCustom",9,name]; $x.__enum__ = cdb.ColumnType; $x.toString = $estr; return $x; }
+cdb._Data = {}
+cdb._Data.DisplayType_Impl_ = function() { }
+$hxClasses["cdb._Data.DisplayType_Impl_"] = cdb._Data.DisplayType_Impl_;
+cdb._Data.DisplayType_Impl_.__name__ = ["cdb","_Data","DisplayType_Impl_"];
 cdb.Parser = function() { }
 $hxClasses["cdb.Parser"] = cdb.Parser;
 cdb.Parser.__name__ = ["cdb","Parser"];
@@ -4646,6 +4683,17 @@ if(Array.prototype.map == null) Array.prototype.map = function(f) {
 	}
 	return a;
 };
+if(Array.prototype.filter == null) Array.prototype.filter = function(f) {
+	var a = [];
+	var _g1 = 0;
+	var _g = this.length;
+	while(_g1 < _g) {
+		var i = _g1++;
+		var e = this[i];
+		if(f(e)) a.push(e);
+	}
+	return a;
+};
 var q = window.jQuery;
 js.JQuery = q;
 q.fn.iterator = function() {
@@ -4676,6 +4724,8 @@ nodejs.webkit.$ui = require('nw.gui');
 nodejs.webkit.Menu = nodejs.webkit.$ui.Menu;
 nodejs.webkit.MenuItem = nodejs.webkit.$ui.MenuItem;
 nodejs.webkit.Window = nodejs.webkit.$ui.Window;
+cdb._Data.DisplayType_Impl_.Default = 0;
+cdb._Data.DisplayType_Impl_.Percent = 1;
 haxe.Serializer.USE_CACHE = false;
 haxe.Serializer.USE_ENUM_INDEX = false;
 haxe.Serializer.BASE64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789%:";
