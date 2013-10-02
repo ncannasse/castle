@@ -152,7 +152,7 @@ class Main extends Model {
 		case TInt, TFloat:
 			switch( c.display ) {
 			case Percent:
-				(v * 100) + "%";
+				(Math.round(v * 10000)/100) + "%";
 			default:
 				v + "";
 			}
@@ -225,8 +225,8 @@ class Main extends Model {
 		var nsep = new MenuItem( { label : "Separator", type : MenuItemType.checkbox } );
 		for( m in [nup, ndown, nins, ndel, nsep] )
 			n.append(m);
-		var hasSep = Lambda.has(sheet.separators, index);
-		nsep.checked = hasSep;
+		var sepIndex = Lambda.indexOf(sheet.separators, index);
+		nsep.checked = sepIndex >= 0;
 		nins.click = function() {
 			newLine(sheet, index);
 		};
@@ -242,11 +242,19 @@ class Main extends Model {
 			save();
 		};
 		nsep.click = function() {
-			if( hasSep )
-				sheet.separators.remove(index);
-			else {
-				sheet.separators.push(index);
-				sheet.separators.sort(Reflect.compare);
+			if( sepIndex >= 0 ) {
+				sheet.separators.splice(sepIndex, 1);
+				if( sheet.props.separatorTitles != null ) sheet.props.separatorTitles.splice(sepIndex, 1);
+			} else {
+				sepIndex = sheet.separators.length;
+				for( i in 0...sheet.separators.length )
+					if( sheet.separators[i] > index ) {
+						sepIndex = i;
+						break;
+					}
+				sheet.separators.insert(sepIndex, index);
+				if( sheet.props.separatorTitles != null && sheet.props.separatorTitles.length > sepIndex )
+					sheet.props.separatorTitles.insert(sepIndex, null);
 			}
 			refresh();
 			save();
@@ -338,18 +346,48 @@ class Main extends Model {
 				}
 			i.change(function(e) e.stopPropagation());
 			i.keydown(function(e:js.JQuery.JqEvent) {
+				function moveCell(dx, dy) {
+					i.blur();
+					var n;
+					if( dy == 0 ) {
+						if( dx > 0 ) {
+							n = v.next("td");
+							while( n.hasClass("t_bool") || n.hasClass("t_enum") || n.hasClass("t_ref") )
+								n = n.next("td");
+						} else {
+							n = v.prev("td");
+							while( n.hasClass("t_bool") || n.hasClass("t_enum") || n.hasClass("t_ref") )
+								n = n.prev("td");
+						}
+					} else {
+						var index = v.parent().children("td").index(cast v);
+						if( dy > 0 ) {
+							n = v.parent().next("tr");
+							while( n.hasClass("separator") || n.hasClass("head") )
+								n = n.next("tr");
+						} else {
+							n = v.parent().prev("tr");
+							while( n.hasClass("separator") || n.hasClass("head") )
+								n = n.prev("tr");
+						}
+						n = J(n.children("td")[index]);
+					}
+					n.click();
+					e.preventDefault();
+					
+				}
 				switch( e.keyCode ) {
 				case 27:
 					editDone();
 				case 13:
 					i.blur();
 				case 9:
-					i.blur();
-					var n = v.next("td");
-					while( n.hasClass("t_bool") || n.hasClass("t_enum") || n.hasClass("t_ref") )
-						n = n.next("td");
-					n.click();
-					e.preventDefault();
+					moveCell(e.shiftKey ? -1 : 1, 0);
+				case 38, 40: // up/down
+					moveCell(0, e.keyCode == 38 ? -1 : 1);
+				case 37, 39: // left/right
+					if( e.ctrlKey )
+						moveCell(e.keyCode == 37 ? -1 : 1, 0);
 				case 46: // delete
 					/* disable, not very friendly
 					var val2 = getDefault(c);
@@ -364,6 +402,7 @@ class Main extends Model {
 					html = getValue();
 					editDone();
 					*/
+				default:
 				}
 				e.stopPropagation();
 			});
@@ -679,7 +718,31 @@ class Main extends Model {
 		for( i in 0...lines.length ) {
 			content.append(lines[i]);
 			if( sheet.separators[snext] == i ) {
-				J("<tr>").addClass("separator").append('<td colspan="${sheet.columns.length+1}">').appendTo(content);
+				var sep = J("<tr>").addClass("separator").append('<td colspan="${sheet.columns.length+1}">').appendTo(content);
+				var content = sep.find("td");
+				var title = if( sheet.props.separatorTitles != null ) sheet.props.separatorTitles[snext] else null;
+				if( title != null ) content.text(title);
+				var pos = snext;
+				sep.dblclick(function(e) {
+					content.empty();
+					J("<input>").appendTo(content).focus().val(title == null ? "" : title).blur(function(_) {
+						title = JTHIS.val();
+						JTHIS.remove();
+						content.text(title);
+						var titles = sheet.props.separatorTitles;
+						if( titles == null ) titles = [];
+						while( titles.length < pos )
+							titles.push(null);
+						titles[pos] = title == "" ? null : title;
+						while( titles[titles.length - 1] == null && titles.length > 0 )
+							titles.pop();
+						if( titles.length == 0 ) titles = null;
+						sheet.props.separatorTitles = titles;
+						save();
+					}).keyup(function(e) {
+						if( e.keyCode == 13 ) JTHIS.blur();
+					});
+				});
 				snext++;
 			}
 		}
@@ -872,8 +935,10 @@ class Main extends Model {
 		super.newLine(sheet,index);
 		refresh();
 		save();
-		if( index != null )
+		if( index != null ) {
+			curSheet = sheet;
 			selectLine(sheet, index + 1);
+		}
 	}
 	
 	function insertLine() {

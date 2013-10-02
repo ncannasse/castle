@@ -217,6 +217,11 @@ div#menu {
 	tr.separator {
 		background-color : #CCC;
 		height : 10px;
+		td {
+			color : #444;
+			font-weight : bold;
+			padding-left : 20px;
+		}
 	}
 	
 	tr.list {

@@ -13,11 +13,15 @@ enum ColumnType {
 	TCustom( name : String );
 }
 
+#if macro
+typedef DisplayType = Int;
+#else
 @:fakeEnum
 abstract DisplayType(Int) {
 	var Default = 0;
 	var Percent = 1;
 }
+#end
 
 typedef Column = {
 	var name : String;
@@ -29,6 +33,7 @@ typedef Column = {
 
 typedef SheetProps = {
 	@:optional var displayColumn : Null<String>;
+	@:optional var separatorTitles : Array<String>;
 	@:optional var hide : Bool;
 }
 

@@ -203,6 +203,11 @@ div#menu ul.sheets li.active {
 	background-color : #CCC;
 	height : 10px;
 }
+.castle tr.separator td {
+	color : #444;
+	font-weight : bold;
+	padding-left : 20px;
+}
 .castle tr.list {
 	background-color : #CCC;
 	border-bottom : 0px;

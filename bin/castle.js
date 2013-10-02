@@ -115,14 +115,6 @@ Lambda.list = function(it) {
 	}
 	return l;
 }
-Lambda.has = function(it,elt) {
-	var $it0 = $iterator(it)();
-	while( $it0.hasNext() ) {
-		var x = $it0.next();
-		if(x == elt) return true;
-	}
-	return false;
-}
 Lambda.exists = function(it,f) {
 	var $it0 = $iterator(it)();
 	while( $it0.hasNext() ) {
@@ -812,10 +804,14 @@ Model.prototype = {
 						sdat.all.push(o);
 					}
 				}
+				sdat.all.sort($bind(this,this.sortById));
 				break;
 			}
 		}
 		this.smap.set(s.name,sdat);
+	}
+	,sortById: function(a,b) {
+		if(a.disp > b.disp) return 1; else return -1;
 	}
 	,initContent: function() {
 		this.smap = new haxe.ds.StringMap();
@@ -1067,7 +1063,7 @@ Model.prototype = {
 		case 4:
 			switch(t[1]) {
 			case 3:
-				conv = Std["int"];
+				conv = Std.int;
 				break;
 			case 1:
 				conv = Std.string;
@@ -1196,11 +1192,14 @@ Model.prototype = {
 			var i = _g1++;
 			var s = sheet.separators[i];
 			if(s >= index) {
-				if(prev == s - 1) toRemove = prev;
+				if(prev == s - 1) toRemove = i;
 				sheet.separators[i] = s - 1;
 			} else prev = s;
 		}
-		if(toRemove != null) HxOverrides.remove(sheet.separators,toRemove);
+		if(toRemove != null) {
+			sheet.separators.splice(toRemove,1);
+			if(sheet.props.separatorTitles != null) sheet.props.separatorTitles.splice(toRemove,1);
+		}
 	}
 	,moveLine: function(sheet,index,delta) {
 		if(delta < 0 && index > 0) {
@@ -1623,7 +1622,7 @@ Main.prototype = $extend(Model.prototype,{
 			var field = i.attr("name");
 			var value;
 			if(i.attr("type") == "checkbox") {
-				if(i["is"](":checked")) value = "on"; else value = null;
+				if(i.is(":checked")) value = "on"; else value = null;
 			} else value = i.val();
 			v[field] = value;
 		}
@@ -1760,7 +1759,10 @@ Main.prototype = $extend(Model.prototype,{
 		Model.prototype.newLine.call(this,sheet,index);
 		this.refresh();
 		this.save();
-		if(index != null) this.selectLine(sheet,index + 1);
+		if(index != null) {
+			this.set_curSheet(sheet);
+			this.selectLine(sheet,index + 1);
+		}
 	}
 	,newColumn: function(sheetName,ref) {
 		var form = new js.JQuery("#newcol form");
@@ -2213,7 +2215,36 @@ Main.prototype = $extend(Model.prototype,{
 			var i = _g3++;
 			content.append(lines[i]);
 			if(sheet.separators[snext] == i) {
-				new js.JQuery("<tr>").addClass("separator").append("<td colspan=\"" + (sheet.columns.length + 1) + "\">").appendTo(content);
+				var sep = new js.JQuery("<tr>").addClass("separator").append("<td colspan=\"" + (sheet.columns.length + 1) + "\">").appendTo(content);
+				var content2 = [sep.find("td")];
+				var title = [];
+				if(sheet.props.separatorTitles != null) title[0] = sheet.props.separatorTitles[snext]; else title[0] = null;
+				if(title[0] != null) content2[0].text(title[0]);
+				var pos = [snext];
+				sep.dblclick((function(pos,title,content2) {
+					return function(e) {
+						content2[0].empty();
+						new js.JQuery("<input>").appendTo(content2[0]).focus().val(title[0] == null?"":title[0]).blur((function(pos,title,content2) {
+							return function(_) {
+								title[0] = $(this).val();
+								$(this).remove();
+								content2[0].text(title[0]);
+								var titles = sheet.props.separatorTitles;
+								if(titles == null) titles = [];
+								while(titles.length < pos[0]) titles.push(null);
+								if(title[0] == "") titles[pos[0]] = null; else titles[pos[0]] = title[0];
+								while(titles[titles.length - 1] == null && titles.length > 0) titles.pop();
+								if(titles.length == 0) titles = null;
+								sheet.props.separatorTitles = titles;
+								_g1.save();
+							};
+						})(pos,title,content2)).keyup((function() {
+							return function(e1) {
+								if(e1.keyCode == 13) $(this).blur();
+							};
+						})());
+					};
+				})(pos,title,content2));
 				snext++;
 			}
 		}
@@ -2275,8 +2306,34 @@ Main.prototype = $extend(Model.prototype,{
 				i.change(function(e) {
 					e.stopPropagation();
 				});
-				i.keydown(function(e) {
-					var _g2 = e.keyCode;
+				i.keydown(function(e1) {
+					var moveCell = function(dx,dy) {
+						i.blur();
+						var n;
+						if(dy == 0) {
+							if(dx > 0) {
+								n = v.next("td");
+								while(n.hasClass("t_bool") || n.hasClass("t_enum") || n.hasClass("t_ref")) n = n.next("td");
+							} else {
+								n = v.prev("td");
+								while(n.hasClass("t_bool") || n.hasClass("t_enum") || n.hasClass("t_ref")) n = n.prev("td");
+							}
+						} else {
+							var index1 = v.parent().children("td").index(v);
+							if(dy > 0) {
+								n = v.parent().next("tr");
+								while(n.hasClass("separator") || n.hasClass("head")) n = n.next("tr");
+							} else {
+								n = v.parent().prev("tr");
+								while(n.hasClass("separator") || n.hasClass("head")) n = n.prev("tr");
+							}
+							var html1 = n.children("td")[index1];
+							n = new js.JQuery(html1);
+						}
+						n.click();
+						e1.preventDefault();
+					};
+					var _g2 = e1.keyCode;
 					switch(_g2) {
 					case 27:
 						editDone();
@@ -2285,16 +2342,19 @@ Main.prototype = $extend(Model.prototype,{
 						i.blur();
 						break;
 					case 9:
-						i.blur();
-						var n = v.next("td");
-						while(n.hasClass("t_bool") || n.hasClass("t_enum") || n.hasClass("t_ref")) n = n.next("td");
-						n.click();
-						e.preventDefault();
+						moveCell(e1.shiftKey?-1:1,0);
+						break;
+					case 38:case 40:
+						moveCell(0,e1.keyCode == 38?-1:1);
+						break;
+					case 37:case 39:
+						if(e1.ctrlKey) moveCell(e1.keyCode == 37?-1:1,0);
 						break;
 					case 46:
 						break;
+					default:
 					}
-					e.stopPropagation();
+					e1.stopPropagation();
 				});
 				i.blur(function(_) {
 					var nv = i.val();
@@ -2543,8 +2603,8 @@ Main.prototype = $extend(Model.prototype,{
 			++_g1;
 			n.append(m);
 		}
-		var hasSep = Lambda.has(sheet.separators,index);
-		nsep.checked = hasSep;
+		var sepIndex = Lambda.indexOf(sheet.separators,index);
+		nsep.checked = sepIndex >= 0;
 		nins.click = function() {
 			_g.newLine(sheet,index);
 		};
@@ -2560,9 +2620,22 @@ Main.prototype = $extend(Model.prototype,{
 			_g.save();
 		};
 		nsep.click = function() {
-			if(hasSep) HxOverrides.remove(sheet.separators,index); else {
-				sheet.separators.push(index);
-				sheet.separators.sort(Reflect.compare);
+			if(sepIndex >= 0) {
+				sheet.separators.splice(sepIndex,1);
+				if(sheet.props.separatorTitles != null) sheet.props.separatorTitles.splice(sepIndex,1);
+			} else {
+				sepIndex = sheet.separators.length;
+				var _g1 = 0;
+				var _g2 = sheet.separators.length;
+				while(_g1 < _g2) {
+					var i = _g1++;
+					if(sheet.separators[i] > index) {
+						sepIndex = i;
+						break;
+					}
+				}
+				sheet.separators.splice(sepIndex,0,index);
+				if(sheet.props.separatorTitles != null && sheet.props.separatorTitles.length > sepIndex) sheet.props.separatorTitles.splice(sepIndex,0,null);
 			}
 			_g.refresh();
 			_g.save();
@@ -2582,7 +2655,7 @@ Main.prototype = $extend(Model.prototype,{
 				var _g1 = c.display;
 				switch(_g1) {
 				case 1:
-					return v * 100 + "%";
+					return Math.round(v * 10000) / 100 + "%";
 				default:
 					return Std.string(v) + "";
 				}
@@ -2873,9 +2946,6 @@ Reflect.fields = function(o) {
 Reflect.isFunction = function(f) {
 	return typeof(f) == "function" && !(f.__name__ || f.__ename__);
 }
-Reflect.compare = function(a,b) {
-	if(a == b) return 0; else if(a > b) return 1; else return -1;
-}
 Reflect.deleteField = function(o,field) {
 	if(!Reflect.hasField(o,field)) return false;
 	delete(o[field]);
@@ -2887,7 +2957,7 @@ Std.__name__ = ["Std"];
 Std.string = function(s) {
 	return js.Boot.__string_rec(s,"");
 }
-Std["int"] = function(x) {
+Std.int = function(x) {
 	return x | 0;
 }
 Std.parseInt = function(x) {
@@ -4271,8 +4341,8 @@ haxe.io.BytesBuffer.prototype = {
 			this.b.push(b2[i]);
 		}
 	}
-	,addByte: function($byte) {
-		this.b.push($byte);
+	,addByte: function(byte) {
+		this.b.push(byte);
 	}
 	,__class__: haxe.io.BytesBuffer
 }
@@ -4711,7 +4781,7 @@ js.Node.clearInterval = clearInterval;
 js.Node.global = global;
 js.Node.process = process;
 js.Node.require = require;
-js.Node.console = console;
+js.Node["console"] = console;
 js.Node.module = module;
 js.Node.stringify = JSON.stringify;
 js.Node.parse = JSON.parse;

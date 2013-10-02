@@ -177,14 +177,16 @@ class Model {
 		for( i in 0...sheet.separators.length ) {
 			var s = sheet.separators[i];
 			if( s >= index ) {
-				if( prev == s - 1 ) toRemove = prev;
+				if( prev == s - 1 ) toRemove = i;
 				sheet.separators[i] = s - 1;
 			} else
 				prev = s;
 		}
 		// prevent duplicates
-		if( toRemove != null )
-			sheet.separators.remove(toRemove);
+		if( toRemove != null ) {
+			sheet.separators.splice(toRemove, 1);
+			if( sheet.props.separatorTitles != null ) sheet.props.separatorTitles.splice(toRemove, 1);
+		}
 	}
 	
 	function deleteColumn( sheet : Sheet, ?cname : String ) {
@@ -386,6 +388,10 @@ class Model {
 			tmap.set(t.name, t);
 	}
 	
+	function sortById( a : Index, b : Index ) {
+		return if( a.disp > b.disp ) 1 else -1;
+	}
+	
 	function makeSheet( s : Sheet ) {
 		var sdat = {
 			s : s,
@@ -410,6 +416,7 @@ class Model {
 						sdat.all.push(o);
 					}
 				}
+				sdat.all.sort(sortById);
 				break;
 			}
 		this.smap.set(s.name, sdat);
