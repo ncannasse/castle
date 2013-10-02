@@ -1,0 +1,602 @@
+{
+	"customTypes": [
+		{
+			"name": "Effect2",
+			"cases": [
+				{
+					"name": "Poison",
+					"args": [
+						{
+							"name": "time",
+							"typeStr": "4"
+						},
+						{
+							"name": "power",
+							"typeStr": "4"
+						}
+					]
+				},
+				{
+					"name": "Check",
+					"args": [
+						{
+							"name": "a",
+							"typeStr": "9:Super2"
+						}
+					]
+				},
+				{
+					"name": "Monster",
+					"args": [
+						{
+							"name": "m",
+							"typeStr": "6:monsters"
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Super",
+			"cases": [
+				{
+					"name": "Fx",
+					"args": [
+						{
+							"name": "e",
+							"typeStr": "9:Effect2"
+						}
+					]
+				},
+				{
+					"name": "Fx2",
+					"args": [
+						{
+							"name": "e1",
+							"typeStr": "9:Effect2"
+						},
+						{
+							"name": "e2",
+							"typeStr": "9:Effect2"
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Super2",
+			"cases": [
+				{
+					"name": "A",
+					"args": []
+				},
+				{
+					"name": "B",
+					"args": []
+				},
+				{
+					"name": "C",
+					"args": [
+						{
+							"name": "x",
+							"typeStr": "3"
+						}
+					]
+				}
+			]
+		}
+	],
+	"sheets": [
+		{
+			"name": "items",
+			"columns": [
+				{
+					"typeStr": "0",
+					"opt": false,
+					"name": "id"
+				},
+				{
+					"typeStr": "1",
+					"opt": true,
+					"name": "name"
+				},
+				{
+					"typeStr": "1",
+					"opt": true,
+					"name": "desc"
+				},
+				{
+					"typeStr": "7",
+					"opt": true,
+					"name": "icon"
+				},
+				{
+					"typeStr": "2",
+					"opt": true,
+					"name": "Triple"
+				},
+				{
+					"typeStr": "6:items",
+					"opt": true,
+					"name": "alt"
+				},
+				{
+					"typeStr": "9:Effect2",
+					"opt": true,
+					"name": "fx"
+				},
+				{
+					"typeStr": "9:Super",
+					"name": "test",
+					"opt": true
+				}
+			],
+			"separators": [
+				1
+			],
+			"lines": [
+				{
+					"id": "sword",
+					"name": "Sword 3",
+					"desc": "Sword of Light Kitu",
+					"alt": "sword",
+					"Triple": true,
+					"fx": [
+						0,
+						0,
+						2
+					],
+					"test": [
+						0,
+						[
+							1,
+							[
+								2,
+								55
+							]
+						]
+					]
+				},
+				{
+					"id": "healp",
+					"name": "Heal Potion",
+					"desc": "Gain +20 PV",
+					"alt": "sword",
+					"fx": [
+						1,
+						[
+							0
+						]
+					]
+				},
+				{
+					"id": "herb",
+					"name": "Raw grass",
+					"desc": "Cows like it",
+					"fx": [
+						2,
+						"wolf"
+					]
+				},
+				{
+					"id": "ix1"
+				},
+				{
+					"id": "ix2"
+				},
+				{
+					"id": "izez5"
+				},
+				{
+					"id": "ezaeza5"
+				},
+				{
+					"id": "erez8"
+				},
+				{
+					"id": "ex1561"
+				},
+				{
+					"id": "ezezx6"
+				},
+				{
+					"id": "er451"
+				},
+				{
+					"id": "ex610"
+				},
+				{
+					"id": "ssword"
+				},
+				{
+					"id": "something"
+				},
+				{
+					"id": ""
+				},
+				{
+					"id": ""
+				}
+			],
+			"props": {
+				"displayColumn": "name"
+			}
+		},
+		{
+			"name": "monsters",
+			"columns": [
+				{
+					"typeStr": "0",
+					"opt": false,
+					"name": "id",
+					"size": null
+				},
+				{
+					"typeStr": "1",
+					"opt": false,
+					"name": "name",
+					"size": null
+				},
+				{
+					"typeStr": "6:items",
+					"opt": true,
+					"name": "drop",
+					"size": null
+				},
+				{
+					"typeStr": "4",
+					"opt": true,
+					"name": "dropProba",
+					"size": null,
+					"display": 1
+				},
+				{
+					"typeStr": "8",
+					"opt": true,
+					"name": "skills",
+					"size": null
+				},
+				{
+					"typeStr": "8",
+					"opt": false,
+					"name": "drops",
+					"size": null
+				}
+			],
+			"separators": [
+				1,
+				3,
+				4,
+				6,
+				7
+			],
+			"lines": [
+				{
+					"id": "wolf",
+					"name": "Big DireWolf",
+					"skills": [
+						{
+							"name": "a",
+							"proba": 1.51,
+							"sub": [
+								{
+									"subX": 10,
+									"subY": -200
+								}
+							]
+						},
+						{
+							"name": "g",
+							"proba": 2.5,
+							"sub": [
+								{
+									"subX": 45645,
+									"subY": 0
+								},
+								{
+									"subX": 0,
+									"subY": 0
+								},
+								{
+									"subX": 0,
+									"subY": 0
+								},
+								{
+									"subX": 0,
+									"subY": 0
+								}
+							]
+						},
+						{
+							"name": "",
+							"proba": 0,
+							"sub": []
+						},
+						{
+							"name": "c",
+							"proba": 0.8,
+							"sub": []
+						}
+					],
+					"drops": [
+						{
+							"test": "herb"
+						},
+						{
+							"test": "ezaeza5"
+						},
+						{
+							"test": "ssword"
+						},
+						{
+							"test": "ex1561"
+						},
+						{
+							"test": "healp"
+						},
+						{
+							"test": "herb"
+						},
+						{
+							"test": "something"
+						}
+					],
+					"dropProba": 0.07
+				},
+				{
+					"id": "",
+					"name": "",
+					"drops": []
+				},
+				{
+					"id": "",
+					"name": "",
+					"drops": []
+				},
+				{
+					"id": "",
+					"name": "",
+					"drops": []
+				},
+				{
+					"id": "zaza",
+					"name": "",
+					"skills": [
+						{
+							"name": "e",
+							"proba": 0,
+							"sub": []
+						},
+						{
+							"name": "f",
+							"proba": 0,
+							"sub": []
+						},
+						{
+							"name": "g",
+							"proba": 0,
+							"sub": []
+						},
+						{
+							"name": "",
+							"proba": 0,
+							"sub": []
+						},
+						{
+							"name": "i",
+							"proba": 0,
+							"sub": []
+						},
+						{
+							"name": "h",
+							"proba": 0,
+							"sub": []
+						}
+					],
+					"drops": []
+				},
+				{
+					"id": "",
+					"name": "",
+					"drops": []
+				},
+				{
+					"id": "",
+					"name": "",
+					"drops": []
+				},
+				{
+					"id": "",
+					"name": "",
+					"drops": []
+				},
+				{
+					"id": "",
+					"name": "",
+					"drops": []
+				}
+			],
+			"props": {
+				"displayColumn": null,
+				"separatorTitles": [
+					null,
+					null,
+					"Categorie XX"
+				]
+			}
+		},
+		{
+			"name": "resource",
+			"columns": [
+				{
+					"typeStr": "5:Plain,Forest,Mountain",
+					"opt": false,
+					"name": "biome",
+					"size": null
+				},
+				{
+					"typeStr": "4",
+					"opt": false,
+					"name": "rarity",
+					"size": null
+				},
+				{
+					"typeStr": "3",
+					"opt": true,
+					"name": "subBiome",
+					"size": null
+				},
+				{
+					"typeStr": "5:Fire,Wind,Storm",
+					"opt": true,
+					"name": "season",
+					"size": null
+				}
+			],
+			"separators": [],
+			"lines": [
+				{
+					"biome": 0,
+					"subBiome": 7,
+					"rarity": 0.7,
+					"season": 0
+				},
+				{
+					"biome": 0,
+					"rarity": 0,
+					"season": 2
+				},
+				{
+					"biome": 0,
+					"rarity": 0
+				},
+				{
+					"biome": 0,
+					"rarity": 0,
+					"season": 2
+				},
+				{
+					"biome": 0,
+					"rarity": 0,
+					"season": 0
+				},
+				{
+					"biome": 0,
+					"rarity": 0,
+					"season": 0
+				}
+			],
+			"props": {
+				"displayColumn": null
+			}
+		},
+		{
+			"name": "monsters@skills",
+			"props": {
+				"hide": true
+			},
+			"separators": [],
+			"lines": [
+				{
+					"name": "a",
+					"proba": 1.5,
+					"sub": [
+						{
+							"subX": 10,
+							"subY": -200
+						}
+					]
+				},
+				{
+					"name": "b",
+					"proba": 2.5,
+					"sub": []
+				},
+				{
+					"name": "c",
+					"proba": 0.8,
+					"sub": []
+				}
+			],
+			"columns": [
+				{
+					"typeStr": "0",
+					"opt": false,
+					"name": "name",
+					"size": null
+				},
+				{
+					"typeStr": "4",
+					"opt": false,
+					"name": "proba",
+					"size": null
+				},
+				{
+					"typeStr": "8",
+					"opt": false,
+					"name": "sub",
+					"size": null
+				}
+			]
+		},
+		{
+			"name": "monsters@drops",
+			"props": {
+				"hide": true
+			},
+			"separators": [],
+			"lines": [
+				{
+					"test": ""
+				},
+				{
+					"test": ""
+				},
+				{
+					"test": ""
+				},
+				{
+					"test": ""
+				},
+				{
+					"test": ""
+				},
+				{
+					"test": ""
+				},
+				{
+					"test": ""
+				}
+			],
+			"columns": [
+				{
+					"typeStr": "6:items",
+					"name": "test",
+					"size": null
+				}
+			]
+		},
+		{
+			"name": "monsters@skills@sub",
+			"props": {
+				"hide": true
+			},
+			"separators": [],
+			"lines": [],
+			"columns": [
+				{
+					"typeStr": "3",
+					"opt": false,
+					"name": "subX",
+					"size": null
+				},
+				{
+					"typeStr": "3",
+					"opt": false,
+					"name": "subY",
+					"size": null
+				}
+			]
+		}
+	]
+}
