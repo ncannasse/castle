@@ -73,6 +73,7 @@ class Index<T,Kind> {
 	}
 	
 	public function resolve( id : String, ?opt : Bool ) : T {
+		if( id == null ) return null;
 		var v = byId.get(id);
 		return v == null && !opt ? throw "Missing " + name + "." + id : v;
 	}
@@ -330,7 +331,7 @@ class Module {
 								case TString: macro : String;
 								case TBool: macro : Bool;
 								case TCustom(name): name.toComplex();
-								case TRef(name): (makeTypeName(name) + "Kind").toComplex();
+								case TRef(name): makeTypeName(name).toComplex();
 								default: throw "TODO " + a.type;
 								}
 								{
@@ -344,7 +345,34 @@ class Module {
 				}
 				],
 			});
-			var expr = macro return null;
+			var cases = new Array<haxe.macro.Expr.Case>();
+			for( i in 0...t.cases.length ) {
+				var c = t.cases[i];
+				var eargs = [];
+				for( ai in 0...c.args.length ) {
+					var a = c.args[ai];
+					var econv = switch( a.type ) {
+					case TId, TString, TBool, TInt, TFloat, TImage, TEnum(_):
+						macro v[$v { ai + 1 } ];
+					case TCustom(id):
+						macro $i{id+"Builder"}.build(v[$v{ai+1}]);
+					case TRef(s):
+						var fname = fieldName(s);
+						macro $i{modName}.$fname.resolve(v[$v{ai+1}]);
+					case TList:
+						throw "assert";
+					}
+					eargs.push(econv);
+				}
+				cases.push({
+					values : [macro $v{ i }],
+					expr : if( c.args.length == 0 ) macro $i{c.name} else macro $i{c.name}($a{eargs}),
+				});
+			}
+			var expr : haxe.macro.Expr = {
+				expr : ESwitch(macro v[0], cases, macro throw "Invalid value " + v),
+				pos : pos,
+			};
 			types.push({
 				pos : pos,
 				name : t.name + "Builder",
@@ -360,7 +388,7 @@ class Module {
 						access : [APublic, AStatic],
 						kind : FFun( {
 							ret : t.name.toComplex(),
-							expr : expr,
+							expr : macro return $expr,
 							params : [],
 							args : [{ name : "v",type: macro:Array<Dynamic>, opt:false}],
 						}),

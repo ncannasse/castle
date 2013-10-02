@@ -13,6 +13,8 @@ class Test {
 		
 		
 		trace(dat.Data.items.get(sword).alt.fx);
+		trace(dat.Data.items.get(sword).alt.test);
+		trace(switch( dat.Data.items.get(herb).fx ) { case Monster(m): m.id; default: null; } );
 		
 		for( s in dat.Data.monsters.resolve("wolf").skills[0].sub )
 			trace(s);
