@@ -87,8 +87,20 @@ class Module {
 		throw "This can only be called in a macro";
 		#else
 		var pos = Context.currentPos();
-		var file = try Context.resolvePath(file) catch( e : Dynamic ) Context.error("File not found " + file, pos);
-		var data = Parser.parse(sys.io.File.getContent(file));
+		var path = try Context.resolvePath(file) catch( e : Dynamic ) null;
+		if( path == null ) {
+			var r = Context.definedValue("resourcesPath");
+			if( r != null ) {
+				r = r.split("\\").join("/");
+				if( !StringTools.endsWith(r, "/") ) r += "/";
+				try path = Context.resolvePath(r + file) catch( e : Dynamic ) null;
+			}
+		}
+		if( path == null )
+			try path = Context.resolvePath("res/" + file) catch( e : Dynamic ) null;
+		if( path == null )
+			Context.error("File not found " + file, pos);
+		var data = Parser.parse(sys.io.File.getContent(path));
 		var r_chars = ~/[^A-Za-z0-9_]/g;
 		function makeTypeName( name : String ) {
 			var t = r_chars.replace(name, "_");
