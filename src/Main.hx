@@ -716,7 +716,6 @@ class Main extends Model {
 
 		var snext = 0;
 		for( i in 0...lines.length ) {
-			content.append(lines[i]);
 			if( sheet.separators[snext] == i ) {
 				var sep = J("<tr>").addClass("separator").append('<td colspan="${sheet.columns.length+1}">').appendTo(content);
 				var content = sep.find("td");
@@ -745,6 +744,7 @@ class Main extends Model {
 				});
 				snext++;
 			}
+			content.append(lines[i]);
 		}
 		
 		inTodo = true;

@@ -1191,8 +1191,8 @@ Model.prototype = {
 		while(_g1 < _g) {
 			var i = _g1++;
 			var s = sheet.separators[i];
-			if(s >= index) {
-				if(prev == s - 1) toRemove = i;
+			if(s > index) {
+				if(prev == s) toRemove = i;
 				sheet.separators[i] = s - 1;
 			} else prev = s;
 		}
@@ -1351,7 +1351,7 @@ Model.prototype = {
 			while(_g1 < _g) {
 				var i = _g1++;
 				var s = sheet.separators[i];
-				if(s >= index) sheet.separators[i] = s + 1;
+				if(s > index) sheet.separators[i] = s + 1;
 			}
 			sheet.lines.splice(index + 1,0,o);
 		}
@@ -2213,7 +2213,6 @@ Main.prototype = $extend(Model.prototype,{
 		var _g2 = lines.length;
 		while(_g3 < _g2) {
 			var i = _g3++;
-			content.append(lines[i]);
 			if(sheet.separators[snext] == i) {
 				var sep = new js.JQuery("<tr>").addClass("separator").append("<td colspan=\"" + (sheet.columns.length + 1) + "\">").appendTo(content);
 				var content2 = [sep.find("td")];
@@ -2247,6 +2246,7 @@ Main.prototype = $extend(Model.prototype,{
 				})(pos,title,content2));
 				snext++;
 			}
+			content.append(lines[i]);
 		}
 		inTodo = true;
 		var _g2 = 0;

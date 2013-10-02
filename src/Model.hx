@@ -74,7 +74,7 @@ class Model {
 		else {
 			for( i in 0...sheet.separators.length ) {
 				var s = sheet.separators[i];
-				if( s >= index ) sheet.separators[i] = s + 1;
+				if( s > index ) sheet.separators[i] = s + 1;
 			}
 			sheet.lines.insert(index + 1, o);
 		}
@@ -176,8 +176,8 @@ class Model {
 		var prev = -1, toRemove = null;
 		for( i in 0...sheet.separators.length ) {
 			var s = sheet.separators[i];
-			if( s >= index ) {
-				if( prev == s - 1 ) toRemove = i;
+			if( s > index ) {
+				if( prev == s ) toRemove = i;
 				sheet.separators[i] = s - 1;
 			} else
 				prev = s;
