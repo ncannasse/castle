@@ -1071,7 +1071,7 @@ class Main extends Model {
 					li.text(s.name);
 					var name = JTHIS.val();
 					if( !r_ident.match(name) ) {
-						error("Invalid sheet identifier");
+						error("Invalid sheet name");
 						return;
 					}
 					var f = smap.get(name);
@@ -1080,9 +1080,9 @@ class Main extends Model {
 						return;
 					}
 					var old = s.name;
-					smap.remove(old);
 					s.name = name;
-					for( s in data.sheets )
+					
+					for( s in data.sheets ) {
 						for( c in s.columns )
 							switch( c.type ) {
 							case TRef(o) if( o == old ):
@@ -1090,6 +1090,9 @@ class Main extends Model {
 								c.typeStr = null;
 							default:
 							}
+						if( StringTools.startsWith(s.name, old + "@") )
+							s.name = name + "@" + s.name.substr(old.length + 1);
+					}
 					for( t in data.customTypes )
 						for( c in t.cases )
 							for( a in c.args )
@@ -1101,6 +1104,9 @@ class Main extends Model {
 								}
 					initContent();
 					save();
+				}).keydown(function(e) {
+					if( e.keyCode == 13 ) JTHIS.blur();
+					e.stopPropagation();
 				});
 			});
 		}
