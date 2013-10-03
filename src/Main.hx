@@ -521,6 +521,13 @@ class Main extends Model {
 						nv;
 					}
 					if( val2 != val && val2 != null ) {
+
+						if( c.type == TId && val != null ) {
+							var m = new Map();
+							m.set(val, val2);
+							updateRefs(sheet, m);
+						}
+						
 						val = val2;
 						Reflect.setField(obj, c.name, val);
 						changed();
