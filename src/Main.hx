@@ -12,6 +12,11 @@ class Main extends Model {
 	var curSheet(default,set) : Sheet;
 	var mousePos : { x : Int, y : Int };
 	var typesStr : String;
+	var clipboard : {
+		text : String,
+		data : Array<Dynamic>,
+		schema : Array<Column>,
+	};
 	
 	function new() {
 		super();
@@ -36,6 +41,15 @@ class Main extends Model {
 		mousePos.y = e.clientY;
 	}
 	
+	function setClipBoard( schema : Array<Column>, data : Array<Dynamic> ) {
+		clipboard = {
+			text : Std.string([for( o in data ) objToString(curSheet,o,true)]),
+			data : data,
+			schema : schema,
+		};
+		nodejs.webkit.Clipboard.getInstance().set(clipboard.text, "text");
+	}
+	
 	function onKey( e : js.html.KeyboardEvent ) {
 		switch( e.keyCode ) {
 		case 45: // Insert
@@ -43,18 +57,37 @@ class Main extends Model {
 				newLine(curSheet, J("tr.selected").data("index"));
 		case 46: // Delete
 			J(".selected.deletable").change();
-			var indexes = [for( i in J(".selected") ) { i.data("index"); } ];
+			// remove lines
+			var indexes = [for( i in J("tr.selected") ) i.data("index")];
 			while( indexes.remove(null) ) {
 			}
-			if( indexes.length == 0 )
+			if( indexes.length > 0 ) {
+				indexes.sort(function(a, b) return b - a);
+				for( i in indexes )
+					deleteLine(curSheet, i);
+				refresh();
+				if( indexes.length == 1 )
+					selectLine(curSheet, indexes[0] == curSheet.lines.length ? indexes[0] - 1 : indexes[0]);
+				save();
 				return;
-			indexes.sort(function(a, b) return b - a);
-			for( i in indexes )
-				deleteLine(curSheet, i);
-			refresh();
-			if( indexes.length == 1 )
-				selectLine(curSheet, indexes[0] == curSheet.lines.length ? indexes[0] - 1 : indexes[0]);
-			save();
+			}
+			// clear cols
+			var indexes = [for( i in J("td.selected") ) { x : i.data("index"), y : i.parent().data("index") }];
+			if( indexes.length > 0 ) {
+				for( k in indexes ) {
+					if( k.x == null || k.y == null ) continue;
+					var c = curSheet.columns[k.x];
+					var obj = curSheet.lines[k.y];
+					var def = getDefault(c);
+					if( def == null )
+						Reflect.deleteField(obj, c.name);
+					else
+						Reflect.setField(obj, c.name, def);
+				}
+				refresh();
+				save();
+				return;
+			}
 		case 38: // Up Key
 			var index = J("tr.selected").data("index");
 			if( index != null )
@@ -79,6 +112,93 @@ class Main extends Model {
 				initContent();
 				save(false);
 			}
+		case 'C'.code if( e.ctrlKey ):
+			var indexes = [for( i in J("tr.selected") ) i.data("index")];
+			while( indexes.remove(null) ) {
+			}
+			if( indexes.length > 0 ) {
+				var data = [];
+				for( i in indexes )
+					data.push(curSheet.lines[i]);
+				setClipBoard(curSheet.columns,data);
+				return;
+			}
+			var indexes = [for( i in J("td.selected") ) { x : i.data("index"), y : (i.parent().data("index"):Int) }];
+			if( indexes.length > 0 ) {
+				var byY = new Map(), all = [], allX = new Map();
+				for( k in indexes ) {
+					if( k.x == null || k.y == null ) continue;
+					var y = byY.get(k.y);
+					if( y == null ) {
+						y = { y : k.y, xl : [] };
+						byY.set(k.y, y);
+						all.push(y);
+					}
+					allX.set(k.x, true);
+					y.xl.push(k.x);
+				}
+				var allX = Lambda.array( { iterator : allX.keys } );
+				allX.sort(function(x1, x2) return x1 - x2);
+				all.sort(function(y1, y2) return y1.y - y2.y);
+				var data = [];
+				for( k in all ) {
+					var obj = curSheet.lines[k.y];
+					var out = {};
+					for( x in k.xl ) {
+						var c = curSheet.columns[x];
+						var v = Reflect.field(obj, c.name);
+						if( v != null )
+							Reflect.setField(out, c.name, v);
+					}
+					data.push(out);
+				}
+				setClipBoard([for( x in allX ) curSheet.columns[x]], data);
+				return;
+			}
+		case 'X'.code if( e.ctrlKey ):
+			onKey(cast { keyCode : 'C'.code, ctrlKey : true });
+			onKey(cast { keyCode : 46 } );
+		case 'V'.code if( e.ctrlKey ):
+			var pos = null;
+			var lineIndex = J("tr.selected").data("index");
+			if( lineIndex != null )
+				pos = { x : 0, y : lineIndex, line : true };
+			else {
+				var c = J("td.selected");
+				if( c.length > 0 )
+					pos = { x : c.data("index"), y : c.parent().data("index"), line : false };
+			}
+			if( pos == null || pos.x == null || pos.y == null )
+				return;
+			if( clipboard == null || nodejs.webkit.Clipboard.getInstance().get("text")  != clipboard.text )
+				return;
+			for( obj1 in clipboard.data ) {
+				if( pos.y == curSheet.lines.length )
+					super.newLine(curSheet);
+				var obj2 = curSheet.lines[pos.y];
+				for( cid in 0...clipboard.schema.length ) {
+					var c1 = clipboard.schema[cid];
+					var c2 = curSheet.columns[cid + pos.x];
+					if( c2 == null ) continue;
+					var f = getConvFunction(c1.type, c2.type);
+					var v : Dynamic = Reflect.field(obj1, c1.name);
+					if( f == null )
+						v = getDefault(c2);
+					else if( f.f != null )
+						v = f.f(v);
+					if( v == null && !c2.opt )
+						v = getDefault(c2);
+					if( v == null )
+						Reflect.deleteField(obj2, c2.name);
+					else
+						Reflect.setField(obj2, c2.name, v);
+				}
+				pos.y++;
+			}
+			makeSheet(curSheet);
+			refresh();
+			save();
+			selectLine(curSheet, pos.y);
 		case 9 if( e.shiftKey): // Shift+TAB
 			var sheets = data.sheets.filter(function(s) return !s.props.hide);
 			var s = sheets[(Lambda.indexOf(sheets, viewSheet) + 1) % sheets.length];
@@ -480,20 +600,6 @@ class Main extends Model {
 				case 37, 39: // left/right
 					if( e.ctrlKey )
 						moveCell(e.keyCode == 37 ? -1 : 1, 0);
-				case 46: // delete
-					/* disable, not very friendly
-					var val2 = getDefault(c);
-					if( val2 != val ) {
-						val = val2;
-						if( val == null )
-							Reflect.deleteField(obj, c.name);
-						else
-							Reflect.setField(obj, c.name, val);
-					}
-					changed();
-					html = getValue();
-					editDone();
-					*/
 				default:
 				}
 				e.stopPropagation();
@@ -713,7 +819,8 @@ class Main extends Model {
 			l;
 		}];
 		
-		for( c in sheet.columns ) {
+		for( cindex in 0...sheet.columns.length ) {
+			var c = sheet.columns[cindex];
 			var col = J("<td>");
 			col.html(c.name);
 			col.css("width", Std.int(100 / sheet.columns.length) + "%");
@@ -731,20 +838,62 @@ class Main extends Model {
 			for( index in 0...sheet.lines.length ) {
 				var obj = sheet.lines[index];
 				var val : Dynamic = Reflect.field(obj,c.name);
-				var v = J("<td>").addClass(ctype);
+				var v = J("<td>").addClass(ctype).addClass("c");
 				var l = lines[index];
 				v.appendTo(l);
 				var html = valueHtml(c, val, sheet, obj);
 				v.html(html);
-				switch( c.type ) {
-				case TImage:
-					v.addClass("deletable");
-					v.click(function(e) {
+				v.data("index", cindex);
+				v.click(function(e) {
+					if( e.ctrlKey ) {
+						e.stopImmediatePropagation();
+						e.stopPropagation();
+						if( e.shiftKey ) {
+							J(".selected").not(".c").removeClass("selected");
+							var first = null, firstTime = haxe.Timer.stamp();
+							for( e in J(".selected") ) {
+								var t = e.data("selectTime");
+								if( t < firstTime ) {
+									first = e;
+									firstTime = t;
+								}
+							}
+							if( first != null ) {
+								var x1 = first.data("index");
+								var y1 = first.parent().data("index");
+								var x2 = cindex;
+								var y2 = index;
+								if( x2 < x1 ) {
+									var tmp = x2;
+									x2 = x1;
+									x1 = tmp;
+								}
+								if( y2 < y1 ) {
+									var tmp = y2;
+									y2 = y1;
+									y1 = tmp;
+								}
+								J(".selected").removeClass("selected");
+								for( x in x1...x2 + 1 )
+									for( y in y1...y2+1 )
+										lines[y].children("td.c:eq(" + x + ")").addClass("selected");
+								return;
+							}
+						}
 						J(".selected").removeClass("selected");
 						v.addClass("selected");
+						v.data("selectTime", haxe.Timer.stamp());
+						return;
+					}
+				});
+				switch( c.type ) {
+				case TImage:
+					v.click(function(e) {
+						J(".selected").removeClass("selected");
+						v.find("img").addClass("selected");
 						e.stopPropagation();
 					});
-					v.change(function(_) {
+					v.find("img").addClass("deletable").change(function(e) {
 						if( Reflect.field(obj,c.name) != null ) {
 							Reflect.deleteField(obj, c.name);
 							refresh();

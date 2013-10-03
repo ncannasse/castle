@@ -188,7 +188,7 @@ div#menu ul.sheets li.active {
 .castle td.t_image img {
 	max-height : 64px;
 }
-.castle td.selected img {
+.castle img.selected {
 	opacity : 0.5;
 	filter : alpha(opacity=50);
 	zoom : 1;
@@ -225,6 +225,9 @@ div#menu ul.sheets li.active {
 .castle tr.list input, .castle tr.list select {
 	background-color : #EEE;
 }
+.castle tr.list tr.selected, .castle tr.list td.selected {
+	background-color : #DDD;
+}
 .castle tr.list>td {
 	padding : 0;
 	padding-bottom : 5px;
@@ -239,7 +242,7 @@ div#menu ul.sheets li.active {
 .castle tr.head td.display {
 	font-style : italic;
 }
-.castle tr.selected {
+.castle tr.selected, .castle td.selected {
 	background-color : #EEE;
 }
 .castle td {

@@ -106,6 +106,15 @@ HxOverrides.iter = function(a) {
 var Lambda = function() { }
 $hxClasses["Lambda"] = Lambda;
 Lambda.__name__ = ["Lambda"];
+Lambda.array = function(it) {
+	var a = new Array();
+	var $it0 = $iterator(it)();
+	while( $it0.hasNext() ) {
+		var i = $it0.next();
+		a.push(i);
+	}
+	return a;
+}
 Lambda.list = function(it) {
 	var l = new List();
 	var $it0 = $iterator(it)();
@@ -374,6 +383,150 @@ Model.prototype = {
 			this.tmap.set(old.name,old);
 		}
 		old.cases = t.cases;
+	}
+	,updateRefs: function(sheet,refMap) {
+		var _g3 = this;
+		var convertTypeRec;
+		var convertTypeRec1 = null;
+		convertTypeRec1 = function(t,o) {
+			var c = t.cases[o[0]];
+			var _g1 = 0;
+			var _g = o.length - 1;
+			while(_g1 < _g) {
+				var i = _g1++;
+				var v = o[i + 1];
+				if(v == null) continue;
+				{
+					var _g2 = c.args[i].type;
+					switch(_g2[1]) {
+					case 6:
+						var n = _g2[2];
+						if(n == sheet.name) {
+							var v1;
+							var key = v;
+							v1 = refMap.get(key);
+							if(v1 == null) continue;
+							o[i + 1] = v1;
+						} else {
+						}
+						break;
+					case 9:
+						var name = _g2[2];
+						convertTypeRec1(_g3.tmap.get(name),v);
+						break;
+					default:
+					}
+				}
+			}
+		};
+		convertTypeRec = convertTypeRec1;
+		var _g = 0;
+		var _g1 = this.data.sheets;
+		while(_g < _g1.length) {
+			var s = _g1[_g];
+			++_g;
+			var _g2 = 0;
+			var _g31 = s.columns;
+			while(_g2 < _g31.length) {
+				var c = _g31[_g2];
+				++_g2;
+				{
+					var _g4 = c.type;
+					switch(_g4[1]) {
+					case 6:
+						var n = _g4[2];
+						if(n == sheet.name) {
+							var _g5 = 0;
+							var _g6 = this.getSheetLines(s);
+							while(_g5 < _g6.length) {
+								var obj = _g6[_g5];
+								++_g5;
+								var id = (function($this) {
+									var $r;
+									var v = null;
+									try {
+										v = obj[c.name];
+									} catch( e ) {
+									}
+									$r = v;
+									return $r;
+								}(this));
+								if(id == null) continue;
+								id = refMap.get(id);
+								if(id == null) continue;
+								obj[c.name] = id;
+							}
+						} else {
+						}
+						break;
+					case 9:
+						var t = _g4[2];
+						var _g5 = 0;
+						var _g6 = this.getSheetLines(s);
+						while(_g5 < _g6.length) {
+							var obj = _g6[_g5];
+							++_g5;
+							var o = (function($this) {
+								var $r;
+								var v = null;
+								try {
+									v = obj[c.name];
+								} catch( e ) {
+								}
+								$r = v;
+								return $r;
+							}(this));
+							if(o == null) continue;
+							convertTypeRec(this.tmap.get(t),o);
+						}
+						break;
+					default:
+					}
+				}
+			}
+		}
+	}
+	,mapType: function(callb) {
+		var _g = 0;
+		var _g1 = this.data.sheets;
+		while(_g < _g1.length) {
+			var s = _g1[_g];
+			++_g;
+			var _g2 = 0;
+			var _g3 = s.columns;
+			while(_g2 < _g3.length) {
+				var c = _g3[_g2];
+				++_g2;
+				var t = callb(c.type);
+				if(t != c.type) {
+					c.type = t;
+					c.typeStr = null;
+				}
+			}
+		}
+		var _g = 0;
+		var _g1 = this.data.customTypes;
+		while(_g < _g1.length) {
+			var t = _g1[_g];
+			++_g;
+			var _g2 = 0;
+			var _g3 = t.cases;
+			while(_g2 < _g3.length) {
+				var c = _g3[_g2];
+				++_g2;
+				var _g4 = 0;
+				var _g5 = c.args;
+				while(_g4 < _g5.length) {
+					var a = _g5[_g4];
+					++_g4;
+					var t1 = callb(a.type);
+					if(t1 != a.type) {
+						a.type = t1;
+						a.typeStr = null;
+					}
+				}
+			}
+		}
 	}
 	,makePairs: function(oldA,newA) {
 		var pairs = [];
@@ -677,7 +830,8 @@ Model.prototype = {
 			return HxOverrides.substr(_this,1,null);
 		}
 	}
-	,typeValToString: function(t,val) {
+	,typeValToString: function(t,val,esc) {
+		if(esc == null) esc = false;
 		var c = t.cases[val[0]];
 		var str = c.name;
 		if(c.args.length > 0) {
@@ -687,33 +841,87 @@ Model.prototype = {
 			var _g = val.length;
 			while(_g1 < _g) {
 				var i = _g1++;
-				out.push(this.valToString(c.args[i - 1].type,val[i]));
+				out.push(this.valToString(c.args[i - 1].type,val[i],esc));
 			}
 			str += out.join(",");
 			str += ")";
 		}
 		return str;
 	}
-	,valToString: function(t,val) {
+	,valToString: function(t,val,esc) {
+		if(esc == null) esc = false;
 		if(val == null) return "null";
 		switch(t[1]) {
 		case 3:case 4:case 2:case 7:
 			return Std.string(val);
 		case 0:case 6:
-			return val;
+			if(esc) return "\"" + Std.string(val) + "\""; else return val;
+			break;
 		case 1:
 			var val1 = val;
-			if(new EReg("^[A-Za-z0-9_]+$","g").match(val1)) return val1; else return "\"" + val1.split("\\").join("\\\\").split("\"").join("\\\"") + "\"";
+			if(new EReg("^[A-Za-z0-9_]+$","g").match(val1) && !esc) return val1; else return "\"" + val1.split("\\").join("\\\\").split("\"").join("\\\"") + "\"";
 			break;
 		case 5:
 			var values = t[2];
-			return this.valToString(cdb.ColumnType.TString,values[val]);
+			return this.valToString(cdb.ColumnType.TString,values[val],esc);
 		case 8:
 			return "????";
 		case 9:
 			var t1 = t[2];
-			return this.typeValToString(this.tmap.get(t1),val);
+			return this.typeValToString(this.tmap.get(t1),val,esc);
 		}
+	}
+	,colToString: function(sheet,c,v,esc) {
+		if(esc == null) esc = false;
+		if(v == null) return "null";
+		var _g = c.type;
+		switch(_g[1]) {
+		case 8:
+			var a = v;
+			if(a.length == 0) return "[]";
+			var s = this.smap.get(sheet.name + "@" + c.name).s;
+			return "[ " + ((function($this) {
+				var $r;
+				var _g1 = [];
+				{
+					var _g2 = 0;
+					while(_g2 < a.length) {
+						var v1 = a[_g2];
+						++_g2;
+						_g1.push($this.objToString(s,v1,esc));
+					}
+				}
+				$r = _g1;
+				return $r;
+			}(this))).join(", ") + " ]";
+		default:
+			return this.valToString(c.type,v,esc);
+		}
+	}
+	,objToString: function(sheet,obj,esc) {
+		if(esc == null) esc = false;
+		if(obj == null) return "null";
+		var fl = [];
+		var _g = 0;
+		var _g1 = sheet.columns;
+		while(_g < _g1.length) {
+			var c = _g1[_g];
+			++_g;
+			var v = (function($this) {
+				var $r;
+				var v1 = null;
+				try {
+					v1 = obj[c.name];
+				} catch( e ) {
+				}
+				$r = v1;
+				return $r;
+			}(this));
+			if(v == null) continue;
+			fl.push(c.name + " : " + this.colToString(sheet,c,v,esc));
+		}
+		if(fl.length == 0) return "{}";
+		return "{ " + fl.join(", ") + " }";
 	}
 	,savePrefs: function() {
 		js.Browser.getLocalStorage().setItem("prefs",haxe.Serializer.run(this.prefs));
@@ -1529,7 +1737,7 @@ Main.prototype = $extend(Model.prototype,{
 							li[0].text(s[0].name);
 							var name = $(this).val();
 							if(!_g2.r_ident.match(name)) {
-								_g2.error("Invalid sheet identifier");
+								_g2.error("Invalid sheet name");
 								return;
 							}
 							var f = _g2.smap.get(name);
@@ -1538,72 +1746,53 @@ Main.prototype = $extend(Model.prototype,{
 								return;
 							}
 							var old = s[0].name;
-							_g2.smap.remove(old);
 							s[0].name = name;
+							_g2.mapType((function() {
+								return function(t) {
+									switch(t[1]) {
+									case 6:
+										var o = t[2];
+										if(o == old) return cdb.ColumnType.TRef(name); else return t;
+										break;
+									default:
+										return t;
+									}
+								};
+							})());
 							var _g3 = 0;
 							var _g4 = _g2.data.sheets;
 							while(_g3 < _g4.length) {
 								var s1 = _g4[_g3];
 								++_g3;
-								var _g5 = 0;
-								var _g6 = s1.columns;
-								while(_g5 < _g6.length) {
-									var c = _g6[_g5];
-									++_g5;
-									{
-										var _g7 = c.type;
-										switch(_g7[1]) {
-										case 6:
-											var o = _g7[2];
-											if(o == old) {
-												c.type = cdb.ColumnType.TRef(name);
-												c.typeStr = null;
-											} else {
-											}
-											break;
-										default:
-										}
-									}
-								}
-							}
-							var _g3 = 0;
-							var _g4 = _g2.data.customTypes;
-							while(_g3 < _g4.length) {
-								var t = _g4[_g3];
-								++_g3;
-								var _g5 = 0;
-								var _g6 = t.cases;
-								while(_g5 < _g6.length) {
-									var c = _g6[_g5];
-									++_g5;
-									var _g7 = 0;
-									var _g8 = c.args;
-									while(_g7 < _g8.length) {
-										var a = _g8[_g7];
-										++_g7;
-										{
-											var _g9 = a.type;
-											switch(_g9[1]) {
-											case 6:
-												var o = _g9[2];
-												if(o == old) {
-													a.type = cdb.ColumnType.TRef(name);
-													a.typeStr = null;
-												} else {
-												}
-												break;
-											default:
-											}
-										}
-									}
-								}
+								if(StringTools.startsWith(s1.name,old + "@")) s1.name = name + "@" + HxOverrides.substr(s1.name,old.length + 1,null);
 							}
 							_g2.initContent();
 							_g2.save();
 						};
-					})(li,s));
+					})(li,s)).keydown((function() {
+						return function(e) {
+							if(e.keyCode == 13) $(this).blur();
+							e.stopPropagation();
+						};
+					})());
 				};
-			})(li,s));
+			})(li,s)).mousedown((function(s) {
+				return function(e) {
+					if(e.which == 3) {
+						haxe.Timer.delay((function($this) {
+							var $r;
+							var f1 = $bind(_g2,_g2.popupSheet), s2 = s[0];
+							$r = (function() {
+								return function() {
+									return f1(s2);
+								};
+							})();
+							return $r;
+						}(this)),1);
+						e.stopPropagation();
+					}
+				};
+			})(s));
 		}
 		if(this.data.sheets.length == 0) {
 			new js.JQuery("#content").html("<a href='javascript:_.newSheet()'>Create a sheet</a>");
@@ -2057,11 +2246,11 @@ Main.prototype = $extend(Model.prototype,{
 			}(this)));
 		}
 		lines = _g11;
-		var _g2 = 0;
-		var _g3 = sheet.columns;
-		while(_g2 < _g3.length) {
-			var c = [_g3[_g2]];
-			++_g2;
+		var _g3 = 0;
+		var _g2 = sheet.columns.length;
+		while(_g3 < _g2) {
+			var cindex = [_g3++];
+			var c = [sheet.columns[cindex[0]]];
 			var col = new js.JQuery("<td>");
 			col.html(c[0].name);
 			col.css("width",(100 / sheet.columns.length | 0) + "%");
@@ -2101,30 +2290,90 @@ Main.prototype = $extend(Model.prototype,{
 					$r = v;
 					return $r;
 				}(this))];
-				var v1 = [new js.JQuery("<td>").addClass(ctype)];
+				var v1 = [new js.JQuery("<td>").addClass(ctype).addClass("c")];
 				var l1 = [lines[index[0]]];
 				v1[0].appendTo(l1[0]);
 				var html = [this.valueHtml(c[0],val[0],sheet,obj[0])];
 				v1[0].html(html[0]);
+				v1[0].data("index",cindex[0]);
+				v1[0].click((function(v1,index,cindex) {
+					return function(e) {
+						if(e.ctrlKey) {
+							e.stopImmediatePropagation();
+							e.stopPropagation();
+							if(e.shiftKey) {
+								new js.JQuery(".selected").not(".c").removeClass("selected");
+								var first = null;
+								var firstTime = haxe.Timer.stamp();
+								var $it0 = (function($this) {
+									var $r;
+									var _this = new js.JQuery(".selected");
+									$r = (_this.iterator)();
+									return $r;
+								}(this));
+								while( $it0.hasNext() ) {
+									var e1 = $it0.next();
+									var t = e1.data("selectTime");
+									if(t < firstTime) {
+										first = e1;
+										firstTime = t;
+									}
+								}
+								if(first != null) {
+									var x1 = first.data("index");
+									var y1 = first.parent().data("index");
+									var x2 = cindex[0];
+									var y2 = index[0];
+									if(x2 < x1) {
+										var tmp = x2;
+										x2 = x1;
+										x1 = tmp;
+									}
+									if(y2 < y1) {
+										var tmp = y2;
+										y2 = y1;
+										y1 = tmp;
+									}
+									new js.JQuery(".selected").removeClass("selected");
+									var _g7 = x1;
+									var _g6 = x2 + 1;
+									while(_g7 < _g6) {
+										var x = _g7++;
+										var _g9 = y1;
+										var _g8 = y2 + 1;
+										while(_g9 < _g8) {
+											var y = _g9++;
+											lines[y].children("td.c:eq(" + x + ")").addClass("selected");
+										}
+									}
+									return;
+								}
+							}
+							new js.JQuery(".selected").removeClass("selected");
+							v1[0].addClass("selected");
+							v1[0].data("selectTime",haxe.Timer.stamp());
+							return;
+						}
+					};
+				})(v1,index,cindex));
 				var _g6 = c[0].type;
 				switch(_g6[1]) {
 				case 7:
-					v1[0].addClass("deletable");
 					v1[0].click((function(v1) {
 						return function(e) {
 							new js.JQuery(".selected").removeClass("selected");
-							v1[0].addClass("selected");
+							v1[0].find("img").addClass("selected");
 							e.stopPropagation();
 						};
 					})(v1));
-					v1[0].change((function(obj,c) {
-						return function(_) {
+					v1[0].find("img").addClass("deletable").change((function(obj,c) {
+						return function(e) {
 							if((function($this) {
 								var $r;
 								var v = null;
 								try {
 									v = obj[0][c[0].name];
-								} catch( e ) {
+								} catch( e1 ) {
 								}
 								$r = v;
 								return $r;
@@ -2350,8 +2599,6 @@ Main.prototype = $extend(Model.prototype,{
 					case 37:case 39:
 						if(e1.ctrlKey) moveCell(e1.keyCode == 37?-1:1,0);
 						break;
-					case 46:
-						break;
 					default:
 					}
 					e1.stopPropagation();
@@ -2392,6 +2639,13 @@ Main.prototype = $extend(Model.prototype,{
 							}
 						}
 						if(val2 != val && val2 != null) {
+							if(c.type == cdb.ColumnType.TId && val != null) {
+								var m = new haxe.ds.StringMap();
+								var key = val;
+								var value = val2;
+								m.set(key,value);
+								_g.updateRefs(sheet,m);
+							}
 							val = val2;
 							obj[c.name] = val;
 							_g.changed(sheet,c,index);
@@ -2536,8 +2790,75 @@ Main.prototype = $extend(Model.prototype,{
 			}
 		}
 	}
-	,popupColumn: function(sheet,c) {
+	,popupSheet: function(s) {
 		var _g = this;
+		var n = new nodejs.webkit.Menu();
+		var nins = new nodejs.webkit.MenuItem({ label : "Add Sheet"});
+		var nleft = new nodejs.webkit.MenuItem({ label : "Move Left"});
+		var nright = new nodejs.webkit.MenuItem({ label : "Move Right"});
+		var ndel = new nodejs.webkit.MenuItem({ label : "Delete"});
+		var _g1 = 0;
+		var _g11 = [nins,nleft,nright,ndel];
+		while(_g1 < _g11.length) {
+			var m = _g11[_g1];
+			++_g1;
+			n.append(m);
+		}
+		nleft.click = function() {
+			var index = Lambda.indexOf(_g.data.sheets,s);
+			if(index > 0) {
+				HxOverrides.remove(_g.data.sheets,s);
+				_g.data.sheets.splice(index - 1,0,s);
+				_g.prefs.curSheet = index - 1;
+				_g.initContent();
+				_g.save();
+			}
+		};
+		nright.click = function() {
+			var index = Lambda.indexOf(_g.data.sheets,s);
+			if(index < _g.data.sheets.length - 1) {
+				HxOverrides.remove(_g.data.sheets,s);
+				_g.data.sheets.splice(index + 1,0,s);
+				_g.prefs.curSheet = index + 1;
+				_g.initContent();
+				_g.save();
+			}
+		};
+		ndel.click = function() {
+			var _g1 = 0;
+			var _g11 = s.columns;
+			while(_g1 < _g11.length) {
+				var c = _g11[_g1];
+				++_g1;
+				var _g2 = c.type;
+				switch(_g2[1]) {
+				case 8:
+					HxOverrides.remove(_g.data.sheets,_g.smap.get(s.name + "@" + c.name).s);
+					break;
+				default:
+				}
+			}
+			HxOverrides.remove(_g.data.sheets,s);
+			_g.mapType(function(t) {
+				switch(t[1]) {
+				case 6:
+					var r = t[2];
+					if(r == s.name) return cdb.ColumnType.TString; else return t;
+					break;
+				default:
+					return t;
+				}
+			});
+			_g.initContent();
+			_g.save();
+		};
+		nins.click = function() {
+			_g.newSheet();
+		};
+		n.popup(this.mousePos.x,this.mousePos.y);
+	}
+	,popupColumn: function(sheet,c) {
+		var _g2 = this;
 		var n = new nodejs.webkit.Menu();
 		var nedit = new nodejs.webkit.MenuItem({ label : "Edit"});
 		var nins = new nodejs.webkit.MenuItem({ label : "Add Column"});
@@ -2545,24 +2866,79 @@ Main.prototype = $extend(Model.prototype,{
 		var nright = new nodejs.webkit.MenuItem({ label : "Move Right"});
 		var ndel = new nodejs.webkit.MenuItem({ label : "Delete"});
 		var ndisp = new nodejs.webkit.MenuItem({ label : "Display Column", type : "checkbox"});
-		var _g1 = 0;
-		var _g11 = [nedit,nins,nleft,nright,ndel,ndisp];
-		while(_g1 < _g11.length) {
-			var m = _g11[_g1];
-			++_g1;
+		var _g = 0;
+		var _g1 = [nedit,nins,nleft,nright,ndel,ndisp];
+		while(_g < _g1.length) {
+			var m = _g1[_g];
+			++_g;
 			n.append(m);
+		}
+		if(c.type == cdb.ColumnType.TId || c.type == cdb.ColumnType.TString) {
+			var conv = new nodejs.webkit.MenuItem({ label : "Convert"});
+			var cm = new nodejs.webkit.Menu();
+			var _g = 0;
+			var _g1 = [{ n : "lowercase", f : function(s) {
+				return s.toLowerCase();
+			}},{ n : "UPPERCASE", f : function(s) {
+				return s.toUpperCase();
+			}},{ n : "UpperIdent", f : function(s) {
+				return HxOverrides.substr(s,0,1).toUpperCase() + HxOverrides.substr(s,1,null);
+			}},{ n : "lowerIdent", f : function(s) {
+				return HxOverrides.substr(s,0,1).toLowerCase() + HxOverrides.substr(s,1,null);
+			}}];
+			while(_g < _g1.length) {
+				var k = [_g1[_g]];
+				++_g;
+				var m = new nodejs.webkit.MenuItem({ label : k[0].n});
+				m.click = (function(k) {
+					return function() {
+						var refMap = new haxe.ds.StringMap();
+						var _g3 = 0;
+						var _g4 = _g2.getSheetLines(sheet);
+						while(_g3 < _g4.length) {
+							var obj = _g4[_g3];
+							++_g3;
+							var t = (function($this) {
+								var $r;
+								var v = null;
+								try {
+									v = obj[c.name];
+								} catch( e ) {
+								}
+								$r = v;
+								return $r;
+							}(this));
+							if(t != null && t != "") {
+								var t2 = k[0].f(t);
+								if(t2 == null && !c.opt) t2 = "";
+								if(t2 == null) Reflect.deleteField(obj,c.name); else {
+									obj[c.name] = t2;
+									if(t2 != "") refMap.set(t,t2);
+								}
+							}
+						}
+						if(c.type == cdb.ColumnType.TId) _g2.updateRefs(sheet,refMap);
+						_g2.makeSheet(sheet);
+						_g2.refresh();
+						_g2.save();
+					};
+				})(k);
+				cm.append(m);
+			}
+			conv.submenu = cm;
+			n.append(conv);
 		}
 		ndisp.checked = sheet.props.displayColumn == c.name;
 		nedit.click = function() {
-			_g.newColumn(sheet.name,c);
+			_g2.newColumn(sheet.name,c);
 		};
 		nleft.click = function() {
 			var index = Lambda.indexOf(sheet.columns,c);
 			if(index > 0) {
 				HxOverrides.remove(sheet.columns,c);
 				sheet.columns.splice(index - 1,0,c);
-				_g.refresh();
-				_g.save();
+				_g2.refresh();
+				_g2.save();
 			}
 		};
 		nright.click = function() {
@@ -2570,21 +2946,21 @@ Main.prototype = $extend(Model.prototype,{
 			if(index < sheet.columns.length - 1) {
 				HxOverrides.remove(sheet.columns,c);
 				sheet.columns.splice(index + 1,0,c);
-				_g.refresh();
-				_g.save();
+				_g2.refresh();
+				_g2.save();
 			}
 		};
 		ndel.click = function() {
-			_g.deleteColumn(sheet,c.name);
+			_g2.deleteColumn(sheet,c.name);
 		};
 		ndisp.click = function() {
 			if(sheet.props.displayColumn == c.name) sheet.props.displayColumn = null; else sheet.props.displayColumn = c.name;
-			_g.makeSheet(sheet);
-			_g.refresh();
-			_g.save();
+			_g2.makeSheet(sheet);
+			_g2.refresh();
+			_g2.save();
 		};
 		nins.click = function() {
-			_g.newColumn(sheet.name);
+			_g2.newColumn(sheet.name);
 		};
 		n.popup(this.mousePos.x,this.mousePos.y);
 	}
@@ -2847,7 +3223,7 @@ Main.prototype = $extend(Model.prototype,{
 			var _g1 = [];
 			var $it0 = (function($this) {
 				var $r;
-				var _this = new js.JQuery(".selected");
+				var _this = new js.JQuery("tr.selected");
 				$r = (_this.iterator)();
 				return $r;
 			}(this));
@@ -2858,19 +3234,49 @@ Main.prototype = $extend(Model.prototype,{
 			indexes = _g1;
 			while(HxOverrides.remove(indexes,null)) {
 			}
-			if(indexes.length == 0) return;
-			indexes.sort(function(a,b) {
-				return b - a;
-			});
-			var _g2 = 0;
-			while(_g2 < indexes.length) {
-				var i = indexes[_g2];
-				++_g2;
-				this.deleteLine(this.curSheet,i);
+			if(indexes.length > 0) {
+				indexes.sort(function(a,b) {
+					return b - a;
+				});
+				var _g2 = 0;
+				while(_g2 < indexes.length) {
+					var i = indexes[_g2];
+					++_g2;
+					this.deleteLine(this.curSheet,i);
+				}
+				this.refresh();
+				if(indexes.length == 1) this.selectLine(this.curSheet,indexes[0] == this.curSheet.lines.length?indexes[0] - 1:indexes[0]);
+				this.save();
+				return;
 			}
-			this.refresh();
-			if(indexes.length == 1) this.selectLine(this.curSheet,indexes[0] == this.curSheet.lines.length?indexes[0] - 1:indexes[0]);
-			this.save();
+			var indexes1;
+			var _g2 = [];
+			var $it1 = (function($this) {
+				var $r;
+				var _this = new js.JQuery("td.selected");
+				$r = (_this.iterator)();
+				return $r;
+			}(this));
+			while( $it1.hasNext() ) {
+				var i = $it1.next();
+				_g2.push({ x : i.data("index"), y : i.parent().data("index")});
+			}
+			indexes1 = _g2;
+			if(indexes1.length > 0) {
+				var _g3 = 0;
+				while(_g3 < indexes1.length) {
+					var k = indexes1[_g3];
+					++_g3;
+					if(k.x == null || k.y == null) continue;
+					var c = this.curSheet.columns[k.x];
+					var obj = this.curSheet.lines[k.y];
+					var def = this.getDefault(c);
+					if(def == null) Reflect.deleteField(obj,c.name); else obj[c.name] = def;
+				}
+				this.refresh();
+				this.save();
+				return;
+			}
 			break;
 		case 38:
 			var index = new js.JQuery("tr.selected").data("index");
@@ -2898,6 +3304,181 @@ Main.prototype = $extend(Model.prototype,{
 				this.save(false);
 			}
 			break;
+		case 67:
+			if(e.ctrlKey) {
+				var indexes;
+				var _g1 = [];
+				var $it2 = (function($this) {
+					var $r;
+					var _this = new js.JQuery("tr.selected");
+					$r = (_this.iterator)();
+					return $r;
+				}(this));
+				while( $it2.hasNext() ) {
+					var i = $it2.next();
+					_g1.push(i.data("index"));
+				}
+				indexes = _g1;
+				while(HxOverrides.remove(indexes,null)) {
+				}
+				if(indexes.length > 0) {
+					var data = [];
+					var _g2 = 0;
+					while(_g2 < indexes.length) {
+						var i = indexes[_g2];
+						++_g2;
+						data.push(this.curSheet.lines[i]);
+					}
+					this.setClipBoard(this.curSheet.columns,data);
+					return;
+				}
+				var indexes1;
+				var _g2 = [];
+				var $it3 = (function($this) {
+					var $r;
+					var _this = new js.JQuery("td.selected");
+					$r = (_this.iterator)();
+					return $r;
+				}(this));
+				while( $it3.hasNext() ) {
+					var i = $it3.next();
+					_g2.push({ x : i.data("index"), y : i.parent().data("index")});
+				}
+				indexes1 = _g2;
+				if(indexes1.length > 0) {
+					var byY = new haxe.ds.IntMap();
+					var all = [];
+					var allX = new haxe.ds.IntMap();
+					var _g3 = 0;
+					while(_g3 < indexes1.length) {
+						var k = indexes1[_g3];
+						++_g3;
+						if(k.x == null || k.y == null) continue;
+						var y = byY.get(k.y);
+						if(y == null) {
+							y = { y : k.y, xl : []};
+							byY.set(k.y,y);
+							all.push(y);
+						}
+						var key = k.x;
+						allX.set(key,true);
+						y.xl.push(k.x);
+					}
+					var allX1 = Lambda.array({ iterator : (function($this) {
+						var $r;
+						var _e = allX;
+						$r = function() {
+							return _e.keys();
+						};
+						return $r;
+					}(this))});
+					allX1.sort(function(x1,x2) {
+						return x1 - x2;
+					});
+					all.sort(function(y1,y2) {
+						return y1.y - y2.y;
+					});
+					var data = [];
+					var _g3 = 0;
+					while(_g3 < all.length) {
+						var k = all[_g3];
+						++_g3;
+						var obj = this.curSheet.lines[k.y];
+						var out = { };
+						var _g4 = 0;
+						var _g5 = k.xl;
+						while(_g4 < _g5.length) {
+							var x = _g5[_g4];
+							++_g4;
+							var c = this.curSheet.columns[x];
+							var v = (function($this) {
+								var $r;
+								var v1 = null;
+								try {
+									v1 = obj[c.name];
+								} catch( e1 ) {
+								}
+								$r = v1;
+								return $r;
+							}(this));
+							if(v != null) out[c.name] = v;
+						}
+						data.push(out);
+					}
+					this.setClipBoard((function($this) {
+						var $r;
+						var _g3 = [];
+						{
+							var _g4 = 0;
+							while(_g4 < allX1.length) {
+								var x = allX1[_g4];
+								++_g4;
+								_g3.push($this.curSheet.columns[x]);
+							}
+						}
+						$r = _g3;
+						return $r;
+					}(this)),data);
+					return;
+				}
+			} else {
+			}
+			break;
+		case 88:
+			if(e.ctrlKey) {
+				this.onKey({ keyCode : 67, ctrlKey : true});
+				this.onKey({ keyCode : 46});
+			} else {
+			}
+			break;
+		case 86:
+			if(e.ctrlKey) {
+				var pos = null;
+				var lineIndex = new js.JQuery("tr.selected").data("index");
+				if(lineIndex != null) pos = { x : 0, y : lineIndex, line : true}; else {
+					var c = new js.JQuery("td.selected");
+					if(c.length > 0) pos = { x : c.data("index"), y : c.parent().data("index"), line : false};
+				}
+				if(pos == null || pos.x == null || pos.y == null) return;
+				if(this.clipboard == null || nodejs.webkit.Clipboard.get().get("text") != this.clipboard.text) return;
+				var _g1 = 0;
+				var _g2 = this.clipboard.data;
+				while(_g1 < _g2.length) {
+					var obj1 = _g2[_g1];
+					++_g1;
+					if(pos.y == this.curSheet.lines.length) Model.prototype.newLine.call(this,this.curSheet);
+					var obj2 = this.curSheet.lines[pos.y];
+					var _g4 = 0;
+					var _g3 = this.clipboard.schema.length;
+					while(_g4 < _g3) {
+						var cid = _g4++;
+						var c1 = this.clipboard.schema[cid];
+						var c2 = this.curSheet.columns[cid + pos.x];
+						if(c2 == null) continue;
+						var f = this.getConvFunction(c1.type,c2.type);
+						var v = (function($this) {
+							var $r;
+							var v1 = null;
+							try {
+								v1 = obj1[c1.name];
+							} catch( e1 ) {
+							}
+							$r = v1;
+							return $r;
+						}(this));
+						if(f == null) v = this.getDefault(c2); else if(f.f != null) v = f.f(v);
+						if(v == null && !c2.opt) v = this.getDefault(c2);
+						if(v == null) Reflect.deleteField(obj2,c2.name); else obj2[c2.name] = v;
+					}
+					pos.y++;
+				}
+				this.makeSheet(this.curSheet);
+				this.refresh();
+				this.save();
+				this.selectLine(this.curSheet,pos.y);
+			} else {
+			}
+			break;
 		case 9:
 			if(e.shiftKey) {
 				var sheets = this.data.sheets.filter(function(s) {
@@ -2910,6 +3491,23 @@ Main.prototype = $extend(Model.prototype,{
 			break;
 		default:
 		}
+	}
+	,setClipBoard: function(schema,data) {
+		this.clipboard = { text : Std.string((function($this) {
+			var $r;
+			var _g = [];
+			{
+				var _g1 = 0;
+				while(_g1 < data.length) {
+					var o = data[_g1];
+					++_g1;
+					_g.push($this.objToString($this.curSheet,o,true));
+				}
+			}
+			$r = _g;
+			return $r;
+		}(this))), data : data, schema : schema};
+		nodejs.webkit.Clipboard.get().set(this.clipboard.text,"text");
 	}
 	,onMouseMove: function(e) {
 		this.mousePos.x = e.clientX;
@@ -2989,6 +3587,9 @@ StringTools.urlDecode = function(s) {
 StringTools.htmlEscape = function(s,quotes) {
 	s = s.split("&").join("&amp;").split("<").join("&lt;").split(">").join("&gt;");
 	if(quotes) return s.split("\"").join("&quot;").split("'").join("&#039;"); else return s;
+}
+StringTools.startsWith = function(s,start) {
+	return s.length >= start.length && HxOverrides.substr(s,0,start.length) == start;
 }
 StringTools.endsWith = function(s,end) {
 	var elen = end.length;
@@ -3571,6 +4172,9 @@ haxe.Timer.delay = function(f,time_ms) {
 		f();
 	};
 	return t;
+}
+haxe.Timer.stamp = function() {
+	return new Date().getTime() / 1000;
 }
 haxe.Timer.prototype = {
 	run: function() {
@@ -4791,6 +5395,7 @@ if(version[0] > 0 || version[1] >= 9) {
 	js.Node.clearImmediate = clearImmediate;
 }
 nodejs.webkit.$ui = require('nw.gui');
+nodejs.webkit.Clipboard = nodejs.webkit.$ui.Clipboard;
 nodejs.webkit.Menu = nodejs.webkit.$ui.Menu;
 nodejs.webkit.MenuItem = nodejs.webkit.$ui.MenuItem;
 nodejs.webkit.Window = nodejs.webkit.$ui.Window;

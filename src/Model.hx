@@ -446,35 +446,63 @@ class Model {
 		js.Browser.getLocalStorage().setItem("prefs", haxe.Serializer.run(prefs));
 	}
 	
-	function valToString( t : ColumnType, val : Dynamic ) {
+	function objToString( sheet : Sheet, obj : Dynamic, esc = false ) {
+		if( obj == null )
+			return "null";
+		var fl = [];
+		for( c in sheet.columns ) {
+			var v = Reflect.field(obj, c.name);
+			if( v == null ) continue;
+			fl.push(c.name + " : " + colToString(sheet, c, v, esc));
+		}
+		if( fl.length == 0 )
+			return "{}";
+		return "{ " + fl.join(", ") + " }";
+	}
+	
+	function colToString( sheet : Sheet, c : Column, v : Dynamic, esc = false ) {
+		if( v == null )
+			return "null";
+		switch( c.type ) {
+		case TList:
+			var a : Array<Dynamic> = v;
+			if( a.length == 0 ) return "[]";
+			var s = getPseudoSheet(sheet, c);
+			return "[ " + [for( v in a ) objToString(s, v, esc)].join(", ") + " ]";
+		default:
+			return valToString(c.type, v, esc);
+		}
+	}
+	
+	function valToString( t : ColumnType, val : Dynamic, esc = false ) {
 		if( val == null )
 			return "null";
 		return switch( t ) {
 		case TInt, TFloat, TBool, TImage: Std.string(val);
-		case TId, TRef(_): val;
+		case TId, TRef(_): esc ? '"'+val+'"' : val;
 		case TString:
 			var val : String = val;
-			if( ~/^[A-Za-z0-9_]+$/g.match(val) )
+			if( ~/^[A-Za-z0-9_]+$/g.match(val) && !esc )
 				val;
 			else
 				'"' + val.split("\\").join("\\\\").split('"').join("\\\"") + '"';
 		case TEnum(values):
-			valToString(TString, values[val]);
+			valToString(TString, values[val], esc);
 		case TList:
 			"????";
 		case TCustom(t):
-			typeValToString(tmap.get(t), val);
+			typeValToString(tmap.get(t), val, esc);
 		}
 	}
 	
-	function typeValToString( t : CustomType, val : Array<Dynamic> ) {
+	function typeValToString( t : CustomType, val : Array<Dynamic>, esc = false ) {
 		var c = t.cases[val[0]];
 		var str = c.name;
 		if( c.args.length > 0 ) {
 			str += "(";
 			var out = [];
 			for( i in 1...val.length )
-				out.push(valToString(c.args[i - 1].type, val[i]));
+				out.push(valToString(c.args[i - 1].type, val[i], esc));
 			str += out.join(",");
 			str += ")";
 		}

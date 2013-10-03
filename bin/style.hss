@@ -202,7 +202,7 @@ div#menu {
 		}
 	}
 	
-	td.selected img {
+	img.selected {
 		opacity : 0.5;
 	}
 	
@@ -240,6 +240,10 @@ div#menu {
 		input, select {
 			background-color : #EEE;
 		}
+		
+		tr.selected, td.selected {
+			background-color : #DDD;
+		}
 	}
 	tr.list > td {
 		padding : 0;
@@ -257,7 +261,7 @@ div#menu {
 		}
 	}
 	
-	tr.selected {
+	tr.selected, td.selected {
 		background-color : #EEE;
 	}
 	
