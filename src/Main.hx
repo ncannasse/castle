@@ -315,6 +315,58 @@ class Main extends Model {
 		n.popup(mousePos.x, mousePos.y);
 	}
 	
+	
+	function popupSheet( s : Sheet ) {
+		var n = new Menu();
+		var nins = new MenuItem( { label : "Add Sheet" } );
+		var nleft = new MenuItem( { label : "Move Left" } );
+		var nright = new MenuItem( { label : "Move Right" } );
+		var ndel = new MenuItem( { label : "Delete" } );
+		for( m in [nins, nleft, nright, ndel] )
+			n.append(m);
+		nleft.click = function() {
+			var index = Lambda.indexOf(data.sheets, s);
+			if( index > 0 ) {
+				data.sheets.remove(s);
+				data.sheets.insert(index - 1, s);
+				prefs.curSheet = index - 1;
+				initContent();
+				save();
+			}
+		};
+		nright.click = function() {
+			var index = Lambda.indexOf(data.sheets, s);
+			if( index < data.sheets.length - 1 ) {
+				data.sheets.remove(s);
+				data.sheets.insert(index + 1, s);
+				prefs.curSheet = index + 1;
+				initContent();
+				save();
+			}
+		}
+		ndel.click = function() {
+			for( c in s.columns )
+				switch( c.type ) {
+				case TList:
+					data.sheets.remove(getPseudoSheet(s, c));
+				default:
+				}
+			data.sheets.remove(s);
+			mapType(function(t) {
+				return switch( t ) {
+				case TRef(r) if( r == s.name ): TString;
+				default: t;
+				}
+			});
+			initContent();
+			save();
+		};
+		nins.click = function() {
+			newSheet();
+		};
+		n.popup(mousePos.x, mousePos.y);
+	}
+	
 	function editCell( c : Column, v : js.JQuery, sheet : Sheet, index : Int ) {
 		var obj = sheet.lines[index];
 		var val : Dynamic = Reflect.field(obj, c.name);
@@ -1082,32 +1134,30 @@ class Main extends Model {
 					var old = s.name;
 					s.name = name;
 					
-					for( s in data.sheets ) {
-						for( c in s.columns )
-							switch( c.type ) {
-							case TRef(o) if( o == old ):
-								c.type = TRef(name);
-								c.typeStr = null;
-							default:
-							}
+					mapType(function(t) {
+						return switch( t ) {
+						case TRef(o) if( o == old ):
+							TRef(name);
+						default:
+							t;
+						}
+					});
+					
+					for( c in data.sheets )
 						if( StringTools.startsWith(s.name, old + "@") )
 							s.name = name + "@" + s.name.substr(old.length + 1);
-					}
-					for( t in data.customTypes )
-						for( c in t.cases )
-							for( a in c.args )
-								switch( a.type ) {
-								case TRef(o) if( o == old ):
-									a.type = TRef(name);
-									a.typeStr = null;
-								default:
-								}
+					
 					initContent();
 					save();
 				}).keydown(function(e) {
 					if( e.keyCode == 13 ) JTHIS.blur();
 					e.stopPropagation();
 				});
+			}).mousedown(function(e) {
+				if( e.which == 3 ) {
+					haxe.Timer.delay(popupSheet.bind(s),1);
+					e.stopPropagation();
+				}
 			});
 		}
 		if( data.sheets.length == 0 ) {

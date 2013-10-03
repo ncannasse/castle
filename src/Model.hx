@@ -737,6 +737,26 @@ class Model {
 		return pairs;
 	}
 	
+	function mapType( callb ) {
+		for( s in data.sheets )
+			for( c in s.columns ) {
+				var t = callb(c.type);
+				if( t != c.type ) {
+					c.type = t;
+					c.typeStr = null;
+				}
+			}
+		for( t in data.customTypes )
+			for( c in t.cases )
+				for( a in c.args ) {
+					var t = callb(a.type);
+					if( t != a.type ) {
+						a.type = t;
+						a.typeStr = null;
+					}
+				}
+	}
+	
 	function updateType( old : CustomType, t : CustomType ) {
 		var casesPairs = makePairs(old.cases, t.cases);
 		
