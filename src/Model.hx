@@ -757,6 +757,46 @@ class Model {
 				}
 	}
 	
+	function updateRefs( sheet : Sheet, refMap : Map < String, String > ) {
+		
+		function convertTypeRec( t : CustomType, o : Array<Dynamic> ) {
+			var c = t.cases[o[0]];
+			for( i in 0...o.length - 1 ) {
+				var v : Dynamic = o[i + 1];
+				if( v == null ) continue;
+				switch( c.args[i].type ) {
+				case TRef(n) if( n == sheet.name ):
+					var v = refMap.get(v);
+					if( v == null ) continue;
+					o[i + 1] = v;
+				case TCustom(name):
+					convertTypeRec(tmap.get(name), v);
+				default:
+				}
+			}
+		}
+		
+		for( s in data.sheets )
+			for( c in s.columns )
+				switch( c.type ) {
+				case TRef(n) if( n == sheet.name ):
+					for( obj in getSheetLines(s) ) {
+						var id = Reflect.field(obj, c.name);
+						if( id == null ) continue;
+						id = refMap.get(id);
+						if( id == null ) continue;
+						Reflect.setField(obj, c.name, id);
+					}
+				case TCustom(t):
+					for( obj in getSheetLines(s) ) {
+						var o = Reflect.field(obj, c.name);
+						if( o == null ) continue;
+						convertTypeRec(tmap.get(t), o);
+					}
+				default:
+				}
+	}
+	
 	function updateType( old : CustomType, t : CustomType ) {
 		var casesPairs = makePairs(old.cases, t.cases);
 		

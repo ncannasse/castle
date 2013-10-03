@@ -274,6 +274,46 @@ class Main extends Model {
 		var ndisp = new MenuItem( { label : "Display Column", type : MenuItemType.checkbox } );
 		for( m in [nedit, nins, nleft, nright, ndel, ndisp] )
 			n.append(m);
+		
+		if( c.type == TId || c.type == TString ) {
+			var conv = new MenuItem( { label : "Convert" } );
+			var cm = new Menu();
+			for( k in [
+				{ n : "lowercase", f : function(s:String) return s.toLowerCase() },
+				{ n : "UPPERCASE", f : function(s:String) return s.toUpperCase() },
+				{ n : "UpperIdent", f : function(s:String) return s.substr(0,1).toUpperCase() + s.substr(1) },
+				{ n : "lowerIdent", f : function(s:String) return s.substr(0, 1).toLowerCase() + s.substr(1) },
+			] ) {
+				var m = new MenuItem( { label : k.n } );
+				m.click = function() {
+					var refMap = new Map();
+					for( obj in getSheetLines(sheet) ) {
+						var t = Reflect.field(obj, c.name);
+						if( t != null && t != "" ) {
+							var t2 = k.f(t);
+							if( t2 == null && !c.opt ) t2 = "";
+							if( t2 == null )
+								Reflect.deleteField(obj, c.name);
+							else {
+								Reflect.setField(obj, c.name, t2);
+								if( t2 != "" )
+									refMap.set(t, t2);
+							}
+						}
+					}
+					if( c.type == TId )
+						updateRefs(sheet, refMap);
+						
+					makeSheet(sheet); // might have changed ID or DISP
+					refresh();
+					save();
+				};
+				cm.append(m);
+			}
+			conv.submenu = cm;
+			n.append(conv);
+		}
+		
 		ndisp.checked = sheet.props.displayColumn == c.name;
 		nedit.click = function() {
 			newColumn(sheet.name, c);
