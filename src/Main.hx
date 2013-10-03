@@ -1143,7 +1143,7 @@ class Main extends Model {
 						}
 					});
 					
-					for( c in data.sheets )
+					for( s in data.sheets )
 						if( StringTools.startsWith(s.name, old + "@") )
 							s.name = name + "@" + s.name.substr(old.length + 1);
 					
