@@ -1661,6 +1661,27 @@ Main.prototype = $extend(Model.prototype,{
 	,onKeyPress: function(e) {
 		if(!e.ctrlKey) new js.JQuery(".cursor").not(".edit").dblclick();
 	}
+	,getSelection: function() {
+		if(this.cursor.s == null) return null;
+		var x1;
+		if(this.cursor.x < 0) x1 = 0; else x1 = this.cursor.x;
+		var x2;
+		if(this.cursor.x < 0) x2 = this.cursor.s.columns.length - 1; else if(this.cursor.select != null) x2 = this.cursor.select.x; else x2 = x1;
+		var y1 = this.cursor.y;
+		var y2;
+		if(this.cursor.select != null) y2 = this.cursor.select.y; else y2 = y1;
+		if(x2 < x1) {
+			var tmp = x2;
+			x2 = x1;
+			x1 = tmp;
+		}
+		if(y2 < y1) {
+			var tmp = y2;
+			y2 = y1;
+			y1 = tmp;
+		}
+		return { x1 : x1, x2 : x2, y1 : y1, y2 : y2};
+	}
 	,onKey: function(e) {
 		var _g = e.keyCode;
 		switch(_g) {
@@ -1671,52 +1692,23 @@ Main.prototype = $extend(Model.prototype,{
 			new js.JQuery(".selected.deletable").change();
 			if(this.cursor.s != null) {
 				if(this.cursor.x < 0) {
-					if(this.cursor.select == null) {
-						this.deleteLine(this.cursor.s,this.cursor.y);
-						if(this.cursor.y >= this.cursor.s.lines.length) this.cursor.y--;
-					} else {
-						var y1 = this.cursor.y;
-						var y2 = this.cursor.select.y;
-						if(y1 > y2) {
-							var tmp = y2;
-							y2 = y1;
-							y1 = tmp;
-						}
-						while(y2 >= y1) {
-							this.deleteLine(this.cursor.s,y2);
-							y2--;
-						}
-						this.cursor.y = y1 - 1;
-						if(this.cursor.y < 0) this.cursor.y = 0;
-						this.cursor.select = null;
+					var s = this.getSelection();
+					var y = s.y2;
+					while(y >= s.y1) {
+						this.deleteLine(this.cursor.s,y);
+						y--;
 					}
-				} else if(this.cursor.select == null) {
-					var c = this.cursor.s.columns[this.cursor.x];
-					var obj = this.cursor.s.lines[this.cursor.y];
-					var def = this.getDefault(c);
-					if(def == null) Reflect.deleteField(obj,c.name); else obj[c.name] = def;
+					this.cursor.y = s.y1;
+					this.cursor.select = null;
 				} else {
-					var y1 = this.cursor.y;
-					var y2 = this.cursor.select.y;
-					if(y1 > y2) {
-						var tmp = y2;
-						y2 = y1;
-						y1 = tmp;
-					}
-					var x1 = this.cursor.x;
-					var x2 = this.cursor.select.x;
-					if(x1 > x2) {
-						var tmp = x2;
-						x2 = x1;
-						x1 = tmp;
-					}
-					var _g2 = y1;
-					var _g1 = y2 + 1;
+					var s = this.getSelection();
+					var _g2 = s.y1;
+					var _g1 = s.y2 + 1;
 					while(_g2 < _g1) {
 						var y = _g2++;
 						var obj = this.cursor.s.lines[y];
-						var _g4 = x1;
-						var _g3 = x2 + 1;
+						var _g4 = s.x1;
+						var _g3 = s.x2 + 1;
 						while(_g4 < _g3) {
 							var x = _g4++;
 							var c = this.cursor.s.columns[x];
@@ -1769,6 +1761,49 @@ Main.prototype = $extend(Model.prototype,{
 			break;
 		case 67:
 			if(e.ctrlKey) {
+				if(this.cursor.s != null) {
+					var s = this.getSelection();
+					var data = [];
+					var _g2 = s.y1;
+					var _g1 = s.y2 + 1;
+					while(_g2 < _g1) {
+						var y = _g2++;
+						var obj = this.cursor.s.lines[y];
+						var out = { };
+						var _g4 = s.x1;
+						var _g3 = s.x2 + 1;
+						while(_g4 < _g3) {
+							var x = _g4++;
+							var c = this.cursor.s.columns[x];
+							var v = (function($this) {
+								var $r;
+								var v1 = null;
+								try {
+									v1 = obj[c.name];
+								} catch( e1 ) {
+								}
+								$r = v1;
+								return $r;
+							}(this));
+							if(v != null) out[c.name] = v;
+						}
+						data.push(out);
+					}
+					this.setClipBoard((function($this) {
+						var $r;
+						var _g1 = [];
+						{
+							var _g3 = s.x1;
+							var _g2 = s.x2 + 1;
+							while(_g3 < _g2) {
+								var x = _g3++;
+								_g1.push($this.cursor.s.columns[x]);
+							}
+						}
+						$r = _g1;
+						return $r;
+					}(this)),data);
+				}
 			} else {
 			}
 			break;
@@ -1781,6 +1816,45 @@ Main.prototype = $extend(Model.prototype,{
 			break;
 		case 86:
 			if(e.ctrlKey) {
+				if(this.cursor.s == null || this.clipboard == null || nodejs.webkit.Clipboard.get().get("text") != this.clipboard.text) return;
+				var sheet = this.cursor.s;
+				var posX;
+				if(this.cursor.x < 0) posX = 0; else posX = this.cursor.x;
+				var posY = this.cursor.y;
+				var _g1 = 0;
+				var _g2 = this.clipboard.data;
+				while(_g1 < _g2.length) {
+					var obj1 = _g2[_g1];
+					++_g1;
+					if(posY == sheet.lines.length) Model.prototype.newLine.call(this,sheet);
+					var obj2 = sheet.lines[posY];
+					var _g4 = 0;
+					var _g3 = this.clipboard.schema.length;
+					while(_g4 < _g3) {
+						var cid = _g4++;
+						var c1 = this.clipboard.schema[cid];
+						var c2 = sheet.columns[cid + posX];
+						if(c2 == null) continue;
+						var f = this.getConvFunction(c1.type,c2.type);
+						var v = (function($this) {
+							var $r;
+							var v1 = null;
+							try {
+								v1 = obj1[c1.name];
+							} catch( e1 ) {
+							}
+							$r = v1;
+							return $r;
+						}(this));
+						if(f == null) v = this.getDefault(c2); else if(f.f != null) v = f.f(v);
+						if(v == null && !c2.opt) v = this.getDefault(c2);
+						if(v == null) Reflect.deleteField(obj2,c2.name); else obj2[c2.name] = v;
+					}
+					posY++;
+				}
+				this.makeSheet(sheet);
+				this.refresh();
+				this.save();
 			} else {
 			}
 			break;
@@ -2545,25 +2619,12 @@ Main.prototype = $extend(Model.prototype,{
 		} else {
 			l.find("td.c").eq(this.cursor.x).addClass("cursor");
 			if(this.cursor.select != null) {
-				var y1 = this.cursor.y;
-				var y2 = this.cursor.select.y;
-				if(y2 < y1) {
-					var tmp = y2;
-					y2 = y1;
-					y1 = tmp;
-				}
-				var x1 = this.cursor.x;
-				var x2 = this.cursor.select.x;
-				if(x2 < x1) {
-					var tmp = x2;
-					x2 = x1;
-					x1 = tmp;
-				}
-				var _g1 = y1;
-				var _g = y2 + 1;
+				var s = this.getSelection();
+				var _g1 = s.y1;
+				var _g = s.y2 + 1;
 				while(_g1 < _g) {
 					var y = _g1++;
-					this.getLine(this.cursor.s,y).find("td.c").slice(x1,x2 + 1).addClass("selected");
+					this.getLine(this.cursor.s,y).find("td.c").slice(s.x1,s.x2 + 1).addClass("selected");
 				}
 			}
 		}
@@ -2699,7 +2760,8 @@ Main.prototype = $extend(Model.prototype,{
 				v1[0].data("index",cindex[0]);
 				v1[0].click((function(index,cindex) {
 					return function(e) {
-						if(e.shiftKey && _g4.cursor.s == sheet) {
+						if(inTodo) {
+						} else if(e.shiftKey && _g4.cursor.s == sheet) {
 							_g4.cursor.select = { x : cindex[0], y : index[0]};
 							_g4.updateCursor();
 							e.stopImmediatePropagation();
@@ -2874,7 +2936,8 @@ Main.prototype = $extend(Model.prototype,{
 			this.cursor = { x : 0, y : 0, s : null, select : null};
 			this.sheetCursors.set(s.name,this.cursor);
 		}
-		if(this.cursor.s != s) this.setCursor(s,null,null,null,false);
+		if(this.cursor.s == null || this.cursor.s.name != s.name) this.setCursor(s,null,null,null,false);
+		this.cursor.s = s;
 		this.prefs.curSheet = Lambda.indexOf(this.data.sheets,s);
 		new js.JQuery("#sheets li").removeClass("active").filter("#sheet_" + this.prefs.curSheet).addClass("active");
 		this.refresh();

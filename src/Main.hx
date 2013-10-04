@@ -97,6 +97,26 @@ class Main extends Model {
 			J(".cursor").not(".edit").dblclick();
 	}
 	
+	function getSelection() {
+		if( cursor.s == null )
+			return null;
+		var x1 = if( cursor.x < 0 ) 0 else cursor.x;
+		var x2 = if( cursor.x < 0 ) cursor.s.columns.length-1 else if( cursor.select != null ) cursor.select.x else x1;
+		var y1 = cursor.y;
+		var y2 = if( cursor.select != null ) cursor.select.y else y1;
+		if( x2 < x1 ) {
+			var tmp = x2;
+			x2 = x1;
+			x1 = tmp;
+		}
+		if( y2 < y1 ) {
+			var tmp = y2;
+			y2 = y1;
+			y1 = tmp;
+		}
+		return { x1 : x1, x2 : x2, y1 : y1, y2 : y2 };
+	}
+	
 	function onKey( e : js.html.KeyboardEvent ) {
 		switch( e.keyCode ) {
 		case K.INSERT: // Insert
@@ -106,59 +126,25 @@ class Main extends Model {
 			J(".selected.deletable").change();
 			if( cursor.s != null ) {
 				if( cursor.x < 0 ) {
-					if( cursor.select == null ) {
-						deleteLine(cursor.s, cursor.y);
-						if( cursor.y >= cursor.s.lines.length ) cursor.y--;
-					} else {
-						var y1 = cursor.y;
-						var y2 = cursor.select.y;
-						if( y1 > y2 ) {
-							var tmp = y2;
-							y2 = y1;
-							y1 = tmp;
-						}
-						while( y2 >= y1 ) {
-							deleteLine(cursor.s, y2);
-							y2--;
-						}
-						cursor.y = y1 - 1;
-						if( cursor.y < 0 ) cursor.y = 0;
-						cursor.select = null;
+					var s = getSelection();
+					var y = s.y2;
+					while( y >= s.y1 ) {
+						deleteLine(cursor.s, y);
+						y--;
 					}
+					cursor.y = s.y1;
+					cursor.select = null;
 				} else {
-					if( cursor.select == null ) {
-						var c = cursor.s.columns[cursor.x];
-						var obj = cursor.s.lines[cursor.y];
-						var def = getDefault(c);
-						if( def == null )
-							Reflect.deleteField(obj, c.name);
-						else
-							Reflect.setField(obj, c.name, def);
-					} else {
-						var y1 = cursor.y;
-						var y2 = cursor.select.y;
-						if( y1 > y2 ) {
-							var tmp = y2;
-							y2 = y1;
-							y1 = tmp;
-						}
-						var x1 = cursor.x;
-						var x2 = cursor.select.x;
-						if( x1 > x2 ) {
-							var tmp = x2;
-							x2 = x1;
-							x1 = tmp;
-						}
-						for( y in y1...y2 + 1 ) {
-							var obj = cursor.s.lines[y];
-							for( x in x1...x2+1 ) {
-								var c = cursor.s.columns[x];
-								var def = getDefault(c);
-								if( def == null )
-									Reflect.deleteField(obj, c.name);
-								else
-									Reflect.setField(obj, c.name, def);
-							}
+					var s = getSelection();
+					for( y in s.y1...s.y2 + 1 ) {
+						var obj = cursor.s.lines[y];
+						for( x in s.x1...s.x2+1 ) {
+							var c = cursor.s.columns[x];
+							var def = getDefault(c);
+							if( def == null )
+								Reflect.deleteField(obj, c.name);
+							else
+								Reflect.setField(obj, c.name, def);
 						}
 					}
 				}
@@ -192,75 +178,38 @@ class Main extends Model {
 				save(false);
 			}
 		case 'C'.code if( e.ctrlKey ):
-			/*
-			var indexes = [for( i in J("tr.selected") ) i.data("index")];
-			while( indexes.remove(null) ) {
-			}
-			if( indexes.length > 0 ) {
+			if( cursor.s != null ) {
+				var s = getSelection();
 				var data = [];
-				for( i in indexes )
-					data.push(curSheet.lines[i]);
-				setClipBoard(curSheet.columns,data);
-				return;
-			}
-			var indexes = [for( i in J("td.selected") ) { x : i.data("index"), y : (i.parent().data("index"):Int) }];
-			if( indexes.length > 0 ) {
-				var byY = new Map(), all = [], allX = new Map();
-				for( k in indexes ) {
-					if( k.x == null || k.y == null ) continue;
-					var y = byY.get(k.y);
-					if( y == null ) {
-						y = { y : k.y, xl : [] };
-						byY.set(k.y, y);
-						all.push(y);
-					}
-					allX.set(k.x, true);
-					y.xl.push(k.x);
-				}
-				var allX = Lambda.array( { iterator : allX.keys } );
-				allX.sort(function(x1, x2) return x1 - x2);
-				all.sort(function(y1, y2) return y1.y - y2.y);
-				var data = [];
-				for( k in all ) {
-					var obj = curSheet.lines[k.y];
+				for( y in s.y1...s.y2+1 ) {
+					var obj = cursor.s.lines[y];
 					var out = {};
-					for( x in k.xl ) {
-						var c = curSheet.columns[x];
+					for( x in s.x1...s.x2+1 ) {
+						var c = cursor.s.columns[x];
 						var v = Reflect.field(obj, c.name);
 						if( v != null )
 							Reflect.setField(out, c.name, v);
 					}
 					data.push(out);
 				}
-				setClipBoard([for( x in allX ) curSheet.columns[x]], data);
-				return;
+				setClipBoard([for( x in s.x1...s.x2+1 ) cursor.s.columns[x]], data);
 			}
-			*/
 		case 'X'.code if( e.ctrlKey ):
 			onKey(cast { keyCode : 'C'.code, ctrlKey : true });
 			onKey(cast { keyCode : K.DELETE } );
 		case 'V'.code if( e.ctrlKey ):
-			/*
-			var pos = null;
-			var lineIndex = J("tr.selected").data("index");
-			if( lineIndex != null )
-				pos = { x : 0, y : lineIndex, line : true };
-			else {
-				var c = J("td.selected");
-				if( c.length > 0 )
-					pos = { x : c.data("index"), y : c.parent().data("index"), line : false };
-			}
-			if( pos == null || pos.x == null || pos.y == null )
+			if( cursor.s == null || clipboard == null || nodejs.webkit.Clipboard.getInstance().get("text")  != clipboard.text )
 				return;
-			if( clipboard == null || nodejs.webkit.Clipboard.getInstance().get("text")  != clipboard.text )
-				return;
+			var sheet = cursor.s;
+			var posX = cursor.x < 0 ? 0 : cursor.x;
+			var posY = cursor.y;
 			for( obj1 in clipboard.data ) {
-				if( pos.y == curSheet.lines.length )
-					super.newLine(curSheet);
-				var obj2 = curSheet.lines[pos.y];
+				if( posY == sheet.lines.length )
+					super.newLine(sheet);
+				var obj2 = sheet.lines[posY];
 				for( cid in 0...clipboard.schema.length ) {
 					var c1 = clipboard.schema[cid];
-					var c2 = curSheet.columns[cid + pos.x];
+					var c2 = sheet.columns[cid + posX];
 					if( c2 == null ) continue;
 					var f = getConvFunction(c1.type, c2.type);
 					var v : Dynamic = Reflect.field(obj1, c1.name);
@@ -275,13 +224,11 @@ class Main extends Model {
 					else
 						Reflect.setField(obj2, c2.name, v);
 				}
-				pos.y++;
+				posY++;
 			}
-			makeSheet(curSheet);
+			makeSheet(sheet);
 			refresh();
 			save();
-			selectLine(curSheet, pos.y);
-			*/
 		case K.TAB: // TAB
 			if( e.ctrlKey ) {
 				var sheets = data.sheets.filter(function(s) return !s.props.hide);
@@ -887,22 +834,9 @@ class Main extends Model {
 		} else {
 			l.find("td.c").eq(cursor.x).addClass("cursor");
 			if( cursor.select != null ) {
-				var y1 = cursor.y;
-				var y2 = cursor.select.y;
-				if( y2 < y1 ) {
-					var tmp = y2;
-					y2 = y1;
-					y1 = tmp;
-				}
-				var x1 = cursor.x;
-				var x2 = cursor.select.x;
-				if( x2 < x1 ) {
-					var tmp = x2;
-					x2 = x1;
-					x1 = tmp;
-				}
-				for( y in y1...y2 + 1 )
-					getLine(cursor.s, y).find("td.c").slice(x1, x2+1).addClass("selected");
+				var s = getSelection();
+				for( y in s.y1...s.y2 + 1 )
+					getLine(cursor.s, y).find("td.c").slice(s.x1, s.x2+1).addClass("selected");
 			}
 		}
 		var e = l[0];
@@ -989,7 +923,9 @@ class Main extends Model {
 				v.html(html);
 				v.data("index", cindex);
 				v.click(function(e) {
-					if( e.shiftKey && cursor.s == sheet ) {
+					if( inTodo ) {
+						// nothing
+					} else if( e.shiftKey && cursor.s == sheet ) {
 						cursor.select = { x : cindex, y : index };
 						updateCursor();
 						e.stopImmediatePropagation();
@@ -1131,7 +1067,8 @@ class Main extends Model {
 			};
 			sheetCursors.set(s.name, cursor);
 		}
-		if( cursor.s != s ) setCursor(s,false);
+		if( cursor.s == null || cursor.s.name != s.name ) setCursor(s, false);
+		cursor.s = s;
 		prefs.curSheet = Lambda.indexOf(data.sheets, s);
 		J("#sheets li").removeClass("active").filter("#sheet_" + prefs.curSheet).addClass("active");
 		refresh();
