@@ -5,11 +5,30 @@ import nodejs.webkit.Menu;
 import nodejs.webkit.MenuItem;
 import nodejs.webkit.MenuItemType;
 
+private typedef Cursor = {
+	s : Sheet,
+	x : Int,
+	y : Int,
+	select : { x : Int, y : Int },
+}
+
+class K {
+	public static inline var INSERT = 45;
+	public static inline var DELETE = 46;
+	public static inline var LEFT = 37;
+	public static inline var UP = 38;
+	public static inline var RIGHT = 39;
+	public static inline var DOWN = 40;
+	public static inline var ESC = 27;
+	public static inline var TAB = 9;
+	public static inline var ENTER = 13;
+	public static inline var F2 = 113;
+}
+
 class Main extends Model {
 
 	var window : nodejs.webkit.Window;
 	var viewSheet : Sheet;
-	var curSheet(default,set) : Sheet;
 	var mousePos : { x : Int, y : Int };
 	var typesStr : String;
 	var clipboard : {
@@ -17,23 +36,25 @@ class Main extends Model {
 		data : Array<Dynamic>,
 		schema : Array<Column>,
 	};
+	var cursor : Cursor;
+	var sheetCursors : Map<String, Cursor>;
 	
 	function new() {
 		super();
 		window = nodejs.webkit.Window.get();
 		initMenu();
 		mousePos = { x : 0, y : 0 };
+		sheetCursors = new Map();
 		window.window.addEventListener("keydown", onKey);
+		window.window.addEventListener("keypress", onKeyPress);
 		window.window.addEventListener("mousemove", onMouseMove);
-		J("body").click(function(_) {
-			J(".selected").removeClass("selected");
-		});
+		cursor = {
+			s : null,
+			x : 0,
+			y : 0,
+			select : null,
+		};
 		load(true);
-	}
-	
-	function set_curSheet( s : Sheet ) {
-		if( curSheet != s ) J(".selected").removeClass("selected");
-		return curSheet = s;
 	}
 	
 	function onMouseMove( e : js.html.MouseEvent ) {
@@ -43,69 +64,127 @@ class Main extends Model {
 	
 	function setClipBoard( schema : Array<Column>, data : Array<Dynamic> ) {
 		clipboard = {
-			text : Std.string([for( o in data ) objToString(curSheet,o,true)]),
+			text : Std.string([for( o in data ) objToString(cursor.s,o,true)]),
 			data : data,
 			schema : schema,
 		};
 		nodejs.webkit.Clipboard.getInstance().set(clipboard.text, "text");
 	}
 	
+	function moveCursor( dx : Int, dy : Int, shift : Bool, ctrl : Bool ) {
+		if( cursor.s == null )
+			return;
+		if( cursor.x == -1 && ctrl ) {
+			if( dy != 0 )
+				moveLine(cursor.s, cursor.y, dy);
+			updateCursor();
+			return;
+		}
+		if( dx < 0 && cursor.x >= 0 )
+			cursor.x--;
+		if( dy < 0 && cursor.y > 0 )
+			cursor.y--;
+		if( dx > 0 && cursor.x < cursor.s.columns.length - 1 )
+			cursor.x++;
+		if( dy > 0 && cursor.y < cursor.s.lines.length - 1 )
+			cursor.y++;
+		cursor.select = null;
+		updateCursor();
+	}
+	
+	function onKeyPress( e : js.html.KeyboardEvent ) {
+		if( !e.ctrlKey )
+			J(".cursor").not(".edit").dblclick();
+	}
+	
 	function onKey( e : js.html.KeyboardEvent ) {
 		switch( e.keyCode ) {
-		case 45: // Insert
-			if( curSheet != null )
-				newLine(curSheet, J("tr.selected").data("index"));
-		case 46: // Delete
+		case K.INSERT: // Insert
+			if( cursor.s != null )
+				newLine(cursor.s, cursor.y);
+		case K.DELETE: // Delete
 			J(".selected.deletable").change();
-			// remove lines
-			var indexes = [for( i in J("tr.selected") ) i.data("index")];
-			while( indexes.remove(null) ) {
-			}
-			if( indexes.length > 0 ) {
-				indexes.sort(function(a, b) return b - a);
-				for( i in indexes )
-					deleteLine(curSheet, i);
-				refresh();
-				if( indexes.length == 1 )
-					selectLine(curSheet, indexes[0] == curSheet.lines.length ? indexes[0] - 1 : indexes[0]);
-				save();
-				return;
-			}
-			// clear cols
-			var indexes = [for( i in J("td.selected") ) { x : i.data("index"), y : i.parent().data("index") }];
-			if( indexes.length > 0 ) {
-				for( k in indexes ) {
-					if( k.x == null || k.y == null ) continue;
-					var c = curSheet.columns[k.x];
-					var obj = curSheet.lines[k.y];
-					var def = getDefault(c);
-					if( def == null )
-						Reflect.deleteField(obj, c.name);
-					else
-						Reflect.setField(obj, c.name, def);
+			if( cursor.s != null ) {
+				if( cursor.x < 0 ) {
+					if( cursor.select == null ) {
+						deleteLine(cursor.s, cursor.y);
+						if( cursor.y >= cursor.s.lines.length ) cursor.y--;
+					} else {
+						var y1 = cursor.y;
+						var y2 = cursor.select.y;
+						if( y1 > y2 ) {
+							var tmp = y2;
+							y2 = y1;
+							y1 = tmp;
+						}
+						while( y2 >= y1 ) {
+							deleteLine(cursor.s, y2);
+							y2--;
+						}
+						cursor.y = y1 - 1;
+						if( cursor.y < 0 ) cursor.y = 0;
+						cursor.select = null;
+					}
+				} else {
+					if( cursor.select == null ) {
+						var c = cursor.s.columns[cursor.x];
+						var obj = cursor.s.lines[cursor.y];
+						var def = getDefault(c);
+						if( def == null )
+							Reflect.deleteField(obj, c.name);
+						else
+							Reflect.setField(obj, c.name, def);
+					} else {
+						var y1 = cursor.y;
+						var y2 = cursor.select.y;
+						if( y1 > y2 ) {
+							var tmp = y2;
+							y2 = y1;
+							y1 = tmp;
+						}
+						var x1 = cursor.x;
+						var x2 = cursor.select.x;
+						if( x1 > x2 ) {
+							var tmp = x2;
+							x2 = x1;
+							x1 = tmp;
+						}
+						for( y in y1...y2 + 1 ) {
+							var obj = cursor.s.lines[y];
+							for( x in x1...x2+1 ) {
+								var c = cursor.s.columns[x];
+								var def = getDefault(c);
+								if( def == null )
+									Reflect.deleteField(obj, c.name);
+								else
+									Reflect.setField(obj, c.name, def);
+							}
+						}
+					}
 				}
-				refresh();
-				save();
-				return;
 			}
-		case 38: // Up Key
-			var index = J("tr.selected").data("index");
-			if( index != null )
-				moveLine(curSheet, index, -1);
-		case 40: // Down Key
-			var index = J("tr.selected").data("index");
-			if( index != null )
-				moveLine(curSheet, index, 1);
-		case 'Z'.code:
-			if( e.ctrlKey && history.length > 0 ) {
+			refresh();
+			save();
+		case K.UP:
+			moveCursor(0, -1, e.shiftKey, e.ctrlKey);
+			e.preventDefault();
+		case K.DOWN: // Down Key
+			moveCursor(0, 1, e.shiftKey, e.ctrlKey);
+			e.preventDefault();
+		case K.LEFT: // Left Key
+			moveCursor(-1, 0, e.shiftKey, e.ctrlKey);
+		case K.RIGHT: // Right Key
+			moveCursor(1, 0, e.shiftKey, e.ctrlKey);
+		case 'Z'.code if( e.ctrlKey ):
+			if( history.length > 0 ) {
 				redo.push(curSavedData);
 				curSavedData = history.pop();
 				quickLoad(curSavedData);
 				initContent();
 				save(false);
 			}
-		case 'Y'.code:
-			if( e.ctrlKey && redo.length > 0 ) {
+		case 'Y'.code if( e.ctrlKey ):
+			if( redo.length > 0 ) {
 				history.push(curSavedData);
 				curSavedData = redo.pop();
 				quickLoad(curSavedData);
@@ -113,6 +192,7 @@ class Main extends Model {
 				save(false);
 			}
 		case 'C'.code if( e.ctrlKey ):
+			/*
 			var indexes = [for( i in J("tr.selected") ) i.data("index")];
 			while( indexes.remove(null) ) {
 			}
@@ -155,10 +235,12 @@ class Main extends Model {
 				setClipBoard([for( x in allX ) curSheet.columns[x]], data);
 				return;
 			}
+			*/
 		case 'X'.code if( e.ctrlKey ):
 			onKey(cast { keyCode : 'C'.code, ctrlKey : true });
-			onKey(cast { keyCode : 46 } );
+			onKey(cast { keyCode : K.DELETE } );
 		case 'V'.code if( e.ctrlKey ):
+			/*
 			var pos = null;
 			var lineIndex = J("tr.selected").data("index");
 			if( lineIndex != null )
@@ -199,20 +281,32 @@ class Main extends Model {
 			refresh();
 			save();
 			selectLine(curSheet, pos.y);
-		case 9 if( e.shiftKey): // Shift+TAB
-			var sheets = data.sheets.filter(function(s) return !s.props.hide);
-			var s = sheets[(Lambda.indexOf(sheets, viewSheet) + 1) % sheets.length];
-			if( s != null ) selectSheet(s);
+			*/
+		case K.TAB: // TAB
+			if( e.ctrlKey ) {
+				var sheets = data.sheets.filter(function(s) return !s.props.hide);
+				var s = sheets[(Lambda.indexOf(sheets, viewSheet) + 1) % sheets.length];
+				if( s != null ) selectSheet(s);
+			} else {
+				moveCursor(e.shiftKey? -1:1, 0, false, false);
+			}
+		case K.ESC:
+			if( cursor.s != null && cursor.s.parent != null ) {
+				var p = cursor.s.parent;
+				setCursor(p.sheet, p.column, p.line);
+				J(".cursor").click();
+			} else if( cursor.select != null ) {
+				cursor.select = null;
+				updateCursor();
+			}
+		case K.F2: // F2
+			J(".cursor").not(".edit").dblclick();
 		default:
 		}
 	}
 
 	function getLine( sheet : Sheet, index : Int ) {
-		return J(J("table[sheet='"+getPath(sheet)+"'] > tbody > tr").not(".head,.separator,.list")[index]);
-	}
-	
-	function selectLine( sheet : Sheet, index : Int ) {
-		getLine(sheet, index).addClass("selected");
+		return J("table[sheet='"+getPath(sheet)+"'] > tbody > tr").not(".head,.separator,.list").eq(index);
 	}
 	
 	override function moveLine( sheet : Sheet, index : Int, delta : Int ) {
@@ -220,9 +314,9 @@ class Main extends Model {
 		getLine(sheet, index).next("tr.list").change();
 		var index = super.moveLine(sheet, index, delta);
 		if( index != null ) {
+			setCursor(sheet, -1, index, false);
 			refresh();
 			save();
-			selectLine(sheet, index);
 		}
 		return index;
 	}
@@ -558,48 +652,20 @@ class Main extends Model {
 				}
 			i.change(function(e) e.stopPropagation());
 			i.keydown(function(e:js.JQuery.JqEvent) {
-				function moveCell(dx, dy) {
-					i.blur();
-					var n;
-					if( dy == 0 ) {
-						if( dx > 0 ) {
-							n = v.next("td");
-							while( n.hasClass("t_bool") || n.hasClass("t_enum") || n.hasClass("t_ref") )
-								n = n.next("td");
-						} else {
-							n = v.prev("td");
-							while( n.hasClass("t_bool") || n.hasClass("t_enum") || n.hasClass("t_ref") )
-								n = n.prev("td");
-						}
-					} else {
-						var index = v.parent().children("td").index(cast v);
-						if( dy > 0 ) {
-							n = v.parent().next("tr");
-							while( n.hasClass("separator") || n.hasClass("head") )
-								n = n.next("tr");
-						} else {
-							n = v.parent().prev("tr");
-							while( n.hasClass("separator") || n.hasClass("head") )
-								n = n.prev("tr");
-						}
-						n = J(n.children("td")[index]);
-					}
-					n.click();
-					e.preventDefault();
-					
-				}
 				switch( e.keyCode ) {
-				case 27:
+				case K.ESC:
 					editDone();
-				case 13:
+				case K.ENTER:
 					i.blur();
-				case 9:
-					moveCell(e.shiftKey ? -1 : 1, 0);
-				case 38, 40: // up/down
-					moveCell(0, e.keyCode == 38 ? -1 : 1);
-				case 37, 39: // left/right
-					if( e.ctrlKey )
-						moveCell(e.keyCode == 37 ? -1 : 1, 0);
+					e.preventDefault();
+				case K.UP, K.DOWN:
+					i.blur();
+					return;
+				case K.TAB:
+					i.blur();
+					moveCursor(e.shiftKey? -1:1, 0, false, false);
+					haxe.Timer.delay(function() J(".cursor").dblclick(), 1);
+					e.preventDefault();
 				default:
 				}
 				e.stopPropagation();
@@ -682,6 +748,20 @@ class Main extends Model {
 				editDone();
 				e.stopPropagation();
 			});
+			s.keydown(function(e) {
+				switch( e.keyCode ) {
+				case K.LEFT, K.RIGHT:
+					s.blur();
+					return;
+				case K.TAB:
+					s.blur();
+					moveCursor(e.shiftKey? -1:1, 0, false, false);
+					haxe.Timer.delay(function() J(".cursor").dblclick(), 1);
+					e.preventDefault();
+				default:
+				}
+				e.stopPropagation();
+			});
 			s.blur(function(_) {
 				editDone();
 			});
@@ -713,6 +793,20 @@ class Main extends Model {
 				html = getValue();
 				changed();
 				editDone();
+				e.stopPropagation();
+			});
+			s.keydown(function(e) {
+				switch( e.keyCode ) {
+				case K.LEFT, K.RIGHT:
+					s.blur();
+					return;
+				case K.TAB:
+					s.blur();
+					moveCursor(e.shiftKey? -1:1, 0, false, false);
+					haxe.Timer.delay(function() J(".cursor").dblclick(), 1);
+					e.preventDefault();
+				default:
+				}
 				e.stopPropagation();
 			});
 			s.blur(function(_) {
@@ -763,12 +857,65 @@ class Main extends Model {
 		}
 	}
 	
+	function updateCursor() {
+		J(".selected").removeClass("selected");
+		J(".cursor").removeClass("cursor");
+		if( cursor.s == null )
+			return;
+		if( cursor.y < 0 ) {
+			cursor.y = 0;
+			cursor.select = null;
+		}
+		if( cursor.y >= cursor.s.lines.length ) {
+			cursor.y = cursor.s.lines.length - 1;
+			cursor.select = null;
+		}
+		if( cursor.x >= cursor.s.columns.length ) {
+			cursor.x = cursor.s.columns.length - 1;
+			cursor.select = null;
+		}
+		var l = getLine(cursor.s, cursor.y);
+		if( cursor.x < 0 ) {
+			l.addClass("selected");
+			if( cursor.select != null ) {
+				var y = cursor.y;
+				while( cursor.select.y != y ) {
+					if( cursor.select.y > y ) y++ else y--;
+					getLine(cursor.s, y).addClass("selected");
+				}
+			}
+		} else {
+			l.find("td.c").eq(cursor.x).addClass("cursor");
+			if( cursor.select != null ) {
+				var y1 = cursor.y;
+				var y2 = cursor.select.y;
+				if( y2 < y1 ) {
+					var tmp = y2;
+					y2 = y1;
+					y1 = tmp;
+				}
+				var x1 = cursor.x;
+				var x2 = cursor.select.x;
+				if( x2 < x1 ) {
+					var tmp = x2;
+					x2 = x1;
+					x1 = tmp;
+				}
+				for( y in y1...y2 + 1 )
+					getLine(cursor.s, y).find("td.c").slice(x1, x2+1).addClass("selected");
+			}
+		}
+		var e = l[0];
+		if( e != null ) e.scrollIntoViewIfNeeded();
+	}
+	
 	function refresh() {
 		var t = J("<table>");
 		fillTable(t, viewSheet);
 		var content = J("#content");
 		content.empty();
 		t.appendTo(content);
+		updateCursor();
 	}
 	
 	function fillTable( content : js.JQuery, sheet : Sheet ) {
@@ -790,9 +937,7 @@ class Main extends Model {
 		});
 		
 		content.attr("sheet", getPath(sheet));
-		content.unbind("click");
 		content.click(function(e) {
-			curSheet = sheet;
 			e.stopPropagation();
 		});
 
@@ -800,13 +945,6 @@ class Main extends Model {
 			var l = J("<tr>");
 			l.data("index", i);
 			var head = J("<td>").addClass("start").text("" + i);
-			head.click(function(e:js.JQuery.JqEvent) {
-				if( !e.ctrlKey  )
-					curSheet = null;
-				curSheet = sheet;
-				l.toggleClass("selected");
-				e.stopPropagation();
-			});
 			l.mousedown(function(e) {
 				if( e.which == 3 ) {
 					head.click();
@@ -814,6 +952,12 @@ class Main extends Model {
 					e.preventDefault();
 					return;
 				}
+			}).click(function(e) {
+				if( e.shiftKey && cursor.s == sheet && cursor.x < 0 ) {
+					cursor.select = { x : -1, y : i };
+					updateCursor();
+				} else
+					setCursor(sheet, -1, i);
 			});
 			head.appendTo(l);
 			l;
@@ -845,60 +989,25 @@ class Main extends Model {
 				v.html(html);
 				v.data("index", cindex);
 				v.click(function(e) {
-					if( e.ctrlKey ) {
+					if( e.shiftKey && cursor.s == sheet ) {
+						cursor.select = { x : cindex, y : index };
+						updateCursor();
 						e.stopImmediatePropagation();
-						e.stopPropagation();
-						if( e.shiftKey ) {
-							J(".selected").not(".c").removeClass("selected");
-							var first = null, firstTime = haxe.Timer.stamp();
-							for( e in J(".selected") ) {
-								var t = e.data("selectTime");
-								if( t < firstTime ) {
-									first = e;
-									firstTime = t;
-								}
-							}
-							if( first != null ) {
-								var x1 = first.data("index");
-								var y1 = first.parent().data("index");
-								var x2 = cindex;
-								var y2 = index;
-								if( x2 < x1 ) {
-									var tmp = x2;
-									x2 = x1;
-									x1 = tmp;
-								}
-								if( y2 < y1 ) {
-									var tmp = y2;
-									y2 = y1;
-									y1 = tmp;
-								}
-								J(".selected").removeClass("selected");
-								for( x in x1...x2 + 1 )
-									for( y in y1...y2+1 )
-										lines[y].children("td.c:eq(" + x + ")").addClass("selected");
-								return;
-							}
-						}
-						J(".selected").removeClass("selected");
-						v.addClass("selected");
-						v.data("selectTime", haxe.Timer.stamp());
-						return;
-					}
+					} else
+						setCursor(sheet, cindex, index);
+					e.stopPropagation();
 				});
 				switch( c.type ) {
 				case TImage:
-					v.click(function(e) {
-						J(".selected").removeClass("selected");
-						v.find("img").addClass("selected");
-						e.stopPropagation();
-					});
 					v.find("img").addClass("deletable").change(function(e) {
 						if( Reflect.field(obj,c.name) != null ) {
 							Reflect.deleteField(obj, c.name);
 							refresh();
 							save();
 						}
+					}).click(function(e) {
+						JTHIS.addClass("selected");
+						e.stopPropagation();
 					});
 					v.dblclick(function(_) editCell(c, v, sheet, index));
 				case TList:
@@ -929,10 +1038,10 @@ class Main extends Model {
 							props : psheet.props, // SHARE
 							name : psheet.name, // same
 							path : getPath(sheet) + ":" + index, // unique
+							parent : { sheet : sheet, column : cindex, line : index },
 							lines : val, // ref
 							separators : [], // none
 						};
-						curSheet = psheet; // set current
 						fillTable(content, psheet);
 						next.insertAfter(l);
 						v.html("...");
@@ -948,14 +1057,16 @@ class Main extends Model {
 							openedList.remove(key);
 							e.stopPropagation();
 						});
-						if( !inTodo )
+						if( !inTodo ) {
 							div.slideDown(100);
+							setCursor(psheet);
+						}
 						e.stopPropagation();
 					});
 					if( openedList.get(key) )
 						todo.push(function() v.click());
 				default:
-					v.click(function() editCell(c, v, sheet, index));
+					v.dblclick(function(e) editCell(c, v, sheet, index));
 				}
 			}
 		}
@@ -999,9 +1110,28 @@ class Main extends Model {
 		for( t in todo ) t();
 		inTodo = false;
 	}
+
+	function setCursor( ?s, ?x=0, ?y=0, ?sel, update = true ) {
+		cursor.s = s;
+		cursor.x = x;
+		cursor.y = y;
+		cursor.select = sel;
+		if( update ) updateCursor();
+	}
 	
 	function selectSheet( s : Sheet ) {
-		viewSheet = curSheet = s;
+		viewSheet = s;
+		cursor = sheetCursors.get(s.name);
+		if( cursor == null ) {
+			cursor = {
+				x : 0,
+				y : 0,
+				s : null,
+				select : null,
+			};
+			sheetCursors.set(s.name, cursor);
+		}
+		if( cursor.s != s ) setCursor(s,false);
 		prefs.curSheet = Lambda.indexOf(data.sheets, s);
 		J("#sheets li").removeClass("active").filter("#sheet_" + prefs.curSheet).addClass("active");
 		refresh();
@@ -1032,8 +1162,8 @@ class Main extends Model {
 		var content = J("#content");
 		content.html(J("#editTypes").html());
 		var text = content.find("textarea");
-		var apply = J(content.find("input.button")[0]);
-		var cancel = J(content.find("input.button")[1]);
+		var apply = content.find("input.button").first();
+		var cancel = content.find("input.button").eq(1);
 		var types : Array<CustomType>;
 		text.change(function(_) {
 			var nstr = text.val();
@@ -1183,14 +1313,10 @@ class Main extends Model {
 		super.newLine(sheet,index);
 		refresh();
 		save();
-		if( index != null ) {
-			curSheet = sheet;
-			selectLine(sheet, index + 1);
-		}
 	}
 	
 	function insertLine() {
-		newLine(curSheet);
+		if( cursor.s != null ) newLine(cursor.s);
 	}
 		
 	function createSheet( name : String ) {

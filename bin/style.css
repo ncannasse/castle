@@ -182,6 +182,9 @@ div#menu ul.sheets li.active {
 	padding : 2px 4px;
 	overflow : hidden;
 }
+.castle td.cursor {
+	outline : 1px solid #555;
+}
 .castle td.t_image {
 	cursor : pointer;
 }
@@ -198,6 +201,9 @@ div#menu ul.sheets li.active {
 	width : 20px;
 	text-align : center;
 	cursor : pointer;
+}
+.castle tr.head td.start {
+	cursor : nw-resize;
 }
 .castle tr.separator {
 	background-color : #CCC;

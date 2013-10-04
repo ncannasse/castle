@@ -195,6 +195,10 @@ div#menu {
 		overflow : hidden;
 	}
 	
+	td.cursor {
+		outline : 1px solid #555;
+	}
+	
 	td.t_image {
 		cursor : pointer;
 		img {
@@ -211,6 +215,10 @@ div#menu {
 		width : 20px;
 		text-align : center;
 		cursor : pointer;
+	}
+	
+	tr.head td.start {
+		cursor : nw-resize;
 	}
 	
 	

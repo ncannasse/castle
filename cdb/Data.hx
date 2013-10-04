@@ -43,7 +43,9 @@ typedef Sheet = {
 	var lines : Array<Dynamic>;
 	var props : SheetProps;
 	var separators : Array<Int>;
+	// used by editor only
 	@:optional var path : String;
+	@:optional var parent : { sheet : Sheet, column : Int, line : Int };
 }
 
 typedef CustomTypeCase = {
