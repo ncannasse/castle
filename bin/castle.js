@@ -1611,6 +1611,11 @@ var Main = function() {
 	this.window.window.addEventListener("keydown",$bind(this,this.onKey));
 	this.window.window.addEventListener("keypress",$bind(this,this.onKeyPress));
 	this.window.window.addEventListener("mousemove",$bind(this,this.onMouseMove));
+	new js.JQuery(".modal").keypress(function(e) {
+		e.stopPropagation();
+	}).keydown(function(e) {
+		e.stopPropagation();
+	});
 	this.cursor = { s : null, x : 0, y : 0, select : null};
 	this.load(true);
 };
@@ -3123,7 +3128,7 @@ Main.prototype = $extend(Model.prototype,{
 			form.addClass("edit");
 			form.find("[name=name]").val(ref.name);
 			form.find("[name=type]").val(HxOverrides.substr(ref.type[0],1,null).toLowerCase()).change();
-			if(ref.opt) form.find("[name=req]").removeAttr("checked"); else form.find("[name=req]").attr("checked","");
+			form.find("[name=req]").prop("checked",!ref.opt);
 			form.find("[name=ref]").val(ref.name);
 			form.find("[name=display]").val(ref.display == null?"0":Std.string(ref.display));
 			{
@@ -3147,7 +3152,7 @@ Main.prototype = $extend(Model.prototype,{
 		} else {
 			form.addClass("create");
 			form.find("input").not("[type=submit]").val("");
-			form.find("[name=req]").attr("checked","");
+			form.find("[name=req]").prop("checked",true);
 		}
 		form.find("[name=sheetRef]").val(sheetName == null?"":sheetName);
 		types.change();

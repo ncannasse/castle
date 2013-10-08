@@ -48,6 +48,7 @@ class Main extends Model {
 		window.window.addEventListener("keydown", onKey);
 		window.window.addEventListener("keypress", onKeyPress);
 		window.window.addEventListener("mousemove", onMouseMove);
+		J(".modal").keypress(function(e) e.stopPropagation()).keydown(function(e) e.stopPropagation());
 		cursor = {
 			s : null,
 			x : 0,
@@ -1220,10 +1221,7 @@ class Main extends Model {
 			form.addClass("edit");
 			form.find("[name=name]").val(ref.name);
 			form.find("[name=type]").val(ref.type.getName().substr(1).toLowerCase()).change();
-			if( ref.opt )
-				form.find("[name=req]").removeAttr("checked");
-			else
-				form.find("[name=req]").attr("checked", "");
+			form.find("[name=req]").prop("checked", !ref.opt);
 			form.find("[name=ref]").val(ref.name);
 			form.find("[name=display]").val(ref.display == null ? "0" : Std.string(ref.display));
 			switch( ref.type ) {
@@ -1238,7 +1236,7 @@ class Main extends Model {
 		} else {
 			form.addClass("create");
 			form.find("input").not("[type=submit]").val("");
-			form.find("[name=req]").attr("checked", "");
+			form.find("[name=req]").prop("checked", true);
 		}
 		form.find("[name=sheetRef]").val(sheetName == null ? "" : sheetName);
 		types.change();
