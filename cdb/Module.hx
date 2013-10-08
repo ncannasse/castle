@@ -139,10 +139,10 @@ class Module {
 						name : t,
 						params : [],
 						pack : curMod,
-						meta : [],
-						kind : TDEnum,
+						kind : TDAbstract(macro : Int),
+						meta : [{ name : ":fakeEnum", pos : pos }],
 						isExtern : false,
-						fields : [],
+						fields : [for( i in 0...values.length ) { name : values[i], pos : pos, kind : FVar(null,macro $v{i}) }],
 					});
 					t.toComplex();
 				case TCustom(name):
@@ -209,7 +209,7 @@ class Module {
 						}),
 						access : [AInline],
 					});
-				case TList:
+				case TList, TEnum(_):
 					// cast to convert Array<Def> to ArrayRead<T>
 					var cname = c.name;
 					fields.push({
@@ -235,30 +235,6 @@ class Module {
 							args : [],
 							expr : macro return this.$cname == null ? null : $i{modName}.$fname.resolve(this.$cname),
 						}),
-					});
-				case TEnum(_):
-					var cname = c.name;
-					var fname = fieldName(c.name + "_list");
-					
-					var tname = makeTypeName(s.name + "@" + c.name);
-					
-					fields.push({
-						name : fname,
-						pos : pos,
-						kind : FVar(null,macro Type.allEnums($i{tname})),
-						access : [AStatic],
-					});
-					
-					fields.push({
-						name : "get_"+c.name,
-						pos : pos,
-						kind : FFun({
-							ret : t,
-							params : [],
-							args : [],
-							expr : if( c.opt ) (macro return this.$cname == null ? null : $i{fname}[this.$cname]) else (macro return $i{fname}[this.$cname]),
-						}),
-						access : if( c.opt ) [] else [AInline],
 					});
 				case TCustom(name):
 					var cname = c.name;
