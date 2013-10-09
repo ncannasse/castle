@@ -300,10 +300,17 @@ class Model {
 				if( v != null )
 					Reflect.setField(o, c.name, v);
 			}
-			if( old.type == TList ) {
-				var s = getPseudoSheet(sheet, old);
+			
+			function renameRec(sheet, col) {
+				var s = getPseudoSheet(sheet, col);
 				s.name = sheet.name + "@" + c.name;
+				for( c in s.columns )
+					if( c.type == TList )
+						renameRec(s, c);
+				makeSheet(s);
 			}
+			
+			renameRec(sheet, old);
 			old.name = c.name;
 		}
 		

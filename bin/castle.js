@@ -625,13 +625,14 @@ Model.prototype = {
 		return { f : conv};
 	}
 	,updateColumn: function(sheet,old,c) {
+		var _g = this;
 		if(old.name != c.name) {
 			if(c.name == "index" && sheet.props.hasIndex) return "Sheet already has an index";
-			var _g = 0;
-			var _g1 = this.getSheetLines(sheet);
-			while(_g < _g1.length) {
-				var o = _g1[_g];
-				++_g;
+			var _g1 = 0;
+			var _g11 = this.getSheetLines(sheet);
+			while(_g1 < _g11.length) {
+				var o = _g11[_g1];
+				++_g1;
 				var v = (function($this) {
 					var $r;
 					var v1 = null;
@@ -645,10 +646,22 @@ Model.prototype = {
 				Reflect.deleteField(o,old.name);
 				if(v != null) o[c.name] = v;
 			}
-			if(old.type == cdb.ColumnType.TList) {
-				var s = this.smap.get(sheet.name + "@" + old.name).s;
-				s.name = sheet.name + "@" + c.name;
-			}
+			var renameRec;
+			var renameRec1 = null;
+			renameRec1 = function(sheet1,col) {
+				var s = _g.smap.get(sheet1.name + "@" + col.name).s;
+				s.name = sheet1.name + "@" + c.name;
+				var _g1 = 0;
+				var _g2 = s.columns;
+				while(_g1 < _g2.length) {
+					var c1 = _g2[_g1];
+					++_g1;
+					if(c1.type == cdb.ColumnType.TList) renameRec1(s,c1);
+				}
+				_g.makeSheet(s);
+			};
+			renameRec = renameRec1;
+			renameRec(sheet,old);
 			old.name = c.name;
 		}
 		if(!Type.enumEq(old.type,c.type)) {
@@ -656,11 +669,11 @@ Model.prototype = {
 			if(conv == null) return "Cannot convert " + this.typeStr(old.type) + " to " + this.typeStr(c.type);
 			var conv1 = conv.f;
 			if(conv1 != null) {
-				var _g = 0;
-				var _g1 = this.getSheetLines(sheet);
-				while(_g < _g1.length) {
-					var o = _g1[_g];
-					++_g;
+				var _g1 = 0;
+				var _g11 = this.getSheetLines(sheet);
+				while(_g1 < _g11.length) {
+					var o = _g11[_g1];
+					++_g1;
 					var v = (function($this) {
 						var $r;
 						var v1 = null;
@@ -682,11 +695,11 @@ Model.prototype = {
 		}
 		if(old.opt != c.opt) {
 			if(old.opt) {
-				var _g = 0;
-				var _g1 = this.getSheetLines(sheet);
-				while(_g < _g1.length) {
-					var o = _g1[_g];
-					++_g;
+				var _g1 = 0;
+				var _g11 = this.getSheetLines(sheet);
+				while(_g1 < _g11.length) {
+					var o = _g11[_g1];
+					++_g1;
 					var v = (function($this) {
 						var $r;
 						var v1 = null;
@@ -703,17 +716,17 @@ Model.prototype = {
 					}
 				}
 			} else {
-				var _g = old.type;
-				switch(_g[1]) {
+				var _g1 = old.type;
+				switch(_g1[1]) {
 				case 5:
 					break;
 				default:
 					var def = this.getDefault(old);
-					var _g1 = 0;
+					var _g11 = 0;
 					var _g2 = this.getSheetLines(sheet);
-					while(_g1 < _g2.length) {
-						var o = _g2[_g1];
-						++_g1;
+					while(_g11 < _g2.length) {
+						var o = _g2[_g11];
+						++_g11;
 						var v = (function($this) {
 							var $r;
 							var v1 = null;
