@@ -117,9 +117,13 @@ class Module {
 		var types = new Array<haxe.macro.Expr.TypeDefinition>();
 		var curMod = Context.getLocalModule().split(".");
 		var modName = curMod.pop();
+		
+		var typesCache = new Map<String,String>();
+		
 		for( s in data.sheets ) {
 			var tname = makeTypeName(s.name);
 			var tkind = tname + "Kind";
+			var hasId = false;
 			var fields : Array<haxe.macro.Expr.Field> = [];
 			var realFields : Array<haxe.macro.Expr.Field> = [];
 			var ids : Array<haxe.macro.Expr.Field> = [];
@@ -219,6 +223,8 @@ class Module {
 						access : [AInline, APrivate],
 					});
 				case TId:
+					hasId = true;
+					
 					var cname = c.name;
 					for( obj in s.lines ) {
 						var id = Reflect.field(obj, cname);
@@ -316,24 +322,45 @@ class Module {
 			});
 			
 
-			ids.push( {
-				name : "toString",
-				pos : pos,
-				kind : FFun( { ret : macro:String, args : [], params : [], expr : macro return this } ),
-				access : [AInline, APublic],
-			});
-			types.push({
-				pos : pos,
-				name : tkind,
-				params : [],
-				pack : curMod,
-				meta : [{ name : ":fakeEnum", pos : pos, params : [] }],
-				kind : TDAbstract(macro : String),
-				isExtern : false,
-				fields : ids,
-			});
+			if( hasId ) {
+				ids.push( {
+					name : "toString",
+					pos : pos,
+					kind : FFun( { ret : macro:String, args : [], params : [], expr : macro return this } ),
+					access : [AInline, APublic],
+				});
+				types.push({
+					pos : pos,
+					name : tkind,
+					params : [],
+					pack : curMod,
+					meta : [{ name : ":fakeEnum", pos : pos, params : [] }],
+					kind : TDAbstract(macro : String),
+					isExtern : false,
+					fields : ids,
+				});
+			} else {
+				var fields = [for( c in realFields ) { name:c.name, k:c.kind } ];
+				fields.sort(function(a, b) return Reflect.compare(a.name, b.name));
+				var sign = Context.signature(fields);
+				var prevName = typesCache.get(sign);
+				if( prevName == null )
+					typesCache.set(sign, tname);
+				else {
+					types.push({
+						pos : pos,
+						name : tname,
+						params : [],
+						pack : curMod,
+						meta : [],
+						kind : TDAlias(prevName.toComplex()),
+						isExtern : false,
+						fields : [],
+					});
+					continue;
+				}
+			}
 						
-
 			
 			types.push({
 				pos : pos,
