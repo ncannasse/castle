@@ -524,7 +524,8 @@ class Main extends Model {
 		var nleft = new MenuItem( { label : "Move Left" } );
 		var nright = new MenuItem( { label : "Move Right" } );
 		var ndel = new MenuItem( { label : "Delete" } );
-		for( m in [nins, nleft, nright, ndel] )
+		var nindex = new MenuItem( { label : "Index", type : MenuItemType.checkbox } );
+		for( m in [nins, nleft, nright, ndel, nindex] )
 			n.append(m);
 		nleft.click = function() {
 			var index = Lambda.indexOf(data.sheets, s);
@@ -565,6 +566,22 @@ class Main extends Model {
 		};
 		nins.click = function() {
 			newSheet();
+		};
+		nindex.checked = s.props.hasIndex;
+		nindex.click = function() {
+			if( s.props.hasIndex ) {
+				for( o in getSheetLines(s) )
+					Reflect.deleteField(o, "index");
+				Reflect.deleteField(s.props,"hasIndex");
+			} else {
+				for( c in s.columns )
+					if( c.name == "index" ) {
+						error("Column 'index' already exists");
+						return;
+					}
+				s.props.hasIndex = true;
+			}
+			save();
 		};
 		n.popup(mousePos.x, mousePos.y);
 	}

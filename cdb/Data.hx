@@ -35,6 +35,7 @@ typedef SheetProps = {
 	@:optional var displayColumn : Null<String>;
 	@:optional var separatorTitles : Array<String>;
 	@:optional var hide : Bool;
+	@:optional var hasIndex : Bool;
 }
 
 typedef Sheet = {

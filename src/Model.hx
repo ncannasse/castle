@@ -116,6 +116,11 @@ class Model {
 				if( c.typeStr == null ) c.typeStr = cdb.Parser.saveType(c.type);
 				Reflect.deleteField(c, "type");
 			}
+			if( s.props.hasIndex ) {
+				var lines = getSheetLines(s);
+				for( i in 0...lines.length )
+					lines[i].index = i;
+			}
 		}
 		for( t in data.customTypes )
 			for( c in t.cases )
@@ -213,6 +218,8 @@ class Model {
 				return "Column already exists";
 			else if( c2.type == TId && c.type == TId )
 				return "Only one ID allowed";
+		if( c.name == "index" && sheet.props.hasIndex )
+			return "Sheet already has an index";
 		sheet.columns.push(c);
 		for( i in getSheetLines(sheet) ) {
 			var def = getDefault(c);
@@ -283,6 +290,10 @@ class Model {
 	
 	function updateColumn( sheet : Sheet, old : Column, c : Column ) {
 		if( old.name != c.name ) {
+			
+			if( c.name == "index" && sheet.props.hasIndex )
+				return "Sheet already has an index";
+			
 			for( o in getSheetLines(sheet) ) {
 				var v = Reflect.field(o, old.name);
 				Reflect.deleteField(o, old.name);
