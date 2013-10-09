@@ -26,7 +26,11 @@ abstract ArrayRead<T>(Array<T>) {
 	}
 	
 	public inline function iterator() : ArrayIterator<T> {
-		return new ArrayIterator(this);
+		return new ArrayIterator(toArray());
+	}
+	
+	function toArray() : Array<T> {
+		return this;
 	}
 	
 	@:arrayAccess inline function getIndex( v : Int ) {
@@ -134,15 +138,43 @@ class Module {
 					tkind.toComplex();
 				case TEnum(values):
 					var t = makeTypeName(s.name + "@" + c.name);
+					var fields : Array<haxe.macro.Expr.Field> = [for( i in 0...values.length ) { name : values[i], pos : pos, kind : FVar(null, macro $v { i } ) } ];
+					var tint = macro : Int;
+					fields.push( {
+						name : "COUNT",
+						pos : pos,
+						kind : FVar(null, macro $v { values.length } ),
+						access : [APublic, AStatic, AInline],
+					});
+					fields.push( {
+						name : "ofInt",
+						pos : pos,
+						kind : FFun({
+							args : [ { name : "v", type : tint } ],
+							ret : t.toComplex(),
+							expr : macro return cast v,
+						}),
+						access : [APublic, AStatic, AInline],
+					});
+					fields.push( {
+						name : "toInt",
+						pos : pos,
+						kind : FFun( {
+							args : [],
+							ret : tint,
+							expr : macro return this,
+						}),
+						access : [APublic, AInline],
+					});
 					types.push({
 						pos : pos,
 						name : t,
 						params : [],
 						pack : curMod,
-						kind : TDAbstract(macro : Int),
+						kind : TDAbstract(tint),
 						meta : [{ name : ":fakeEnum", pos : pos }],
 						isExtern : false,
-						fields : [for( i in 0...values.length ) { name : values[i], pos : pos, kind : FVar(null,macro $v{i}) }],
+						fields : fields,
 					});
 					t.toComplex();
 				case TCustom(name):
