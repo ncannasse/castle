@@ -271,9 +271,29 @@ class Module {
 							ret : t,
 							params : [],
 							args : [],
-							expr : macro return this.$cname == null ? null : $i{modName}.$fname.resolve(this.$cname),
+							expr : c.opt ? macro return $i{modName}.$fname.resolve(this.$cname) : macro return this.$cname == null ? null : $i{modName}.$fname.resolve(this.$cname),
 						}),
 						access : [APrivate],
+					});
+					// allow direct id access (no fetch)
+					var tid = (makeTypeName(s) + "Kind").toComplex();
+					if( c.opt ) tid = macro : Null<$tid>;
+					fields.push( {
+						name : c.name + "Id",
+						pos : pos,
+						kind : FProp("get", "never", tid),
+						access : [APublic],
+					});
+					fields.push( {
+						name : "get_" + c.name + "Id",
+						pos : pos,
+						kind : FFun( {
+							args : [],
+							ret : tid,
+							params : [],
+							expr : macro return cast this.$cname,
+						}),
+						access : [APrivate, AInline],
 					});
 				case TCustom(name):
 					var cname = c.name;
