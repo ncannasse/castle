@@ -184,7 +184,7 @@ class Module {
 							args : [],
 							expr : macro return this.$cname,
 						}),
-						access : [AInline],
+						access : [AInline, APrivate],
 					});
 				case TId:
 					var cname = c.name;
@@ -207,7 +207,7 @@ class Module {
 							args : [],
 							expr : macro return cast this.$cname,
 						}),
-						access : [AInline],
+						access : [AInline, APrivate],
 					});
 				case TList, TEnum(_):
 					// cast to convert Array<Def> to ArrayRead<T>
@@ -221,7 +221,7 @@ class Module {
 							args : [],
 							expr : macro return cast this.$cname,
 						}),
-						access : [AInline],
+						access : [AInline,APrivate],
 					});
 				case TRef(s):
 					var cname = c.name;
@@ -235,6 +235,7 @@ class Module {
 							args : [],
 							expr : macro return this.$cname == null ? null : $i{modName}.$fname.resolve(this.$cname),
 						}),
+						access : [APrivate],
 					});
 				case TCustom(name):
 					var cname = c.name;
@@ -247,6 +248,7 @@ class Module {
 							args : [],
 							expr : macro return $i{name + "Builder"}.build(this.$cname),
 						}),
+						access : [AInline,APrivate],
 					});
 				}
 				
@@ -254,6 +256,18 @@ class Module {
 					name : c.name,
 					pos : pos,
 					kind : FVar(rt),
+				});
+			}
+			
+			if( s.props.hasIndex ) {
+				var tint = macro : Int;
+				realFields.push( { name : "index", pos : pos, kind : FVar(tint) } );
+				fields.push( { name : "index", pos : pos, kind : FProp("get", "never", tint), access : [APublic] } );
+				fields.push({
+					name : "get_index",
+					pos : pos,
+					kind : FFun( { ret : tint, args : [], params : [], expr : macro return this.index } ),
+					access : [AInline, APrivate],
 				});
 			}
 			
@@ -270,6 +284,12 @@ class Module {
 			});
 			
 
+			ids.push( {
+				name : "toString",
+				pos : pos,
+				kind : FFun( { ret : macro:String, args : [], params : [], expr : macro return this } ),
+				access : [AInline, APublic],
+			});
 			types.push({
 				pos : pos,
 				name : tkind,

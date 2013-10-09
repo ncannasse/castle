@@ -299,6 +299,15 @@ Model.prototype = {
 				if(c.typeStr == null) c.typeStr = cdb.Parser.saveType(c.type);
 				Reflect.deleteField(c,"type");
 			}
+			if(s.props.hasIndex) {
+				var lines = this.getSheetLines(s);
+				var _g3 = 0;
+				var _g2 = lines.length;
+				while(_g3 < _g2) {
+					var i = _g3++;
+					lines[i].index = i;
+				}
+			}
 		}
 		var _g = 0;
 		var _g1 = this.data.customTypes;
@@ -436,6 +445,7 @@ Model.prototype = {
 			++_g;
 			if(c2.name == c.name) return "Column already exists"; else if(c2.type == cdb.ColumnType.TId && c.type == cdb.ColumnType.TId) return "Only one ID allowed";
 		}
+		if(c.name == "index" && sheet.props.hasIndex) return "Sheet already has an index";
 		sheet.columns.push(c);
 		var _g = 0;
 		var _g1 = this.getSheetLines(sheet);
@@ -616,6 +626,7 @@ Model.prototype = {
 	}
 	,updateColumn: function(sheet,old,c) {
 		if(old.name != c.name) {
+			if(c.name == "index" && sheet.props.hasIndex) return "Sheet already has an index";
 			var _g = 0;
 			var _g1 = this.getSheetLines(sheet);
 			while(_g < _g1.length) {
@@ -2245,8 +2256,9 @@ Main.prototype = $extend(Model.prototype,{
 		var nleft = new nodejs.webkit.MenuItem({ label : "Move Left"});
 		var nright = new nodejs.webkit.MenuItem({ label : "Move Right"});
 		var ndel = new nodejs.webkit.MenuItem({ label : "Delete"});
+		var nindex = new nodejs.webkit.MenuItem({ label : "Index", type : "checkbox"});
 		var _g1 = 0;
-		var _g11 = [nins,nleft,nright,ndel];
+		var _g11 = [nins,nleft,nright,ndel,nindex];
 		while(_g1 < _g11.length) {
 			var m = _g11[_g1];
 			++_g1;
@@ -2302,6 +2314,32 @@ Main.prototype = $extend(Model.prototype,{
 		};
 		nins.click = function() {
 			_g.newSheet();
+		};
+		nindex.checked = s.props.hasIndex;
+		nindex.click = function() {
+			if(s.props.hasIndex) {
+				var _g1 = 0;
+				var _g2 = _g.getSheetLines(s);
+				while(_g1 < _g2.length) {
+					var o = _g2[_g1];
+					++_g1;
+					Reflect.deleteField(o,"index");
+				}
+				Reflect.deleteField(s.props,"hasIndex");
+			} else {
+				var _g1 = 0;
+				var _g11 = s.columns;
+				while(_g1 < _g11.length) {
+					var c = _g11[_g1];
+					++_g1;
+					if(c.name == "index") {
+						_g.error("Column 'index' already exists");
+						return;
+					}
+				}
+				s.props.hasIndex = true;
+			}
+			_g.save();
 		};
 		n.popup(this.mousePos.x,this.mousePos.y);
 	}
