@@ -1629,6 +1629,8 @@ var Main = function() {
 	});
 	this.cursor = { s : null, x : 0, y : 0, select : null};
 	this.load(true);
+	var t = new haxe.Timer(1000);
+	t.run = $bind(this,this.checkTime);
 };
 $hxClasses["Main"] = Main;
 Main.__name__ = ["Main"];
@@ -3516,6 +3518,36 @@ Main.prototype = $extend(Model.prototype,{
 			_g.prefs.windowPos.max = false;
 		});
 	}
+	,getFileTime: function() {
+		try {
+			return js.Node.require("fs").statSync(this.prefs.curFile).mtime.getTime() * 1.;
+		} catch( e ) {
+			return 0.;
+		}
+	}
+	,checkTime: function() {
+		if(this.prefs.curFile == null) return;
+		var fileTime = this.getFileTime();
+		if(fileTime != this.lastSave && fileTime != 0) {
+			if(window.confirm("The CDB file has been modified. Reload?")) {
+				if(sys.io.File.getContent(this.prefs.curFile).indexOf("<<<<<<<") >= 0) {
+					this.error("The file has conflicts, please resolve them before reloading");
+					return;
+				}
+				this.load();
+			} else this.lastSave = fileTime;
+		}
+	}
+	,load: function(noError) {
+		if(noError == null) noError = false;
+		Model.prototype.load.call(this,noError);
+		this.lastSave = this.getFileTime();
+	}
+	,save: function(history) {
+		if(history == null) history = true;
+		Model.prototype.save.call(this,history);
+		this.lastSave = this.getFileTime();
+	}
 	,__class__: Main
 });
 var IMap = function() { }
@@ -5300,7 +5332,7 @@ sys.io.File.getBytes = function(path) {
 	return bytes;
 }
 sys.io.File.getContent = function(path) {
-	return js.Node.require("fs").readFileSync(path);
+	return js.Node.require("fs").readFileSync(path,"utf8");
 }
 sys.io.File.saveContent = function(path,content) {
 	js.Node.require("fs").writeFileSync(path,content);

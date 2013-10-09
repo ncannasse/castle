@@ -38,6 +38,7 @@ class Main extends Model {
 	};
 	var cursor : Cursor;
 	var sheetCursors : Map<String, Cursor>;
+	var lastSave : Float;
 	
 	function new() {
 		super();
@@ -56,6 +57,8 @@ class Main extends Model {
 			select : null,
 		};
 		load(true);
+		var t = new haxe.Timer(1000);
+		t.run = checkTime;
 	}
 	
 	function onMouseMove( e : js.html.MouseEvent ) {
@@ -1525,6 +1528,36 @@ class Main extends Model {
 		window.on('unmaximize', function() {
 			prefs.windowPos.max = false;
 		});
+	}
+	
+	function getFileTime() : Float {
+		return try sys.FileSystem.stat(prefs.curFile).mtime.getTime()*1. catch( e : Dynamic ) 0.;
+	}
+	
+	function checkTime() {
+		if( prefs.curFile == null )
+			return;
+		var fileTime = getFileTime();
+		if( fileTime != lastSave && fileTime != 0 ) {
+			if( js.Browser.window.confirm("The CDB file has been modified. Reload?") ) {
+				if( sys.io.File.getContent(prefs.curFile).indexOf("<<<<<<<") >= 0 ) {
+					error("The file has conflicts, please resolve them before reloading");
+					return;
+				}
+				load();
+			} else
+				lastSave = fileTime;
+		}
+	}
+	
+	override function load(noError = false) {
+		super.load(noError);
+		lastSave = getFileTime();
+	}
+	
+	override function save( history = true ) {
+		super.save(history);
+		lastSave = getFileTime();
 	}
 	
 	static function main() {
