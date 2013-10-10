@@ -86,6 +86,47 @@ class Index<T,Kind> {
 
 class Module {
 	
+	#if macro
+	static function makeFakeEnum( tname : String, curMod, pos, values : Array<String> ) : haxe.macro.Expr.TypeDefinition {
+		var fields : Array<haxe.macro.Expr.Field> = [for( i in 0...values.length ) { name : values[i], pos : pos, kind : FVar(null, macro $v { i } ) } ];
+		var tint = macro : Int;
+		fields.push( {
+			name : "COUNT",
+			pos : pos,
+			kind : FVar(null, macro $v { values.length } ),
+			access : [APublic, AStatic, AInline],
+		});
+		fields.push( {
+			name : "ofInt",
+			pos : pos,
+			kind : FFun({
+				args : [ { name : "v", type : tint } ],
+				ret : tname.toComplex(),
+				expr : macro return cast v,
+			}),
+			access : [APublic, AStatic, AInline],
+		});
+		fields.push( {
+			name : "toInt",
+			pos : pos,
+			kind : FFun( {
+				args : [],
+				ret : tint,
+				expr : macro return this,
+			}),
+			access : [APublic, AInline],
+		});
+		return {
+			pos : pos,
+			name : tname,
+			pack : curMod,
+			kind : TDAbstract(tint),
+			meta : [{ name : ":fakeEnum", pos : pos }],
+			fields : fields,
+		};
+	}
+	#end
+	
 	public static function build( file : String ) {
 		#if !macro
 		throw "This can only be called in a macro";
@@ -142,44 +183,7 @@ class Module {
 					tkind.toComplex();
 				case TEnum(values):
 					var t = makeTypeName(s.name + "@" + c.name);
-					var fields : Array<haxe.macro.Expr.Field> = [for( i in 0...values.length ) { name : values[i], pos : pos, kind : FVar(null, macro $v { i } ) } ];
-					var tint = macro : Int;
-					fields.push( {
-						name : "COUNT",
-						pos : pos,
-						kind : FVar(null, macro $v { values.length } ),
-						access : [APublic, AStatic, AInline],
-					});
-					fields.push( {
-						name : "ofInt",
-						pos : pos,
-						kind : FFun({
-							args : [ { name : "v", type : tint } ],
-							ret : t.toComplex(),
-							expr : macro return cast v,
-						}),
-						access : [APublic, AStatic, AInline],
-					});
-					fields.push( {
-						name : "toInt",
-						pos : pos,
-						kind : FFun( {
-							args : [],
-							ret : tint,
-							expr : macro return this,
-						}),
-						access : [APublic, AInline],
-					});
-					types.push({
-						pos : pos,
-						name : t,
-						params : [],
-						pack : curMod,
-						kind : TDAbstract(tint),
-						meta : [{ name : ":fakeEnum", pos : pos }],
-						isExtern : false,
-						fields : fields,
-					});
+					types.push(makeFakeEnum(t,curMod,pos,values));
 					t.toComplex();
 				case TCustom(name):
 					name.toComplex();
@@ -216,7 +220,6 @@ class Module {
 						pos : pos,
 						kind : FFun({
 							ret : t,
-							params : [],
 							args : [],
 							expr : macro return this.$cname,
 						}),
@@ -241,7 +244,6 @@ class Module {
 						pos : pos,
 						kind : FFun({
 							ret : t,
-							params : [],
 							args : [],
 							expr : macro return cast this.$cname,
 						}),
@@ -255,7 +257,6 @@ class Module {
 						pos : pos,
 						kind : FFun({
 							ret : t,
-							params : [],
 							args : [],
 							expr : macro return cast this.$cname,
 						}),
@@ -269,7 +270,6 @@ class Module {
 						pos : pos,
 						kind : FFun({
 							ret : t,
-							params : [],
 							args : [],
 							expr : c.opt ? macro return $i{modName}.$fname.resolve(this.$cname) : macro return this.$cname == null ? null : $i{modName}.$fname.resolve(this.$cname),
 						}),
@@ -290,7 +290,6 @@ class Module {
 						kind : FFun( {
 							args : [],
 							ret : tid,
-							params : [],
 							expr : macro return cast this.$cname,
 						}),
 						access : [APrivate, AInline],
@@ -302,7 +301,6 @@ class Module {
 						pos : pos,
 						kind : FFun({
 							ret : t,
-							params : [],
 							args : [],
 							expr : macro return $i{name + "Builder"}.build(this.$cname),
 						}),
@@ -324,7 +322,26 @@ class Module {
 				fields.push({
 					name : "get_index",
 					pos : pos,
-					kind : FFun( { ret : tint, args : [], params : [], expr : macro return this.index } ),
+					kind : FFun( { ret : tint, args : [], expr : macro return this.index } ),
+					access : [AInline, APrivate],
+				});
+			}
+			
+			var gtitles = s.props.separatorTitles;
+			if( s.props.hasGroup && gtitles != null ) {
+				var tint = macro : Int;
+				realFields.push( { name : "group", pos : pos, kind : FVar(tint) } );
+				var tgroup = makeTypeName(s.name + "@group");
+				var groups = [for( t in gtitles ) if( t != null ) makeTypeName(t)];
+				if( s.separators[0] != 0 || gtitles[0] == null )
+					groups.unshift("None");
+				types.push(makeFakeEnum(tgroup, curMod, pos, groups));
+				var tgroup = tgroup.toComplex();
+				fields.push( { name : "group", pos : pos, kind : FProp("get", "never", tgroup), access : [APublic] } );
+				fields.push({
+					name : "get_group",
+					pos : pos,
+					kind : FFun( { ret : tgroup, args : [], expr : macro return cast this.group } ),
 					access : [AInline, APrivate],
 				});
 			}
@@ -333,11 +350,8 @@ class Module {
 			types.push({
 				pos : pos,
 				name : def,
-				params : [],
 				pack : curMod,
-				meta : [],
 				kind : TDStructure,
-				isExtern : false,
 				fields : realFields,
 			});
 			
@@ -346,17 +360,15 @@ class Module {
 				ids.push( {
 					name : "toString",
 					pos : pos,
-					kind : FFun( { ret : macro:String, args : [], params : [], expr : macro return this } ),
+					kind : FFun( { ret : macro:String, args : [], expr : macro return this } ),
 					access : [AInline, APublic],
 				});
 				types.push({
 					pos : pos,
 					name : tkind,
-					params : [],
 					pack : curMod,
-					meta : [{ name : ":fakeEnum", pos : pos, params : [] }],
+					meta : [{ name : ":fakeEnum", pos : pos }],
 					kind : TDAbstract(macro : String),
-					isExtern : false,
 					fields : ids,
 				});
 			} else {
@@ -370,11 +382,8 @@ class Module {
 					types.push({
 						pos : pos,
 						name : tname,
-						params : [],
 						pack : curMod,
-						meta : [],
 						kind : TDAlias(prevName.toComplex()),
-						isExtern : false,
 						fields : [],
 					});
 					continue;
@@ -385,11 +394,8 @@ class Module {
 			types.push({
 				pos : pos,
 				name : tname,
-				params : [],
 				pack : curMod,
-				meta : [],
 				kind : TDAbstract(def.toComplex()),
-				isExtern : false,
 				fields : fields,
 			});
 		}
@@ -398,10 +404,7 @@ class Module {
 				pos : pos,
 				name : t.name,
 				pack : curMod,
-				meta : [],
-				params : [],
 				kind : TDEnum,
-				isExtern : false,
 				fields : [for( c in t.cases )
 				{
 					name : c.name,
@@ -409,7 +412,6 @@ class Module {
 					kind : if( c.args.length == 0 ) FVar(null) else FFun({
 						ret : null,
 						expr : null,
-						params : [],
 						args : [
 							for( a in c.args ) {
 								var t = switch( a.type ) {
@@ -464,10 +466,7 @@ class Module {
 				pos : pos,
 				name : t.name + "Builder",
 				pack : curMod,
-				meta : [],
-				params : [],
 				kind : TDClass(),
-				isExtern : false,
 				fields : [
 					{
 						name : "build",
@@ -476,7 +475,6 @@ class Module {
 						kind : FFun( {
 							ret : t.name.toComplex(),
 							expr : macro return $expr,
-							params : [],
 							args : [{ name : "v",type: macro:Array<Dynamic>, opt:false}],
 						}),
 					}
@@ -502,11 +500,8 @@ class Module {
 		types.push({
 			pos : pos,
 			name : modName,
-			params : [],
 			pack : curMod,
-			meta : [],
 			kind : TDClass(),
-			isExtern : false,
 			fields : (macro class {
 				public static function load( content : String ) {
 					var root = cdb.Parser.parse(content);
