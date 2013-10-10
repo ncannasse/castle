@@ -17,6 +17,24 @@ private class ArrayIterator<T> {
 	}
 }
 
+private class FlagsIterator<T> {
+	var flags : Flags<T>;
+	var k : Int;
+	public inline function new(flags) {
+		this.flags = flags;
+		k = 0;
+	}
+	public inline function hasNext() {
+		return flags.toInt() >= 1<<k;
+	}
+	public inline function next() : T {
+		while( flags.toInt() & (1<<k) == 0 )
+			k++;
+		return cast k++;
+	}
+	
+}
+
 abstract ArrayRead<T>(Array<T>) {
 	
 	public var length(get, never) : Int;
@@ -35,6 +53,34 @@ abstract ArrayRead<T>(Array<T>) {
 	
 	@:arrayAccess inline function getIndex( v : Int ) {
 		return this[v];
+	}
+	
+}
+
+abstract Flags<T>(Int) {
+	
+	inline function new(x:Int) {
+		this = x;
+	}
+	
+	public inline function has( t : T ) {
+		return this & (1 << (cast t)) != 0;
+	}
+	
+	public inline function set( t : T ) {
+		this |= 1 << (cast t);
+	}
+
+	public inline function unset( t : T ) {
+		this &= ~(1 << (cast t));
+	}
+	
+	public inline function iterator() {
+		return new FlagsIterator<T>(new Flags(this));
+	}
+	
+	public inline function toInt() : Int {
+		return this;
 	}
 	
 }
@@ -187,10 +233,15 @@ class Module {
 					t.toComplex();
 				case TCustom(name):
 					name.toComplex();
+				case TFlags(values):
+					var t = makeTypeName(s.name + "@" + c.name);
+					types.push(makeFakeEnum(t, curMod, pos, values));
+					var t = t.toComplex();
+					macro : cdb.Module.Flags<$t>;
 				}
 				
 				var rt = switch( c.type ) {
-				case TInt, TEnum(_): macro : Int;
+				case TInt, TEnum(_), TFlags(_): macro : Int;
 				case TFloat: macro : Float;
 				case TBool: macro : Bool;
 				case TString, TRef(_), TImage, TId: macro : String;
@@ -249,8 +300,8 @@ class Module {
 						}),
 						access : [AInline, APrivate],
 					});
-				case TList, TEnum(_):
-					// cast to convert Array<Def> to ArrayRead<T>
+				case TList, TEnum(_), TFlags(_):
+					// cast
 					var cname = c.name;
 					fields.push({
 						name : "get_"+c.name,
@@ -434,6 +485,7 @@ class Module {
 				}
 				],
 			});
+			// build enum values
 			var cases = new Array<haxe.macro.Expr.Case>();
 			for( i in 0...t.cases.length ) {
 				var c = t.cases[i];
@@ -441,7 +493,7 @@ class Module {
 				for( ai in 0...c.args.length ) {
 					var a = c.args[ai];
 					var econv = switch( a.type ) {
-					case TId, TString, TBool, TInt, TFloat, TImage, TEnum(_):
+					case TId, TString, TBool, TInt, TFloat, TImage, TEnum(_), TFlags(_):
 						macro v[$v { ai + 1 } ];
 					case TCustom(id):
 						macro $i{id+"Builder"}.build(v[$v{ai+1}]);
