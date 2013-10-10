@@ -10,6 +10,7 @@ private typedef Cursor = {
 	x : Int,
 	y : Int,
 	select : { x : Int, y : Int },
+	onchange : Void -> Void,
 }
 
 class K {
@@ -55,6 +56,7 @@ class Main extends Model {
 			x : 0,
 			y : 0,
 			select : null,
+			onchange : null,
 		};
 		load(true);
 		var t = new haxe.Timer(1000);
@@ -378,6 +380,13 @@ class Main extends Model {
 				str += ")";
 			}
 			str;
+		case TFlags(values):
+			var v : Int = v;
+			var flags = [];
+			for( i in 0...values.length )
+				if( v & (1 << i) != 0 )
+					flags.push(StringTools.htmlEscape(values[i]));
+			flags.length == 0 ? String.fromCharCode(0x2205) : flags.join("|");
 		}
 	}
 	
@@ -527,8 +536,9 @@ class Main extends Model {
 		var nleft = new MenuItem( { label : "Move Left" } );
 		var nright = new MenuItem( { label : "Move Right" } );
 		var ndel = new MenuItem( { label : "Delete" } );
-		var nindex = new MenuItem( { label : "Index", type : MenuItemType.checkbox } );
-		for( m in [nins, nleft, nright, ndel, nindex] )
+		var nindex = new MenuItem( { label : "Add Index", type : MenuItemType.checkbox } );
+		var ngroup = new MenuItem( { label : "Add Group", type : MenuItemType.checkbox } );
+		for( m in [nins, nleft, nright, ndel, nindex, ngroup] )
 			n.append(m);
 		nleft.click = function() {
 			var index = Lambda.indexOf(data.sheets, s);
@@ -575,7 +585,7 @@ class Main extends Model {
 			if( s.props.hasIndex ) {
 				for( o in getSheetLines(s) )
 					Reflect.deleteField(o, "index");
-				Reflect.deleteField(s.props,"hasIndex");
+				s.props.hasIndex = false;
 			} else {
 				for( c in s.columns )
 					if( c.name == "index" ) {
@@ -583,6 +593,22 @@ class Main extends Model {
 						return;
 					}
 				s.props.hasIndex = true;
+			}
+			save();
+		};
+		ngroup.checked = s.props.hasGroup;
+		ngroup.click = function() {
+			if( s.props.hasGroup ) {
+				for( o in getSheetLines(s) )
+					Reflect.deleteField(o, "group");
+				s.props.hasGroup = false;
+			} else {
+				for( c in s.columns )
+					if( c.name == "group" ) {
+						error("Column 'group' already exists");
+						return;
+					}
+				s.props.hasGroup = true;
 			}
 			save();
 		};
@@ -820,6 +846,29 @@ class Main extends Model {
 			});
 			i.appendTo(J("body"));
 			i.click();
+		case TFlags(values):
+			var div = J("<div>").addClass("flagValues");
+			div.click(function(e) e.stopPropagation()).dblclick(function(e) e.stopPropagation());
+			for( i in 0...values.length ) {
+				var f = J("<input>").attr("type", "checkbox").prop("checked", val & (1 << i) != 0).change(function(e) {
+					val &= ~(1 << i);
+					if( JTHIS.prop("checked") ) val |= 1 << i;
+					e.stopPropagation();
+				});
+				J("<label>").text(values[i]).appendTo(div).append(f);
+			}
+			v.empty();
+			v.append(div);
+			cursor.onchange = function() {
+				if( c.opt && val == 0 ) {
+					val = null;
+					Reflect.deleteField(obj, c.name);
+				} else
+					Reflect.setField(obj, c.name, val);
+				html = getValue();
+				editDone();
+				save();
+			};
 		case TList:
 			throw "assert";
 		}
@@ -1073,6 +1122,11 @@ class Main extends Model {
 		cursor.x = x;
 		cursor.y = y;
 		cursor.select = sel;
+		var ch = cursor.onchange;
+		if( ch != null ) {
+			cursor.onchange = null;
+			ch();
+		}
 		if( update ) updateCursor();
 	}
 	
@@ -1085,6 +1139,7 @@ class Main extends Model {
 				y : 0,
 				s : null,
 				select : null,
+				onchange : null,
 			};
 			sheetCursors.set(s.name, cursor);
 		}
@@ -1245,7 +1300,7 @@ class Main extends Model {
 			form.find("[name=ref]").val(ref.name);
 			form.find("[name=display]").val(ref.display == null ? "0" : Std.string(ref.display));
 			switch( ref.type ) {
-			case TEnum(values):
+			case TEnum(values), TFlags(values):
 				form.find("[name=values]").val(values.join(","));
 			case TRef(sname):
 				form.find("[name=sheet]").val(sname);
@@ -1333,6 +1388,13 @@ class Main extends Model {
 				return;
 			}
 			TEnum([for( f in vals ) StringTools.trim(f)]);
+		case "flags":
+			var vals = StringTools.trim(v.values).split(",");
+			if( vals.length == 0 ) {
+				error("Missing value list");
+				return;
+			}
+			TFlags([for( f in vals ) StringTools.trim(f)]);
 		case "ref":
 			var s = data.sheets[Std.parseInt(v.sheet)];
 			if( s == null ) {

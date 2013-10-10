@@ -88,7 +88,7 @@ class Model {
 		if( c.opt )
 			return null;
 		return switch( c.type ) {
-		case TInt, TFloat, TEnum(_): 0;
+		case TInt, TFloat, TEnum(_), TFlags(_): 0;
 		case TString, TId, TRef(_), TImage: "";
 		case TBool: false;
 		case TList: [];
@@ -97,6 +97,38 @@ class Model {
 	}
 	
 	function save( history = true ) {
+		
+		// process
+		for( s in data.sheets ) {
+			// clean props
+			for( p in Reflect.fields(s.props) ) {
+				var v : Dynamic = Reflect.field(s.props, p);
+				if( v == null || v == false ) Reflect.deleteField(s.props, p);
+			}
+			if( s.props.hasIndex ) {
+				var lines = getSheetLines(s);
+				for( i in 0...lines.length )
+					lines[i].index = i;
+			}
+			if( s.props.hasGroup ) {
+				var lines = getSheetLines(s);
+				var gid = 0;
+				var sindex = 0;
+				var titles = s.props.separatorTitles;
+				if( titles != null ) {
+					// skip first if at head
+					if( s.separators[sindex] == 0 && titles[sindex] != null ) sindex++;
+					for( i in 0...lines.length ) {
+						if( s.separators[sindex] == i ) {
+							if( titles[sindex] != null ) gid++;
+							sindex++;
+						}
+						lines[i].group = gid;
+					}
+				}
+			}
+		}
+		
 		if( history ) {
 			var sdata = quickSave();
 			if( sdata != curSavedData ) {
@@ -115,11 +147,6 @@ class Model {
 				save.push(c.type);
 				if( c.typeStr == null ) c.typeStr = cdb.Parser.saveType(c.type);
 				Reflect.deleteField(c, "type");
-			}
-			if( s.props.hasIndex ) {
-				var lines = getSheetLines(s);
-				for( i in 0...lines.length )
-					lines[i].index = i;
 			}
 		}
 		for( t in data.customTypes )
@@ -220,6 +247,8 @@ class Model {
 				return "Only one ID allowed";
 		if( c.name == "index" && sheet.props.hasIndex )
 			return "Sheet already has an index";
+		if( c.name == "group" && sheet.props.hasGroup )
+			return "Sheet already has a group";
 		sheet.columns.push(c);
 		for( i in getSheetLines(sheet) ) {
 			var def = getDefault(c);
@@ -278,10 +307,30 @@ class Model {
 				map[p.a.i] = p.b.i;
 			}
 			conv = function(i) return map[i];
+		case [TFlags(values1), TFlags(values2)]:
+			var map = [];
+			for( p in makePairs([for( i in 0...values1.length ) { name : values1[i], i : i } ], [for( i in 0...values2.length ) { name : values2[i], i : i } ]) ) {
+				if( p.b == null ) continue;
+				map[p.a.i] = p.b.i;
+			}
+			conv = function(i) {
+				var out = 0;
+				var k = 0;
+				while( i >= 1<<k ) {
+					if( map[k] != null && i & (1 << k) != 0 )
+						out |= 1 << map[k];
+					k++;
+				}
+				return out;
+			};
 		case [TInt, TEnum(values)]:
 			conv = function(i) return if( i < 0 || i >= values.length ) null else i;
 		case [TEnum(values), TInt]:
 			// nothing
+		case [TFlags(values), TInt]:
+			// nothing
+		case [TEnum(val1), TFlags(val2)] if( Std.string(val1) == Std.string(val2) ):
+			conv = function(i) return 1 << i;
 		default:
 			return null;
 		}
@@ -291,8 +340,13 @@ class Model {
 	function updateColumn( sheet : Sheet, old : Column, c : Column ) {
 		if( old.name != c.name ) {
 			
+			for( c2 in sheet.columns )
+				if( c2.name == c.name )
+					return "Column name already used";
 			if( c.name == "index" && sheet.props.hasIndex )
 				return "Sheet already has an index";
+			if( c.name == "group" && sheet.props.hasGroup )
+				return "Sheet already has a group";
 			
 			for( o in getSheetLines(sheet) ) {
 				var v = Reflect.field(o, old.name);
@@ -510,6 +564,13 @@ class Model {
 			"????";
 		case TCustom(t):
 			typeValToString(tmap.get(t), val, esc);
+		case TFlags(values):
+			var v : Int = val;
+			var flags = [];
+			for( i in 0...values.length )
+				if( v & (1 << i) != 0 )
+					flags.push(valToString(TString, values[i], esc));
+			Std.string(flags);
 		}
 	}
 	

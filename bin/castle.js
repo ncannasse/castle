@@ -258,7 +258,7 @@ Model.prototype = {
 		{
 			var _g = c.type;
 			switch(_g[1]) {
-			case 3:case 4:case 5:
+			case 3:case 4:case 5:case 10:
 				return 0;
 			case 1:case 0:case 6:case 7:
 				return "";
@@ -273,6 +273,57 @@ Model.prototype = {
 	}
 	,save: function(history) {
 		if(history == null) history = true;
+		var _g = 0;
+		var _g1 = this.data.sheets;
+		while(_g < _g1.length) {
+			var s = _g1[_g];
+			++_g;
+			var _g2 = 0;
+			var _g3 = Reflect.fields(s.props);
+			while(_g2 < _g3.length) {
+				var p = _g3[_g2];
+				++_g2;
+				var v = (function($this) {
+					var $r;
+					var v1 = null;
+					try {
+						v1 = s.props[p];
+					} catch( e ) {
+					}
+					$r = v1;
+					return $r;
+				}(this));
+				if(v == null || v == false) Reflect.deleteField(s.props,p);
+			}
+			if(s.props.hasIndex) {
+				var lines = this.getSheetLines(s);
+				var _g3 = 0;
+				var _g2 = lines.length;
+				while(_g3 < _g2) {
+					var i = _g3++;
+					lines[i].index = i;
+				}
+			}
+			if(s.props.hasGroup) {
+				var lines = this.getSheetLines(s);
+				var gid = 0;
+				var sindex = 0;
+				var titles = s.props.separatorTitles;
+				if(titles != null) {
+					if(s.separators[sindex] == 0 && titles[sindex] != null) sindex++;
+					var _g3 = 0;
+					var _g2 = lines.length;
+					while(_g3 < _g2) {
+						var i = _g3++;
+						if(s.separators[sindex] == i) {
+							if(titles[sindex] != null) gid++;
+							sindex++;
+						}
+						lines[i].group = gid;
+					}
+				}
+			}
+		}
 		if(history) {
 			var sdata = this.quickSave();
 			if(sdata != this.curSavedData) {
@@ -298,15 +349,6 @@ Model.prototype = {
 				save.push(c.type);
 				if(c.typeStr == null) c.typeStr = cdb.Parser.saveType(c.type);
 				Reflect.deleteField(c,"type");
-			}
-			if(s.props.hasIndex) {
-				var lines = this.getSheetLines(s);
-				var _g3 = 0;
-				var _g2 = lines.length;
-				while(_g3 < _g2) {
-					var i = _g3++;
-					lines[i].index = i;
-				}
 			}
 		}
 		var _g = 0;
@@ -446,6 +488,7 @@ Model.prototype = {
 			if(c2.name == c.name) return "Column already exists"; else if(c2.type == cdb.ColumnType.TId && c.type == cdb.ColumnType.TId) return "Only one ID allowed";
 		}
 		if(c.name == "index" && sheet.props.hasIndex) return "Sheet already has an index";
+		if(c.name == "group" && sheet.props.hasGroup) return "Sheet already has a group";
 		sheet.columns.push(c);
 		var _g = 0;
 		var _g1 = this.getSheetLines(sheet);
@@ -615,6 +658,70 @@ Model.prototype = {
 			case 3:
 				var values = old[2];
 				break;
+			case 10:
+				var val1 = old[2];
+				var val2 = t[2];
+				if(Std.string(val1) == Std.string(val2)) conv = function(i) {
+					return 1 << i;
+				}; else return null;
+				break;
+			default:
+				return null;
+			}
+			break;
+		case 10:
+			switch(t[1]) {
+			case 10:
+				var values1 = old[2];
+				var values2 = t[2];
+				var map2 = [];
+				var _g2 = 0;
+				var _g3 = this.makePairs((function($this) {
+					var $r;
+					var _g = [];
+					{
+						var _g21 = 0;
+						var _g1 = values1.length;
+						while(_g21 < _g1) {
+							var i = _g21++;
+							_g.push({ name : values1[i], i : i});
+						}
+					}
+					$r = _g;
+					return $r;
+				}(this)),(function($this) {
+					var $r;
+					var _g1 = [];
+					{
+						var _g31 = 0;
+						var _g21 = values2.length;
+						while(_g31 < _g21) {
+							var i = _g31++;
+							_g1.push({ name : values2[i], i : i});
+						}
+					}
+					$r = _g1;
+					return $r;
+				}(this)));
+				while(_g2 < _g3.length) {
+					var p = _g3[_g2];
+					++_g2;
+					if(p.b == null) continue;
+					map2[p.a.i] = p.b.i;
+				}
+				conv = function(i) {
+					var out = 0;
+					var k = 0;
+					while(i >= 1 << k) {
+						if(map2[k] != null && (i & 1 << k) != 0) out |= 1 << map2[k];
+						k++;
+					}
+					return out;
+				};
+				break;
+			case 3:
+				var values = old[2];
+				break;
 			default:
 				return null;
 			}
@@ -627,7 +734,15 @@ Model.prototype = {
 	,updateColumn: function(sheet,old,c) {
 		var _g = this;
 		if(old.name != c.name) {
+			var _g1 = 0;
+			var _g11 = sheet.columns;
+			while(_g1 < _g11.length) {
+				var c2 = _g11[_g1];
+				++_g1;
+				if(c2.name == c.name) return "Column name already used";
+			}
 			if(c.name == "index" && sheet.props.hasIndex) return "Sheet already has an index";
+			if(c.name == "group" && sheet.props.hasGroup) return "Sheet already has a group";
 			var _g1 = 0;
 			var _g11 = this.getSheetLines(sheet);
 			while(_g1 < _g11.length) {
@@ -967,6 +1082,17 @@ Model.prototype = {
 		case 9:
 			var t1 = t[2];
 			return this.typeValToString(this.tmap.get(t1),val,esc);
+		case 10:
+			var values = t[2];
+			var v = val;
+			var flags = [];
+			var _g1 = 0;
+			var _g = values.length;
+			while(_g1 < _g) {
+				var i = _g1++;
+				if((v & 1 << i) != 0) flags.push(this.valToString(cdb.ColumnType.TString,values[i],esc));
+			}
+			return Std.string(flags);
 		}
 	}
 	,typeValToString: function(t,val,esc) {
@@ -1640,7 +1766,7 @@ var Main = function() {
 	}).keydown(function(e) {
 		e.stopPropagation();
 	});
-	this.cursor = { s : null, x : 0, y : 0, select : null};
+	this.cursor = { s : null, x : 0, y : 0, select : null, onchange : null};
 	this.load(true);
 	var t = new haxe.Timer(1000);
 	t.run = $bind(this,this.checkTime);
@@ -2099,6 +2225,18 @@ Main.prototype = $extend(Model.prototype,{
 					str += ")";
 				}
 				return str;
+			case 10:
+				var values = _g[2];
+				var v1 = v;
+				var flags = [];
+				var _g2 = 0;
+				var _g1 = values.length;
+				while(_g2 < _g1) {
+					var i = _g2++;
+					if((v1 & 1 << i) != 0) flags.push(StringTools.htmlEscape(values[i]));
+				}
+				if(flags.length == 0) return String.fromCharCode(8709); else return flags.join("|");
+				break;
 			}
 		}
 	}
@@ -2271,9 +2409,10 @@ Main.prototype = $extend(Model.prototype,{
 		var nleft = new nodejs.webkit.MenuItem({ label : "Move Left"});
 		var nright = new nodejs.webkit.MenuItem({ label : "Move Right"});
 		var ndel = new nodejs.webkit.MenuItem({ label : "Delete"});
-		var nindex = new nodejs.webkit.MenuItem({ label : "Index", type : "checkbox"});
+		var nindex = new nodejs.webkit.MenuItem({ label : "Add Index", type : "checkbox"});
+		var ngroup = new nodejs.webkit.MenuItem({ label : "Add Group", type : "checkbox"});
 		var _g1 = 0;
-		var _g11 = [nins,nleft,nright,ndel,nindex];
+		var _g11 = [nins,nleft,nright,ndel,nindex,ngroup];
 		while(_g1 < _g11.length) {
 			var m = _g11[_g1];
 			++_g1;
@@ -2340,7 +2479,7 @@ Main.prototype = $extend(Model.prototype,{
 					++_g1;
 					Reflect.deleteField(o,"index");
 				}
-				Reflect.deleteField(s.props,"hasIndex");
+				s.props.hasIndex = false;
 			} else {
 				var _g1 = 0;
 				var _g11 = s.columns;
@@ -2353,6 +2492,32 @@ Main.prototype = $extend(Model.prototype,{
 					}
 				}
 				s.props.hasIndex = true;
+			}
+			_g.save();
+		};
+		ngroup.checked = s.props.hasGroup;
+		ngroup.click = function() {
+			if(s.props.hasGroup) {
+				var _g1 = 0;
+				var _g2 = _g.getSheetLines(s);
+				while(_g1 < _g2.length) {
+					var o = _g2[_g1];
+					++_g1;
+					Reflect.deleteField(o,"group");
+				}
+				s.props.hasGroup = false;
+			} else {
+				var _g1 = 0;
+				var _g11 = s.columns;
+				while(_g1 < _g11.length) {
+					var c = _g11[_g1];
+					++_g1;
+					if(c.name == "group") {
+						_g.error("Column 'group' already exists");
+						return;
+					}
+				}
+				s.props.hasGroup = true;
 			}
 			_g.save();
 		};
@@ -2641,6 +2806,39 @@ Main.prototype = $extend(Model.prototype,{
 				});
 				i.appendTo(new js.JQuery("body"));
 				i.click();
+				break;
+			case 10:
+				var values = _g1[2];
+				var div = new js.JQuery("<div>").addClass("flagValues");
+				div.click(function(e) {
+					e.stopPropagation();
+				}).dblclick(function(e) {
+					e.stopPropagation();
+				});
+				var _g2 = 0;
+				var _g11 = values.length;
+				while(_g2 < _g11) {
+					var i1 = [_g2++];
+					var f = new js.JQuery("<input>").attr("type","checkbox").prop("checked",(val & 1 << i1[0]) != 0).change((function(i1) {
+						return function(e) {
+							val &= ~(1 << i1[0]);
+							if($(this).prop("checked")) val |= 1 << i1[0];
+							e.stopPropagation();
+						};
+					})(i1));
+					new js.JQuery("<label>").text(values[i1[0]]).appendTo(div).append(f);
+				}
+				v.empty();
+				v.append(div);
+				this.cursor.onchange = function() {
+					if(c.opt && val == 0) {
+						val = null;
+						Reflect.deleteField(obj,c.name);
+					} else obj[c.name] = val;
+					html = _g.valueHtml(c,val,sheet,obj);
+					editDone();
+					_g.save();
+				};
 				break;
 			case 8:
 				throw "assert";
@@ -2985,13 +3183,18 @@ Main.prototype = $extend(Model.prototype,{
 		this.cursor.x = x;
 		this.cursor.y = y;
 		this.cursor.select = sel;
+		var ch = this.cursor.onchange;
+		if(ch != null) {
+			this.cursor.onchange = null;
+			ch();
+		}
 		if(update) this.updateCursor();
 	}
 	,selectSheet: function(s) {
 		this.viewSheet = s;
 		this.cursor = this.sheetCursors.get(s.name);
 		if(this.cursor == null) {
-			this.cursor = { x : 0, y : 0, s : null, select : null};
+			this.cursor = { x : 0, y : 0, s : null, select : null, onchange : null};
 			this.sheetCursors.set(s.name,this.cursor);
 		}
 		if(this.cursor.s == null || this.cursor.s.name != s.name) this.setCursor(s,null,null,null,false);
@@ -3191,6 +3394,10 @@ Main.prototype = $extend(Model.prototype,{
 					var values = _g[2];
 					form.find("[name=values]").val(values.join(","));
 					break;
+				case 10:
+					var values = _g[2];
+					form.find("[name=values]").val(values.join(","));
+					break;
 				case 6:
 					var sname = _g[2];
 					form.find("[name=sheet]").val(sname);
@@ -3292,6 +3499,27 @@ Main.prototype = $extend(Model.prototype,{
 				return;
 			}
 			t = cdb.ColumnType.TEnum((function($this) {
+				var $r;
+				var _g1 = [];
+				{
+					var _g2 = 0;
+					while(_g2 < vals.length) {
+						var f = vals[_g2];
+						++_g2;
+						_g1.push(StringTools.trim(f));
+					}
+				}
+				$r = _g1;
+				return $r;
+			}(this)));
+			break;
+		case "flags":
+			var vals = StringTools.trim(v.values).split(",");
+			if(vals.length == 0) {
+				this.error("Missing value list");
+				return;
+			}
+			t = cdb.ColumnType.TFlags((function($this) {
 				var $r;
 				var _g1 = [];
 				{
@@ -3775,7 +4003,7 @@ Type.enumEq = function(a,b) {
 	return true;
 }
 var cdb = {}
-cdb.ColumnType = $hxClasses["cdb.ColumnType"] = { __ename__ : ["cdb","ColumnType"], __constructs__ : ["TId","TString","TBool","TInt","TFloat","TEnum","TRef","TImage","TList","TCustom"] }
+cdb.ColumnType = $hxClasses["cdb.ColumnType"] = { __ename__ : ["cdb","ColumnType"], __constructs__ : ["TId","TString","TBool","TInt","TFloat","TEnum","TRef","TImage","TList","TCustom","TFlags"] }
 cdb.ColumnType.TId = ["TId",0];
 cdb.ColumnType.TId.toString = $estr;
 cdb.ColumnType.TId.__enum__ = cdb.ColumnType;
@@ -3800,6 +4028,7 @@ cdb.ColumnType.TList = ["TList",8];
 cdb.ColumnType.TList.toString = $estr;
 cdb.ColumnType.TList.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TCustom = function(name) { var $x = ["TCustom",9,name]; $x.__enum__ = cdb.ColumnType; $x.toString = $estr; return $x; }
+cdb.ColumnType.TFlags = function(values) { var $x = ["TFlags",10,values]; $x.__enum__ = cdb.ColumnType; $x.toString = $estr; return $x; }
 cdb._Data = {}
 cdb._Data.DisplayType_Impl_ = function() { }
 $hxClasses["cdb._Data.DisplayType_Impl_"] = cdb._Data.DisplayType_Impl_;
@@ -3814,7 +4043,10 @@ cdb.Parser.saveType = function(t) {
 	case 5:
 		var values = t[2];
 		return t[1] + ":" + values.join(",");
-	default:
+	case 10:
+		var values = t[2];
+		return t[1] + ":" + values.join(",");
+	case 0:case 1:case 8:case 3:case 7:case 4:case 2:
 		return Std.string(t[1]);
 	}
 }
@@ -3856,6 +4088,13 @@ cdb.Parser.getType = function(str) {
 			$r = HxOverrides.substr(str,pos,null);
 			return $r;
 		}(this)));
+	case 10:
+		return cdb.ColumnType.TFlags(((function($this) {
+			var $r;
+			var pos = str.indexOf(":") + 1;
+			$r = HxOverrides.substr(str,pos,null);
+			return $r;
+		}(this))).split(","));
 	default:
 		throw "Unknown type " + str;
 	}

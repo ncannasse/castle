@@ -104,7 +104,7 @@ div.modal {
 			display : none;
 		}
 	}
-	#col_options.t_enum .values {
+	#col_options.t_enum .values, #col_options.t_flags .values {
 		display : block;
 	}
 	#col_options.t_ref .sheet {
@@ -296,6 +296,25 @@ div#menu {
 	
 	td.t_enum {
 		padding-left : 5px;
+	}
+	
+	.flagValues {
+		position : absolute;
+		background-color : white;
+		width : 150px;
+		padding : 5px;
+		border : 1px solid #333;
+		label {
+			display : block;
+			clear : both;
+			input {
+				float : right;
+			}
+			padding : 1px;
+		}
+		label:hover {
+			background-color : #eee;
+		}
 	}
 	
 	tr {
