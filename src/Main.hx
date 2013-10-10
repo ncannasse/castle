@@ -40,6 +40,7 @@ class Main extends Model {
 	var cursor : Cursor;
 	var sheetCursors : Map<String, Cursor>;
 	var lastSave : Float;
+	var colProps : { sheet : String, ref : Column, index : Null<Int> };
 	
 	function new() {
 		super();
@@ -524,7 +525,7 @@ class Main extends Model {
 			save();
 		};
 		nins.click = function() {
-			newColumn(sheet.name);
+			newColumn(sheet.name, Lambda.indexOf(sheet.columns,c) + 1);
 		};
 		n.popup(mousePos.x, mousePos.y);
 	}
@@ -1155,8 +1156,10 @@ class Main extends Model {
 	}
 
 	override function deleteColumn( sheet : Sheet, ?cname) {
-		if( cname == null )
-			cname = J("#newcol form [name=ref]").val();
+		if( cname == null ) {
+			sheet = getSheet(colProps.sheet);
+			cname = colProps.ref.name;
+		}
 		if( !super.deleteColumn(sheet, cname) )
 			return false;
 		J("#newcol").hide();
@@ -1269,8 +1272,10 @@ class Main extends Model {
 		text.change();
 	}
 	
-	function newColumn( ?sheetName : String, ?ref : Column ) {
+	function newColumn( ?sheetName : String, ?ref : Column, ?index : Int ) {
 		var form = J("#newcol form");
+		
+		colProps = { sheet : sheetName, ref : ref, index : index };
 		
 		var sheets = J("[name=sheet]");
 		sheets.empty();
@@ -1297,7 +1302,6 @@ class Main extends Model {
 			form.find("[name=name]").val(ref.name);
 			form.find("[name=type]").val(ref.type.getName().substr(1).toLowerCase()).change();
 			form.find("[name=req]").prop("checked", !ref.opt);
-			form.find("[name=ref]").val(ref.name);
 			form.find("[name=display]").val(ref.display == null ? "0" : Std.string(ref.display));
 			switch( ref.type ) {
 			case TEnum(values), TFlags(values):
@@ -1313,7 +1317,6 @@ class Main extends Model {
 			form.find("input").not("[type=submit]").val("");
 			form.find("[name=req]").prop("checked", true);
 		}
-		form.find("[name=sheetRef]").val(sheetName == null ? "" : sheetName);
 		types.change();
 		
 		J("#newcol").show();
@@ -1363,18 +1366,9 @@ class Main extends Model {
 		for( i in cols )
 			Reflect.setField(v, i.attr("name"), i.attr("type") == "checkbox" ? (i.is(":checked")?"on":null) : i.val());
 
-		var sheet = viewSheet;
-		var refColumn = null;
+		var sheet = colProps.sheet == null ? viewSheet : getSheet(colProps.sheet);
+		var refColumn = colProps.ref;
 		
-		if( v.sheetRef != "" )
-			sheet = getSheet(v.sheetRef);
-		
-		if( v.ref != "" ) {
-			for( c in sheet.columns )
-				if( c.name == v.ref )
-					refColumn = c;
-		}
-	
 		var t : ColumnType = switch( v.type ) {
 		case "id": TId;
 		case "int": TInt;
@@ -1434,7 +1428,7 @@ class Main extends Model {
 				return;
 			}
 		} else {
-			var err = super.addColumn(sheet, c);
+			var err = super.addColumn(sheet, c, colProps.index);
 			if( err != null ) {
 				error(err);
 				return;

@@ -238,7 +238,7 @@ class Model {
 		return false;
 	}
 	
-	function addColumn( sheet : Sheet, c : Column ) {
+	function addColumn( sheet : Sheet, c : Column, ?index : Int ) {
 		// create
 		for( c2 in sheet.columns )
 			if( c2.name == c.name )
@@ -249,7 +249,10 @@ class Model {
 			return "Sheet already has an index";
 		if( c.name == "group" && sheet.props.hasGroup )
 			return "Sheet already has a group";
-		sheet.columns.push(c);
+		if( index == null )
+			sheet.columns.push(c);
+		else
+			sheet.columns.insert(index, c);
 		for( i in getSheetLines(sheet) ) {
 			var def = getDefault(c);
 			if( def != null ) Reflect.setField(i, c.name, def);

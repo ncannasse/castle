@@ -473,7 +473,7 @@ Model.prototype = {
 		}
 		return false;
 	}
-	,addColumn: function(sheet,c) {
+	,addColumn: function(sheet,c,index) {
 		var _g = 0;
 		var _g1 = sheet.columns;
 		while(_g < _g1.length) {
@@ -483,7 +483,7 @@ Model.prototype = {
 		}
 		if(c.name == "index" && sheet.props.hasIndex) return "Sheet already has an index";
 		if(c.name == "group" && sheet.props.hasGroup) return "Sheet already has a group";
-		sheet.columns.push(c);
+		if(index == null) sheet.columns.push(c); else sheet.columns.splice(index,0,c);
 		var _g = 0;
 		var _g1 = this.getSheetLines(sheet);
 		while(_g < _g1.length) {
@@ -2347,7 +2347,7 @@ Main.prototype = $extend(Model.prototype,{
 			_g2.save();
 		};
 		nins.click = function() {
-			_g2.newColumn(sheet.name);
+			_g2.newColumn(sheet.name,null,Lambda.indexOf(sheet.columns,c) + 1);
 		};
 		n.popup(this.mousePos.x,this.mousePos.y);
 	}
@@ -3150,7 +3150,10 @@ Main.prototype = $extend(Model.prototype,{
 		new js.JQuery("#newsheet").show();
 	}
 	,deleteColumn: function(sheet,cname) {
-		if(cname == null) cname = new js.JQuery("#newcol form [name=ref]").val();
+		if(cname == null) {
+			sheet = this.smap.get(this.colProps.sheet).s;
+			cname = this.colProps.ref.name;
+		}
 		if(!Model.prototype.deleteColumn.call(this,sheet,cname)) return false;
 		new js.JQuery("#newcol").hide();
 		this.refresh();
@@ -3296,8 +3299,9 @@ Main.prototype = $extend(Model.prototype,{
 		this.typesStr = null;
 		text.change();
 	}
-	,newColumn: function(sheetName,ref) {
+	,newColumn: function(sheetName,ref,index) {
 		var form = new js.JQuery("#newcol form");
+		this.colProps = { sheet : sheetName, ref : ref, index : index};
 		var sheets = new js.JQuery("[name=sheet]");
 		sheets.empty();
 		var _g1 = 0;
@@ -3328,7 +3332,6 @@ Main.prototype = $extend(Model.prototype,{
 			form.find("[name=name]").val(ref.name);
 			form.find("[name=type]").val(HxOverrides.substr(ref.type[0],1,null).toLowerCase()).change();
 			form.find("[name=req]").prop("checked",!ref.opt);
-			form.find("[name=ref]").val(ref.name);
 			form.find("[name=display]").val(ref.display == null?"0":Std.string(ref.display));
 			{
 				var _g = ref.type;
@@ -3357,7 +3360,6 @@ Main.prototype = $extend(Model.prototype,{
 			form.find("input").not("[type=submit]").val("");
 			form.find("[name=req]").prop("checked",true);
 		}
-		form.find("[name=sheetRef]").val(sheetName == null?"":sheetName);
 		types.change();
 		new js.JQuery("#newcol").show();
 	}
@@ -3405,18 +3407,9 @@ Main.prototype = $extend(Model.prototype,{
 			} else value = i.val();
 			v[field] = value;
 		}
-		var sheet = this.viewSheet;
-		var refColumn = null;
-		if(v.sheetRef != "") sheet = this.smap.get(v.sheetRef).s;
-		if(v.ref != "") {
-			var _g = 0;
-			var _g1 = sheet.columns;
-			while(_g < _g1.length) {
-				var c = _g1[_g];
-				++_g;
-				if(c.name == v.ref) refColumn = c;
-			}
-		}
+		var sheet;
+		if(this.colProps.sheet == null) sheet = this.viewSheet; else sheet = this.smap.get(this.colProps.sheet).s;
+		var refColumn = this.colProps.ref;
 		var t;
 		var _g = v.type;
 		switch(_g) {
@@ -3514,7 +3507,7 @@ Main.prototype = $extend(Model.prototype,{
 				return;
 			}
 		} else {
-			var err = Model.prototype.addColumn.call(this,sheet,c);
+			var err = Model.prototype.addColumn.call(this,sheet,c,this.colProps.index);
 			if(err != null) {
 				this.error(err);
 				return;
