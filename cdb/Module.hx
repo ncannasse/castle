@@ -143,6 +143,12 @@ class Module {
 			access : [APublic, AStatic, AInline],
 		});
 		fields.push( {
+			name : "NAMES",
+			pos : pos,
+			kind : FVar(null, macro $v { values } ),
+			access : [APublic, AStatic],
+		});
+		fields.push( {
 			name : "ofInt",
 			pos : pos,
 			kind : FFun({
