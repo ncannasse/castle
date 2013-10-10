@@ -417,7 +417,6 @@
 				}
 			],
 			"props": {
-				"displayColumn": null,
 				"separatorTitles": [
 					null,
 					null,
@@ -486,9 +485,7 @@
 					"season": 0
 				}
 			],
-			"props": {
-				"displayColumn": null
-			}
+			"props": {}
 		},
 		{
 			"name": "monsters@skills",

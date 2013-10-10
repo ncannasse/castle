@@ -450,7 +450,8 @@ class Main extends Model {
 		for( m in [nedit, nins, nleft, nright, ndel, ndisp] )
 			n.append(m);
 		
-		if( c.type == TId || c.type == TString ) {
+		switch( c.type ) {
+		case TId, TString, TEnum(_), TFlags(_):
 			var conv = new MenuItem( { label : "Convert" } );
 			var cm = new Menu();
 			for( k in [
@@ -461,25 +462,33 @@ class Main extends Model {
 			] ) {
 				var m = new MenuItem( { label : k.n } );
 				m.click = function() {
-					var refMap = new Map();
-					for( obj in getSheetLines(sheet) ) {
-						var t = Reflect.field(obj, c.name);
-						if( t != null && t != "" ) {
-							var t2 = k.f(t);
-							if( t2 == null && !c.opt ) t2 = "";
-							if( t2 == null )
-								Reflect.deleteField(obj, c.name);
-							else {
-								Reflect.setField(obj, c.name, t2);
-								if( t2 != "" )
-									refMap.set(t, t2);
+					
+					switch( c.type ) {
+					case TEnum(values), TFlags(values):
+						for( i in 0...values.length )
+							values[i] = k.f(values[i]);
+					default:
+						var refMap = new Map();
+						for( obj in getSheetLines(sheet) ) {
+							var t = Reflect.field(obj, c.name);
+							if( t != null && t != "" ) {
+								var t2 = k.f(t);
+								if( t2 == null && !c.opt ) t2 = "";
+								if( t2 == null )
+									Reflect.deleteField(obj, c.name);
+								else {
+									Reflect.setField(obj, c.name, t2);
+									if( t2 != "" )
+										refMap.set(t, t2);
+								}
 							}
 						}
+						if( c.type == TId )
+							updateRefs(sheet, refMap);
+						makeSheet(sheet); // might have changed ID or DISP
 					}
-					if( c.type == TId )
-						updateRefs(sheet, refMap);
+					
 						
-					makeSheet(sheet); // might have changed ID or DISP
 					refresh();
 					save();
 				};
@@ -487,6 +496,33 @@ class Main extends Model {
 			}
 			conv.submenu = cm;
 			n.append(conv);
+		case TInt, TFloat:
+			var conv = new MenuItem( { label : "Convert" } );
+			var cm = new Menu();
+			for( k in [
+				{ n : "* 10", f : function(s:Float) return s * 10 },
+				{ n : "/ 10", f : function(s:Float) return s / 10 },
+				{ n : "+ 1", f : function(s:Float) return s + 1 },
+				{ n : "- 1", f : function(s:Float) return s - 1 },
+			] ) {
+				var m = new MenuItem( { label : k.n } );
+				m.click = function() {
+					for( obj in getSheetLines(sheet) ) {
+						var t = Reflect.field(obj, c.name);
+						if( t != null ) {
+							var t2 = k.f(t);
+							if( c.type == TInt ) t2 = Std.int(t2);
+							Reflect.setField(obj, c.name, t2);
+						}
+					}
+					refresh();
+					save();
+				};
+				cm.append(m);
+			}
+			conv.submenu = cm;
+			n.append(conv);
+		default:
 		}
 		
 		ndisp.checked = sheet.props.displayColumn == c.name;

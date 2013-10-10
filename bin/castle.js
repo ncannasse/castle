@@ -2248,7 +2248,7 @@ Main.prototype = $extend(Model.prototype,{
 		n.popup(this.mousePos.x,this.mousePos.y);
 	}
 	,popupColumn: function(sheet,c) {
-		var _g2 = this;
+		var _g4 = this;
 		var n = new nodejs.webkit.Menu();
 		var nedit = new nodejs.webkit.MenuItem({ label : "Edit"});
 		var nins = new nodejs.webkit.MenuItem({ label : "Add Column"});
@@ -2263,69 +2263,145 @@ Main.prototype = $extend(Model.prototype,{
 			++_g;
 			n.append(m);
 		}
-		if(c.type == cdb.ColumnType.TId || c.type == cdb.ColumnType.TString) {
-			var conv = new nodejs.webkit.MenuItem({ label : "Convert"});
-			var cm = new nodejs.webkit.Menu();
-			var _g = 0;
-			var _g1 = [{ n : "lowercase", f : function(s) {
-				return s.toLowerCase();
-			}},{ n : "UPPERCASE", f : function(s) {
-				return s.toUpperCase();
-			}},{ n : "UpperIdent", f : function(s) {
-				return HxOverrides.substr(s,0,1).toUpperCase() + HxOverrides.substr(s,1,null);
-			}},{ n : "lowerIdent", f : function(s) {
-				return HxOverrides.substr(s,0,1).toLowerCase() + HxOverrides.substr(s,1,null);
-			}}];
-			while(_g < _g1.length) {
-				var k = [_g1[_g]];
-				++_g;
-				var m = new nodejs.webkit.MenuItem({ label : k[0].n});
-				m.click = (function(k) {
-					return function() {
-						var refMap = new haxe.ds.StringMap();
-						var _g3 = 0;
-						var _g4 = _g2.getSheetLines(sheet);
-						while(_g3 < _g4.length) {
-							var obj = _g4[_g3];
-							++_g3;
-							var t;
-							var v = null;
-							try {
-								v = obj[c.name];
-							} catch( e ) {
-							}
-							t = v;
-							if(t != null && t != "") {
-								var t2 = k[0].f(t);
-								if(t2 == null && !c.opt) t2 = "";
-								if(t2 == null) Reflect.deleteField(obj,c.name); else {
-									obj[c.name] = t2;
-									if(t2 != "") refMap.set(t,t2);
+		{
+			var _g = c.type;
+			switch(_g[1]) {
+			case 0:case 1:case 5:case 10:
+				var conv = new nodejs.webkit.MenuItem({ label : "Convert"});
+				var cm = new nodejs.webkit.Menu();
+				var _g1 = 0;
+				var _g2 = [{ n : "lowercase", f : function(s) {
+					return s.toLowerCase();
+				}},{ n : "UPPERCASE", f : function(s) {
+					return s.toUpperCase();
+				}},{ n : "UpperIdent", f : function(s) {
+					return HxOverrides.substr(s,0,1).toUpperCase() + HxOverrides.substr(s,1,null);
+				}},{ n : "lowerIdent", f : function(s) {
+					return HxOverrides.substr(s,0,1).toLowerCase() + HxOverrides.substr(s,1,null);
+				}}];
+				while(_g1 < _g2.length) {
+					var k = [_g2[_g1]];
+					++_g1;
+					var m = new nodejs.webkit.MenuItem({ label : k[0].n});
+					m.click = (function(k) {
+						return function() {
+							{
+								var _g3 = c.type;
+								switch(_g3[1]) {
+								case 5:
+									var values = _g3[2];
+									var _g5 = 0;
+									var _g41 = values.length;
+									while(_g5 < _g41) {
+										var i = _g5++;
+										values[i] = k[0].f(values[i]);
+									}
+									break;
+								case 10:
+									var values = _g3[2];
+									var _g5 = 0;
+									var _g41 = values.length;
+									while(_g5 < _g41) {
+										var i = _g5++;
+										values[i] = k[0].f(values[i]);
+									}
+									break;
+								default:
+									var refMap = new haxe.ds.StringMap();
+									var _g5 = 0;
+									var _g6 = _g4.getSheetLines(sheet);
+									while(_g5 < _g6.length) {
+										var obj = _g6[_g5];
+										++_g5;
+										var t;
+										var v = null;
+										try {
+											v = obj[c.name];
+										} catch( e ) {
+										}
+										t = v;
+										if(t != null && t != "") {
+											var t2 = k[0].f(t);
+											if(t2 == null && !c.opt) t2 = "";
+											if(t2 == null) Reflect.deleteField(obj,c.name); else {
+												obj[c.name] = t2;
+												if(t2 != "") refMap.set(t,t2);
+											}
+										}
+									}
+									if(c.type == cdb.ColumnType.TId) _g4.updateRefs(sheet,refMap);
+									_g4.makeSheet(sheet);
 								}
 							}
-						}
-						if(c.type == cdb.ColumnType.TId) _g2.updateRefs(sheet,refMap);
-						_g2.makeSheet(sheet);
-						_g2.refresh();
-						_g2.save();
-					};
-				})(k);
-				cm.append(m);
+							_g4.refresh();
+							_g4.save();
+						};
+					})(k);
+					cm.append(m);
+				}
+				conv.submenu = cm;
+				n.append(conv);
+				break;
+			case 3:case 4:
+				var conv = new nodejs.webkit.MenuItem({ label : "Convert"});
+				var cm = new nodejs.webkit.Menu();
+				var _g1 = 0;
+				var _g2 = [{ n : "* 10", f : function(s) {
+					return s * 10;
+				}},{ n : "/ 10", f : function(s) {
+					return s / 10;
+				}},{ n : "+ 1", f : function(s) {
+					return s + 1;
+				}},{ n : "- 1", f : function(s) {
+					return s - 1;
+				}}];
+				while(_g1 < _g2.length) {
+					var k1 = [_g2[_g1]];
+					++_g1;
+					var m = new nodejs.webkit.MenuItem({ label : k1[0].n});
+					m.click = (function(k1) {
+						return function() {
+							var _g3 = 0;
+							var _g5 = _g4.getSheetLines(sheet);
+							while(_g3 < _g5.length) {
+								var obj = _g5[_g3];
+								++_g3;
+								var t;
+								var v = null;
+								try {
+									v = obj[c.name];
+								} catch( e ) {
+								}
+								t = v;
+								if(t != null) {
+									var t2 = k1[0].f(t);
+									if(c.type == cdb.ColumnType.TInt) t2 = t2 | 0;
+									obj[c.name] = t2;
+								}
+							}
+							_g4.refresh();
+							_g4.save();
+						};
+					})(k1);
+					cm.append(m);
+				}
+				conv.submenu = cm;
+				n.append(conv);
+				break;
+			default:
 			}
-			conv.submenu = cm;
-			n.append(conv);
 		}
 		ndisp.checked = sheet.props.displayColumn == c.name;
 		nedit.click = function() {
-			_g2.newColumn(sheet.name,c);
+			_g4.newColumn(sheet.name,c);
 		};
 		nleft.click = function() {
 			var index = Lambda.indexOf(sheet.columns,c);
 			if(index > 0) {
 				HxOverrides.remove(sheet.columns,c);
 				sheet.columns.splice(index - 1,0,c);
-				_g2.refresh();
-				_g2.save();
+				_g4.refresh();
+				_g4.save();
 			}
 		};
 		nright.click = function() {
@@ -2333,21 +2409,21 @@ Main.prototype = $extend(Model.prototype,{
 			if(index < sheet.columns.length - 1) {
 				HxOverrides.remove(sheet.columns,c);
 				sheet.columns.splice(index + 1,0,c);
-				_g2.refresh();
-				_g2.save();
+				_g4.refresh();
+				_g4.save();
 			}
 		};
 		ndel.click = function() {
-			_g2.deleteColumn(sheet,c.name);
+			_g4.deleteColumn(sheet,c.name);
 		};
 		ndisp.click = function() {
 			if(sheet.props.displayColumn == c.name) sheet.props.displayColumn = null; else sheet.props.displayColumn = c.name;
-			_g2.makeSheet(sheet);
-			_g2.refresh();
-			_g2.save();
+			_g4.makeSheet(sheet);
+			_g4.refresh();
+			_g4.save();
 		};
 		nins.click = function() {
-			_g2.newColumn(sheet.name,null,Lambda.indexOf(sheet.columns,c) + 1);
+			_g4.newColumn(sheet.name,null,Lambda.indexOf(sheet.columns,c) + 1);
 		};
 		n.popup(this.mousePos.x,this.mousePos.y);
 	}
