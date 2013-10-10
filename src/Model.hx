@@ -363,8 +363,7 @@ class Model {
 						renameRec(s, c);
 				makeSheet(s);
 			}
-			
-			renameRec(sheet, old);
+			if( old.type == TList ) renameRec(sheet, old);
 			old.name = c.name;
 		}
 		

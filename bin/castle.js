@@ -206,16 +206,13 @@ Model.prototype = {
 			while(_g < _g1.length) {
 				var obj = _g1[_g];
 				++_g;
-				var v = (function($this) {
-					var $r;
-					var v1 = null;
-					try {
-						v1 = obj[colName];
-					} catch( e ) {
-					}
-					$r = v1;
-					return $r;
-				}(this));
+				var v;
+				var v1 = null;
+				try {
+					v1 = obj[colName];
+				} catch( e ) {
+				}
+				v = v1;
 				if(v != null) {
 					var _g2 = 0;
 					while(_g2 < v.length) {
@@ -283,16 +280,13 @@ Model.prototype = {
 			while(_g2 < _g3.length) {
 				var p = _g3[_g2];
 				++_g2;
-				var v = (function($this) {
-					var $r;
-					var v1 = null;
-					try {
-						v1 = s.props[p];
-					} catch( e ) {
-					}
-					$r = v1;
-					return $r;
-				}(this));
+				var v;
+				var v1 = null;
+				try {
+					v1 = s.props[p];
+				} catch( e ) {
+				}
+				v = v1;
 				if(v == null || v == false) Reflect.deleteField(s.props,p);
 			}
 			if(s.props.hasIndex) {
@@ -748,16 +742,13 @@ Model.prototype = {
 			while(_g1 < _g11.length) {
 				var o = _g11[_g1];
 				++_g1;
-				var v = (function($this) {
-					var $r;
-					var v1 = null;
-					try {
-						v1 = o[old.name];
-					} catch( e ) {
-					}
-					$r = v1;
-					return $r;
-				}(this));
+				var v;
+				var v1 = null;
+				try {
+					v1 = o[old.name];
+				} catch( e ) {
+				}
+				v = v1;
 				Reflect.deleteField(o,old.name);
 				if(v != null) o[c.name] = v;
 			}
@@ -776,7 +767,7 @@ Model.prototype = {
 				_g.makeSheet(s);
 			};
 			renameRec = renameRec1;
-			renameRec(sheet,old);
+			if(old.type == cdb.ColumnType.TList) renameRec(sheet,old);
 			old.name = c.name;
 		}
 		if(!Type.enumEq(old.type,c.type)) {
@@ -789,16 +780,13 @@ Model.prototype = {
 				while(_g1 < _g11.length) {
 					var o = _g11[_g1];
 					++_g1;
-					var v = (function($this) {
-						var $r;
-						var v1 = null;
-						try {
-							v1 = o[c.name];
-						} catch( e ) {
-						}
-						$r = v1;
-						return $r;
-					}(this));
+					var v;
+					var v1 = null;
+					try {
+						v1 = o[c.name];
+					} catch( e ) {
+					}
+					v = v1;
 					if(v != null) {
 						v = conv1(v);
 						if(v != null) o[c.name] = v; else Reflect.deleteField(o,c.name);
@@ -815,16 +803,13 @@ Model.prototype = {
 				while(_g1 < _g11.length) {
 					var o = _g11[_g1];
 					++_g1;
-					var v = (function($this) {
-						var $r;
-						var v1 = null;
-						try {
-							v1 = o[c.name];
-						} catch( e ) {
-						}
-						$r = v1;
-						return $r;
-					}(this));
+					var v;
+					var v1 = null;
+					try {
+						v1 = o[c.name];
+					} catch( e ) {
+					}
+					v = v1;
 					if(v == null) {
 						v = this.getDefault(c);
 						if(v != null) o[c.name] = v;
@@ -842,16 +827,13 @@ Model.prototype = {
 					while(_g11 < _g2.length) {
 						var o = _g2[_g11];
 						++_g11;
-						var v = (function($this) {
-							var $r;
-							var v1 = null;
-							try {
-								v1 = o[c.name];
-							} catch( e ) {
-							}
-							$r = v1;
-							return $r;
-						}(this));
+						var v;
+						var v1 = null;
+						try {
+							v1 = o[c.name];
+						} catch( e ) {
+						}
+						v = v1;
 						var _g3 = c.type;
 						switch(_g3[1]) {
 						case 8:
@@ -928,16 +910,13 @@ Model.prototype = {
 				while(_g2 < lines.length) {
 					var l = lines[_g2];
 					++_g2;
-					var v = (function($this) {
-						var $r;
-						var v1 = null;
-						try {
-							v1 = l[c.name];
-						} catch( e ) {
-						}
-						$r = v1;
-						return $r;
-					}(this));
+					var v;
+					var v1 = null;
+					try {
+						v1 = l[c.name];
+					} catch( e ) {
+					}
+					v = v1;
 					if(v != null && v != "") {
 						var disp = v;
 						if(s.props.displayColumn != null) {
@@ -981,16 +960,13 @@ Model.prototype = {
 					while(_g5 < _g6.length) {
 						var obj = _g6[_g5];
 						++_g5;
-						var v = (function($this) {
-							var $r;
-							var v1 = null;
-							try {
-								v1 = obj[c.name];
-							} catch( e ) {
-							}
-							$r = v1;
-							return $r;
-						}(this));
+						var v;
+						var v1 = null;
+						try {
+							v1 = obj[c.name];
+						} catch( e ) {
+						}
+						v = v1;
 						if(v != null) used.set(v,true);
 					}
 					break;
@@ -1018,16 +994,13 @@ Model.prototype = {
 		while(_g < _g1.length) {
 			var c = _g1[_g];
 			++_g;
-			var v = (function($this) {
-				var $r;
-				var v1 = null;
-				try {
-					v1 = obj[c.name];
-				} catch( e ) {
-				}
-				$r = v1;
-				return $r;
-			}(this));
+			var v;
+			var v1 = null;
+			try {
+				v1 = obj[c.name];
+			} catch( e ) {
+			}
+			v = v1;
 			if(v == null) continue;
 			fl.push(c.name + " : " + this.colToString(sheet,c,v,esc));
 		}
@@ -1514,16 +1487,13 @@ Model.prototype = {
 							while(_g5 < _g6.length) {
 								var obj = _g6[_g5];
 								++_g5;
-								var id = (function($this) {
-									var $r;
-									var v = null;
-									try {
-										v = obj[c.name];
-									} catch( e ) {
-									}
-									$r = v;
-									return $r;
-								}(this));
+								var id;
+								var v = null;
+								try {
+									v = obj[c.name];
+								} catch( e ) {
+								}
+								id = v;
 								if(id == null) continue;
 								id = refMap.get(id);
 								if(id == null) continue;
@@ -1539,16 +1509,13 @@ Model.prototype = {
 						while(_g5 < _g6.length) {
 							var obj = _g6[_g5];
 							++_g5;
-							var o = (function($this) {
-								var $r;
-								var v = null;
-								try {
-									v = obj[c.name];
-								} catch( e ) {
-								}
-								$r = v;
-								return $r;
-							}(this));
+							var o;
+							var v = null;
+							try {
+								v = obj[c.name];
+							} catch( e ) {
+							}
+							o = v;
 							if(o == null) continue;
 							convertTypeRec(this.tmap.get(t),o);
 						}
@@ -1686,16 +1653,13 @@ Model.prototype = {
 						while(_g5 < _g6.length) {
 							var obj = _g6[_g5];
 							++_g5;
-							var v = (function($this) {
-								var $r;
-								var v1 = null;
-								try {
-									v1 = obj[c.name];
-								} catch( e ) {
-								}
-								$r = v1;
-								return $r;
-							}(this));
+							var v;
+							var v1 = null;
+							try {
+								v1 = obj[c.name];
+							} catch( e ) {
+							}
+							v = v1;
 							if(v != null) {
 								v = convertTypeRec(t2,v);
 								if(v == null) Reflect.deleteField(obj,c.name); else obj[c.name] = v;
@@ -1932,16 +1896,13 @@ Main.prototype = $extend(Model.prototype,{
 						while(_g4 < _g3) {
 							var x = _g4++;
 							var c = this.cursor.s.columns[x];
-							var v = (function($this) {
-								var $r;
-								var v1 = null;
-								try {
-									v1 = obj[c.name];
-								} catch( e1 ) {
-								}
-								$r = v1;
-								return $r;
-							}(this));
+							var v;
+							var v1 = null;
+							try {
+								v1 = obj[c.name];
+							} catch( e1 ) {
+							}
+							v = v1;
 							if(v != null) out[c.name] = v;
 						}
 						data.push(out);
@@ -1993,16 +1954,13 @@ Main.prototype = $extend(Model.prototype,{
 						var c2 = sheet.columns[cid + posX];
 						if(c2 == null) continue;
 						var f = this.getConvFunction(c1.type,c2.type);
-						var v = (function($this) {
-							var $r;
-							var v1 = null;
-							try {
-								v1 = obj1[c1.name];
-							} catch( e1 ) {
-							}
-							$r = v1;
-							return $r;
-						}(this));
+						var v;
+						var v1 = null;
+						try {
+							v1 = obj1[c1.name];
+						} catch( e1 ) {
+						}
+						v = v1;
 						if(f == null) v = this.getDefault(c2); else if(f.f != null) v = f.f(v);
 						if(v == null && !c2.opt) v = this.getDefault(c2);
 						if(v == null) Reflect.deleteField(obj2,c2.name); else obj2[c2.name] = v;
@@ -2078,27 +2036,21 @@ Main.prototype = $extend(Model.prototype,{
 					var cid = _g2[_g1];
 					++_g1;
 					if(cid.type == cdb.ColumnType.TId) {
-						var id = (function($this) {
-							var $r;
+						var id;
+						var v = null;
+						try {
+							v = obj[cid.name];
+						} catch( e ) {
+						}
+						id = v;
+						if(id != null) {
+							var disp;
 							var v = null;
 							try {
-								v = obj[cid.name];
+								v = obj[c.name];
 							} catch( e ) {
 							}
-							$r = v;
-							return $r;
-						}(this));
-						if(id != null) {
-							var disp = (function($this) {
-								var $r;
-								var v = null;
-								try {
-									v = obj[c.name];
-								} catch( e ) {
-								}
-								$r = v;
-								return $r;
-							}(this));
+							disp = v;
 							if(disp == null) disp = "#" + id;
 							s.index.get(id).disp = disp;
 						}
@@ -2336,16 +2288,13 @@ Main.prototype = $extend(Model.prototype,{
 						while(_g3 < _g4.length) {
 							var obj = _g4[_g3];
 							++_g3;
-							var t = (function($this) {
-								var $r;
-								var v = null;
-								try {
-									v = obj[c.name];
-								} catch( e ) {
-								}
-								$r = v;
-								return $r;
-							}(this));
+							var t;
+							var v = null;
+							try {
+								v = obj[c.name];
+							} catch( e ) {
+							}
+							t = v;
 							if(t != null && t != "") {
 								var t2 = k[0].f(t);
 								if(t2 == null && !c.opt) t2 = "";
@@ -2526,16 +2475,13 @@ Main.prototype = $extend(Model.prototype,{
 	,editCell: function(c,v,sheet,index) {
 		var _g = this;
 		var obj = sheet.lines[index];
-		var val = (function($this) {
-			var $r;
-			var v1 = null;
-			try {
-				v1 = obj[c.name];
-			} catch( e ) {
-			}
-			$r = v1;
-			return $r;
-		}(this));
+		var val;
+		var v1 = null;
+		try {
+			v1 = obj[c.name];
+		} catch( e ) {
+		}
+		val = v1;
 		var html = _g.valueHtml(c,val,sheet,obj);
 		if(v.hasClass("edit")) return;
 		var editDone = function() {
@@ -2998,16 +2944,13 @@ Main.prototype = $extend(Model.prototype,{
 			while(_g5 < _g41) {
 				var index = [_g5++];
 				var obj = [sheet.lines[index[0]]];
-				var val = [(function($this) {
-					var $r;
-					var v = null;
-					try {
-						v = obj[0][c[0].name];
-					} catch( e ) {
-					}
-					$r = v;
-					return $r;
-				}(this))];
+				var val = [];
+				var v = null;
+				try {
+					v = obj[0][c[0].name];
+				} catch( e ) {
+				}
+				val[0] = v;
 				var v1 = [new js.JQuery("<td>").addClass(ctype).addClass("c")];
 				var l1 = [lines[index[0]]];
 				v1[0].appendTo(l1[0]);
@@ -3937,16 +3880,13 @@ Type.createEmptyInstance = function(cl) {
 	return new empty();
 }
 Type.createEnum = function(e,constr,params) {
-	var f = (function($this) {
-		var $r;
-		var v = null;
-		try {
-			v = e[constr];
-		} catch( e1 ) {
-		}
-		$r = v;
-		return $r;
-	}(this));
+	var f;
+	var v = null;
+	try {
+		v = e[constr];
+	} catch( e1 ) {
+	}
+	f = v;
 	if(f == null) throw "No such constructor " + constr;
 	if(Reflect.isFunction(f)) {
 		if(params == null) throw "Constructor " + constr + " need parameters";
@@ -4319,16 +4259,13 @@ haxe.Serializer.prototype = {
 					var $it3 = v1.keys();
 					while( $it3.hasNext() ) {
 						var k = $it3.next();
-						var id = (function($this) {
-							var $r;
-							var v2 = null;
-							try {
-								v2 = k.__id__;
-							} catch( e ) {
-							}
-							$r = v2;
-							return $r;
-						}(this));
+						var id;
+						var v2 = null;
+						try {
+							v2 = k.__id__;
+						} catch( e ) {
+						}
+						id = v2;
 						Reflect.deleteField(k,"__id__");
 						this.serialize(k);
 						k.__id__ = id;
