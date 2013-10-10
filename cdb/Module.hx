@@ -85,6 +85,23 @@ abstract Flags<T>(Int) {
 	
 }
 
+class IndexNoId<T> {
+
+	var name : String;
+	public var all : ArrayRead<T>;
+
+	public function new( data : Data, sheet : String ) {
+		this.name = sheet;
+		for( s in data.sheets )
+			if( s.name == sheet ) {
+				all = cast s.lines;
+				return;
+			}
+		throw "'" + sheet + "' not found in CDB data";
+	}
+	
+}
+
 class Index<T,Kind> {
 	
 	public var all : ArrayRead<T>;
@@ -545,15 +562,25 @@ class Module {
 			if( s.props.hide ) continue;
 			var tname = makeTypeName(s.name);
 			var t = tname.toComplex();
-			var kind = (tname + "Kind").toComplex();
 			var fname = fieldName(s.name);
-			fields.push({
-				name : fname,
-				pos : pos,
-				access : [APublic, AStatic],
-				kind : FVar(macro : cdb.Module.Index<$t,$kind>),
-			});
-			assigns.push(macro $i { fname } = new cdb.Module.Index(root, $v{ s.name } ));
+			if( Lambda.exists(s.columns, function(c) return c.type == TId) ) {
+				var kind = (tname + "Kind").toComplex();
+				fields.push({
+					name : fname,
+					pos : pos,
+					access : [APublic, AStatic],
+					kind : FVar(macro : cdb.Module.Index<$t,$kind>),
+				});
+				assigns.push(macro $i { fname } = new cdb.Module.Index(root, $v { s.name } ));
+			} else {
+				fields.push({
+					name : fname,
+					pos : pos,
+					access : [APublic, AStatic],
+					kind : FVar(macro : cdb.Module.IndexNoId<$t>),
+				});
+				assigns.push(macro $i { fname } = new cdb.Module.IndexNoId(root, $v { s.name } ));
+			}
 		}
 		types.push({
 			pos : pos,
