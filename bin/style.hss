@@ -258,6 +258,14 @@ div#menu {
 		padding-bottom: 5px;
 	}
 	
+	tr.clickable {
+		cursor : pointer;
+	}
+
+	tr.clickable:hover {
+		background-color : #f8f8f8;
+	}
+
 	tr.head {
 		font-weight: bold;
 		text-align: center;

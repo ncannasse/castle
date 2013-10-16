@@ -9,8 +9,8 @@ private typedef Cursor = {
 	s : Sheet,
 	x : Int,
 	y : Int,
-	select : { x : Int, y : Int },
-	onchange : Void -> Void,
+	?select : { x : Int, y : Int },
+	?onchange : Void -> Void,
 }
 
 class K {
@@ -24,6 +24,8 @@ class K {
 	public static inline var TAB = 9;
 	public static inline var ENTER = 13;
 	public static inline var F2 = 113;
+	public static inline var F3 = 114;
+	public static inline var F4 = 115;
 }
 
 class Main extends Model {
@@ -38,6 +40,7 @@ class Main extends Model {
 		schema : Array<Column>,
 	};
 	var cursor : Cursor;
+	var checkCursor : Bool;
 	var sheetCursors : Map<String, Cursor>;
 	var lastSave : Float;
 	var colProps : { sheet : String, ref : Column, index : Null<Int> };
@@ -56,8 +59,6 @@ class Main extends Model {
 			s : null,
 			x : 0,
 			y : 0,
-			select : null,
-			onchange : null,
 		};
 		load(true);
 		var t = new haxe.Timer(1000);
@@ -126,10 +127,10 @@ class Main extends Model {
 	
 	function onKey( e : js.html.KeyboardEvent ) {
 		switch( e.keyCode ) {
-		case K.INSERT: // Insert
+		case K.INSERT:
 			if( cursor.s != null )
 				newLine(cursor.s, cursor.y);
-		case K.DELETE: // Delete
+		case K.DELETE:
 			J(".selected.deletable").change();
 			if( cursor.s != null ) {
 				if( cursor.x < 0 ) {
@@ -161,12 +162,12 @@ class Main extends Model {
 		case K.UP:
 			moveCursor(0, -1, e.shiftKey, e.ctrlKey);
 			e.preventDefault();
-		case K.DOWN: // Down Key
+		case K.DOWN:
 			moveCursor(0, 1, e.shiftKey, e.ctrlKey);
 			e.preventDefault();
-		case K.LEFT: // Left Key
+		case K.LEFT:
 			moveCursor(-1, 0, e.shiftKey, e.ctrlKey);
-		case K.RIGHT: // Right Key
+		case K.RIGHT:
 			moveCursor(1, 0, e.shiftKey, e.ctrlKey);
 		case 'Z'.code if( e.ctrlKey ):
 			if( history.length > 0 ) {
@@ -236,7 +237,7 @@ class Main extends Model {
 			makeSheet(sheet);
 			refresh();
 			save();
-		case K.TAB: // TAB
+		case K.TAB:
 			if( e.ctrlKey ) {
 				var sheets = data.sheets.filter(function(s) return !s.props.hide);
 				var s = sheets[(Lambda.indexOf(sheets, viewSheet) + 1) % sheets.length];
@@ -253,8 +254,31 @@ class Main extends Model {
 				cursor.select = null;
 				updateCursor();
 			}
-		case K.F2: // F2
+		case K.F2:
 			J(".cursor").not(".edit").dblclick();
+		case K.F3:
+			if( cursor.s != null )
+				showReferences(cursor.s, cursor.y);
+		case K.F4:
+			if( cursor.s != null && cursor.x >= 0 ) {
+				var c = cursor.s.columns[cursor.x];
+				var id = Reflect.field(cursor.s.lines[cursor.y], c.name);
+				switch( c.type ) {
+				case TRef(s):
+					var sd = this.smap.get(s);
+					if( sd != null ) {
+						var k = sd.index.get(id);
+						if( k != null ) {
+							var index = Lambda.indexOf(sd.s.lines, k.obj);
+							if( index >= 0 ) {
+								sheetCursors.set(s, { s : sd.s, x : 0, y : index } );
+								selectSheet(sd.s);
+							}
+						}
+					}
+				default:
+				}
+			}
 		default:
 		}
 	}
@@ -262,6 +286,116 @@ class Main extends Model {
 	function getLine( sheet : Sheet, index : Int ) {
 		return J("table[sheet='"+getPath(sheet)+"'] > tbody > tr").not(".head,.separator,.list").eq(index);
 	}
+
+	function showReferences( sheet : Sheet, index : Int ) {
+		var id = null;
+		for( c in sheet.columns ) {
+			switch( c.type ) {
+			case TId:
+				id = Reflect.field(sheet.lines[index], c.name);
+				break;
+			default:
+			}
+		}
+		if( id == "" || id == null )
+			return;
+	
+		var results = [];
+		for( s in data.sheets ) {
+			for( c in s.columns )
+				switch( c.type ) {
+				case TRef(sname) if( sname == sheet.name ):
+					var sheets = [];
+					var p = { s : s, c : c.name, id : null };
+					while( true ) {
+						for( c in p.s.columns )
+							switch( c.type ) {
+							case TId: p.id = c.name; break;
+							default:
+							}
+						sheets.unshift(p);
+						var p2 = getParentSheet(p.s);
+						if( p2 == null ) break;
+						p = { s : p2.s, c : p2.c, id : null };
+					}
+					for( o in getSheetObjects(s) ) {
+						var obj = o.path[o.path.length - 1];
+						if( Reflect.field(obj, c.name) == id )
+							results.push({ s : sheets, o : o });
+					}
+				case TCustom(tname):
+					// todo : lookup in custom types
+				default:
+				}
+		}
+		if( results.length == 0 ) {
+			setErrorMessage(id + " not found");
+			haxe.Timer.delay(setErrorMessage.bind(), 500);
+			return;
+		}
+		
+		var line = getLine(sheet, index);
+		
+		// hide previous
+		line.next("tr.list").change();
+		
+		var res = J("<tr>").addClass("list");
+		J("<td>").appendTo(res);
+		var cell = J("<td>").attr("colspan", "" + (sheet.columns.length)).appendTo(res);
+		var div = J("<div>").appendTo(cell);
+		div.hide();
+		var content = J("<table>").appendTo(div);
+		
+		var cols = J("<tr>").addClass("head");
+		J("<td>").addClass("start").appendTo(cols).click(function(_) {
+			res.change();
+		});
+		for( name in ["path", "id"] )
+			J("<td>").text(name).appendTo(cols);
+		content.append(cols);
+		var index = 0;
+		for( rs in results ) {
+			var l = J("<tr>").appendTo(content).addClass("clickable");
+			J("<td>").text("" + (index++)).appendTo(l);
+			var slast = rs.s[rs.s.length - 1];
+			J("<td>").text(slast.s.name.split("@").join(".")+"."+slast.c).appendTo(l);
+			var path = [];
+			for( i in 0...rs.s.length ) {
+				var s = rs.s[i];
+				var oid = Reflect.field(rs.o.path[i], s.id);
+				if( oid == null || oid == "" )
+					path.push(s.s.name.split("@").pop() + "[" + rs.o.indexes[i]+"]");
+				else
+					path.push(oid);
+			}
+			J("<td>").text(path.join(".")).appendTo(l);
+			l.click(function(e) {
+				var key = null;
+				for( i in 0...rs.s.length - 1 ) {
+					var p = rs.s[i];
+					key = getPath(p.s) + "@" + p.c + ":" + rs.o.indexes[i];
+					openedList.set(key, true);
+				}
+				var starget = rs.s[0].s;
+				sheetCursors.set(starget.name, {
+					s : { name : slast.s.name, path : key, separators : [], lines : [], columns : [], props : {} },
+					x : -1,
+					y : rs.o.indexes[rs.o.indexes.length - 1],
+				});
+				selectSheet(starget);
+				e.stopPropagation();
+			});
+		}
+		
+		res.change(function(e) {
+			div.slideUp(100, function() res.remove());
+			e.stopPropagation();
+		});
+		
+		res.insertAfter(line);
+		div.slideDown(100);
+	}
+	
 	
 	override function moveLine( sheet : Sheet, index : Int, delta : Int ) {
 		// remove opened list
@@ -398,7 +532,8 @@ class Main extends Model {
 		var nins = new MenuItem( { label : "Insert" } );
 		var ndel = new MenuItem( { label : "Delete" } );
 		var nsep = new MenuItem( { label : "Separator", type : MenuItemType.checkbox } );
-		for( m in [nup, ndown, nins, ndel, nsep] )
+		var nref = new MenuItem( { label : "Show References" } );
+		for( m in [nup, ndown, nins, ndel, nsep, nref] )
 			n.append(m);
 		var sepIndex = Lambda.indexOf(sheet.separators, index);
 		nsep.checked = sepIndex >= 0;
@@ -433,6 +568,9 @@ class Main extends Model {
 			}
 			refresh();
 			save();
+		};
+		nref.click = function() {
+			showReferences(sheet, index);
 		};
 		if( sheet.props.hide )
 			nsep.enabled = false;
@@ -952,7 +1090,9 @@ class Main extends Model {
 	
 	function refresh() {
 		var t = J("<table>");
+		checkCursor = true;
 		fillTable(t, viewSheet);
+		if( cursor.s != viewSheet && checkCursor ) setCursor(viewSheet,false);
 		var content = J("#content");
 		content.empty();
 		t.appendTo(content);
@@ -1080,7 +1220,7 @@ class Main extends Model {
 							columns : psheet.columns, // SHARE
 							props : psheet.props, // SHARE
 							name : psheet.name, // same
-							path : getPath(sheet) + ":" + index, // unique
+							path : key, // unique
 							parent : { sheet : sheet, column : cindex, line : index },
 							lines : val, // ref
 							separators : [], // none
@@ -1100,7 +1240,13 @@ class Main extends Model {
 							openedList.remove(key);
 							e.stopPropagation();
 						});
-						if( !inTodo ) {
+						if( inTodo ) {
+							// make sure we use the same instance
+							if( cursor.s != null && getPath(cursor.s) == getPath(psheet) ) {
+								cursor.s = psheet;
+								checkCursor = false;
+							}
+						} else {
 							div.slideDown(100);
 							setCursor(psheet);
 						}
@@ -1174,14 +1320,10 @@ class Main extends Model {
 			cursor = {
 				x : 0,
 				y : 0,
-				s : null,
-				select : null,
-				onchange : null,
+				s : s,
 			};
 			sheetCursors.set(s.name, cursor);
 		}
-		if( cursor.s == null || cursor.s.name != s.name ) setCursor(s, false);
-		cursor.s = s;
 		prefs.curSheet = Lambda.indexOf(data.sheets, s);
 		J("#sheets li").removeClass("active").filter("#sheet_" + prefs.curSheet).addClass("active");
 		refresh();

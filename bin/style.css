@@ -238,6 +238,12 @@ div#menu ul.sheets li.active {
 	padding : 0;
 	padding-bottom : 5px;
 }
+.castle tr.clickable {
+	cursor : pointer;
+}
+.castle tr.clickable:hover {
+	background-color : #f8f8f8;
+}
 .castle tr.head {
 	font-weight : bold;
 	text-align : center;

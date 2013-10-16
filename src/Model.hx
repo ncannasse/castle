@@ -44,21 +44,45 @@ class Model {
 		return getSheet(sheet.name + "@" + c.name);
 	}
 	
+	function getParentSheet( sheet : Sheet ) {
+		if( !sheet.props.hide )
+			return null;
+		var parts = sheet.name.split("@");
+		var colName = parts.pop();
+		return { s : getSheet(parts.join("@")), c : colName };
+	}
+	
 	function getSheetLines( sheet : Sheet ) : Array<Dynamic> {
-		if( sheet.props.hide ) {
-			var parts = sheet.name.split("@");
-			var colName = parts.pop();
-			var parent = getSheet(parts.join("@"));
-			var all = [];
-			for( obj in getSheetLines(parent) ) {
-				var v : Array<Dynamic> = Reflect.field(obj, colName);
-				if( v != null )
-					for( v in v )
-						all.push(v);
-			}
-			return all;
+		var p = getParentSheet(sheet);
+		if( p == null ) return sheet.lines;
+		var all = [];
+		for( obj in getSheetLines(p.s) ) {
+			var v : Array<Dynamic> = Reflect.field(obj, p.c);
+			if( v != null )
+				for( v in v )
+					all.push(v);
 		}
-		return sheet.lines;
+		return all;
+	}
+
+	function getSheetObjects( sheet : Sheet ) : Array<{ path : Array<Dynamic>, indexes : Array<Int> }> {
+		var p = getParentSheet(sheet);
+		if( p == null )
+			return [for( i in 0...sheet.lines.length ) { path : [sheet.lines[i]], indexes : [i] }];
+		var all = [];
+		for( obj in getSheetObjects(p.s) ) {
+			var v : Array<Dynamic> = Reflect.field(obj.path[obj.path.length-1], p.c);
+			if( v != null )
+				for( i in 0...v.length ) {
+					var sobj = v[i];
+					var p = obj.path.copy();
+					var idx = obj.indexes.copy();
+					p.push(sobj);
+					idx.push(i);
+					all.push({ path : p, indexes : idx });
+				}
+		}
+		return all;
 	}
 	
 	function newLine( sheet : Sheet, ?index : Int ) {

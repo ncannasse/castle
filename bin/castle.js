@@ -193,38 +193,84 @@ Model.prototype = {
 	,getPseudoSheet: function(sheet,c) {
 		return this.smap.get(sheet.name + "@" + c.name).s;
 	}
-	,getSheetLines: function(sheet) {
-		if(sheet.props.hide) {
-			var parts = sheet.name.split("@");
-			var colName = parts.pop();
-			var parent;
+	,getParentSheet: function(sheet) {
+		if(!sheet.props.hide) return null;
+		var parts = sheet.name.split("@");
+		var colName = parts.pop();
+		return { s : (function($this) {
+			var $r;
 			var name = parts.join("@");
-			parent = this.smap.get(name).s;
-			var all = [];
-			var _g = 0;
-			var _g1 = this.getSheetLines(parent);
-			while(_g < _g1.length) {
-				var obj = _g1[_g];
-				++_g;
-				var v;
-				var v1 = null;
-				try {
-					v1 = obj[colName];
-				} catch( e ) {
-				}
-				v = v1;
-				if(v != null) {
-					var _g2 = 0;
-					while(_g2 < v.length) {
-						var v1 = v[_g2];
-						++_g2;
-						all.push(v1);
-					}
+			$r = $this.smap.get(name).s;
+			return $r;
+		}(this)), c : colName};
+	}
+	,getSheetLines: function(sheet) {
+		var p = this.getParentSheet(sheet);
+		if(p == null) return sheet.lines;
+		var all = [];
+		var _g = 0;
+		var _g1 = this.getSheetLines(p.s);
+		while(_g < _g1.length) {
+			var obj = _g1[_g];
+			++_g;
+			var v;
+			var v1 = null;
+			try {
+				v1 = obj[p.c];
+			} catch( e ) {
+			}
+			v = v1;
+			if(v != null) {
+				var _g2 = 0;
+				while(_g2 < v.length) {
+					var v1 = v[_g2];
+					++_g2;
+					all.push(v1);
 				}
 			}
-			return all;
 		}
-		return sheet.lines;
+		return all;
+	}
+	,getSheetObjects: function(sheet) {
+		var p = this.getParentSheet(sheet);
+		if(p == null) {
+			var _g = [];
+			var _g2 = 0;
+			var _g1 = sheet.lines.length;
+			while(_g2 < _g1) {
+				var i = _g2++;
+				_g.push({ path : [sheet.lines[i]], indexes : [i]});
+			}
+			return _g;
+		}
+		var all = [];
+		var _g1 = 0;
+		var _g2 = this.getSheetObjects(p.s);
+		while(_g1 < _g2.length) {
+			var obj = _g2[_g1];
+			++_g1;
+			var v;
+			var v1 = null;
+			try {
+				v1 = obj.path[obj.path.length - 1][p.c];
+			} catch( e ) {
+			}
+			v = v1;
+			if(v != null) {
+				var _g4 = 0;
+				var _g3 = v.length;
+				while(_g4 < _g3) {
+					var i = _g4++;
+					var sobj = v[i];
+					var p1 = obj.path.slice();
+					var idx = obj.indexes.slice();
+					p1.push(sobj);
+					idx.push(i);
+					all.push({ path : p1, indexes : idx});
+				}
+			}
+		}
+		return all;
 	}
 	,newLine: function(sheet,index) {
 		var o = { };
@@ -1730,7 +1776,7 @@ var Main = function() {
 	}).keydown(function(e) {
 		e.stopPropagation();
 	});
-	this.cursor = { s : null, x : 0, y : 0, select : null, onchange : null};
+	this.cursor = { s : null, x : 0, y : 0};
 	this.load(true);
 	var t = new haxe.Timer(1000);
 	t.run = $bind(this,this.checkTime);
@@ -1995,6 +2041,41 @@ Main.prototype = $extend(Model.prototype,{
 		case 113:
 			new js.JQuery(".cursor").not(".edit").dblclick();
 			break;
+		case 114:
+			if(this.cursor.s != null) this.showReferences(this.cursor.s,this.cursor.y);
+			break;
+		case 115:
+			if(this.cursor.s != null && this.cursor.x >= 0) {
+				var c = this.cursor.s.columns[this.cursor.x];
+				var id;
+				var v = null;
+				try {
+					v = this.cursor.s.lines[this.cursor.y][c.name];
+				} catch( e1 ) {
+				}
+				id = v;
+				{
+					var _g1 = c.type;
+					switch(_g1[1]) {
+					case 6:
+						var s = _g1[2];
+						var sd = this.smap.get(s);
+						if(sd != null) {
+							var k = sd.index.get(id);
+							if(k != null) {
+								var index = Lambda.indexOf(sd.s.lines,k.obj);
+								if(index >= 0) {
+									this.sheetCursors.set(s,{ s : sd.s, x : 0, y : index});
+									this.selectSheet(sd.s);
+								}
+							}
+						}
+						break;
+					default:
+					}
+				}
+			}
+			break;
 		default:
 		}
 	}
@@ -2005,6 +2086,184 @@ Main.prototype = $extend(Model.prototype,{
 			$r = new js.JQuery(html);
 			return $r;
 		}(this))).not(".head,.separator,.list").eq(index);
+	}
+	,showReferences: function(sheet,index) {
+		var _g3 = this;
+		var id = null;
+		var _g = 0;
+		var _g1 = sheet.columns;
+		try {
+			while(_g < _g1.length) {
+				var c = _g1[_g];
+				++_g;
+				var _g2 = c.type;
+				switch(_g2[1]) {
+				case 0:
+					var v = null;
+					try {
+						v = sheet.lines[index][c.name];
+					} catch( e ) {
+					}
+					id = v;
+					throw "__break__";
+					break;
+				default:
+				}
+			}
+		} catch( e ) { if( e != "__break__" ) throw e; }
+		if(id == "" || id == null) return;
+		var results = [];
+		var _g = 0;
+		var _g1 = this.data.sheets;
+		while(_g < _g1.length) {
+			var s = _g1[_g];
+			++_g;
+			var _g2 = 0;
+			var _g31 = s.columns;
+			while(_g2 < _g31.length) {
+				var c = _g31[_g2];
+				++_g2;
+				{
+					var _g4 = c.type;
+					switch(_g4[1]) {
+					case 6:
+						var sname = _g4[2];
+						if(sname == sheet.name) {
+							var sheets = [];
+							var p = { s : s, c : c.name, id : null};
+							while(true) {
+								var _g5 = 0;
+								var _g6 = p.s.columns;
+								try {
+									while(_g5 < _g6.length) {
+										var c1 = _g6[_g5];
+										++_g5;
+										var _g7 = c1.type;
+										switch(_g7[1]) {
+										case 0:
+											p.id = c1.name;
+											throw "__break__";
+											break;
+										default:
+										}
+									}
+								} catch( e ) { if( e != "__break__" ) throw e; }
+								sheets.unshift(p);
+								var p2 = this.getParentSheet(p.s);
+								if(p2 == null) break;
+								p = { s : p2.s, c : p2.c, id : null};
+							}
+							var _g5 = 0;
+							var _g6 = this.getSheetObjects(s);
+							while(_g5 < _g6.length) {
+								var o = _g6[_g5];
+								++_g5;
+								var obj = o.path[o.path.length - 1];
+								if((function($this) {
+									var $r;
+									var v = null;
+									try {
+										v = obj[c.name];
+									} catch( e ) {
+									}
+									$r = v;
+									return $r;
+								}(this)) == id) results.push({ s : sheets, o : o});
+							}
+						} else {
+						}
+						break;
+					case 9:
+						var tname = _g4[2];
+						break;
+					default:
+					}
+				}
+			}
+		}
+		if(results.length == 0) {
+			this.setErrorMessage(id + " not found");
+			haxe.Timer.delay((function($this) {
+				var $r;
+				var f = $bind($this,$this.setErrorMessage);
+				$r = function() {
+					return f();
+				};
+				return $r;
+			}(this)),500);
+			return;
+		}
+		var line = this.getLine(sheet,index);
+		line.next("tr.list").change();
+		var res = new js.JQuery("<tr>").addClass("list");
+		new js.JQuery("<td>").appendTo(res);
+		var cell = new js.JQuery("<td>").attr("colspan","" + sheet.columns.length).appendTo(res);
+		var div = new js.JQuery("<div>").appendTo(cell);
+		div.hide();
+		var content = new js.JQuery("<table>").appendTo(div);
+		var cols = new js.JQuery("<tr>").addClass("head");
+		new js.JQuery("<td>").addClass("start").appendTo(cols).click(function(_) {
+			res.change();
+		});
+		var _g = 0;
+		var _g1 = ["path","id"];
+		while(_g < _g1.length) {
+			var name = _g1[_g];
+			++_g;
+			new js.JQuery("<td>").text(name).appendTo(cols);
+		}
+		content.append(cols);
+		var index1 = 0;
+		var _g = 0;
+		while(_g < results.length) {
+			var rs = [results[_g]];
+			++_g;
+			var l = new js.JQuery("<tr>").appendTo(content).addClass("clickable");
+			new js.JQuery("<td>").text("" + index1++).appendTo(l);
+			var slast = [rs[0].s[rs[0].s.length - 1]];
+			new js.JQuery("<td>").text(slast[0].s.name.split("@").join(".") + "." + slast[0].c).appendTo(l);
+			var path = [];
+			var _g2 = 0;
+			var _g1 = rs[0].s.length;
+			while(_g2 < _g1) {
+				var i = _g2++;
+				var s = rs[0].s[i];
+				var oid;
+				var v = null;
+				try {
+					v = rs[0].o.path[i][s.id];
+				} catch( e ) {
+				}
+				oid = v;
+				if(oid == null || oid == "") path.push(s.s.name.split("@").pop() + "[" + rs[0].o.indexes[i] + "]"); else path.push(oid);
+			}
+			new js.JQuery("<td>").text(path.join(".")).appendTo(l);
+			l.click((function(slast,rs) {
+				return function(e) {
+					var key = null;
+					var _g2 = 0;
+					var _g1 = rs[0].s.length - 1;
+					while(_g2 < _g1) {
+						var i = _g2++;
+						var p = rs[0].s[i];
+						key = _g3.getPath(p.s) + "@" + p.c + ":" + rs[0].o.indexes[i];
+						_g3.openedList.set(key,true);
+					}
+					var starget = rs[0].s[0].s;
+					_g3.sheetCursors.set(starget.name,{ s : { name : slast[0].s.name, path : key, separators : [], lines : [], columns : [], props : { }}, x : -1, y : rs[0].o.indexes[rs[0].o.indexes.length - 1]});
+					_g3.selectSheet(starget);
+					e.stopPropagation();
+				};
+			})(slast,rs));
+		}
+		res.change(function(e) {
+			div.slideUp(100,function() {
+				res.remove();
+			});
+			e.stopPropagation();
+		});
+		res.insertAfter(line);
+		div.slideDown(100);
 	}
 	,moveLine: function(sheet,index,delta) {
 		this.getLine(sheet,index).next("tr.list").change();
@@ -2200,8 +2459,9 @@ Main.prototype = $extend(Model.prototype,{
 		var nins = new nodejs.webkit.MenuItem({ label : "Insert"});
 		var ndel = new nodejs.webkit.MenuItem({ label : "Delete"});
 		var nsep = new nodejs.webkit.MenuItem({ label : "Separator", type : "checkbox"});
+		var nref = new nodejs.webkit.MenuItem({ label : "Show References"});
 		var _g1 = 0;
-		var _g11 = [nup,ndown,nins,ndel,nsep];
+		var _g11 = [nup,ndown,nins,ndel,nsep,nref];
 		while(_g1 < _g11.length) {
 			var m = _g11[_g1];
 			++_g1;
@@ -2243,6 +2503,9 @@ Main.prototype = $extend(Model.prototype,{
 			}
 			_g.refresh();
 			_g.save();
+		};
+		nref.click = function() {
+			_g.showReferences(sheet,index);
 		};
 		if(sheet.props.hide) nsep.enabled = false;
 		n.popup(this.mousePos.x,this.mousePos.y);
@@ -2911,7 +3174,9 @@ Main.prototype = $extend(Model.prototype,{
 	}
 	,refresh: function() {
 		var t = new js.JQuery("<table>");
+		this.checkCursor = true;
 		this.fillTable(t,this.viewSheet);
+		if(this.cursor.s != this.viewSheet && this.checkCursor) this.setCursor(this.viewSheet,null,null,null,false);
 		var content = new js.JQuery("#content");
 		content.empty();
 		t.appendTo(content);
@@ -3099,7 +3364,7 @@ Main.prototype = $extend(Model.prototype,{
 								val[0] = [];
 								obj[0][c[0].name] = val[0];
 							}
-							psheet = { columns : psheet.columns, props : psheet.props, name : psheet.name, path : _g4.getPath(sheet) + ":" + index[0], parent : { sheet : sheet, column : cindex[0], line : index[0]}, lines : val[0], separators : []};
+							psheet = { columns : psheet.columns, props : psheet.props, name : psheet.name, path : key[0], parent : { sheet : sheet, column : cindex[0], line : index[0]}, lines : val[0], separators : []};
 							_g4.fillTable(content1,psheet);
 							next.insertAfter(l1[0]);
 							v1[0].html("...");
@@ -3121,7 +3386,12 @@ Main.prototype = $extend(Model.prototype,{
 									e1.stopPropagation();
 								};
 							})(key,html,v1,val,obj,c));
-							if(!inTodo) {
+							if(inTodo) {
+								if(_g4.cursor.s != null && _g4.getPath(_g4.cursor.s) == _g4.getPath(psheet)) {
+									_g4.cursor.s = psheet;
+									_g4.checkCursor = false;
+								}
+							} else {
 								div.slideDown(100);
 								_g4.setCursor(psheet);
 							}
@@ -3213,11 +3483,9 @@ Main.prototype = $extend(Model.prototype,{
 		this.viewSheet = s;
 		this.cursor = this.sheetCursors.get(s.name);
 		if(this.cursor == null) {
-			this.cursor = { x : 0, y : 0, s : null, select : null, onchange : null};
+			this.cursor = { x : 0, y : 0, s : s};
 			this.sheetCursors.set(s.name,this.cursor);
 		}
-		if(this.cursor.s == null || this.cursor.s.name != s.name) this.setCursor(s,null,null,null,false);
-		this.cursor.s = s;
 		this.prefs.curSheet = Lambda.indexOf(this.data.sheets,s);
 		new js.JQuery("#sheets li").removeClass("active").filter("#sheet_" + this.prefs.curSheet).addClass("active");
 		this.refresh();
@@ -5695,6 +5963,8 @@ K.ESC = 27;
 K.TAB = 9;
 K.ENTER = 13;
 K.F2 = 113;
+K.F3 = 114;
+K.F4 = 115;
 cdb._Data.DisplayType_Impl_.Default = 0;
 cdb._Data.DisplayType_Impl_.Percent = 1;
 haxe.Serializer.USE_CACHE = false;
