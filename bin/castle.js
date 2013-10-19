@@ -3969,7 +3969,8 @@ Main.prototype = $extend(Model.prototype,{
 		var mopen = new nodejs.webkit.MenuItem({ label : "Open..."});
 		var msave = new nodejs.webkit.MenuItem({ label : "Save As..."});
 		var mclean = new nodejs.webkit.MenuItem({ label : "Clean Images"});
-		var mhelp = new nodejs.webkit.MenuItem({ label : "Help"});
+		var mabout = new nodejs.webkit.MenuItem({ label : "About"});
+		var mexit = new nodejs.webkit.MenuItem({ label : "Exit"});
 		var mdebug = new nodejs.webkit.MenuItem({ label : "Dev"});
 		mnew.click = function() {
 			_g.prefs.curFile = null;
@@ -3998,9 +3999,6 @@ Main.prototype = $extend(Model.prototype,{
 			i.appendTo(new js.JQuery("body"));
 			i.click();
 		};
-		mhelp.click = function() {
-			new js.JQuery("#help").show();
-		};
 		mclean.click = function() {
 			if(_g.imageBank == null) {
 				_g.error("No image bank");
@@ -4014,13 +4012,20 @@ Main.prototype = $extend(Model.prototype,{
 			_g.refresh();
 			_g.saveImages();
 		};
+		mexit.click = function() {
+			Sys.exit(0);
+		};
+		mabout.click = function() {
+			new js.JQuery("#about").show();
+		};
 		mfiles.append(mnew);
 		mfiles.append(mopen);
 		mfiles.append(msave);
 		mfiles.append(mclean);
+		mfiles.append(mabout);
+		mfiles.append(mexit);
 		mfile.submenu = mfiles;
 		menu.append(mfile);
-		menu.append(mhelp);
 		menu.append(mdebug);
 		this.window.menu = menu;
 		this.window.moveTo(this.prefs.windowPos.x,this.prefs.windowPos.y);
@@ -4077,6 +4082,7 @@ IMap.__name__ = ["IMap"];
 IMap.prototype = {
 	__class__: IMap
 }
+Math.__name__ = ["Math"];
 var Reflect = function() { }
 $hxClasses["Reflect"] = Reflect;
 Reflect.__name__ = ["Reflect"];
@@ -4166,6 +4172,29 @@ StringTools.rtrim = function(s) {
 }
 StringTools.trim = function(s) {
 	return StringTools.ltrim(StringTools.rtrim(s));
+}
+var Sys = function() { }
+$hxClasses["Sys"] = Sys;
+Sys.__name__ = ["Sys"];
+Sys.args = function() {
+	return js.Node.process.argv;
+}
+Sys.getEnv = function(key) {
+	var v = null;
+	try {
+		v = js.Node.process.env[key];
+	} catch( e ) {
+	}
+	return v;
+}
+Sys.environment = function() {
+	return js.Node.process.env;
+}
+Sys.exit = function(code) {
+	js.Node.process.exit(code);
+}
+Sys.time = function() {
+	return new Date().getTime() / 1000;
 }
 var ValueType = $hxClasses["ValueType"] = { __ename__ : ["ValueType"], __constructs__ : ["TNull","TInt","TFloat","TBool","TObject","TFunction","TClass","TEnum","TUnknown"] }
 ValueType.TNull = ["TNull",0];
@@ -5876,7 +5905,6 @@ if(Array.prototype.indexOf) HxOverrides.remove = function(a,o) {
 	a.splice(i,1);
 	return true;
 };
-Math.__name__ = ["Math"];
 Math.NaN = Number.NaN;
 Math.NEGATIVE_INFINITY = Number.NEGATIVE_INFINITY;
 Math.POSITIVE_INFINITY = Number.POSITIVE_INFINITY;

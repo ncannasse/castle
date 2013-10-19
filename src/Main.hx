@@ -1688,7 +1688,8 @@ class Main extends Model {
 		var mopen = new MenuItem( { label : "Open..." } );
 		var msave = new MenuItem( { label : "Save As..." } );
 		var mclean = new MenuItem( { label : "Clean Images" } );
-		var mhelp = new MenuItem( { label : "Help" } );
+		var mabout = new MenuItem( { label : "About" } );
+		var mexit = new MenuItem( { label : "Exit" } );
 		var mdebug = new MenuItem( { label : "Dev" } );
 		mnew.click = function() {
 			prefs.curFile = null;
@@ -1715,9 +1716,6 @@ class Main extends Model {
 			i.appendTo(J("body"));
 			i.click();
 		};
-		mhelp.click = function() {
-			J("#help").show();
-		};
 		mclean.click = function() {
 			if( imageBank == null ) {
 				error("No image bank");
@@ -1731,13 +1729,18 @@ class Main extends Model {
 			refresh();
 			saveImages();
 		};
+		mexit.click = function() Sys.exit(0);
+		mabout.click = function() {
+			J("#about").show();
+		};
 		mfiles.append(mnew);
 		mfiles.append(mopen);
 		mfiles.append(msave);
 		mfiles.append(mclean);
+		mfiles.append(mabout);
+		mfiles.append(mexit);
 		mfile.submenu = mfiles;
 		menu.append(mfile);
-		menu.append(mhelp);
 		menu.append(mdebug);
 		window.menu = menu;
 		window.moveTo(prefs.windowPos.x, prefs.windowPos.y);
