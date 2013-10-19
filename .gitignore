@@ -15,3 +15,8 @@
 /src/test/test.swf
 
 /bin/castle.js.map
+/bin/Release.n
+/bin/*.zip
+/bin/package.nw
+/bin/*.tgz
+/www/file
