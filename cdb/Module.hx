@@ -196,6 +196,30 @@ class Module {
 	}
 	#end
 	
+	static function getSheetLines( sheets : Array<Data.Sheet>, s : Data.Sheet ) {
+		if( !s.props.hide )
+			return s.lines;
+		var name = s.name.split("@");
+		var col = name.pop();
+		var parent = name.join("@");
+		var psheet = null;
+		for( sp in sheets )
+			if( sp.name == parent ) {
+				psheet = sp;
+				break;
+			}
+		if( psheet == null )
+			return s.lines;
+		var out = [];
+		for( o in getSheetLines(sheets,psheet) ) {
+			var objs : Array<Dynamic> = Reflect.field(o, col);
+			if( objs != null )
+				for( o in objs )
+					out.push(o);
+		}
+		return out;
+	}
+	
 	public static function build( file : String ) {
 		#if !macro
 		throw "This can only be called in a macro";
@@ -303,7 +327,7 @@ class Module {
 					hasId = true;
 					
 					var cname = c.name;
-					for( obj in s.lines ) {
+					for( obj in getSheetLines(data.sheets,s) ) {
 						var id = Reflect.field(obj, cname);
 						if( id != null && id != "" )
 							ids.push({
