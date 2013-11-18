@@ -190,7 +190,7 @@ class Module {
 			name : tname,
 			pack : curMod,
 			kind : TDAbstract(tint),
-			meta : [{ name : ":fakeEnum", pos : pos }],
+			meta : [{ name : ":enum", pos : pos },{ name : ":fakeEnum", pos : pos }],
 			fields : fields,
 		};
 	}
@@ -465,7 +465,7 @@ class Module {
 					pos : pos,
 					name : tkind,
 					pack : curMod,
-					meta : [{ name : ":fakeEnum", pos : pos }],
+					meta : [{ name : ":enum", pos : pos },{ name : ":fakeEnum", pos : pos }],
 					kind : TDAbstract(macro : String),
 					fields : ids,
 				});

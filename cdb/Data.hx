@@ -17,7 +17,7 @@ enum ColumnType {
 #if macro
 typedef DisplayType = Int;
 #else
-@:fakeEnum
+@:enum
 abstract DisplayType(Int) {
 	var Default = 0;
 	var Percent = 1;
