@@ -39,6 +39,10 @@ abstract ArrayRead<T>(Array<T>) {
 	
 	public var length(get, never) : Int;
 	
+	public inline function new(a : Array<T>) {
+		this = a;
+	}
+	
 	inline function get_length() {
 		return this.length;
 	}
@@ -47,7 +51,7 @@ abstract ArrayRead<T>(Array<T>) {
 		return new ArrayIterator(toArray());
 	}
 	
-	function toArray() : Array<T> {
+	inline function toArray() : Array<T> {
 		return this;
 	}
 	
