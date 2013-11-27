@@ -547,7 +547,10 @@ class Module {
 					case TId, TString, TBool, TInt, TFloat, TImage, TEnum(_), TFlags(_):
 						macro v[$v { ai + 1 } ];
 					case TCustom(id):
-						macro $i{id+"Builder"}.build(v[$v{ai+1}]);
+						if( a.opt )
+							macro { var tmp = v[$v{ai+1}]; tmp == null ? null : $i{id+"Builder"}.build(tmp); }
+						else
+							macro $i{id+"Builder"}.build(v[$v{ai+1}]);
 					case TRef(s):
 						var fname = fieldName(s);
 						macro $i{modName}.$fname.resolve(v[$v{ai+1}]);
