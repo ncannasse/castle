@@ -474,7 +474,7 @@ class Module {
 					fields : ids,
 				});
 			} else {
-				var fields = [for( c in realFields ) { name:c.name, k:c.kind } ];
+				var fields = [for( c in fields ) { name:c.name, k:c.kind } ];
 				fields.sort(function(a, b) return Reflect.compare(a.name, b.name));
 				var sign = Context.signature(fields);
 				var prevName = typesCache.get(sign);
