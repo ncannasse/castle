@@ -49,6 +49,7 @@ class Model {
 			return null;
 		var parts = sheet.name.split("@");
 		var colName = parts.pop();
+		trace(sheet.name);
 		return { s : getSheet(parts.join("@")), c : colName };
 	}
 	
@@ -256,10 +257,27 @@ class Model {
 					makeSheet(sheet);
 				}
 				if( c.type == TList )
-					data.sheets.remove(getPseudoSheet(sheet, c));
+					deleteSheet(getPseudoSheet(sheet, c));
 				return true;
 			}
 		return false;
+	}
+	
+	function deleteSheet( sheet : Sheet ) {
+		data.sheets.remove(sheet);
+		smap.remove(sheet.name);
+		for( c in sheet.columns )
+			switch( c.type ) {
+			case TList:
+				deleteSheet(getPseudoSheet(sheet, c));
+			default:
+			}
+		mapType(function(t) {
+			return switch( t ) {
+			case TRef(r) if( r == sheet.name ): TString;
+			default: t;
+			}
+		});
 	}
 	
 	function addColumn( sheet : Sheet, c : Column, ?index : Int ) {

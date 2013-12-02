@@ -705,15 +705,16 @@ class Main extends Model {
 	}
 	
 	
-	function popupSheet( s : Sheet ) {
+	function popupSheet( s : Sheet, li : js.JQuery ) {
 		var n = new Menu();
 		var nins = new MenuItem( { label : "Add Sheet" } );
 		var nleft = new MenuItem( { label : "Move Left" } );
 		var nright = new MenuItem( { label : "Move Right" } );
+		var nren = new MenuItem( { label : "Rename" } );
 		var ndel = new MenuItem( { label : "Delete" } );
 		var nindex = new MenuItem( { label : "Add Index", type : MenuItemType.checkbox } );
 		var ngroup = new MenuItem( { label : "Add Group", type : MenuItemType.checkbox } );
-		for( m in [nins, nleft, nright, ndel, nindex, ngroup] )
+		for( m in [nins, nleft, nright, nren, ndel, nindex, ngroup] )
 			n.append(m);
 		nleft.click = function() {
 			var index = Lambda.indexOf(data.sheets, s);
@@ -736,19 +737,7 @@ class Main extends Model {
 			}
 		}
 		ndel.click = function() {
-			for( c in s.columns )
-				switch( c.type ) {
-				case TList:
-					data.sheets.remove(getPseudoSheet(s, c));
-				default:
-				}
-			data.sheets.remove(s);
-			mapType(function(t) {
-				return switch( t ) {
-				case TRef(r) if( r == s.name ): TString;
-				default: t;
-				}
-			});
+			deleteSheet(s);
 			initContent();
 			save();
 		};
@@ -786,6 +775,9 @@ class Main extends Model {
 				s.props.hasGroup = true;
 			}
 			save();
+		};
+		nren.click = function() {
+			li.dblclick();
 		};
 		n.popup(mousePos.x, mousePos.y);
 	}
@@ -1661,12 +1653,14 @@ class Main extends Model {
 					initContent();
 					save();
 				}).keydown(function(e) {
-					if( e.keyCode == 13 ) JTHIS.blur();
+					if( e.keyCode == 13 ) JTHIS.blur() else if( e.keyCode == 27 ) initContent();
+					e.stopPropagation();
+				}).keypress(function(e) {
 					e.stopPropagation();
 				});
 			}).mousedown(function(e) {
 				if( e.which == 3 ) {
-					haxe.Timer.delay(popupSheet.bind(s),1);
+					haxe.Timer.delay(popupSheet.bind(s,li),1);
 					e.stopPropagation();
 				}
 			});
