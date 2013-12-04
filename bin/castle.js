@@ -4287,11 +4287,19 @@ Main.prototype = $extend(Model.prototype,{
 								sheet.props.separatorTitles = titles;
 								_g4.save();
 							};
-						})(pos,title,content2)).keyup((function() {
+						})(pos,title,content2)).keypress((function() {
 							return function(e1) {
-								if(e1.keyCode == 13) $(this).blur();
+								e1.stopPropagation();
 							};
-						})());
+						})()).keydown((function(title,content2) {
+							return function(e1) {
+								if(e1.keyCode == 13) {
+									$(this).blur();
+									e1.preventDefault();
+								} else if(e1.keyCode == 27) content2[0].text(title[0]);
+								e1.stopPropagation();
+							};
+						})(title,content2));
 					};
 				})(pos,title,content2));
 				snext++;
@@ -6673,6 +6681,7 @@ sys.FileSystem.fullPath = function(relpath) {
 	return js.Node.require("path").resolve(null,relpath);
 };
 sys.FileSystem.isDirectory = function(path) {
+	if(!js.Node.require("fs").existsSync(path)) throw "Path doesn't exist: " + path;
 	if(js.Node.require("fs").statSync(path).isSymbolicLink()) return false; else return js.Node.require("fs").statSync(path).isDirectory();
 };
 sys.FileSystem.createDirectory = function(path) {
@@ -6909,3 +6918,5 @@ nodejs.webkit._MenuItemType.MenuItemType_Impl_.checkbox = "checkbox";
 nodejs.webkit._MenuItemType.MenuItemType_Impl_.normal = "normal";
 Main.main();
 })();
+
+//# sourceMappingURL=castle.js.map

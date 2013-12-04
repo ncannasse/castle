@@ -1278,8 +1278,11 @@ class Main extends Model {
 						if( titles.length == 0 ) titles = null;
 						sheet.props.separatorTitles = titles;
 						save();
-					}).keyup(function(e) {
-						if( e.keyCode == 13 ) JTHIS.blur();
+					}).keypress(function(e) {
+						e.stopPropagation();
+					}).keydown(function(e) {
+						if( e.keyCode == 13 ) { JTHIS.blur(); e.preventDefault(); } else if( e.keyCode == 27 ) content.text(title);
+						e.stopPropagation();
 					});
 				});
 				snext++;
