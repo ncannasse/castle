@@ -6681,7 +6681,6 @@ sys.FileSystem.fullPath = function(relpath) {
 	return js.Node.require("path").resolve(null,relpath);
 };
 sys.FileSystem.isDirectory = function(path) {
-	if(!js.Node.require("fs").existsSync(path)) throw "Path doesn't exist: " + path;
 	if(js.Node.require("fs").statSync(path).isSymbolicLink()) return false; else return js.Node.require("fs").statSync(path).isDirectory();
 };
 sys.FileSystem.createDirectory = function(path) {
@@ -6918,5 +6917,3 @@ nodejs.webkit._MenuItemType.MenuItemType_Impl_.checkbox = "checkbox";
 nodejs.webkit._MenuItemType.MenuItemType_Impl_.normal = "normal";
 Main.main();
 })();
-
-//# sourceMappingURL=castle.js.map
