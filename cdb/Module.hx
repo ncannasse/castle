@@ -404,7 +404,7 @@ class Module {
 						kind : FFun({
 							ret : t,
 							args : [],
-							expr : macro return $i{name + "Builder"}.build(this.$cname),
+							expr : c.opt ? macro return this.$cname == null ? null : $i{name + "Builder"}.build(this.$cname) : macro return $i{name + "Builder"}.build(this.$cname),
 						}),
 						access : [AInline,APrivate],
 					});
