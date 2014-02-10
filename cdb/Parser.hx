@@ -31,6 +31,7 @@ class Parser {
 	}
 
 	public static function parse( content : String ) : Data {
+		if( content == null ) throw "CDB content is null";
 		var data : Data = haxe.Json.parse(content);
 		for( s in data.sheets )
 			for( c in s.columns ) {
