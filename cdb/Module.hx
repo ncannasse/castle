@@ -48,11 +48,15 @@ abstract ArrayRead<T>(Array<T>) {
 	}
 	
 	public inline function iterator() : ArrayIterator<T> {
-		return new ArrayIterator(toArray());
+		return new ArrayIterator(castArray());
 	}
 	
-	inline function toArray() : Array<T> {
+	inline function castArray() : Array<T> {
 		return this;
+	}
+	
+	public inline function toArrayCopy() {
+		return this.copy();
 	}
 	
 	@:arrayAccess inline function getIndex( v : Int ) {
