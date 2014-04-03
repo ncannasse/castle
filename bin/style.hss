@@ -291,7 +291,7 @@ div#menu {
 	}
 	
 	td.t_int, td.t_float {
-		text-align : right;
+		text-align : center;
 		input {
 			text-align : right;
 		}
