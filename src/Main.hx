@@ -44,7 +44,7 @@ class Main extends Model {
 	var sheetCursors : Map<String, Cursor>;
 	var lastSave : Float;
 	var colProps : { sheet : String, ref : Column, index : Null<Int> };
-	
+
 	function new() {
 		super();
 		window = nodejs.webkit.Window.get();
@@ -64,12 +64,12 @@ class Main extends Model {
 		var t = new haxe.Timer(1000);
 		t.run = checkTime;
 	}
-	
+
 	function onMouseMove( e : js.html.MouseEvent ) {
 		mousePos.x = e.clientX;
 		mousePos.y = e.clientY;
 	}
-	
+
 	function setClipBoard( schema : Array<Column>, data : Array<Dynamic> ) {
 		clipboard = {
 			text : Std.string([for( o in data ) objToString(cursor.s,o,true)]),
@@ -78,7 +78,7 @@ class Main extends Model {
 		};
 		nodejs.webkit.Clipboard.getInstance().set(clipboard.text, "text");
 	}
-	
+
 	function moveCursor( dx : Int, dy : Int, shift : Bool, ctrl : Bool ) {
 		if( cursor.s == null )
 			return;
@@ -99,12 +99,12 @@ class Main extends Model {
 		cursor.select = null;
 		updateCursor();
 	}
-	
+
 	function onKeyPress( e : js.html.KeyboardEvent ) {
 		if( !e.ctrlKey )
 			J(".cursor").not(".edit").dblclick();
 	}
-	
+
 	function getSelection() {
 		if( cursor.s == null )
 			return null;
@@ -124,7 +124,7 @@ class Main extends Model {
 		}
 		return { x1 : x1, x2 : x2, y1 : y1, y2 : y2 };
 	}
-	
+
 	function onKey( e : js.html.KeyboardEvent ) {
 		switch( e.keyCode ) {
 		case K.INSERT:
@@ -299,7 +299,7 @@ class Main extends Model {
 		}
 		if( id == "" || id == null )
 			return;
-	
+
 		var results = [];
 		for( s in data.sheets ) {
 			for( c in s.columns )
@@ -333,19 +333,19 @@ class Main extends Model {
 			haxe.Timer.delay(setErrorMessage.bind(), 500);
 			return;
 		}
-		
+
 		var line = getLine(sheet, index);
-		
+
 		// hide previous
 		line.next("tr.list").change();
-		
+
 		var res = J("<tr>").addClass("list");
 		J("<td>").appendTo(res);
 		var cell = J("<td>").attr("colspan", "" + (sheet.columns.length)).appendTo(res);
 		var div = J("<div>").appendTo(cell);
 		div.hide();
 		var content = J("<table>").appendTo(div);
-		
+
 		var cols = J("<tr>").addClass("head");
 		J("<td>").addClass("start").appendTo(cols).click(function(_) {
 			res.change();
@@ -386,17 +386,17 @@ class Main extends Model {
 				e.stopPropagation();
 			});
 		}
-		
+
 		res.change(function(e) {
 			div.slideUp(100, function() res.remove());
 			e.stopPropagation();
 		});
-		
+
 		res.insertAfter(line);
 		div.slideDown(100);
 	}
-	
-	
+
+
 	override function moveLine( sheet : Sheet, index : Int, delta : Int ) {
 		// remove opened list
 		getLine(sheet, index).next("tr.list").change();
@@ -408,7 +408,7 @@ class Main extends Model {
 		}
 		return index;
 	}
-	
+
 	function changed( sheet : Sheet, c : Column, index : Int ) {
 		save();
 		switch( c.type ) {
@@ -436,14 +436,14 @@ class Main extends Model {
 	function error( msg ) {
 		js.Lib.alert(msg);
 	}
-	
+
 	function setErrorMessage( ?msg ) {
 		if( msg == null )
 			J(".errorMsg").hide();
 		else
 			J(".errorMsg").text(msg).show();
 	}
-	
+
 	function valueHtml( c : Column, v : Dynamic, sheet : Sheet, obj : Dynamic ) : String {
 		if( v == null ) {
 			if( c.opt )
@@ -524,7 +524,7 @@ class Main extends Model {
 			flags.length == 0 ? String.fromCharCode(0x2205) : flags.join("|");
 		}
 	}
-	
+
 	function popupLine( sheet : Sheet, index : Int ) {
 		var n = new Menu();
 		var nup = new MenuItem( { label : "Move Up" } );
@@ -576,7 +576,7 @@ class Main extends Model {
 			nsep.enabled = false;
 		n.popup(mousePos.x, mousePos.y);
 	}
-	
+
 	function popupColumn( sheet : Sheet, c : Column ) {
 		var n = new Menu();
 		var nedit = new MenuItem( { label : "Edit" } );
@@ -587,7 +587,7 @@ class Main extends Model {
 		var ndisp = new MenuItem( { label : "Display Column", type : MenuItemType.checkbox } );
 		for( m in [nedit, nins, nleft, nright, ndel, ndisp] )
 			n.append(m);
-		
+
 		switch( c.type ) {
 		case TId, TString, TEnum(_), TFlags(_):
 			var conv = new MenuItem( { label : "Convert" } );
@@ -600,7 +600,7 @@ class Main extends Model {
 			] ) {
 				var m = new MenuItem( { label : k.n } );
 				m.click = function() {
-					
+
 					switch( c.type ) {
 					case TEnum(values), TFlags(values):
 						for( i in 0...values.length )
@@ -625,8 +625,8 @@ class Main extends Model {
 							updateRefs(sheet, refMap);
 						makeSheet(sheet); // might have changed ID or DISP
 					}
-					
-						
+
+
 					refresh();
 					save();
 				};
@@ -662,7 +662,7 @@ class Main extends Model {
 			n.append(conv);
 		default:
 		}
-		
+
 		ndisp.checked = sheet.props.displayColumn == c.name;
 		nedit.click = function() {
 			newColumn(sheet.name, c);
@@ -703,8 +703,8 @@ class Main extends Model {
 		};
 		n.popup(mousePos.x, mousePos.y);
 	}
-	
-	
+
+
 	function popupSheet( s : Sheet, li : js.JQuery ) {
 		var n = new Menu();
 		var nins = new MenuItem( { label : "Add Sheet" } );
@@ -781,7 +781,7 @@ class Main extends Model {
 		};
 		n.popup(mousePos.x, mousePos.y);
 	}
-	
+
 	function editCell( c : Column, v : js.JQuery, sheet : Sheet, index : Int ) {
 		var obj = sheet.lines[index];
 		var val : Dynamic = Reflect.field(obj, c.name);
@@ -860,7 +860,7 @@ class Main extends Model {
 							m.set(val, val2);
 							updateRefs(sheet, m);
 						}
-						
+
 						val = val2;
 						Reflect.setField(obj, c.name, val);
 						changed();
@@ -935,9 +935,9 @@ class Main extends Model {
 			if( sdat == null ) return;
 			v.empty();
 			v.addClass("edit");
-			
+
 			// TODO if too many items, use autocomplete
-			
+
 			var s = J("<select>");
 			for( l in sdat.all )
 				J("<option>").attr("value", "" + l.id).attr(val == l.id ? "selected" : "_sel", "selected").text(l.disp).appendTo(s);
@@ -977,7 +977,7 @@ class Main extends Model {
 			var event : Dynamic = cast js.Browser.document.createEvent('MouseEvents');
 			event.initMouseEvent('mousedown', true, true, js.Browser.window);
 			s[0].dispatchEvent(event);
-			
+
 		case TBool:
 			if( c.opt && val == false ) {
 				val = null;
@@ -1040,7 +1040,7 @@ class Main extends Model {
 			throw "assert";
 		}
 	}
-	
+
 	function updateCursor() {
 		J(".selected").removeClass("selected");
 		J(".cursor").removeClass("cursor");
@@ -1079,7 +1079,7 @@ class Main extends Model {
 		var e = l[0];
 		if( e != null ) e.scrollIntoViewIfNeeded();
 	}
-	
+
 	function refresh() {
 		var t = J("<table>");
 		checkCursor = true;
@@ -1090,25 +1090,25 @@ class Main extends Model {
 		t.appendTo(content);
 		updateCursor();
 	}
-	
+
 	function fillTable( content : js.JQuery, sheet : Sheet ) {
 		if( sheet.columns.length == 0 ) {
 			content.html('<a href="javascript:_.newColumn(\'${sheet.name}\')">Add a column</a>');
 			return;
 		}
-		
+
 		var todo = [];
 		var inTodo = false;
 		var cols = J("<tr>").addClass("head");
 		var types = [for( t in Type.getEnumConstructs(ColumnType) ) t.substr(1).toLowerCase()];
-		
+
 		J("<td>").addClass("start").appendTo(cols).click(function(_) {
 			if( sheet.props.hide )
 				content.change();
 			else
 				J("tr.list table").change();
 		});
-		
+
 		content.attr("sheet", getPath(sheet));
 		content.click(function(e) {
 			e.stopPropagation();
@@ -1135,7 +1135,7 @@ class Main extends Model {
 			head.appendTo(l);
 			l;
 		}];
-		
+
 		for( cindex in 0...sheet.columns.length ) {
 			var c = sheet.columns[cindex];
 			var col = J("<td>");
@@ -1289,7 +1289,7 @@ class Main extends Model {
 			}
 			content.append(lines[i]);
 		}
-		
+
 		inTodo = true;
 		for( t in todo ) t();
 		inTodo = false;
@@ -1307,7 +1307,7 @@ class Main extends Model {
 		}
 		if( update ) updateCursor();
 	}
-	
+
 	function selectSheet( s : Sheet ) {
 		viewSheet = s;
 		cursor = sheetCursors.get(s.name);
@@ -1323,7 +1323,7 @@ class Main extends Model {
 		J("#sheets li").removeClass("active").filter("#sheet_" + prefs.curSheet).addClass("active");
 		refresh();
 	}
-	
+
 	function newSheet() {
 		J("#newsheet").show();
 	}
@@ -1340,7 +1340,7 @@ class Main extends Model {
 		save();
 		return true;
 	}
-	
+
 	function editTypes() {
 		if( typesStr == null ) {
 			var tl = [];
@@ -1444,12 +1444,12 @@ class Main extends Model {
 		typesStr = null;
 		text.change();
 	}
-	
+
 	function newColumn( ?sheetName : String, ?ref : Column, ?index : Int ) {
 		var form = J("#newcol form");
-		
+
 		colProps = { sheet : sheetName, ref : ref, index : index };
-		
+
 		var sheets = J("[name=sheet]");
 		sheets.empty();
 		for( i in 0...data.sheets.length ) {
@@ -1457,7 +1457,7 @@ class Main extends Model {
 			if( s.props.hide ) continue;
 			J("<option>").attr("value", "" + i).text(s.name).appendTo(sheets);
 		}
-		
+
 		var types = J("[name=ctype]");
 		types.empty();
 		types.unbind("change");
@@ -1469,7 +1469,7 @@ class Main extends Model {
 			J("<option>").attr("value", "" + t.name).text(t.name).appendTo(types);
 
 		form.removeClass("edit").removeClass("create");
-		
+
 		if( ref != null ) {
 			form.addClass("edit");
 			form.find("[name=name]").val(ref.name);
@@ -1480,7 +1480,7 @@ class Main extends Model {
 			case TEnum(values), TFlags(values):
 				form.find("[name=values]").val(values.join(","));
 			case TRef(sname):
-				form.find("[name=sheet]").val(sname);
+				form.find("[name=sheet]").val( "" + Lambda.indexOf(data.sheets, Lambda.find(data.sheets,function(s:Sheet) return s.name == sname)));
 			case TCustom(name):
 				form.find("[name=ctype]").val(name);
 			default:
@@ -1491,20 +1491,20 @@ class Main extends Model {
 			form.find("[name=req]").prop("checked", true);
 		}
 		types.change();
-		
+
 		J("#newcol").show();
 	}
-	
+
 	override function newLine( sheet : Sheet, ?index : Int ) {
 		super.newLine(sheet,index);
 		refresh();
 		save();
 	}
-	
+
 	function insertLine() {
 		if( cursor.s != null ) newLine(cursor.s);
 	}
-		
+
 	function createSheet( name : String ) {
 		name = StringTools.trim(name);
 		if( !r_ident.match(name) ) {
@@ -1531,9 +1531,9 @@ class Main extends Model {
 		initContent();
 		save();
 	}
-	
+
 	function createColumn() {
-		
+
 		var v : Dynamic<String> = { };
 		var cols = J("#col_form input, #col_form select").not("[type=submit]");
 		for( i in cols )
@@ -1541,7 +1541,7 @@ class Main extends Model {
 
 		var sheet = colProps.sheet == null ? viewSheet : getSheet(colProps.sheet);
 		var refColumn = colProps.ref;
-		
+
 		var t : ColumnType = switch( v.type ) {
 		case "id": TId;
 		case "int": TInt;
@@ -1590,7 +1590,7 @@ class Main extends Model {
 		};
 		if( v.req != "on" ) c.opt = true;
 		if( v.display != "0" ) c.display = cast Std.parseInt(v.display);
-		
+
 		if( refColumn != null ) {
 			var err = super.updateColumn(sheet, refColumn, c);
 			if( err != null ) {
@@ -1607,14 +1607,14 @@ class Main extends Model {
 				return;
 			}
 		}
-		
+
 		J("#newcol").hide();
 		for( c in cols )
 			c.val("");
 		refresh();
 		save();
 	}
-	
+
 	override function initContent() {
 		super.initContent();
 		var sheets = J("ul#sheets");
@@ -1639,7 +1639,7 @@ class Main extends Model {
 					}
 					var old = s.name;
 					s.name = name;
-					
+
 					mapType(function(t) {
 						return switch( t ) {
 						case TRef(o) if( o == old ):
@@ -1648,11 +1648,11 @@ class Main extends Model {
 							t;
 						}
 					});
-					
+
 					for( s in data.sheets )
 						if( StringTools.startsWith(s.name, old + "@") )
 							s.name = name + "@" + s.name.substr(old.length + 1);
-					
+
 					initContent();
 					save();
 				}).keydown(function(e) {
@@ -1676,7 +1676,7 @@ class Main extends Model {
 		if( s == null ) s = data.sheets[0];
 		selectSheet(s);
 	}
-	
+
 	function initMenu() {
 		var menu = Menu.createWindowMenu();
 		var mfile = new MenuItem({ label : "File" });
@@ -1763,11 +1763,11 @@ class Main extends Model {
 			prefs.windowPos.max = false;
 		});
 	}
-	
+
 	function getFileTime() : Float {
 		return try sys.FileSystem.stat(prefs.curFile).mtime.getTime()*1. catch( e : Dynamic ) 0.;
 	}
-	
+
 	function checkTime() {
 		if( prefs.curFile == null )
 			return;
@@ -1783,17 +1783,17 @@ class Main extends Model {
 				lastSave = fileTime;
 		}
 	}
-	
+
 	override function load(noError = false) {
 		super.load(noError);
 		lastSave = getFileTime();
 	}
-	
+
 	override function save( history = true ) {
 		super.save(history);
 		lastSave = getFileTime();
 	}
-	
+
 	static function main() {
 		var m = new Main();
 		Reflect.setField(js.Browser.window, "_", m);
