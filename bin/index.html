@@ -2,6 +2,8 @@
 <head>
 	<link rel="stylesheet" type="text/css" href="style.css"/>
 	<script type="text/javascript" src="jquery-latest.min.js"></script>
+	<link rel="stylesheet" type="text/css" href="spectrum.css"/>
+	<script type="text/javascript" src="spectrum.js"></script>
 </head>
 
 <body>
@@ -43,6 +45,7 @@
 			<option value="image">Image</option>
 			<option value="list">List</option>
 			<option value="custom">Custom</option>
+			<option value="color">Color</option>
 			</select>
 		</p>
 		<div id="col_options">
@@ -63,7 +66,7 @@
 			<input class="create" type="submit" value="Create" onclick="_.createColumn()"/>
 			<input type="submit" value="Cancel" onclick="$(this).parents('.modal').hide()"/>
 		</p>
-		
+
 		</form>
 	</div>
 </div>
@@ -94,22 +97,22 @@
 </div>
 
 <div id="menu">
-	
+
 	<div class="errorMsg" style="display:none">
 		ERROR
 	</div>
-	
+
 	<a href="javascript:_.editTypes()">Edit Types</a>
 	<a href="javascript:_.insertLine()">New Line</a>
 	<a href="javascript:_.newColumn()">New Column</a>
 	<a href="javascript:_.newSheet()">New Sheet</a>
-	
+
 	<ul class="sheets" id="sheets">
 		<li>Sheet 1</li>
 		<li class="active">Sheet 2</li>
 		<li>Sheet 3</li>
 	</ul>
-	
+
 </div>
 
 <div class="castle" id="content">

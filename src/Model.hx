@@ -16,7 +16,7 @@ class Model {
 	var smap : Map< String, { s : Sheet, index : Map<String,Index> , all : Array<Index> } >;
 	var tmap : Map< String, CustomType >;
 	var openedList : Map<String,Bool>;
-	
+
 	var curSavedData : String;
 	var history : Array<String>;
 	var redo : Array<String>;
@@ -39,11 +39,11 @@ class Model {
 	inline function getSheet( name : String ) {
 		return smap.get(name).s;
 	}
-	
+
 	inline function getPseudoSheet( sheet : Sheet, c : Column ) {
 		return getSheet(sheet.name + "@" + c.name);
 	}
-	
+
 	function getParentSheet( sheet : Sheet ) {
 		if( !sheet.props.hide )
 			return null;
@@ -52,7 +52,7 @@ class Model {
 		trace(sheet.name);
 		return { s : getSheet(parts.join("@")), c : colName };
 	}
-	
+
 	function getSheetLines( sheet : Sheet ) : Array<Dynamic> {
 		var p = getParentSheet(sheet);
 		if( p == null ) return sheet.lines;
@@ -85,7 +85,7 @@ class Model {
 		}
 		return all;
 	}
-	
+
 	function newLine( sheet : Sheet, ?index : Int ) {
 		var o = {
 		};
@@ -113,16 +113,30 @@ class Model {
 		if( c.opt )
 			return null;
 		return switch( c.type ) {
-		case TInt, TFloat, TEnum(_), TFlags(_): 0;
+		case TInt, TFloat, TEnum(_), TFlags(_), TColor: 0;
 		case TString, TId, TRef(_), TImage: "";
 		case TBool: false;
 		case TList: [];
 		case TCustom(_): null;
 		}
 	}
-	
+
+	function hasColumn( s : Sheet, name : String, ?types : Array<ColumnType> ) {
+		for( c in s.columns )
+			if( c.name == name ) {
+				if( types != null ) {
+					for( t in types )
+						if( c.type.equals(t) )
+							return true;
+					return false;
+				}
+				return true;
+			}
+		return false;
+	}
+
 	function save( history = true ) {
-		
+
 		// process
 		for( s in data.sheets ) {
 			// clean props
@@ -153,7 +167,7 @@ class Model {
 				}
 			}
 		}
-		
+
 		if( history ) {
 			var sdata = quickSave();
 			if( sdata != curSavedData ) {
@@ -190,7 +204,7 @@ class Model {
 				for( a in c.args )
 					a.type = save.shift();
 	}
-	
+
 	function saveImages() {
 		if( prefs.curFile == null )
 			return;
@@ -202,7 +216,7 @@ class Model {
 		else
 			sys.io.File.saveContent(path, untyped haxe.Json.stringify(imageBank, null, "\t"));
 	}
-	
+
 	function quickSave() {
 		return haxe.Serializer.run({ d : data, o : openedList });
 	}
@@ -227,7 +241,7 @@ class Model {
 		}
 		return null;
 	}
-	
+
 	function deleteLine( sheet : Sheet, index : Int ) {
 		sheet.lines.splice(index, 1);
 		var prev = -1, toRemove = null;
@@ -245,7 +259,7 @@ class Model {
 			if( sheet.props.separatorTitles != null ) sheet.props.separatorTitles.splice(toRemove, 1);
 		}
 	}
-	
+
 	function deleteColumn( sheet : Sheet, ?cname : String ) {
 		for( c in sheet.columns )
 			if( c.name == cname ) {
@@ -262,7 +276,7 @@ class Model {
 			}
 		return false;
 	}
-	
+
 	function deleteSheet( sheet : Sheet ) {
 		data.sheets.remove(sheet);
 		smap.remove(sheet.name);
@@ -279,7 +293,7 @@ class Model {
 			}
 		});
 	}
-	
+
 	function addColumn( sheet : Sheet, c : Column, ?index : Int ) {
 		// create
 		for( c2 in sheet.columns )
@@ -313,7 +327,7 @@ class Model {
 		}
 		return null;
 	}
-	
+
 	function getConvFunction( old : ColumnType, t : ColumnType ) {
 		var conv : Dynamic -> Dynamic = null;
 		if( Type.enumEq(old, t) )
@@ -376,15 +390,17 @@ class Model {
 			// nothing
 		case [TEnum(val1), TFlags(val2)] if( Std.string(val1) == Std.string(val2) ):
 			conv = function(i) return 1 << i;
+		case [TInt, TColor] | [TColor, TInt]:
+			conv =  function(i) return i;
 		default:
 			return null;
 		}
 		return { f : conv };
 	}
-	
+
 	function updateColumn( sheet : Sheet, old : Column, c : Column ) {
 		if( old.name != c.name ) {
-			
+
 			for( c2 in sheet.columns )
 				if( c2.name == c.name )
 					return "Column name already used";
@@ -392,14 +408,14 @@ class Model {
 				return "Sheet already has an index";
 			if( c.name == "group" && sheet.props.hasGroup )
 				return "Sheet already has a group";
-			
+
 			for( o in getSheetLines(sheet) ) {
 				var v = Reflect.field(o, old.name);
 				Reflect.deleteField(o, old.name);
 				if( v != null )
 					Reflect.setField(o, c.name, v);
 			}
-			
+
 			function renameRec(sheet, col) {
 				var s = getPseudoSheet(sheet, col);
 				s.name = sheet.name + "@" + c.name;
@@ -411,7 +427,7 @@ class Model {
 			if( old.type == TList ) renameRec(sheet, old);
 			old.name = c.name;
 		}
-		
+
 		if( !old.type.equals(c.type) ) {
 			var conv = getConvFunction(old.type, c.type);
 			if( conv == null )
@@ -428,7 +444,7 @@ class Model {
 			old.type = c.type;
 			old.typeStr = null;
 		}
-		
+
 		if( old.opt != c.opt ) {
 			if( old.opt ) {
 				for( o in getSheetLines(sheet) ) {
@@ -460,16 +476,16 @@ class Model {
 			}
 			old.opt = c.opt;
 		}
-		
+
 		if( c.display == null )
 			Reflect.deleteField(old,"display");
 		else
 			old.display = c.display;
-			
+
 		makeSheet(sheet);
 		return null;
 	}
-	
+
 	function load(noError = false) {
 		history = [];
 		redo = [];
@@ -494,7 +510,7 @@ class Model {
 		curSavedData = quickSave();
 		initContent();
 	}
-	
+
 	function initContent() {
 		smap = new Map();
 		for( s in data.sheets )
@@ -503,11 +519,11 @@ class Model {
 		for( t in data.customTypes )
 			tmap.set(t.name, t);
 	}
-	
+
 	function sortById( a : Index, b : Index ) {
 		return if( a.disp > b.disp ) 1 else -1;
 	}
-	
+
 	function makeSheet( s : Sheet ) {
 		var sdat = {
 			s : s,
@@ -561,7 +577,7 @@ class Model {
 	function savePrefs() {
 		js.Browser.getLocalStorage().setItem("prefs", haxe.Serializer.run(prefs));
 	}
-	
+
 	function objToString( sheet : Sheet, obj : Dynamic, esc = false ) {
 		if( obj == null )
 			return "null";
@@ -575,7 +591,7 @@ class Model {
 			return "{}";
 		return "{ " + fl.join(", ") + " }";
 	}
-	
+
 	function colToString( sheet : Sheet, c : Column, v : Dynamic, esc = false ) {
 		if( v == null )
 			return "null";
@@ -589,7 +605,7 @@ class Model {
 			return valToString(c.type, v, esc);
 		}
 	}
-	
+
 	function valToString( t : ColumnType, val : Dynamic, esc = false ) {
 		if( val == null )
 			return "null";
@@ -615,9 +631,11 @@ class Model {
 				if( v & (1 << i) != 0 )
 					flags.push(valToString(TString, values[i], esc));
 			Std.string(flags);
+		case TColor:
+			"#" + StringTools.hex(val, 6);
 		}
 	}
-	
+
 	function typeValToString( t : CustomType, val : Array<Dynamic>, esc = false ) {
 		var c = t.cases[val[0]];
 		var str = c.name;
@@ -631,14 +649,14 @@ class Model {
 		}
 		return str;
 	}
-	
+
 	function typeStr( t : ColumnType ) {
 		return switch( t ) {
 		case TRef(n), TCustom(n): n;
 		default: Std.string(t).substr(1);
 		}
 	}
-	
+
 	function parseVal( t : ColumnType, val : String ) : Dynamic {
 		switch( t ) {
 		case TInt:
@@ -677,11 +695,16 @@ class Model {
 			var r = smap.get(t).index.get(val);
 			if( r == null ) throw val + " is not a known " + t + " id";
 			return r.id;
+		case TColor:
+			if( val.charAt(0) == "#" )
+				val = "0x" + val.substr(1);
+			if( ~/^-?[0-9]+$/.match(val) || ~/^0x[0-9A-Fa-f]+$/.match(val) )
+				return Std.parseInt(val);
 		default:
 		}
 		throw "'" + val + "' should be "+typeStr(t);
 	}
-	
+
 	function parseTypeVal( t : CustomType, val : String ) : Dynamic {
 		if( t == null || val == null )
 			throw "Missing val/type";
@@ -695,7 +718,7 @@ class Model {
 		} else {
 			id = val.substr(0, pos);
 			val = val.substr(pos + 1);
-			
+
 			if( StringTools.endsWith(val, ")") )
 				val = val.substr(0, val.length - 1);
 			else
@@ -765,7 +788,7 @@ class Model {
 		throw "Unkown value '" + id + "'";
 		return null;
 	}
-	
+
 	function parseType( tstr : String ) : ColumnType {
 		return switch( tstr ) {
 		case "Int": TInt;
@@ -786,7 +809,7 @@ class Model {
 			}
 		}
 	}
-	
+
 	function typeCasesToString( t : CustomType, prefix = "" ) {
 		var arr = [];
 		for( c in t.cases ) {
@@ -808,7 +831,7 @@ class Model {
 		}
 		return arr.join("\n");
 	}
-	
+
 	function parseTypeCases( def : String ) : Array<CustomTypeCase> {
 		var cases = [];
 		var cmap = new Map();
@@ -858,7 +881,7 @@ class Model {
 		}
 		return cases;
 	}
-	
+
 	function makePairs < T: { name:String } > ( oldA : Array<T>, newA : Array<T> ) : Array<{ a : T, b : T }> {
 		var pairs = [];
 		var oldL = Lambda.list(oldA);
@@ -887,7 +910,7 @@ class Model {
 			pairs.push({ a : a, b : null });
 		return pairs;
 	}
-	
+
 	function mapType( callb ) {
 		for( s in data.sheets )
 			for( c in s.columns ) {
@@ -907,9 +930,9 @@ class Model {
 					}
 				}
 	}
-	
+
 	function updateRefs( sheet : Sheet, refMap : Map < String, String > ) {
-		
+
 		function convertTypeRec( t : CustomType, o : Array<Dynamic> ) {
 			var c = t.cases[o[0]];
 			for( i in 0...o.length - 1 ) {
@@ -926,7 +949,7 @@ class Model {
 				}
 			}
 		}
-		
+
 		for( s in data.sheets )
 			for( c in s.columns )
 				switch( c.type ) {
@@ -947,16 +970,16 @@ class Model {
 				default:
 				}
 	}
-	
+
 	function updateType( old : CustomType, t : CustomType ) {
 		var casesPairs = makePairs(old.cases, t.cases);
-		
+
 		// build convert map
 		var convMap = [];
 		for( p in casesPairs ) {
-			
+
 			if( p.b == null ) continue;
-			
+
 			var id = Lambda.indexOf(t.cases, p.b);
 			var conv = {
 				def : ([id] : Array<Dynamic>),
@@ -992,7 +1015,7 @@ class Model {
 				conv.def.pop();
 			convMap[Lambda.indexOf(old.cases, p.a)] = conv;
 		}
-		
+
 		function convertTypeRec( t : CustomType, v : Array<Dynamic> ) : Array<Dynamic> {
 			if( t == null )
 				return null;
@@ -1020,7 +1043,7 @@ class Model {
 			}
 			return v;
 		}
-		
+
 		// apply convert
 		for( s in data.sheets )
 			for( c in s.columns )
@@ -1044,8 +1067,8 @@ class Model {
 					}
 				default:
 				}
-	
-				
+
+
 		if( t.name != old.name ) {
 			for( t2 in data.customTypes )
 				for( c in t2.cases )
@@ -1063,5 +1086,5 @@ class Model {
 		}
 		old.cases = t.cases;
 	}
-	
+
 }

@@ -32,49 +32,49 @@ private class FlagsIterator<T> {
 			k++;
 		return cast k++;
 	}
-	
+
 }
 
 abstract ArrayRead<T>(Array<T>) {
-	
+
 	public var length(get, never) : Int;
-	
+
 	public inline function new(a : Array<T>) {
 		this = a;
 	}
-	
+
 	inline function get_length() {
 		return this.length;
 	}
-	
+
 	public inline function iterator() : ArrayIterator<T> {
 		return new ArrayIterator(castArray());
 	}
-	
+
 	inline function castArray() : Array<T> {
 		return this;
 	}
-	
+
 	public inline function toArrayCopy() {
 		return this.copy();
 	}
-	
+
 	@:arrayAccess inline function getIndex( v : Int ) {
 		return this[v];
 	}
-	
+
 }
 
 abstract Flags<T>(Int) {
-	
+
 	inline function new(x:Int) {
 		this = x;
 	}
-	
+
 	public inline function has( t : T ) {
 		return this & (1 << (cast t)) != 0;
 	}
-	
+
 	public inline function set( t : T ) {
 		this |= 1 << (cast t);
 	}
@@ -82,15 +82,15 @@ abstract Flags<T>(Int) {
 	public inline function unset( t : T ) {
 		this &= ~(1 << (cast t));
 	}
-	
+
 	public inline function iterator() {
 		return new FlagsIterator<T>(new Flags(this));
 	}
-	
+
 	public inline function toInt() : Int {
 		return this;
 	}
-	
+
 }
 
 class IndexNoId<T> {
@@ -107,16 +107,16 @@ class IndexNoId<T> {
 			}
 		throw "'" + sheet + "' not found in CDB data";
 	}
-	
+
 }
 
 class Index<T,Kind> {
-	
+
 	public var all : ArrayRead<T>;
 	var byIndex : Array<T>;
 	var byId : Map<String,T>;
 	var name : String;
-	
+
 	public function new( data : Data, sheet : String ) {
 		this.name = sheet;
 		for( s in data.sheets )
@@ -142,21 +142,21 @@ class Index<T,Kind> {
 			}
 		throw "'" + sheet + "' not found in CDB data";
 	}
-	
+
 	public inline function get( k : Kind ) {
 		return byId.get(cast k);
 	}
-	
+
 	public function resolve( id : String, ?opt : Bool ) : T {
 		if( id == null ) return null;
 		var v = byId.get(id);
 		return v == null && !opt ? throw "Missing " + name + "." + id : v;
 	}
-	
+
 }
 
 class Module {
-	
+
 	#if macro
 	static function makeFakeEnum( tname : String, curMod, pos, values : Array<String> ) : haxe.macro.Expr.TypeDefinition {
 		var fields : Array<haxe.macro.Expr.Field> = [for( i in 0...values.length ) { name : values[i], pos : pos, kind : FVar(null, macro $v { i } ) } ];
@@ -203,7 +203,7 @@ class Module {
 		};
 	}
 	#end
-	
+
 	static function getSheetLines( sheets : Array<Data.Sheet>, s : Data.Sheet ) {
 		if( !s.props.hide )
 			return s.lines;
@@ -227,7 +227,7 @@ class Module {
 		}
 		return out;
 	}
-	
+
 	public static function build( file : String ) {
 		#if !macro
 		throw "This can only be called in a macro";
@@ -259,9 +259,9 @@ class Module {
 		var types = new Array<haxe.macro.Expr.TypeDefinition>();
 		var curMod = Context.getLocalModule().split(".");
 		var modName = curMod.pop();
-		
+
 		var typesCache = new Map<String,String>();
-		
+
 		for( s in data.sheets ) {
 			var tname = makeTypeName(s.name);
 			var tkind = tname + "Kind";
@@ -271,7 +271,7 @@ class Module {
 			var ids : Array<haxe.macro.Expr.Field> = [];
 			for( c in s.columns ) {
 				var t = switch( c.type ) {
-				case TInt: macro : Int;
+				case TInt, TColor: macro : Int;
 				case TFloat: macro : Float;
 				case TBool: macro : Bool;
 				case TString: macro : String;
@@ -294,9 +294,9 @@ class Module {
 					var t = t.toComplex();
 					macro : cdb.Module.Flags<$t>;
 				}
-				
+
 				var rt = switch( c.type ) {
-				case TInt, TEnum(_), TFlags(_): macro : Int;
+				case TInt, TEnum(_), TFlags(_), TColor: macro : Int;
 				case TFloat: macro : Float;
 				case TBool: macro : Bool;
 				case TString, TRef(_), TImage, TId: macro : String;
@@ -310,16 +310,16 @@ class Module {
 					t = macro : Null<$t>;
 					rt = macro : Null<$rt>;
 				}
-				
+
 				fields.push({
 					name : c.name,
 					pos : pos,
 					kind : FProp("get", "never", t),
 					access : [APublic],
 				});
-				
+
 				switch( c.type ) {
-				case TInt, TFloat, TString, TBool, TImage:
+				case TInt, TFloat, TString, TBool, TImage, TColor:
 					var cname = c.name;
 					fields.push({
 						name : "get_"+c.name,
@@ -333,7 +333,7 @@ class Module {
 					});
 				case TId:
 					hasId = true;
-					
+
 					var cname = c.name;
 					for( obj in getSheetLines(data.sheets,s) ) {
 						var id = Reflect.field(obj, cname);
@@ -344,7 +344,7 @@ class Module {
 								kind : FVar(null,macro $v{id}),
 							});
 					}
-					
+
 					fields.push({
 						name : "get_"+c.name,
 						pos : pos,
@@ -413,14 +413,14 @@ class Module {
 						access : [AInline,APrivate],
 					});
 				}
-				
+
 				realFields.push({
 					name : c.name,
 					pos : pos,
 					kind : FVar(rt),
 				});
 			}
-			
+
 			if( s.props.hasIndex ) {
 				var tint = macro : Int;
 				realFields.push( { name : "index", pos : pos, kind : FVar(tint) } );
@@ -432,7 +432,7 @@ class Module {
 					access : [AInline, APrivate],
 				});
 			}
-			
+
 			var gtitles = s.props.separatorTitles;
 			if( s.props.hasGroup && gtitles != null ) {
 				var tint = macro : Int;
@@ -451,7 +451,7 @@ class Module {
 					access : [AInline, APrivate],
 				});
 			}
-			
+
 			var def = tname + "Def";
 			types.push({
 				pos : pos,
@@ -460,7 +460,7 @@ class Module {
 				kind : TDStructure,
 				fields : realFields,
 			});
-			
+
 
 			if( hasId ) {
 				ids.push( {
@@ -495,8 +495,8 @@ class Module {
 					continue;
 				}
 			}
-						
-			
+
+
 			types.push({
 				pos : pos,
 				name : tname,
@@ -591,7 +591,7 @@ class Module {
 				]
 			});
 		}
-		
+
 		var assigns = [], fields = new Array<haxe.macro.Expr.Field>();
 		for( s in data.sheets ) {
 			if( s.props.hide ) continue;
@@ -635,5 +635,5 @@ class Module {
 		return Context.getType("Void");
 		#end
 	}
-	
+
 }

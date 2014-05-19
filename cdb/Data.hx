@@ -12,6 +12,7 @@ enum ColumnType {
 	TList;
 	TCustom( name : String );
 	TFlags( values : Array<String> );
+	TColor;
 }
 
 #if macro
@@ -38,6 +39,7 @@ typedef SheetProps = {
 	@:optional var hide : Bool;
 	@:optional var hasIndex : Bool;
 	@:optional var hasGroup : Bool;
+	@:optional var isLevel : Bool;
 }
 
 typedef Sheet = {

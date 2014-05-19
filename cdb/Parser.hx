@@ -1,18 +1,18 @@
 package cdb;
 
 class Parser {
-	
+
 	public static function saveType( t : Data.ColumnType ) : String {
 		return switch( t ) {
 		case TRef(_), TCustom(_):
 			Type.enumIndex(t) + ":" + Type.enumParameters(t)[0];
 		case TEnum(values), TFlags(values):
 			Type.enumIndex(t) + ":" + values.join(",");
-		case TId, TString, TList, TInt, TImage, TFloat, TBool:
+		case TId, TString, TList, TInt, TImage, TFloat, TBool, TColor:
 			Std.string(Type.enumIndex(t));
 		};
 	}
-	
+
 	public static function getType( str : String ) : Data.ColumnType {
 		return switch( Std.parseInt(str) ) {
 		case 0: TId;
@@ -26,6 +26,7 @@ class Parser {
 		case 8: TList;
 		case 9: TCustom(str.substr(str.indexOf(":") + 1));
 		case 10: TFlags(str.substr(str.indexOf(":") + 1).split(","));
+		case 11: TColor;
 		default: throw "Unknown type " + str;
 		}
 	}
@@ -46,5 +47,5 @@ class Parser {
 				}
 		return data;
 	}
-	
+
 }

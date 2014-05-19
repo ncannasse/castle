@@ -30,6 +30,8 @@ class K {
 
 class Main extends Model {
 
+	static var UID = 0;
+
 	var window : nodejs.webkit.Window;
 	var viewSheet : Sheet;
 	var mousePos : { x : Int, y : Int };
@@ -522,7 +524,20 @@ class Main extends Model {
 				if( v & (1 << i) != 0 )
 					flags.push(StringTools.htmlEscape(values[i]));
 			flags.length == 0 ? String.fromCharCode(0x2205) : flags.join("|");
+		case TColor:
+			var id = UID++;
+			'<input type="text" id="_c${id}"/><script>$("#_c${id}").spectrum({ color : "#${StringTools.hex(v,6)}", showInput: true, clickoutFiresChange : true, showButtons: false, change : function(e) { _.colorChangeEvent(e,$(this),"${c.name}"); } })</script>';
 		}
+	}
+
+	@:keep function colorChangeEvent(value, comp:js.JQuery, col:String ) {
+		var color = Std.parseInt("0x" + value.toHex());
+		var line = comp.parent().parent();
+		var idx = line.data("index");
+		var sheet = getSheet(line.parent().parent().attr("sheet"));
+		var obj = sheet.lines[idx];
+		Reflect.setField(obj, col, color);
+		save();
 	}
 
 	function popupLine( sheet : Sheet, index : Int ) {
@@ -779,6 +794,20 @@ class Main extends Model {
 		nren.click = function() {
 			li.dblclick();
 		};
+		if( s.props.isLevel || (hasColumn(s, "width", [TInt]) && hasColumn(s, "height", [TInt])) ) {
+			var nlevel = new MenuItem( { label : "Level", type : MenuItemType.checkbox } );
+			nlevel.checked = s.props.isLevel;
+			n.append(nlevel);
+			nlevel.click = function() {
+				if( s.props.isLevel )
+					Reflect.deleteField(s.props, "isLevel");
+				else
+					s.props.isLevel = true;
+				save();
+				refresh();
+			};
+		}
+
 		n.popup(mousePos.x, mousePos.y);
 	}
 
@@ -1036,7 +1065,7 @@ class Main extends Model {
 				editDone();
 				save();
 			};
-		case TList:
+		case TList, TColor:
 			throw "assert";
 		}
 	}
@@ -1246,6 +1275,8 @@ class Main extends Model {
 					});
 					if( openedList.get(key) )
 						todo.push(function() v.click());
+				case TColor:
+					// nothing
 				default:
 					v.dblclick(function(e) editCell(c, v, sheet, index));
 				}
@@ -1580,6 +1611,8 @@ class Main extends Model {
 				return;
 			}
 			TCustom(t.name);
+		case "color":
+			TColor;
 		default:
 			return;
 		}
