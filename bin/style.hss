@@ -89,13 +89,13 @@ div.modal {
 			display : none;
 		}
 	}
-	
+
 	#col_options.t_int, #col_options.t_float {
 		.disp {
 			display : block;
 		}
 	}
-	
+
 	#col_options.t_edit {
 		a.tedit {
 			display : inline;
@@ -110,6 +110,11 @@ div.modal {
 	#col_options.t_ref .sheet {
 		display : block;
 	}
+
+	#col_options.t_layer .sheet {
+		display : block;
+	}
+
 	#col_options.t_custom .custom {
 		display : block;
 	}
@@ -120,14 +125,14 @@ div.modal {
 }
 
 div#menu {
-	
+
 	.errorMsg {
 		z-index : 11;
 		position : absolute;
 		margin-top : -25px;
 		right : 1px;
 	}
-	
+
 	position : fixed;
 	z-index : 9;
 	background-color : #CCF;
@@ -170,9 +175,7 @@ div#menu {
 }
 
 .castle {
-	
-	padding-bottom : 300px;
-	
+
 	.tedit {
 		height : 100%;
 		textarea {
@@ -181,7 +184,7 @@ div#menu {
 			height : 90%;
 		}
 	}
-	
+
 	table {
 		width : 100%;
 		table-layout:fixed;
@@ -190,38 +193,42 @@ div#menu {
 		border-spacing : 0;
 	}
 
+	table.sheet {
+		padding-bottom : 300px;
+	}
+
 	td {
 		padding : 2px 4px;
 		overflow : hidden;
 	}
-	
+
 	td.cursor {
 		outline : 1px solid #555;
 	}
-	
+
 	td.t_image {
 		cursor : pointer;
 		img {
 			max-height: 64px;
 		}
 	}
-	
+
 	img.selected {
 		opacity : 0.5;
 	}
-	
+
 	td.start {
 		min-width : 20px;
 		width : 20px;
 		text-align : center;
 		cursor : pointer;
 	}
-	
+
 	tr.head td.start {
 		cursor : nw-resize;
 	}
-	
-	
+
+
 	tr.separator {
 		background-color : #CCC;
 		height : 10px;
@@ -231,7 +238,7 @@ div#menu {
 			padding-left : 20px;
 		}
 	}
-	
+
 	tr.list {
 		background-color : #CCC;
 		border-bottom : 0px;
@@ -248,7 +255,7 @@ div#menu {
 		input, select {
 			background-color : #EEE;
 		}
-		
+
 		tr.selected, td.selected {
 			background-color : #DDD;
 		}
@@ -257,7 +264,7 @@ div#menu {
 		padding : 0;
 		padding-bottom: 5px;
 	}
-	
+
 	tr.clickable {
 		cursor : pointer;
 	}
@@ -276,36 +283,36 @@ div#menu {
 			font-style : italic;
 		}
 	}
-	
+
 	tr.selected, td.selected {
 		background-color : #EEE;
 	}
-	
+
 	td {
 		user-select: none;
 		border-left : 1px solid #CCC;
 	}
-	
+
 	td.t_bool {
 		text-align : center;
 	}
-	
+
 	td.t_int, td.t_float {
 		text-align : right;
 		input {
 			text-align : right;
 		}
 	}
-	
+
 	td.t_list {
 		white-space: nowrap;
 		cursor : pointer;
 	}
-	
+
 	td.t_enum {
 		padding-left : 5px;
 	}
-	
+
 	.flagValues {
 		position : absolute;
 		background-color : white;
@@ -324,11 +331,11 @@ div#menu {
 			background-color : #eee;
 		}
 	}
-	
+
 	tr {
 		border-bottom : 1px solid #F0F0F0;
 	}
-	
+
 	td.edit {
 		padding : 0px;
 		input {
@@ -346,8 +353,88 @@ div#menu {
 			width : 100%;
 		}
 	}
-	
+
 	span.error {
 		color : #A00;
 	}
 }
+
+
+#content .level {
+
+	user-select : none;
+
+	.menu {
+
+		background-color : #EEE;
+		border-bottom : 1px solid black;
+
+		.item {
+			padding : 10px;
+			display : inline-block;
+			min-width : 100px;
+			text-align : center;
+			cursor : pointer;
+			height : 60px;
+			vertical-align : top;
+			.img, .imglist {
+				display : inline-block;
+				background-color : #EEE;
+				padding : 3px;
+				border : 1px solid black;
+				img {
+					width : 32px;
+				}
+			}
+			.imglist {
+				z-index : 9;
+				position : absolute;
+				margin-left : -40px;
+				margin-top : 45px;
+				img {
+					background-color : #FFF;
+					margin-right : 5px;
+				}
+			}
+			.img:hover {
+				border-color : orange;
+			}
+		}
+
+		.item:hover {
+			background-color : #FFF;
+		}
+		.item.selected {
+			background-color : #FFF;
+			border : 1 px solid #888;
+			padding : 9px;
+		}
+
+		span {
+			display : block;
+			padding : 5px;
+		}
+	}
+
+	#cursor {
+		position : absolute;
+		cursor : CSS('none');
+	}
+
+	.scroll {
+
+		padding : 15px;
+		background-color : #888;
+		overflow:scroll;
+
+		.scrollContent {
+			position : relative;
+		}
+
+		canvas {
+			cursor : CSS('none');
+		}
+	}
+
+}
+

@@ -4,7 +4,7 @@ class Parser {
 
 	public static function saveType( t : Data.ColumnType ) : String {
 		return switch( t ) {
-		case TRef(_), TCustom(_):
+		case TRef(_), TCustom(_), TLayer(_):
 			Type.enumIndex(t) + ":" + Type.enumParameters(t)[0];
 		case TEnum(values), TFlags(values):
 			Type.enumIndex(t) + ":" + values.join(",");
@@ -27,6 +27,7 @@ class Parser {
 		case 9: TCustom(str.substr(str.indexOf(":") + 1));
 		case 10: TFlags(str.substr(str.indexOf(":") + 1).split(","));
 		case 11: TColor;
+		case 12: TLayer(str.substr(str.indexOf(":") + 1));
 		default: throw "Unknown type " + str;
 		}
 	}

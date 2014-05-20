@@ -46,6 +46,7 @@ class Main extends Model {
 	var sheetCursors : Map<String, Cursor>;
 	var lastSave : Float;
 	var colProps : { sheet : String, ref : Column, index : Null<Int> };
+	var level : Level;
 
 	function new() {
 		super();
@@ -132,7 +133,7 @@ class Main extends Model {
 		case K.INSERT:
 			if( cursor.s != null )
 				newLine(cursor.s, cursor.y);
-		case K.DELETE:
+		case K.DELETE if( level == null ):
 			J(".selected.deletable").change();
 			if( cursor.s != null ) {
 				if( cursor.x < 0 ) {
@@ -283,6 +284,7 @@ class Main extends Model {
 			}
 		default:
 		}
+		if( level != null ) level.onKey(e);
 	}
 
 	function getLine( sheet : Sheet, index : Int ) {
@@ -527,6 +529,8 @@ class Main extends Model {
 		case TColor:
 			var id = UID++;
 			'<input type="text" id="_c${id}"/><script>$("#_c${id}").spectrum({ color : "#${StringTools.hex(v,6)}", showInput: true, clickoutFiresChange : true, showButtons: false, change : function(e) { _.colorChangeEvent(e,$(this),"${c.name}"); } })</script>';
+		case TLayer(_):
+			"";
 		}
 	}
 
@@ -794,15 +798,15 @@ class Main extends Model {
 		nren.click = function() {
 			li.dblclick();
 		};
-		if( s.props.isLevel || (hasColumn(s, "width", [TInt]) && hasColumn(s, "height", [TInt])) ) {
+		if( s.props.levelProps != null || (hasColumn(s, "width", [TInt]) && hasColumn(s, "height", [TInt])) ) {
 			var nlevel = new MenuItem( { label : "Level", type : MenuItemType.checkbox } );
-			nlevel.checked = s.props.isLevel;
+			nlevel.checked = s.props.levelProps != null;
 			n.append(nlevel);
 			nlevel.click = function() {
-				if( s.props.isLevel )
-					Reflect.deleteField(s.props, "isLevel");
+				if( s.props.levelProps != null )
+					Reflect.deleteField(s.props, "levelProps");
 				else
-					s.props.isLevel = true;
+					s.props.levelProps = {};
 				save();
 				refresh();
 			};
@@ -1065,7 +1069,7 @@ class Main extends Model {
 				editDone();
 				save();
 			};
-		case TList, TColor:
+		case TList, TColor, TLayer(_):
 			throw "assert";
 		}
 	}
@@ -1138,6 +1142,7 @@ class Main extends Model {
 				J("tr.list table").change();
 		});
 
+		content.addClass("sheet");
 		content.attr("sheet", getPath(sheet));
 		content.click(function(e) {
 			e.stopPropagation();
@@ -1165,11 +1170,14 @@ class Main extends Model {
 			l;
 		}];
 
+		var colCount = sheet.columns.length;
+		if( sheet.props.levelProps != null ) colCount++;
+
 		for( cindex in 0...sheet.columns.length ) {
 			var c = sheet.columns[cindex];
 			var col = J("<td>");
 			col.html(c.name);
-			col.css("width", Std.int(100 / sheet.columns.length) + "%");
+			col.css("width", Std.int(100 / colCount) + "%");
 			if( sheet.props.displayColumn == c.name )
 				col.addClass("display");
 			col.mousedown(function(e) {
@@ -1275,13 +1283,28 @@ class Main extends Model {
 					});
 					if( openedList.get(key) )
 						todo.push(function() v.click());
-				case TColor:
+				case TColor, TLayer(_):
 					// nothing
 				default:
 					v.dblclick(function(e) editCell(c, v, sheet, index));
 				}
 			}
 		}
+
+		if( sheet.props.levelProps != null ) {
+			var col = J("<td>");
+			cols.append(col);
+			for( index in 0...sheet.lines.length ) {
+				var l = lines[index];
+				var c = J("<input type='submit' value='Edit'>");
+				J("<td>").append(c).appendTo(l);
+				c.click(function() {
+					level = new Level(this, sheet, index);
+					J("#sheets li").removeClass("active");
+				});
+			}
+		}
+
 		content.empty();
 		content.append(cols);
 
@@ -1510,7 +1533,7 @@ class Main extends Model {
 			switch( ref.type ) {
 			case TEnum(values), TFlags(values):
 				form.find("[name=values]").val(values.join(","));
-			case TRef(sname):
+			case TRef(sname), TLayer(sname):
 				form.find("[name=sheet]").val( "" + Lambda.indexOf(data.sheets, Lambda.find(data.sheets,function(s:Sheet) return s.name == sname)));
 			case TCustom(name):
 				form.find("[name=ctype]").val(name);
@@ -1613,6 +1636,13 @@ class Main extends Model {
 			TCustom(t.name);
 		case "color":
 			TColor;
+		case "layer":
+			var s = data.sheets[Std.parseInt(v.sheet)];
+			if( s == null ) {
+				error("Sheet not found");
+				return;
+			}
+			TLayer(s.name);
 		default:
 			return;
 		}
@@ -1677,6 +1707,8 @@ class Main extends Model {
 						return switch( t ) {
 						case TRef(o) if( o == old ):
 							TRef(name);
+						case TLayer(o) if( o == old ):
+							TLayer(name);
 						default:
 							t;
 						}
@@ -1708,6 +1740,18 @@ class Main extends Model {
 		var s = data.sheets[prefs.curSheet];
 		if( s == null ) s = data.sheets[0];
 		selectSheet(s);
+
+		if( level != null ) {
+			if( !smap.exists(level.sheetPath) )
+				level = null;
+			else {
+				var s = getSheet(level.sheetPath);
+				if( s.lines.length < level.index )
+					level = null;
+				else
+					level = new Level(this, s, level.index);
+			}
+		}
 	}
 
 	function initMenu() {

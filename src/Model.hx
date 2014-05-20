@@ -36,7 +36,11 @@ class Model {
 		}
 	}
 
-	inline function getSheet( name : String ) {
+	public function getImageData( key : String ) : String {
+		return Reflect.field(imageBank, key);
+	}
+
+	public inline function getSheet( name : String ) {
 		return smap.get(name).s;
 	}
 
@@ -105,7 +109,7 @@ class Model {
 		}
 	}
 
-	function getPath( sheet : Sheet ) {
+	public function getPath( sheet : Sheet ) {
 		return sheet.path == null ? sheet.name : sheet.path;
 	}
 
@@ -114,7 +118,7 @@ class Model {
 			return null;
 		return switch( c.type ) {
 		case TInt, TFloat, TEnum(_), TFlags(_), TColor: 0;
-		case TString, TId, TRef(_), TImage: "";
+		case TString, TId, TRef(_), TImage, TLayer(_): "";
 		case TBool: false;
 		case TList: [];
 		case TCustom(_): null;
@@ -135,7 +139,7 @@ class Model {
 		return false;
 	}
 
-	function save( history = true ) {
+	public function save( history = true ) {
 
 		// process
 		for( s in data.sheets ) {
@@ -288,7 +292,7 @@ class Model {
 			}
 		mapType(function(t) {
 			return switch( t ) {
-			case TRef(r) if( r == sheet.name ): TString;
+			case TRef(r), TLayer(r) if( r == sheet.name ): TString;
 			default: t;
 			}
 		});
@@ -335,9 +339,9 @@ class Model {
 		switch( [old, t] ) {
 		case [TInt, TFloat]:
 			// nothing
-		case [TId | TRef(_), TString]:
+		case [TId | TRef(_) | TLayer(_), TString]:
 			// nothing
-		case [TString, (TId | TRef(_))]:
+		case [TString, (TId | TRef(_) | TLayer(_))]:
 			var r_invalid = ~/[^A-Za-z0-9_]/g;
 			conv = function(r:String) return r_invalid.replace(r, "_");
 		case [TBool, (TInt | TFloat)]:
@@ -611,7 +615,7 @@ class Model {
 			return "null";
 		return switch( t ) {
 		case TInt, TFloat, TBool, TImage: Std.string(val);
-		case TId, TRef(_): esc ? '"'+val+'"' : val;
+		case TId, TRef(_), TLayer(_): esc ? '"'+val+'"' : val;
 		case TString:
 			var val : String = val;
 			if( ~/^[A-Za-z0-9_]+$/g.match(val) && !esc )
@@ -632,7 +636,8 @@ class Model {
 					flags.push(valToString(TString, values[i], esc));
 			Std.string(flags);
 		case TColor:
-			"#" + StringTools.hex(val, 6);
+			var s = "#" + StringTools.hex(val, 6);
+			esc ? '"' + s + '"' : s;
 		}
 	}
 

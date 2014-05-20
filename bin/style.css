@@ -101,6 +101,9 @@ div.modal #col_options.t_enum .values, div.modal #col_options.t_flags .values {
 div.modal #col_options.t_ref .sheet {
 	display : block;
 }
+div.modal #col_options.t_layer .sheet {
+	display : block;
+}
 div.modal #col_options.t_custom .custom {
 	display : block;
 }
@@ -160,9 +163,6 @@ div#menu ul.sheets li.active {
 	color : #252596;
 	background-color : #E0E0FF;
 }
-.castle {
-	padding-bottom : 300px;
-}
 .castle .tedit {
 	height : 100%;
 }
@@ -177,6 +177,9 @@ div#menu ul.sheets li.active {
 	background-color : white;
 	border-collapse : collapse;
 	border-spacing : 0;
+}
+.castle table.sheet {
+	padding-bottom : 300px;
 }
 .castle td {
 	padding : 2px 4px;
@@ -319,4 +322,75 @@ div#menu ul.sheets li.active {
 }
 .castle span.error {
 	color : #A00;
+}
+#content .level {
+	user-select : none;
+	-moz-user-select : none;
+	-webkit-user-select : none;
+}
+#content .level .menu {
+	background-color : #EEE;
+	border-bottom : 1px solid black;
+}
+#content .level .menu .item {
+	padding : 10px;
+	display : inline-block;
+	zoom : 1;
+	*display : inline;
+	min-width : 100px;
+	text-align : center;
+	cursor : pointer;
+	height : 60px;
+	vertical-align : top;
+}
+#content .level .menu .item .img, #content .level .menu .item .imglist {
+	display : inline-block;
+	zoom : 1;
+	*display : inline;
+	background-color : #EEE;
+	padding : 3px;
+	border : 1px solid black;
+}
+#content .level .menu .item .img img, #content .level .menu .item .imglist img {
+	width : 32px;
+}
+#content .level .menu .item .imglist {
+	z-index : 9;
+	position : absolute;
+	margin-left : -40px;
+	margin-top : 45px;
+}
+#content .level .menu .item .imglist img {
+	background-color : #FFF;
+	margin-right : 5px;
+}
+#content .level .menu .item .img:hover {
+	border-color : orange;
+}
+#content .level .menu .item:hover {
+	background-color : #FFF;
+}
+#content .level .menu .item.selected {
+	background-color : #FFF;
+	border : 1px solid #888;
+	padding : 9px;
+}
+#content .level .menu span {
+	display : block;
+	padding : 5px;
+}
+#content .level #cursor {
+	position : absolute;
+	cursor : none;
+}
+#content .level .scroll {
+	padding : 15px;
+	background-color : #888;
+	overflow : scroll;
+}
+#content .level .scroll .scrollContent {
+	position : relative;
+}
+#content .level .scroll canvas {
+	cursor : none;
 }

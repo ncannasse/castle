@@ -13,6 +13,7 @@ enum ColumnType {
 	TCustom( name : String );
 	TFlags( values : Array<String> );
 	TColor;
+	TLayer( type : String );
 }
 
 #if macro
@@ -33,13 +34,22 @@ typedef Column = {
 	@:optional var display : DisplayType;
 }
 
+typedef LayerProps = {
+	var alpha : Float;
+}
+
+typedef LevelProps = {
+	@:optional var zoom : Int;
+	@:optional var layers : Array<{ l : String, p : LayerProps }>;
+}
+
 typedef SheetProps = {
 	@:optional var displayColumn : Null<String>;
 	@:optional var separatorTitles : Array<String>;
 	@:optional var hide : Bool;
 	@:optional var hasIndex : Bool;
 	@:optional var hasGroup : Bool;
-	@:optional var isLevel : Bool;
+	@:optional var levelProps : LevelProps;
 }
 
 typedef Sheet = {
