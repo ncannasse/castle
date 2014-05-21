@@ -367,7 +367,6 @@ div#menu {
 	.menu {
 
 		background-color : #EEE;
-		border-bottom : 1px solid black;
 
 		.item {
 			padding : 10px;
@@ -413,6 +412,21 @@ div#menu {
 		span {
 			display : block;
 			padding : 5px;
+		}
+	}
+
+	.submenu {
+		padding : 5px;
+		border-bottom : 1px solid black;
+		padding-left : 20px;
+		vertical-align : top;
+		.item {
+			vertical-align : middle;
+			width : 100px;
+			display : inline-block;
+			input[type=range] {
+				width : 50px;
+			}
 		}
 	}
 

@@ -138,6 +138,14 @@
 <div id="levelContent" style="display:none">
 	<div class="level">
 		<div class="menu"></div>
+		<div class="submenu">
+			<div class="item">
+				<label><input type="checkbox" name="visible" onchange="_.level.setVisible(this.checked)"/> Visible</label>
+			</div>
+			<div class="item">
+				<input type="range" name="alpha" min="0" max="100" onchange="_.level.setAlpha(this.value)"/> Alpha
+			</div>
+		</div>
 		<div class="scroll">
 			<div class="scrollContent">
 				<div id="cursor"></div>

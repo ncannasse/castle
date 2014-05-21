@@ -193,8 +193,12 @@ var Level = function(model,sheet,index) {
 			case 12:
 				var type = _g22[2];
 				var p = lprops.get(c.name);
+				if(p == null) {
+					p = { l : c.name, p : { alpha : 1.}};
+					this.props.layers.push(p);
+				}
 				lprops.remove(c.name);
-				var l = new LayerData(this,c.name,model.smap.get(type).s,val,p == null?null:p.p);
+				var l = new LayerData(this,c.name,model.smap.get(type).s,val,p.p);
 				this.layers.push(l);
 				break;
 			default:
@@ -467,22 +471,25 @@ Level.prototype = {
 		while(_g < _g1.length) {
 			var l = _g1[_g];
 			++_g;
-			var _g3 = 0;
-			var _g2 = this.width;
-			while(_g3 < _g2) {
-				var y = _g3++;
-				var _g5 = 0;
-				var _g4 = this.height;
-				while(_g5 < _g4) {
-					var x = _g5++;
-					var k = l.data[x + y * this.width];
-					if(k == 0 && !first) continue;
-					if(l.images != null) {
-						this.ctx.drawImage(l.images[k],x * this.zoom,y * this.zoom);
-						continue;
+			this.ctx.globalAlpha = l.props.alpha;
+			if(l.visible) {
+				var _g3 = 0;
+				var _g2 = this.width;
+				while(_g3 < _g2) {
+					var y = _g3++;
+					var _g5 = 0;
+					var _g4 = this.height;
+					while(_g5 < _g4) {
+						var x = _g5++;
+						var k = l.data[x + y * this.width];
+						if(k == 0 && !first) continue;
+						if(l.images != null) {
+							this.ctx.drawImage(l.images[k],x * this.zoom,y * this.zoom);
+							continue;
+						}
+						this.ctx.fillStyle = this.toColor(l.colors[k]);
+						this.ctx.fillRect(x * this.zoom,y * this.zoom,this.zoom,this.zoom);
 					}
-					this.ctx.fillStyle = this.toColor(l.colors[k]);
-					this.ctx.fillRect(x * this.zoom,y * this.zoom,this.zoom,this.zoom);
 				}
 			}
 			first = false;
@@ -511,12 +518,25 @@ Level.prototype = {
 		var state = { zoomView : this.zoomView, curLayer : this.currentLayer.name};
 		js.Browser.getLocalStorage().setItem(this.sheetPath,haxe.Serializer.run(state));
 	}
+	,setVisible: function(b) {
+		this.currentLayer.set_visible(b);
+		this.draw();
+	}
+	,setAlpha: function(v) {
+		this.currentLayer.props.alpha = Std.parseInt(v) / 100;
+		this.model.save(false);
+		this.draw();
+	}
 	,setCursor: function(l) {
 		new js.JQuery(".menu .item.selected").removeClass("selected");
 		l.comp.addClass("selected");
 		var old = this.currentLayer;
 		this.currentLayer = l;
-		if(old != l) this.savePrefs();
+		if(old != l) {
+			this.savePrefs();
+			new js.JQuery("[name=alpha]").val(Std.string(l.props.alpha * 100 | 0));
+			new js.JQuery("[name=visible]").prop("checked",l.visible);
+		}
 		var size = this.zoom * this.zoomView | 0;
 		if(l.images != null) this.cursor.css({ background : "url('" + l.images[l.current].src + "')", backgroundSize : "cover", width : size + "px", height : size + "px", border : "none"}); else {
 			var c = l.colors[l.current];
@@ -528,11 +548,11 @@ Level.prototype = {
 };
 var LayerData = function(level,name,s,val,p) {
 	this.current = 0;
+	this.visible = false;
 	this.level = level;
 	this.name = name;
 	this.sheet = s;
 	this.props = p;
-	if(this.props == null) this.props = { alpha : 1};
 	if(s.lines.length > 256) throw "Too many lines";
 	if(val == null || val == "") {
 		var _g = [];
@@ -642,18 +662,26 @@ var LayerData = function(level,name,s,val,p) {
 	} catch( e ) {
 		state = null;
 	}
-	if(state != null) this.set_current(state.current);
+	if(state != null) {
+		this.set_visible(state.visible);
+		this.set_current(state.current);
+	}
 };
 $hxClasses["LayerData"] = LayerData;
 LayerData.__name__ = ["LayerData"];
 LayerData.prototype = {
-	set_current: function(v) {
+	set_visible: function(v) {
+		this.visible = v;
+		this.saveState();
+		return v;
+	}
+	,set_current: function(v) {
 		this.current = v;
 		this.saveState();
 		return v;
 	}
 	,saveState: function() {
-		var s = { current : this.current};
+		var s = { current : this.current, visible : this.visible};
 		js.Browser.getLocalStorage().setItem(this.level.sheetPath + ":" + this.name,haxe.Serializer.run(s));
 	}
 	,getData: function() {
@@ -3949,7 +3977,8 @@ Main.prototype = $extend(Model.prototype,{
 		}
 		if(update) this.updateCursor();
 	}
-	,selectSheet: function(s) {
+	,selectSheet: function(s,manual) {
+		if(manual == null) manual = true;
 		this.viewSheet = s;
 		this.cursor = this.sheetCursors.get(s.name);
 		if(this.cursor == null) {
@@ -3958,6 +3987,7 @@ Main.prototype = $extend(Model.prototype,{
 		}
 		this.prefs.curSheet = Lambda.indexOf(this.data.sheets,s);
 		new js.JQuery("#sheets li").removeClass("active").filter("#sheet_" + this.prefs.curSheet).addClass("active");
+		if(manual) this.level = null;
 		this.refresh();
 	}
 	,newSheet: function() {
@@ -4448,12 +4478,13 @@ Main.prototype = $extend(Model.prototype,{
 		}
 		var s4 = this.data.sheets[this.prefs.curSheet];
 		if(s4 == null) s4 = this.data.sheets[0];
-		this.selectSheet(s4);
+		this.selectSheet(s4,false);
 		if(this.level != null) {
 			if(!this.smap.exists(this.level.sheetPath)) this.level = null; else {
 				var s5 = this.smap.get(this.level.sheetPath).s;
 				if(s5.lines.length < this.level.index) this.level = null; else this.level = new Level(this,s5,this.level.index);
 			}
+			if(this.level != null) new js.JQuery("#sheets li").removeClass("active");
 		}
 	}
 	,initMenu: function() {

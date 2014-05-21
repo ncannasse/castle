@@ -1362,7 +1362,7 @@ class Main extends Model {
 		if( update ) updateCursor();
 	}
 
-	function selectSheet( s : Sheet ) {
+	function selectSheet( s : Sheet, manual = true ) {
 		viewSheet = s;
 		cursor = sheetCursors.get(s.name);
 		if( cursor == null ) {
@@ -1375,6 +1375,7 @@ class Main extends Model {
 		}
 		prefs.curSheet = Lambda.indexOf(data.sheets, s);
 		J("#sheets li").removeClass("active").filter("#sheet_" + prefs.curSheet).addClass("active");
+		if( manual ) level = null;
 		refresh();
 	}
 
@@ -1739,7 +1740,7 @@ class Main extends Model {
 		}
 		var s = data.sheets[prefs.curSheet];
 		if( s == null ) s = data.sheets[0];
-		selectSheet(s);
+		selectSheet(s, false);
 
 		if( level != null ) {
 			if( !smap.exists(level.sheetPath) )
@@ -1751,6 +1752,7 @@ class Main extends Model {
 				else
 					level = new Level(this, s, level.index);
 			}
+			if( level != null ) J("#sheets li").removeClass("active");
 		}
 	}
 

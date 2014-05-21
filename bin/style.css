@@ -330,7 +330,6 @@ div#menu ul.sheets li.active {
 }
 #content .level .menu {
 	background-color : #EEE;
-	border-bottom : 1px solid black;
 }
 #content .level .menu .item {
 	padding : 10px;
@@ -378,6 +377,22 @@ div#menu ul.sheets li.active {
 #content .level .menu span {
 	display : block;
 	padding : 5px;
+}
+#content .level .submenu {
+	padding : 5px;
+	border-bottom : 1px solid black;
+	padding-left : 20px;
+	vertical-align : top;
+}
+#content .level .submenu .item {
+	vertical-align : middle;
+	width : 100px;
+	display : inline-block;
+	zoom : 1;
+	*display : inline;
+}
+#content .level .submenu .item input[type=range] {
+	width : 50px;
 }
 #content .level #cursor {
 	position : absolute;

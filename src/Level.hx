@@ -60,8 +60,12 @@ class Level {
 			case TId: title = val;
 			case TLayer(type):
 				var p = lprops.get(c.name);
+				if( p == null ) {
+					p = { l : c.name, p : { alpha : 1. } };
+					props.layers.push(p);
+				}
 				lprops.remove(c.name);
-				var l = new LayerData(this, c.name, model.getSheet(type), val, p == null ? null : p.p);
+				var l = new LayerData(this, c.name, model.getSheet(type), val, p.p);
 				layers.push(l);
 			default:
 			}
@@ -264,6 +268,8 @@ class Level {
 		ctx.fillRect(0, 0, width * zoom, height * zoom);
 		var first = true;
 		for( l in layers ) {
+			ctx.globalAlpha = l.props.alpha;
+			if( l.visible )
 			for( y in 0...width )
 				for( x in 0...height ) {
 					var k = l.data[x + y * width];
@@ -302,12 +308,27 @@ class Level {
 		js.Browser.getLocalStorage().setItem(sheetPath, haxe.Serializer.run(state));
 	}
 
+	@:keep function setVisible(b:Bool) {
+		currentLayer.visible = b;
+		draw();
+	}
+
+	@:keep function setAlpha(v:String) {
+		currentLayer.props.alpha = Std.parseInt(v) / 100;
+		model.save(false);
+		draw();
+	}
+
 	function setCursor( l : LayerData ) {
 		J(".menu .item.selected").removeClass("selected");
 		l.comp.addClass("selected");
 		var old = currentLayer;
 		currentLayer = l;
-		if( old != l ) savePrefs();
+		if( old != l ) {
+			savePrefs();
+			J("[name=alpha]").val(Std.string(Std.int(l.props.alpha * 100)));
+			J("[name=visible]").prop("checked", l.visible);
+		}
 		var size = Std.int(zoom * zoomView);
 		if( l.images != null ) {
 			cursor.css( { background : "url('" + l.images[l.current].src+"')", backgroundSize : "cover", width : size+"px", height : size+"px", border : "none" } );
@@ -322,6 +343,7 @@ class Level {
 
 typedef LayerState = {
 	var current : Int;
+	var visible : Bool;
 }
 
 
@@ -336,6 +358,7 @@ class LayerData {
 	public var data : Array<Int>;
 	public var props : LayerProps;
 
+	public var visible(default,set) : Bool = false;
 	public var dirty : Bool;
 
 	public var current(default,set) : Int = 0;
@@ -346,10 +369,6 @@ class LayerData {
 		this.name = name;
 		sheet = s;
 		props = p;
-		if( props == null )
-			props = {
-				alpha : 1,
-			};
 		if( s.lines.length > 256 ) throw "Too many lines";
 		if( val == null || val == "" )
 			data = [for( x in 0...level.width * level.height ) 0];
@@ -406,8 +425,16 @@ class LayerData {
 		}
 
 		var state : LayerState = try haxe.Unserializer.run(js.Browser.getLocalStorage().getItem(level.sheetPath + ":" + name)) catch( e : Dynamic ) null;
-		if( state != null )
+		if( state != null ) {
+			visible = state.visible;
 			current = state.current;
+		}
+	}
+
+	function set_visible(v) {
+		visible = v;
+		saveState();
+		return v;
 	}
 
 	function set_current(v) {
@@ -419,6 +446,7 @@ class LayerData {
 	function saveState() {
 		var s : LayerState = {
 			current : current,
+			visible : visible,
 		};
 		js.Browser.getLocalStorage().setItem(level.sheetPath + ":" + name, haxe.Serializer.run(s));
 	}
