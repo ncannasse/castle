@@ -368,6 +368,10 @@ div#menu {
 
 		background-color : #EEE;
 
+		.item.hidden {
+			opacity : 0.5;
+		}
+
 		.item {
 			padding : 10px;
 			display : inline-block;

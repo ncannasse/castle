@@ -108,6 +108,7 @@ class Level {
 		for( l in layers ) {
 			var td = J("<div class='item layer'>").appendTo(menu);
 			l.comp = td;
+			if( !l.visible ) td.addClass("hidden");
 			td.click(function(_) setCursor(l));
 			J("<span>").text(l.name).appendTo(td);
 			if( l.images != null ) {
@@ -433,6 +434,7 @@ class LayerData {
 
 	function set_visible(v) {
 		visible = v;
+		if( comp != null ) comp.toggleClass("hidden", !visible);
 		saveState();
 		return v;
 	}

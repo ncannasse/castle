@@ -263,6 +263,7 @@ Level.prototype = {
 			++_g;
 			var td = [new js.JQuery("<div class='item layer'>").appendTo(menu)];
 			l[0].comp = td[0];
+			if(!l[0].visible) td[0].addClass("hidden");
 			td[0].click((function(l) {
 				return function(_) {
 					_g2.setCursor(l[0]);
@@ -672,6 +673,7 @@ LayerData.__name__ = ["LayerData"];
 LayerData.prototype = {
 	set_visible: function(v) {
 		this.visible = v;
+		if(this.comp != null) this.comp.toggleClass("hidden",!this.visible);
 		this.saveState();
 		return v;
 	}
