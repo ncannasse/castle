@@ -26,6 +26,8 @@ class K {
 	public static inline var F2 = 113;
 	public static inline var F3 = 114;
 	public static inline var F4 = 115;
+	public static inline var NUMPAD_ADD = 107;
+	public static inline var NUMPAD_SUB = 109;
 }
 
 class Main extends Model {

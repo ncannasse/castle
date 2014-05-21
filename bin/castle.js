@@ -1,5 +1,5 @@
 (function () { "use strict";
-var $hxClasses = {},$estr = function() { return js.Boot.__string_rec(this,''); };
+var $hxClasses = {};
 function $extend(from, fields) {
 	function Inherit() {} Inherit.prototype = from; var proto = new Inherit();
 	for (var name in fields) proto[name] = fields[name];
@@ -149,6 +149,7 @@ Lambda.find = function(it,f) {
 };
 var Level = function(model,sheet,index) {
 	this.zoomView = 1.;
+	var _g = this;
 	this.sheet = sheet;
 	this.sheetPath = model.getPath(sheet);
 	this.index = index;
@@ -156,22 +157,31 @@ var Level = function(model,sheet,index) {
 	this.model = model;
 	this.layers = [];
 	this.props = sheet.props.levelProps;
-	if(this.props.zoom == null) this.props.zoom = 16;
-	this.zoom = this.props.zoom;
+	if(this.props.tileSize == null) this.props.tileSize = 16;
+	this.tileSize = this.props.tileSize;
 	var lprops = new haxe.ds.StringMap();
 	if(this.props.layers == null) this.props.layers = [];
-	var _g = 0;
-	var _g1 = this.props.layers;
-	while(_g < _g1.length) {
-		var ld = _g1[_g];
-		++_g;
+	var _g1 = 0;
+	var _g11 = this.props.layers;
+	while(_g1 < _g11.length) {
+		var ld = _g11[_g1];
+		++_g1;
 		lprops.set(ld.l,ld);
 	}
+	var getProps = function(name) {
+		var p = lprops.get(name);
+		if(p == null) {
+			p = { l : name, p : { alpha : 1.}};
+			_g.props.layers.push(p);
+		}
+		lprops.remove(name);
+		return p.p;
+	};
 	var title = "";
 	var _g2 = 0;
-	var _g11 = sheet.columns;
-	while(_g2 < _g11.length) {
-		var c = _g11[_g2];
+	var _g12 = sheet.columns;
+	while(_g2 < _g12.length) {
+		var c = _g12[_g2];
 		++_g2;
 		var val = Reflect.field(this.obj,c.name);
 		var _g21 = c.name;
@@ -192,14 +202,39 @@ var Level = function(model,sheet,index) {
 				break;
 			case 12:
 				var type = _g22[2];
-				var p = lprops.get(c.name);
-				if(p == null) {
-					p = { l : c.name, p : { alpha : 1.}};
-					this.props.layers.push(p);
-				}
-				lprops.remove(c.name);
-				var l = new LayerData(this,c.name,model.smap.get(type).s,val,p.p);
+				var l = new LayerData(this,c.name,model.smap.get(type).s,getProps(c.name));
+				l.setLayerData(val);
 				this.layers.push(l);
+				break;
+			case 8:
+				var sheet1 = model.smap.get(sheet.name + "@" + c.name).s;
+				var floatCoord = false;
+				if(model.hasColumn(sheet1,"x",[cdb.ColumnType.TInt]) && model.hasColumn(sheet1,"y",[cdb.ColumnType.TInt]) || (floatCoord = model.hasColumn(sheet1,"x",[cdb.ColumnType.TFloat]) && model.hasColumn(sheet1,"y",[cdb.ColumnType.TFloat]))) {
+					var _g3 = 0;
+					var _g4 = sheet1.columns;
+					try {
+						while(_g3 < _g4.length) {
+							var cid = _g4[_g3];
+							++_g3;
+							{
+								var _g5 = cid.type;
+								switch(_g5[1]) {
+								case 6:
+									var rid = _g5[2];
+									var sid = model.smap.get(rid).s;
+									var l1 = new LayerData(this,c.name,sid,getProps(c.name));
+									l1.floatCoord = floatCoord;
+									l1.baseSheet = sheet1;
+									l1.setObjectsData(cid.name,val);
+									this.layers.push(l1);
+									throw "__break__";
+									break;
+								default:
+								}
+							}
+						}
+					} catch( e ) { if( e != "__break__" ) throw e; }
+				}
 				break;
 			default:
 			}
@@ -224,13 +259,13 @@ var Level = function(model,sheet,index) {
 		state = null;
 	}
 	if(state != null) {
-		var _g3 = 0;
-		var _g12 = this.layers;
-		while(_g3 < _g12.length) {
-			var l1 = _g12[_g3];
-			++_g3;
-			if(l1.name == state.curLayer) {
-				layer = l1;
+		var _g6 = 0;
+		var _g13 = this.layers;
+		while(_g6 < _g13.length) {
+			var l2 = _g13[_g6];
+			++_g6;
+			if(l2.name == state.curLayer) {
+				layer = l2;
 				break;
 			}
 		}
@@ -244,6 +279,44 @@ Level.__name__ = ["Level"];
 Level.prototype = {
 	toColor: function(v) {
 		return "#" + StringTools.hex(v,6);
+	}
+	,pick: function() {
+		if(this.curPos == null) return null;
+		var i = this.layers.length - 1;
+		while(i >= 0) {
+			var l = this.layers[i--];
+			if(!l.visible) continue;
+			{
+				var _g = l.data;
+				switch(_g[1]) {
+				case 0:
+					var data = _g[2];
+					var idx = this.curPos.x + this.curPos.y * this.width;
+					var k = data[idx];
+					if(k == 0 && i >= 0) continue;
+					return { k : k, layer : l, index : idx};
+				case 1:
+					var objs = _g[3];
+					var idCol = _g[2];
+					var x = this.curPos.xf;
+					var y = this.curPos.yf;
+					var _g2 = 0;
+					var _g1 = objs.length;
+					while(_g2 < _g1) {
+						var i1 = _g2++;
+						var o = objs[i1];
+						if(!(o.x >= x + 1 || o.y >= y + 1 || o.x + 1 < x || o.y + 1 < y)) {
+							var k1;
+							var key = Reflect.field(o,idCol);
+							k1 = l.idToIndex.get(key);
+							if(k1 != null) return { k : k1, layer : l, index : i1};
+						}
+					}
+					break;
+				}
+			}
+		}
+		return null;
 	}
 	,setup: function() {
 		var _g2 = this;
@@ -355,8 +428,8 @@ Level.prototype = {
 			})(l)});
 		}
 		var canvas = this.content.find("canvas");
-		canvas.attr("width",this.width * this.zoom + "px");
-		canvas.attr("height",this.height * this.zoom + "px");
+		canvas.attr("width",this.width * this.tileSize + "px");
+		canvas.attr("height",this.height * this.tileSize + "px");
 		var scroll = this.content.find(".scroll");
 		var scont = new js.JQuery(".scrollContent");
 		var win = nodejs.webkit.Window.get();
@@ -366,12 +439,7 @@ Level.prototype = {
 		win.on("resize",onResize);
 		onResize(null);
 		scroll.bind("mousewheel",function(e2) {
-			var d = e2.originalEvent.wheelDelta;
-			if(d > 0) _g2.zoomView *= 1.2; else _g2.zoomView /= 1.2;
-			_g2.savePrefs();
-			e2.preventDefault();
-			e2.stopPropagation();
-			_g2.updateZoom();
+			_g2.updateZoom(e2.originalEvent.wheelDelta > 0);
 		});
 		this.cursor = this.content.find("#cursor");
 		this.cursor.hide();
@@ -383,14 +451,17 @@ Level.prototype = {
 		});
 		scont.mousemove(function(e3) {
 			var off = canvas.parent().offset();
-			var cx = (e3.pageX - off.left) / (_g2.zoom * _g2.zoomView) | 0;
-			var cy = (e3.pageY - off.top) / (_g2.zoom * _g2.zoomView) | 0;
+			var cxf = ((e3.pageX - off.left) / _g2.zoomView | 0) / _g2.tileSize;
+			var cyf = ((e3.pageY - off.top) / _g2.zoomView | 0) / _g2.tileSize;
+			var cx = cxf | 0;
+			var cy = cyf | 0;
 			var delta;
 			if(_g2.currentLayer.images != null) delta = 0; else delta = -1;
 			if(cx < _g2.width && cy < _g2.height) {
 				_g2.cursor.show();
-				_g2.cursor.css({ marginLeft : (cx * _g2.zoom * _g2.zoomView + delta | 0) + "px", marginTop : (cy * _g2.zoom * _g2.zoomView + delta | 0) + "px"});
-				_g2.curPos = { x : cx, y : cy};
+				var fc = _g2.currentLayer.floatCoord;
+				_g2.cursor.css({ marginLeft : ((fc?cxf:cx) * _g2.tileSize * _g2.zoomView + delta | 0) + "px", marginTop : ((fc?cyf:cy) * _g2.tileSize * _g2.zoomView + delta | 0) + "px"});
+				_g2.curPos = { x : cx, y : cy, xf : cxf, yf : cyf};
 				if(_g2.mouseDown) _g2.set(cx,cy);
 			} else {
 				_g2.cursor.hide();
@@ -409,63 +480,155 @@ Level.prototype = {
 				if(_g2.curPos != null) _g2.set(_g2.curPos.x,_g2.curPos.y);
 				break;
 			case 3:
-				if(_g2.curPos == null) return;
-				var i2 = _g2.layers.length - 1;
-				while(i2 >= 0) {
-					var l1 = _g2.layers[i2--];
-					var k = l1.data[_g2.curPos.x + _g2.curPos.y * _g2.width];
-					if(k == 0 && i2 >= 0) continue;
-					l1.set_current(k);
-					_g2.setCursor(l1);
-					break;
+				var p = _g2.pick();
+				if(p != null) {
+					p.layer.set_current(p.k);
+					_g2.setCursor(p.layer);
 				}
 				break;
 			}
 		});
 		scroll.mouseleave(onMouseUp);
-		scroll.mouseup(onMouseUp);
+		scroll.mouseup(function(e5) {
+			onMouseUp(e5);
+			if(_g2.curPos == null) return;
+			{
+				var _g6 = _g2.currentLayer.data;
+				switch(_g6[1]) {
+				case 1:
+					var objs = _g6[3];
+					var idCol = _g6[2];
+					var px;
+					if(_g2.currentLayer.floatCoord) px = _g2.curPos.xf; else px = _g2.curPos.x;
+					var py;
+					if(_g2.currentLayer.floatCoord) py = _g2.curPos.yf; else py = _g2.curPos.y;
+					var _g11 = 0;
+					while(_g11 < objs.length) {
+						var o = objs[_g11];
+						++_g11;
+						if(o.x == px && o.y == py) return;
+					}
+					var o1 = { x : px, y : py};
+					o1[idCol] = _g2.currentLayer.indexToId[_g2.currentLayer.current];
+					var _g12 = 0;
+					var _g33 = _g2.currentLayer.baseSheet.columns;
+					while(_g12 < _g33.length) {
+						var c1 = _g33[_g12];
+						++_g12;
+						if(c1.opt || c1.name == "x" || c1.name == "y" || c1.name == idCol) continue;
+						var v = _g2.model.getDefault(c1);
+						if(v != null) o1[c1.name] = v;
+					}
+					objs.push(o1);
+					objs.sort(function(o11,o2) {
+						var r = Reflect.compare(o11.y,o2.y);
+						if(r == 0) return Reflect.compare(o11.x,o2.x); else return r;
+					});
+					_g2.draw();
+					_g2.save();
+					break;
+				default:
+				}
+			}
+		});
 	}
-	,updateZoom: function() {
-		this.content.find("canvas").css({ width : (this.width * this.zoom * this.zoomView | 0) + "px", height : (this.height * this.zoom * this.zoomView | 0) + "px"});
+	,updateZoom: function(f) {
+		if(f != null) {
+			if(f) this.zoomView *= 1.2; else this.zoomView /= 1.2;
+		}
+		this.savePrefs();
+		this.content.find("canvas").css({ width : (this.width * this.tileSize * this.zoomView | 0) + "px", height : (this.height * this.tileSize * this.zoomView | 0) + "px"});
 		this.setCursor(this.currentLayer);
 	}
 	,onKey: function(e) {
-		var _g1 = this;
+		var _g2 = this;
 		if(e.ctrlKey || this.curPos == null) return;
 		var _g = e.keyCode;
 		switch(_g) {
 		case 80:
 			var x = this.curPos.x;
 			var y = this.curPos.y;
-			if(this.currentLayer.data[x + y * this.width] == this.currentLayer.current) return;
-			var fillRec;
-			var fillRec1 = null;
-			fillRec1 = function(x1,y1,k) {
-				if(_g1.currentLayer.data[x1 + y1 * _g1.width] != k) return;
-				_g1.currentLayer.data[x1 + y1 * _g1.width] = _g1.currentLayer.current;
-				if(x1 > 0) fillRec1(x1 - 1,y1,k);
-				if(y1 > 0) fillRec1(x1,y1 - 1,k);
-				if(x1 < _g1.width - 1) fillRec1(x1 + 1,y1,k);
-				if(y1 < _g1.height - 1) fillRec1(x1,y1 + 1,k);
-			};
-			fillRec = fillRec1;
-			fillRec(x,y,this.currentLayer.data[x + y * this.width]);
-			this.save();
-			this.draw();
+			{
+				var _g1 = this.currentLayer.data;
+				switch(_g1[1]) {
+				case 0:
+					var data = _g1[2];
+					if(data[x + y * this.width] == this.currentLayer.current) return;
+					var fillRec;
+					var fillRec1 = null;
+					fillRec1 = function(x1,y1,k) {
+						if(data[x1 + y1 * _g2.width] != k) return;
+						data[x1 + y1 * _g2.width] = _g2.currentLayer.current;
+						_g2.currentLayer.dirty = true;
+						if(x1 > 0) fillRec1(x1 - 1,y1,k);
+						if(y1 > 0) fillRec1(x1,y1 - 1,k);
+						if(x1 < _g2.width - 1) fillRec1(x1 + 1,y1,k);
+						if(y1 < _g2.height - 1) fillRec1(x1,y1 + 1,k);
+					};
+					fillRec = fillRec1;
+					fillRec(x,y,data[x + y * this.width]);
+					this.save();
+					this.draw();
+					break;
+				default:
+				}
+			}
+			break;
+		case 107:
+			this.updateZoom(true);
+			break;
+		case 109:
+			this.updateZoom(false);
+			break;
+		case 46:
+			var p = this.pick();
+			if(p == null) return;
+			{
+				var _g11 = p.layer.data;
+				switch(_g11[1]) {
+				case 0:
+					var data1 = _g11[2];
+					if(data1[p.index] == 0) return;
+					data1[p.index] = 0;
+					p.layer.dirty = true;
+					this.save();
+					this.draw();
+					break;
+				case 1:
+					var objs = _g11[3];
+					if(HxOverrides.remove(objs,objs[p.index])) {
+						this.save();
+						this.draw();
+					}
+					break;
+				}
+			}
 			break;
 		default:
+			console.log(e.keyCode);
 		}
 	}
 	,set: function(x,y) {
-		if(this.currentLayer.data[x + y * this.width] == this.currentLayer.current) return;
-		this.currentLayer.data[x + y * this.width] = this.currentLayer.current;
-		this.currentLayer.dirty = true;
-		this.save();
-		this.draw();
+		{
+			var _g = this.currentLayer.data;
+			switch(_g[1]) {
+			case 0:
+				var data = _g[2];
+				if(data[x + y * this.width] == this.currentLayer.current) return;
+				data[x + y * this.width] = this.currentLayer.current;
+				this.currentLayer.dirty = true;
+				this.save();
+				this.draw();
+				break;
+			case 1:
+				break;
+			}
+		}
 	}
 	,draw: function() {
 		this.ctx.fillStyle = "black";
-		this.ctx.fillRect(0,0,this.width * this.zoom,this.height * this.zoom);
+		this.ctx.globalAlpha = 1;
+		this.ctx.fillRect(0,0,this.width * this.tileSize,this.height * this.tileSize);
 		var first = true;
 		var _g = 0;
 		var _g1 = this.layers;
@@ -473,24 +636,58 @@ Level.prototype = {
 			var l = _g1[_g];
 			++_g;
 			this.ctx.globalAlpha = l.props.alpha;
-			if(l.visible) {
-				var _g3 = 0;
-				var _g2 = this.width;
-				while(_g3 < _g2) {
-					var y = _g3++;
-					var _g5 = 0;
-					var _g4 = this.height;
-					while(_g5 < _g4) {
-						var x = _g5++;
-						var k = l.data[x + y * this.width];
-						if(k == 0 && !first) continue;
-						if(l.images != null) {
-							this.ctx.drawImage(l.images[k],x * this.zoom,y * this.zoom);
+			if(!l.visible) {
+				first = false;
+				continue;
+			}
+			{
+				var _g2 = l.data;
+				switch(_g2[1]) {
+				case 0:
+					var data = _g2[2];
+					var _g4 = 0;
+					var _g3 = this.width;
+					while(_g4 < _g3) {
+						var y = _g4++;
+						var _g6 = 0;
+						var _g5 = this.height;
+						while(_g6 < _g5) {
+							var x = _g6++;
+							var k = data[x + y * this.width];
+							if(k == 0 && !first) continue;
+							if(l.images != null) {
+								this.ctx.drawImage(l.images[k],x * this.tileSize,y * this.tileSize);
+								continue;
+							}
+							this.ctx.fillStyle = this.toColor(l.colors[k]);
+							this.ctx.fillRect(x * this.tileSize,y * this.tileSize,this.tileSize,this.tileSize);
+						}
+					}
+					break;
+				case 1:
+					var objs = _g2[3];
+					var idCol = _g2[2];
+					var _g31 = 0;
+					while(_g31 < objs.length) {
+						var o = objs[_g31];
+						++_g31;
+						var id = Reflect.field(o,idCol);
+						var k1 = l.idToIndex.get(id);
+						if(k1 == null) {
+							this.ctx.fillStyle = "red";
+							this.ctx.fillRect(o.x * this.tileSize,o.y * this.tileSize,this.tileSize,this.tileSize);
+							this.ctx.fillStyle = "white";
+							this.ctx.fillText(id == null || id == ""?"???":id,o.x * this.tileSize,(o.y + 0.5) * this.tileSize + 4);
 							continue;
 						}
-						this.ctx.fillStyle = this.toColor(l.colors[k]);
-						this.ctx.fillRect(x * this.zoom,y * this.zoom,this.zoom,this.zoom);
+						if(l.images != null) {
+							this.ctx.drawImage(l.images[k1],o.x * this.tileSize,o.y * this.tileSize);
+							continue;
+						}
+						this.ctx.fillStyle = this.toColor(l.colors[k1]);
+						this.ctx.fillRect(o.x * this.tileSize,o.y * this.tileSize,this.tileSize,this.tileSize);
 					}
+					break;
 				}
 			}
 			first = false;
@@ -538,7 +735,7 @@ Level.prototype = {
 			new js.JQuery("[name=alpha]").val(Std.string(l.props.alpha * 100 | 0));
 			new js.JQuery("[name=visible]").prop("checked",l.visible);
 		}
-		var size = this.zoom * this.zoomView | 0;
+		var size = this.tileSize * this.zoomView | 0;
 		if(l.images != null) this.cursor.css({ background : "url('" + l.images[l.current].src + "')", backgroundSize : "cover", width : size + "px", height : size + "px", border : "none"}); else {
 			var c = l.colors[l.current];
 			var lum = ((c & 255) + (c >> 8 & 255) + (c >> 16 & 255)) / 765;
@@ -547,7 +744,10 @@ Level.prototype = {
 	}
 	,__class__: Level
 };
-var LayerData = function(level,name,s,val,p) {
+var LayerInnerData = $hxClasses["LayerInnerData"] = { __ename__ : ["LayerInnerData"], __constructs__ : ["Layer","Objects"] };
+LayerInnerData.Layer = function(a) { var $x = ["Layer",0,a]; $x.__enum__ = LayerInnerData; return $x; };
+LayerInnerData.Objects = function(idCol,objs) { var $x = ["Objects",1,idCol,objs]; $x.__enum__ = LayerInnerData; return $x; };
+var LayerData = function(level,name,s,p) {
 	this.current = 0;
 	this.visible = false;
 	this.level = level;
@@ -555,88 +755,67 @@ var LayerData = function(level,name,s,val,p) {
 	this.sheet = s;
 	this.props = p;
 	if(s.lines.length > 256) throw "Too many lines";
-	if(val == null || val == "") {
-		var _g = [];
-		var _g2 = 0;
-		var _g1 = level.width * level.height;
-		while(_g2 < _g1) {
-			var x = _g2++;
-			_g.push(0);
-		}
-		this.data = _g;
-	} else {
-		var a = haxe.crypto.Base64.decode(val);
-		if(a.length != level.width * level.height) throw "Invalid layer data";
-		var _g11 = [];
-		var _g3 = 0;
-		var _g21 = level.width * level.height;
-		while(_g3 < _g21) {
-			var i = _g3++;
-			_g11.push(a.b[i]);
-		}
-		this.data = _g11;
-	}
 	var idCol = null;
-	var _g12 = 0;
-	var _g22 = s.columns;
-	while(_g12 < _g22.length) {
-		var c = _g22[_g12];
-		++_g12;
-		var _g31 = c.type;
-		switch(_g31[1]) {
+	var _g = 0;
+	var _g1 = s.columns;
+	while(_g < _g1.length) {
+		var c = _g1[_g];
+		++_g;
+		var _g2 = c.type;
+		switch(_g2[1]) {
 		case 11:
-			var _g4 = [];
-			var _g5 = 0;
-			var _g6 = s.lines;
-			while(_g5 < _g6.length) {
-				var o = _g6[_g5];
-				++_g5;
-				_g4.push((function($this) {
+			var _g3 = [];
+			var _g4 = 0;
+			var _g5 = s.lines;
+			while(_g4 < _g5.length) {
+				var o = _g5[_g4];
+				++_g4;
+				_g3.push((function($this) {
 					var $r;
 					var c1 = Reflect.field(o,c.name);
 					$r = c1 == null?0:c1;
 					return $r;
 				}(this)));
 			}
-			this.colors = _g4;
+			this.colors = _g3;
 			break;
 		case 7:
 			this.images = [];
 			var canvas;
 			var _this = window.document;
 			canvas = _this.createElement("canvas");
-			var size = level.zoom;
+			var size = level.tileSize;
 			canvas.setAttribute("width",size + "px");
 			canvas.setAttribute("height",size + "px");
 			var ctx = canvas.getContext("2d");
-			var _g51 = 0;
-			var _g41 = s.lines.length;
-			while(_g51 < _g41) {
-				var idx = _g51++;
+			var _g41 = 0;
+			var _g31 = s.lines.length;
+			while(_g41 < _g31) {
+				var idx = _g41++;
 				var key = Reflect.field(s.lines[idx],c.name);
 				var idat = level.model.getImageData(key);
-				var i1 = [(function($this) {
+				var i = [(function($this) {
 					var $r;
 					var _this1 = window.document;
 					$r = _this1.createElement("img");
 					return $r;
 				}(this))];
-				this.images[idx] = i1[0];
+				this.images[idx] = i[0];
 				if(idat == null) {
 					ctx.fillStyle = "rgba(0,0,0,0)";
 					ctx.fillRect(0,0,size,size);
 					ctx.fillStyle = "white";
 					ctx.fillText("#" + idx,0,12);
-					i1[0].src = ctx.canvas.toDataURL();
+					i[0].src = ctx.canvas.toDataURL();
 					continue;
 				}
-				i1[0].src = idat;
-				i1[0].onload = (function(i1) {
+				i[0].src = idat;
+				i[0].onload = (function(i) {
 					return function(_) {
-						if(i1[0].parentNode != null && i1[0].parentNode.nodeName.toLowerCase() == "body") i1[0].parentNode.removeChild(i1[0]);
+						if(i[0].parentNode != null && i[0].parentNode.nodeName.toLowerCase() == "body") i[0].parentNode.removeChild(i[0]);
 					};
-				})(i1);
-				window.document.body.appendChild(i1[0]);
+				})(i);
+				window.document.body.appendChild(i[0]);
 			}
 			break;
 		case 0:
@@ -646,15 +825,22 @@ var LayerData = function(level,name,s,val,p) {
 		}
 	}
 	this.names = [];
-	var _g23 = 0;
-	var _g13 = s.lines.length;
-	while(_g23 < _g13) {
-		var index = _g23++;
+	this.idToIndex = new haxe.ds.StringMap();
+	this.indexToId = [];
+	var _g11 = 0;
+	var _g6 = s.lines.length;
+	while(_g11 < _g6) {
+		var index = _g11++;
 		var o1 = s.lines[index];
 		var n;
 		if(s.props.displayColumn != null) n = Reflect.field(o1,s.props.displayColumn); else n = null;
 		if((n == null || n == "") && idCol != null) n = Reflect.field(o1,idCol.name);
 		if(n == null || n == "") n = "#" + index;
+		if(idCol != null) {
+			var id = Reflect.field(o1,idCol.name);
+			if(id != null && id != "") this.idToIndex.set(id,index);
+			this.indexToId[index] = id;
+		}
 		this.names.push(n);
 	}
 	var state;
@@ -671,7 +857,43 @@ var LayerData = function(level,name,s,val,p) {
 $hxClasses["LayerData"] = LayerData;
 LayerData.__name__ = ["LayerData"];
 LayerData.prototype = {
-	set_visible: function(v) {
+	setLayerData: function(val) {
+		if(val == null || val == "") this.data = LayerInnerData.Layer((function($this) {
+			var $r;
+			var _g = [];
+			{
+				var _g2 = 0;
+				var _g1 = $this.level.width * $this.level.height;
+				while(_g2 < _g1) {
+					var x = _g2++;
+					_g.push(0);
+				}
+			}
+			$r = _g;
+			return $r;
+		}(this))); else {
+			var a = haxe.crypto.Base64.decode(val);
+			if(a.length != this.level.width * this.level.height) throw "Invalid layer data";
+			this.data = LayerInnerData.Layer((function($this) {
+				var $r;
+				var _g11 = [];
+				{
+					var _g3 = 0;
+					var _g21 = $this.level.width * $this.level.height;
+					while(_g3 < _g21) {
+						var i = _g3++;
+						_g11.push(a.b[i]);
+					}
+				}
+				$r = _g11;
+				return $r;
+			}(this)));
+		}
+	}
+	,setObjectsData: function(id,val) {
+		this.data = LayerInnerData.Objects(id,val);
+	}
+	,set_visible: function(v) {
 		this.visible = v;
 		if(this.comp != null) this.comp.toggleClass("hidden",!this.visible);
 		this.saveState();
@@ -687,21 +909,31 @@ LayerData.prototype = {
 		js.Browser.getLocalStorage().setItem(this.level.sheetPath + ":" + this.name,haxe.Serializer.run(s));
 	}
 	,getData: function() {
-		var b = haxe.io.Bytes.alloc(this.level.width * this.level.height);
-		var p = 0;
-		var _g1 = 0;
-		var _g = this.level.height;
-		while(_g1 < _g) {
-			var y = _g1++;
-			var _g3 = 0;
-			var _g2 = this.level.width;
-			while(_g3 < _g2) {
-				var x = _g3++;
-				b.b[p] = this.data[p];
-				p++;
+		{
+			var _g = this.data;
+			switch(_g[1]) {
+			case 0:
+				var data = _g[2];
+				var b = haxe.io.Bytes.alloc(this.level.width * this.level.height);
+				var p = 0;
+				var _g2 = 0;
+				var _g1 = this.level.height;
+				while(_g2 < _g1) {
+					var y = _g2++;
+					var _g4 = 0;
+					var _g3 = this.level.width;
+					while(_g4 < _g3) {
+						var x = _g4++;
+						b.b[p] = data[p];
+						p++;
+					}
+				}
+				return haxe.crypto.Base64.encode(b);
+			case 1:
+				var objs = _g[3];
+				return objs;
 			}
 		}
-		return haxe.crypto.Base64.encode(b);
 	}
 	,__class__: LayerData
 };
@@ -4731,6 +4963,9 @@ Reflect.fields = function(o) {
 Reflect.isFunction = function(f) {
 	return typeof(f) == "function" && !(f.__name__ || f.__ename__);
 };
+Reflect.compare = function(a,b) {
+	if(a == b) return 0; else if(a > b) return 1; else return -1;
+};
 Reflect.deleteField = function(o,field) {
 	if(!Object.prototype.hasOwnProperty.call(o,field)) return false;
 	delete(o[field]);
@@ -4835,27 +5070,20 @@ Sys.time = function() {
 };
 var ValueType = $hxClasses["ValueType"] = { __ename__ : ["ValueType"], __constructs__ : ["TNull","TInt","TFloat","TBool","TObject","TFunction","TClass","TEnum","TUnknown"] };
 ValueType.TNull = ["TNull",0];
-ValueType.TNull.toString = $estr;
 ValueType.TNull.__enum__ = ValueType;
 ValueType.TInt = ["TInt",1];
-ValueType.TInt.toString = $estr;
 ValueType.TInt.__enum__ = ValueType;
 ValueType.TFloat = ["TFloat",2];
-ValueType.TFloat.toString = $estr;
 ValueType.TFloat.__enum__ = ValueType;
 ValueType.TBool = ["TBool",3];
-ValueType.TBool.toString = $estr;
 ValueType.TBool.__enum__ = ValueType;
 ValueType.TObject = ["TObject",4];
-ValueType.TObject.toString = $estr;
 ValueType.TObject.__enum__ = ValueType;
 ValueType.TFunction = ["TFunction",5];
-ValueType.TFunction.toString = $estr;
 ValueType.TFunction.__enum__ = ValueType;
-ValueType.TClass = function(c) { var $x = ["TClass",6,c]; $x.__enum__ = ValueType; $x.toString = $estr; return $x; };
-ValueType.TEnum = function(e) { var $x = ["TEnum",7,e]; $x.__enum__ = ValueType; $x.toString = $estr; return $x; };
+ValueType.TClass = function(c) { var $x = ["TClass",6,c]; $x.__enum__ = ValueType; return $x; };
+ValueType.TEnum = function(e) { var $x = ["TEnum",7,e]; $x.__enum__ = ValueType; return $x; };
 ValueType.TUnknown = ["TUnknown",8];
-ValueType.TUnknown.toString = $estr;
 ValueType.TUnknown.__enum__ = ValueType;
 var Type = function() { };
 $hxClasses["Type"] = Type;
@@ -4943,34 +5171,26 @@ Type.enumEq = function(a,b) {
 var cdb = {};
 cdb.ColumnType = $hxClasses["cdb.ColumnType"] = { __ename__ : ["cdb","ColumnType"], __constructs__ : ["TId","TString","TBool","TInt","TFloat","TEnum","TRef","TImage","TList","TCustom","TFlags","TColor","TLayer"] };
 cdb.ColumnType.TId = ["TId",0];
-cdb.ColumnType.TId.toString = $estr;
 cdb.ColumnType.TId.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TString = ["TString",1];
-cdb.ColumnType.TString.toString = $estr;
 cdb.ColumnType.TString.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TBool = ["TBool",2];
-cdb.ColumnType.TBool.toString = $estr;
 cdb.ColumnType.TBool.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TInt = ["TInt",3];
-cdb.ColumnType.TInt.toString = $estr;
 cdb.ColumnType.TInt.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TFloat = ["TFloat",4];
-cdb.ColumnType.TFloat.toString = $estr;
 cdb.ColumnType.TFloat.__enum__ = cdb.ColumnType;
-cdb.ColumnType.TEnum = function(values) { var $x = ["TEnum",5,values]; $x.__enum__ = cdb.ColumnType; $x.toString = $estr; return $x; };
-cdb.ColumnType.TRef = function(sheet) { var $x = ["TRef",6,sheet]; $x.__enum__ = cdb.ColumnType; $x.toString = $estr; return $x; };
+cdb.ColumnType.TEnum = function(values) { var $x = ["TEnum",5,values]; $x.__enum__ = cdb.ColumnType; return $x; };
+cdb.ColumnType.TRef = function(sheet) { var $x = ["TRef",6,sheet]; $x.__enum__ = cdb.ColumnType; return $x; };
 cdb.ColumnType.TImage = ["TImage",7];
-cdb.ColumnType.TImage.toString = $estr;
 cdb.ColumnType.TImage.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TList = ["TList",8];
-cdb.ColumnType.TList.toString = $estr;
 cdb.ColumnType.TList.__enum__ = cdb.ColumnType;
-cdb.ColumnType.TCustom = function(name) { var $x = ["TCustom",9,name]; $x.__enum__ = cdb.ColumnType; $x.toString = $estr; return $x; };
-cdb.ColumnType.TFlags = function(values) { var $x = ["TFlags",10,values]; $x.__enum__ = cdb.ColumnType; $x.toString = $estr; return $x; };
+cdb.ColumnType.TCustom = function(name) { var $x = ["TCustom",9,name]; $x.__enum__ = cdb.ColumnType; return $x; };
+cdb.ColumnType.TFlags = function(values) { var $x = ["TFlags",10,values]; $x.__enum__ = cdb.ColumnType; return $x; };
 cdb.ColumnType.TColor = ["TColor",11];
-cdb.ColumnType.TColor.toString = $estr;
 cdb.ColumnType.TColor.__enum__ = cdb.ColumnType;
-cdb.ColumnType.TLayer = function(type) { var $x = ["TLayer",12,type]; $x.__enum__ = cdb.ColumnType; $x.toString = $estr; return $x; };
+cdb.ColumnType.TLayer = function(type) { var $x = ["TLayer",12,type]; $x.__enum__ = cdb.ColumnType; return $x; };
 cdb.Parser = function() { };
 $hxClasses["cdb.Parser"] = cdb.Parser;
 cdb.Parser.__name__ = ["cdb","Parser"];
@@ -6145,15 +6365,12 @@ haxe.io.Eof.prototype = {
 };
 haxe.io.Error = $hxClasses["haxe.io.Error"] = { __ename__ : ["haxe","io","Error"], __constructs__ : ["Blocked","Overflow","OutsideBounds","Custom"] };
 haxe.io.Error.Blocked = ["Blocked",0];
-haxe.io.Error.Blocked.toString = $estr;
 haxe.io.Error.Blocked.__enum__ = haxe.io.Error;
 haxe.io.Error.Overflow = ["Overflow",1];
-haxe.io.Error.Overflow.toString = $estr;
 haxe.io.Error.Overflow.__enum__ = haxe.io.Error;
 haxe.io.Error.OutsideBounds = ["OutsideBounds",2];
-haxe.io.Error.OutsideBounds.toString = $estr;
 haxe.io.Error.OutsideBounds.__enum__ = haxe.io.Error;
-haxe.io.Error.Custom = function(e) { var $x = ["Custom",3,e]; $x.__enum__ = haxe.io.Error; $x.toString = $estr; return $x; };
+haxe.io.Error.Custom = function(e) { var $x = ["Custom",3,e]; $x.__enum__ = haxe.io.Error; return $x; };
 haxe.io.Output = function() { };
 $hxClasses["haxe.io.Output"] = haxe.io.Output;
 haxe.io.Output.__name__ = ["haxe","io","Output"];
@@ -6581,6 +6798,8 @@ K.ENTER = 13;
 K.F2 = 113;
 K.F3 = 114;
 K.F4 = 115;
+K.NUMPAD_ADD = 107;
+K.NUMPAD_SUB = 109;
 Main.UID = 0;
 haxe.Serializer.USE_CACHE = false;
 haxe.Serializer.USE_ENUM_INDEX = false;

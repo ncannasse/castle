@@ -44,7 +44,7 @@ class Model {
 		return smap.get(name).s;
 	}
 
-	inline function getPseudoSheet( sheet : Sheet, c : Column ) {
+	public inline function getPseudoSheet( sheet : Sheet, c : Column ) {
 		return getSheet(sheet.name + "@" + c.name);
 	}
 
@@ -113,7 +113,7 @@ class Model {
 		return sheet.path == null ? sheet.name : sheet.path;
 	}
 
-	function getDefault( c : Column ) : Dynamic {
+	public function getDefault( c : Column ) : Dynamic {
 		if( c.opt )
 			return null;
 		return switch( c.type ) {
@@ -125,7 +125,7 @@ class Model {
 		}
 	}
 
-	function hasColumn( s : Sheet, name : String, ?types : Array<ColumnType> ) {
+	public function hasColumn( s : Sheet, name : String, ?types : Array<ColumnType> ) {
 		for( c in s.columns )
 			if( c.name == name ) {
 				if( types != null ) {

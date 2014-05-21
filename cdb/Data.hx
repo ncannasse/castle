@@ -39,7 +39,7 @@ typedef LayerProps = {
 }
 
 typedef LevelProps = {
-	@:optional var zoom : Int;
+	@:optional var tileSize : Int;
 	@:optional var layers : Array<{ l : String, p : LayerProps }>;
 }
 
