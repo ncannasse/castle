@@ -53,7 +53,6 @@ class Model {
 			return null;
 		var parts = sheet.name.split("@");
 		var colName = parts.pop();
-		trace(sheet.name);
 		return { s : getSheet(parts.join("@")), c : colName };
 	}
 
@@ -106,6 +105,7 @@ class Model {
 				if( s > index ) sheet.separators[i] = s + 1;
 			}
 			sheet.lines.insert(index + 1, o);
+			changeLineOrder(sheet, [for( i in 0...sheet.lines.length ) i <= index ? i : i + 1]);
 		}
 	}
 
@@ -236,18 +236,36 @@ class Model {
 			var l = sheet.lines[index];
 			sheet.lines.splice(index, 1);
 			sheet.lines.insert(index - 1, l);
+
+			var arr = [for( i in 0...sheet.lines.length ) i];
+			arr[index] = index - 1;
+			arr[index - 1] = index;
+			changeLineOrder(sheet, arr);
+
 			return index - 1;
 		} else if( delta > 0 && sheet != null && index < sheet.lines.length-1 ) {
 			var l = sheet.lines[index];
 			sheet.lines.splice(index, 1);
 			sheet.lines.insert(index + 1, l);
+
+			var arr = [for( i in 0...sheet.lines.length ) i];
+			arr[index] = index + 1;
+			arr[index + 1] = index;
+			changeLineOrder(sheet, arr);
+
 			return index + 1;
 		}
 		return null;
 	}
 
 	function deleteLine( sheet : Sheet, index : Int ) {
+
+		var arr = [for( i in 0...sheet.lines.length ) if( i < index ) i else i - 1];
+		arr[index] = -1;
+		changeLineOrder(sheet, arr);
+
 		sheet.lines.splice(index, 1);
+
 		var prev = -1, toRemove = null;
 		for( i in 0...sheet.separators.length ) {
 			var s = sheet.separators[i];
@@ -933,6 +951,27 @@ class Model {
 						a.type = t;
 						a.typeStr = null;
 					}
+				}
+	}
+
+	function changeLineOrder( sheet : Sheet, remap : Array<Int> ) {
+		for( s in data.sheets )
+			for( c in s.columns )
+				switch( c.type ) {
+				case TLayer(t) if( t == sheet.name ):
+					for( obj in getSheetLines(s) ) {
+						var ldat = Reflect.field(obj, c.name);
+						if( ldat == null || ldat == "" ) continue;
+						var d = haxe.crypto.Base64.decode(ldat);
+						for( i in 0...d.length ) {
+							var r = remap[d.get(i)];
+							if( r < 0 ) r = 0; // removed
+							d.set(i, r);
+						}
+						ldat = haxe.crypto.Base64.encode(d);
+						Reflect.setField(obj, c.name, ldat);
+					}
+				default:
 				}
 	}
 

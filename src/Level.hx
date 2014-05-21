@@ -400,7 +400,7 @@ class LayerData {
 						ctx.fillStyle = "rgba(0,0,0,0)";
 						ctx.fillRect(0, 0, size, size);
 						ctx.fillStyle = "white";
-						ctx.fillText("#" + idx, 2, 4);
+						ctx.fillText("#" + idx, 0, 12);
 						i.src = ctx.canvas.toDataURL();
 						continue;
 					}
@@ -428,7 +428,7 @@ class LayerData {
 		var state : LayerState = try haxe.Unserializer.run(js.Browser.getLocalStorage().getItem(level.sheetPath + ":" + name)) catch( e : Dynamic ) null;
 		if( state != null ) {
 			visible = state.visible;
-			current = state.current;
+			if( state.current < names.length ) current = state.current;
 		}
 	}
 

@@ -1,5 +1,5 @@
 (function () { "use strict";
-var $hxClasses = {};
+var $hxClasses = {},$estr = function() { return js.Boot.__string_rec(this,''); };
 function $extend(from, fields) {
 	function Inherit() {} Inherit.prototype = from; var proto = new Inherit();
 	for (var name in fields) proto[name] = fields[name];
@@ -626,7 +626,7 @@ var LayerData = function(level,name,s,val,p) {
 					ctx.fillStyle = "rgba(0,0,0,0)";
 					ctx.fillRect(0,0,size,size);
 					ctx.fillStyle = "white";
-					ctx.fillText("#" + idx,2,4);
+					ctx.fillText("#" + idx,0,12);
 					i1[0].src = ctx.canvas.toDataURL();
 					continue;
 				}
@@ -665,7 +665,7 @@ var LayerData = function(level,name,s,val,p) {
 	}
 	if(state != null) {
 		this.set_visible(state.visible);
-		this.set_current(state.current);
+		if(state.current < this.names.length) this.set_current(state.current);
 	}
 };
 $hxClasses["LayerData"] = LayerData;
@@ -772,7 +772,6 @@ Model.prototype = {
 		if(!sheet.props.hide) return null;
 		var parts = sheet.name.split("@");
 		var colName = parts.pop();
-		console.log(sheet.name);
 		return { s : this.getSheet(parts.join("@")), c : colName};
 	}
 	,getSheetLines: function(sheet) {
@@ -850,6 +849,20 @@ Model.prototype = {
 				if(s > index) sheet.separators[i] = s + 1;
 			}
 			sheet.lines.splice(index + 1,0,o);
+			this.changeLineOrder(sheet,(function($this) {
+				var $r;
+				var _g3 = [];
+				{
+					var _g21 = 0;
+					var _g12 = sheet.lines.length;
+					while(_g21 < _g12) {
+						var i1 = _g21++;
+						_g3.push(i1 <= index?i1:i1 + 1);
+					}
+				}
+				$r = _g3;
+				return $r;
+			}(this)));
 		}
 	}
 	,getPath: function(sheet) {
@@ -1040,27 +1053,62 @@ Model.prototype = {
 			var l = sheet.lines[index];
 			sheet.lines.splice(index,1);
 			sheet.lines.splice(index - 1,0,l);
+			var arr;
+			var _g = [];
+			var _g2 = 0;
+			var _g1 = sheet.lines.length;
+			while(_g2 < _g1) {
+				var i = _g2++;
+				_g.push(i);
+			}
+			arr = _g;
+			arr[index] = index - 1;
+			arr[index - 1] = index;
+			this.changeLineOrder(sheet,arr);
 			return index - 1;
 		} else if(delta > 0 && sheet != null && index < sheet.lines.length - 1) {
 			var l1 = sheet.lines[index];
 			sheet.lines.splice(index,1);
 			sheet.lines.splice(index + 1,0,l1);
+			var arr1;
+			var _g3 = [];
+			var _g21 = 0;
+			var _g11 = sheet.lines.length;
+			while(_g21 < _g11) {
+				var i1 = _g21++;
+				_g3.push(i1);
+			}
+			arr1 = _g3;
+			arr1[index] = index + 1;
+			arr1[index + 1] = index;
+			this.changeLineOrder(sheet,arr1);
 			return index + 1;
 		}
 		return null;
 	}
 	,deleteLine: function(sheet,index) {
+		var arr;
+		var _g = [];
+		var _g2 = 0;
+		var _g1 = sheet.lines.length;
+		while(_g2 < _g1) {
+			var i = _g2++;
+			_g.push(i < index?i:i - 1);
+		}
+		arr = _g;
+		arr[index] = -1;
+		this.changeLineOrder(sheet,arr);
 		sheet.lines.splice(index,1);
 		var prev = -1;
 		var toRemove = null;
-		var _g1 = 0;
-		var _g = sheet.separators.length;
-		while(_g1 < _g) {
-			var i = _g1++;
-			var s = sheet.separators[i];
+		var _g21 = 0;
+		var _g11 = sheet.separators.length;
+		while(_g21 < _g11) {
+			var i1 = _g21++;
+			var s = sheet.separators[i1];
 			if(s > index) {
-				if(prev == s) toRemove = i;
-				sheet.separators[i] = s - 1;
+				if(prev == s) toRemove = i1;
+				sheet.separators[i1] = s - 1;
 			} else prev = s;
 		}
 		if(toRemove != null) {
@@ -2053,6 +2101,51 @@ Model.prototype = {
 					if(t2 != a.type) {
 						a.type = t2;
 						a.typeStr = null;
+					}
+				}
+			}
+		}
+	}
+	,changeLineOrder: function(sheet,remap) {
+		var _g = 0;
+		var _g1 = this.data.sheets;
+		while(_g < _g1.length) {
+			var s = _g1[_g];
+			++_g;
+			var _g2 = 0;
+			var _g3 = s.columns;
+			while(_g2 < _g3.length) {
+				var c = _g3[_g2];
+				++_g2;
+				{
+					var _g4 = c.type;
+					switch(_g4[1]) {
+					case 12:
+						var t = _g4[2];
+						if(t == sheet.name) {
+							var _g5 = 0;
+							var _g6 = this.getSheetLines(s);
+							while(_g5 < _g6.length) {
+								var obj = _g6[_g5];
+								++_g5;
+								var ldat = Reflect.field(obj,c.name);
+								if(ldat == null || ldat == "") continue;
+								var d = haxe.crypto.Base64.decode(ldat);
+								var _g8 = 0;
+								var _g7 = d.length;
+								while(_g8 < _g7) {
+									var i = _g8++;
+									var r = remap[d.b[i]];
+									if(r < 0) r = 0;
+									d.b[i] = r;
+								}
+								ldat = haxe.crypto.Base64.encode(d);
+								obj[c.name] = ldat;
+							}
+						} else {
+						}
+						break;
+					default:
 					}
 				}
 			}
@@ -4742,20 +4835,27 @@ Sys.time = function() {
 };
 var ValueType = $hxClasses["ValueType"] = { __ename__ : ["ValueType"], __constructs__ : ["TNull","TInt","TFloat","TBool","TObject","TFunction","TClass","TEnum","TUnknown"] };
 ValueType.TNull = ["TNull",0];
+ValueType.TNull.toString = $estr;
 ValueType.TNull.__enum__ = ValueType;
 ValueType.TInt = ["TInt",1];
+ValueType.TInt.toString = $estr;
 ValueType.TInt.__enum__ = ValueType;
 ValueType.TFloat = ["TFloat",2];
+ValueType.TFloat.toString = $estr;
 ValueType.TFloat.__enum__ = ValueType;
 ValueType.TBool = ["TBool",3];
+ValueType.TBool.toString = $estr;
 ValueType.TBool.__enum__ = ValueType;
 ValueType.TObject = ["TObject",4];
+ValueType.TObject.toString = $estr;
 ValueType.TObject.__enum__ = ValueType;
 ValueType.TFunction = ["TFunction",5];
+ValueType.TFunction.toString = $estr;
 ValueType.TFunction.__enum__ = ValueType;
-ValueType.TClass = function(c) { var $x = ["TClass",6,c]; $x.__enum__ = ValueType; return $x; };
-ValueType.TEnum = function(e) { var $x = ["TEnum",7,e]; $x.__enum__ = ValueType; return $x; };
+ValueType.TClass = function(c) { var $x = ["TClass",6,c]; $x.__enum__ = ValueType; $x.toString = $estr; return $x; };
+ValueType.TEnum = function(e) { var $x = ["TEnum",7,e]; $x.__enum__ = ValueType; $x.toString = $estr; return $x; };
 ValueType.TUnknown = ["TUnknown",8];
+ValueType.TUnknown.toString = $estr;
 ValueType.TUnknown.__enum__ = ValueType;
 var Type = function() { };
 $hxClasses["Type"] = Type;
@@ -4843,26 +4943,34 @@ Type.enumEq = function(a,b) {
 var cdb = {};
 cdb.ColumnType = $hxClasses["cdb.ColumnType"] = { __ename__ : ["cdb","ColumnType"], __constructs__ : ["TId","TString","TBool","TInt","TFloat","TEnum","TRef","TImage","TList","TCustom","TFlags","TColor","TLayer"] };
 cdb.ColumnType.TId = ["TId",0];
+cdb.ColumnType.TId.toString = $estr;
 cdb.ColumnType.TId.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TString = ["TString",1];
+cdb.ColumnType.TString.toString = $estr;
 cdb.ColumnType.TString.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TBool = ["TBool",2];
+cdb.ColumnType.TBool.toString = $estr;
 cdb.ColumnType.TBool.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TInt = ["TInt",3];
+cdb.ColumnType.TInt.toString = $estr;
 cdb.ColumnType.TInt.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TFloat = ["TFloat",4];
+cdb.ColumnType.TFloat.toString = $estr;
 cdb.ColumnType.TFloat.__enum__ = cdb.ColumnType;
-cdb.ColumnType.TEnum = function(values) { var $x = ["TEnum",5,values]; $x.__enum__ = cdb.ColumnType; return $x; };
-cdb.ColumnType.TRef = function(sheet) { var $x = ["TRef",6,sheet]; $x.__enum__ = cdb.ColumnType; return $x; };
+cdb.ColumnType.TEnum = function(values) { var $x = ["TEnum",5,values]; $x.__enum__ = cdb.ColumnType; $x.toString = $estr; return $x; };
+cdb.ColumnType.TRef = function(sheet) { var $x = ["TRef",6,sheet]; $x.__enum__ = cdb.ColumnType; $x.toString = $estr; return $x; };
 cdb.ColumnType.TImage = ["TImage",7];
+cdb.ColumnType.TImage.toString = $estr;
 cdb.ColumnType.TImage.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TList = ["TList",8];
+cdb.ColumnType.TList.toString = $estr;
 cdb.ColumnType.TList.__enum__ = cdb.ColumnType;
-cdb.ColumnType.TCustom = function(name) { var $x = ["TCustom",9,name]; $x.__enum__ = cdb.ColumnType; return $x; };
-cdb.ColumnType.TFlags = function(values) { var $x = ["TFlags",10,values]; $x.__enum__ = cdb.ColumnType; return $x; };
+cdb.ColumnType.TCustom = function(name) { var $x = ["TCustom",9,name]; $x.__enum__ = cdb.ColumnType; $x.toString = $estr; return $x; };
+cdb.ColumnType.TFlags = function(values) { var $x = ["TFlags",10,values]; $x.__enum__ = cdb.ColumnType; $x.toString = $estr; return $x; };
 cdb.ColumnType.TColor = ["TColor",11];
+cdb.ColumnType.TColor.toString = $estr;
 cdb.ColumnType.TColor.__enum__ = cdb.ColumnType;
-cdb.ColumnType.TLayer = function(type) { var $x = ["TLayer",12,type]; $x.__enum__ = cdb.ColumnType; return $x; };
+cdb.ColumnType.TLayer = function(type) { var $x = ["TLayer",12,type]; $x.__enum__ = cdb.ColumnType; $x.toString = $estr; return $x; };
 cdb.Parser = function() { };
 $hxClasses["cdb.Parser"] = cdb.Parser;
 cdb.Parser.__name__ = ["cdb","Parser"];
@@ -6037,12 +6145,15 @@ haxe.io.Eof.prototype = {
 };
 haxe.io.Error = $hxClasses["haxe.io.Error"] = { __ename__ : ["haxe","io","Error"], __constructs__ : ["Blocked","Overflow","OutsideBounds","Custom"] };
 haxe.io.Error.Blocked = ["Blocked",0];
+haxe.io.Error.Blocked.toString = $estr;
 haxe.io.Error.Blocked.__enum__ = haxe.io.Error;
 haxe.io.Error.Overflow = ["Overflow",1];
+haxe.io.Error.Overflow.toString = $estr;
 haxe.io.Error.Overflow.__enum__ = haxe.io.Error;
 haxe.io.Error.OutsideBounds = ["OutsideBounds",2];
+haxe.io.Error.OutsideBounds.toString = $estr;
 haxe.io.Error.OutsideBounds.__enum__ = haxe.io.Error;
-haxe.io.Error.Custom = function(e) { var $x = ["Custom",3,e]; $x.__enum__ = haxe.io.Error; return $x; };
+haxe.io.Error.Custom = function(e) { var $x = ["Custom",3,e]; $x.__enum__ = haxe.io.Error; $x.toString = $estr; return $x; };
 haxe.io.Output = function() { };
 $hxClasses["haxe.io.Output"] = haxe.io.Output;
 haxe.io.Output.__name__ = ["haxe","io","Output"];
