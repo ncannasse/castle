@@ -93,6 +93,19 @@ abstract Flags<T>(Int) {
 
 }
 
+abstract Layer<T>(String) {
+
+	inline function new(x:String) {
+		this = x;
+	}
+
+	public function decode( all : ArrayRead<T> ) : Array<T> {
+		var k = haxe.crypto.Base64.decode(this);
+		return [for( i in 0...k.length ) all[k.get(i)]];
+	}
+
+}
+
 class IndexNoId<T> {
 
 	var name : String;
@@ -293,6 +306,9 @@ class Module {
 					types.push(makeFakeEnum(t, curMod, pos, values));
 					var t = t.toComplex();
 					macro : cdb.Module.Flags<$t>;
+				case TLayer(t):
+					var t = makeTypeName(t).toComplex();
+					macro : cdb.Module.Layer<$t>;
 				}
 
 				var rt = switch( c.type ) {
@@ -304,6 +320,7 @@ class Module {
 				case TList:
 					var t = (makeTypeName(s.name+"@"+c.name) + "Def").toComplex();
 					macro : Array<$t>;
+				case TLayer(_): macro : String;
 				};
 
 				if( c.opt ) {
@@ -355,7 +372,7 @@ class Module {
 						}),
 						access : [AInline, APrivate],
 					});
-				case TList, TEnum(_), TFlags(_):
+				case TList, TEnum(_), TFlags(_), TLayer(_):
 					// cast
 					var cname = c.name;
 					fields.push({
@@ -548,7 +565,7 @@ class Module {
 				for( ai in 0...c.args.length ) {
 					var a = c.args[ai];
 					var econv = switch( a.type ) {
-					case TId, TString, TBool, TInt, TFloat, TImage, TEnum(_), TFlags(_):
+					case TId, TString, TBool, TInt, TFloat, TImage, TEnum(_), TFlags(_), TColor:
 						macro v[$v { ai + 1 } ];
 					case TCustom(id):
 						if( a.opt )
@@ -558,7 +575,7 @@ class Module {
 					case TRef(s):
 						var fname = fieldName(s);
 						macro $i{modName}.$fname.resolve(v[$v{ai+1}]);
-					case TList:
+					case TList, TLayer(_):
 						throw "assert";
 					}
 					eargs.push(econv);
