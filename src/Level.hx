@@ -70,25 +70,29 @@ class Level {
 			case TId:
 				title = val;
 			case TLayer(type):
-				var l = new LayerData(this, c.name, model.getSheet(type), getProps(c.name));
+				var l = new LayerData(this, c.name, getProps(c.name));
+				l.loadSheetData(model.getSheet(type));
 				l.setLayerData(val);
 				layers.push(l);
 			case TList:
 				var sheet = model.getPseudoSheet(sheet, c);
 				var floatCoord = false;
 				if( (model.hasColumn(sheet, "x", [TInt]) && model.hasColumn(sheet, "y", [TInt])) || (floatCoord = true && model.hasColumn(sheet, "x", [TFloat]) && model.hasColumn(sheet, "y", [TFloat])) ) {
+					var sid = null, idCol = null;
 					for( cid in sheet.columns )
 						switch( cid.type ) {
 						case TRef(rid):
-							var sid = model.getSheet(rid);
-							var l = new LayerData(this, c.name, sid, getProps(c.name));
-							l.floatCoord = floatCoord;
-							l.baseSheet = sheet;
-							l.setObjectsData(cid.name, val);
-							layers.push(l);
+							sid = model.getSheet(rid);
+							idCol = cid.name;
 							break;
 						default:
 						}
+					var l = new LayerData(this, c.name, getProps(c.name));
+					l.floatCoord = floatCoord;
+					l.baseSheet = sheet;
+					l.loadSheetData(sid);
+					l.setObjectsData(idCol, val);
+					layers.push(l);
 				}
 			default:
 			}
@@ -139,7 +143,9 @@ class Level {
 				var y = curPos.yf;
 				for( i in 0...objs.length ) {
 					var o = objs[i];
-					if( !(o.x >= x+1 || o.y >= y+1 || o.x + 1 < x || o.y + 1 < y) ) {
+					if( !(o.x >= x + 1 || o.y >= y + 1 || o.x + 1 < x || o.y + 1 < y) ) {
+						if( l.idToIndex == null )
+							return { k : 0, layer : l, index : i };
 						var k = l.idToIndex.get(Reflect.field(o, idCol));
 						if( k != null )
 							return { k : k, layer : l, index : i };
@@ -213,6 +219,16 @@ class Level {
 		var scroll = content.find(".scroll");
 		var scont = content.find(".scrollContent");
 
+		(untyped content.find("[name=color]")).spectrum({
+			clickoutFiresChange : true,
+			showButtons : false,
+			change : function(c) {
+				currentLayer.props.color = Std.parseInt("0x" + c.toHex());
+				draw();
+				save();
+			},
+		});
+
 		var win = nodejs.webkit.Window.get();
 		function onResize(_) {
 			scroll.css("height", (win.height - 195) + "px");
@@ -281,7 +297,7 @@ class Level {
 					}
 				}
 				var o = { x : px, y : py };
-				Reflect.setField(o, idCol, currentLayer.indexToId[currentLayer.current]);
+				if( idCol != null ) Reflect.setField(o, idCol, currentLayer.indexToId[currentLayer.current]);
 				for( c in currentLayer.baseSheet.columns ) {
 					if( c.opt || c.name == "x" || c.name == "y" || c.name == idCol ) continue;
 					var v = model.getDefault(c);
@@ -449,22 +465,28 @@ class Level {
 						ctx.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
 					}
 			case Objects(idCol, objs):
-				for( o in objs ) {
-					var id : String = Reflect.field(o, idCol);
-					var k = l.idToIndex.get(id);
-					if( k == null ) {
-						ctx.fillStyle = "red";
+				if( idCol == null ) {
+					ctx.fillStyle = toColor(l.props.color);
+					for( o in objs )
 						ctx.fillRect(o.x * tileSize, o.y * tileSize, tileSize, tileSize);
-						ctx.fillStyle = "white";
-						ctx.fillText( id == null || id == "" ? "???" : id, o.x * tileSize, (o.y + 0.5) * tileSize + 4);
-						continue;
+				} else {
+					for( o in objs ) {
+						var id : String = Reflect.field(o, idCol);
+						var k = l.idToIndex.get(id);
+						if( k == null ) {
+							ctx.fillStyle = "red";
+							ctx.fillRect(o.x * tileSize, o.y * tileSize, tileSize, tileSize);
+							ctx.fillStyle = "white";
+							ctx.fillText( id == null || id == "" ? "???" : id, o.x * tileSize, (o.y + 0.5) * tileSize + 4);
+							continue;
+						}
+						if( l.images != null ) {
+							ctx.drawImage(l.images[k], o.x * tileSize, o.y * tileSize);
+							continue;
+						}
+						ctx.fillStyle = toColor(l.colors[k]);
+						ctx.fillRect(o.x * tileSize, o.y * tileSize, tileSize, tileSize);
 					}
-					if( l.images != null ) {
-						ctx.drawImage(l.images[k], o.x * tileSize, o.y * tileSize);
-						continue;
-					}
-					ctx.fillStyle = toColor(l.colors[k]);
-					ctx.fillRect(o.x * tileSize, o.y * tileSize, tileSize, tileSize);
 				}
 			}
 			first = false;
@@ -514,6 +536,7 @@ class Level {
 			savePrefs();
 			J("[name=alpha]").val(Std.string(Std.int(l.props.alpha * 100)));
 			J("[name=visible]").prop("checked", l.visible);
+			(untyped J("[name=color]")).spectrum("set",toColor(l.props.color)).parent().toggle( cast l.idToIndex == null );
 		}
 		var size = Std.int(tileSize * zoomView);
 		if( l.images != null ) {
@@ -549,7 +572,7 @@ class LayerData {
 	public var props : LayerProps;
 	public var data : LayerInnerData;
 
-	public var visible(default,set) : Bool = false;
+	public var visible(default,set) : Bool = true;
 	public var dirty : Bool;
 
 	public var current(default,set) : Int = 0;
@@ -560,17 +583,25 @@ class LayerData {
 	public var indexToId : Array<String>;
 	public var floatCoord : Bool;
 
-	public function new(level, name, s, p) {
+	public function new(level, name, p) {
 		this.level = level;
 		this.name = name;
-		sheet = s;
 		props = p;
-		if( s.lines.length > 256 ) throw "Too many lines";
+	}
+
+	public function loadSheetData( sheet : Sheet ) {
+		this.sheet = sheet;
+		if( sheet == null ) {
+			if( props.color == null ) props.color = 0xFF0000;
+			colors = [props.color];
+			names = [name];
+			return;
+		}
 		var idCol = null;
-		for( c in s.columns )
+		for( c in sheet.columns )
 			switch( c.type ) {
 			case TColor:
-				colors = [for( o in s.lines ) { var c = Reflect.field(o, c.name); c == null ? 0 : c; } ];
+				colors = [for( o in sheet.lines ) { var c = Reflect.field(o, c.name); c == null ? 0 : c; } ];
 			case TImage:
 				images = [];
 				var canvas = js.Browser.document.createCanvasElement();
@@ -579,8 +610,8 @@ class LayerData {
 				canvas.setAttribute("height", size+"px");
 				var ctx = canvas.getContext2d();
 
-				for( idx in 0...s.lines.length ) {
-					var key = Reflect.field(s.lines[idx], c.name);
+				for( idx in 0...sheet.lines.length ) {
+					var key = Reflect.field(sheet.lines[idx], c.name);
 					var idat = level.model.getImageData(key);
 					var i = js.Browser.document.createImageElement();
 					images[idx] = i;
@@ -605,9 +636,9 @@ class LayerData {
 		names = [];
 		idToIndex = new Map();
 		indexToId = [];
-		for( index in 0...s.lines.length ) {
-			var o = s.lines[index];
-			var n = if( s.props.displayColumn != null ) Reflect.field(o, s.props.displayColumn) else null;
+		for( index in 0...sheet.lines.length ) {
+			var o = sheet.lines[index];
+			var n = if( sheet.props.displayColumn != null ) Reflect.field(o, sheet.props.displayColumn) else null;
 			if( (n == null || n == "") && idCol != null )
 				n = Reflect.field(o, idCol.name);
 			if( n == null || n == "" )
@@ -635,6 +666,7 @@ class LayerData {
 			if( a.length != level.width * level.height ) throw "Invalid layer data";
 			data = Layer([for( i in 0...level.width * level.height ) a.get(i)]);
 		}
+		if( sheet.lines.length > 256 ) throw "Too many lines";
 	}
 
 	public function setObjectsData( id, val ) {

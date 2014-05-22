@@ -36,6 +36,7 @@ typedef Column = {
 
 typedef LayerProps = {
 	var alpha : Float;
+	@:optional var color : Int;
 }
 
 typedef LevelProps = {
