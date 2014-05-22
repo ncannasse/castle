@@ -347,7 +347,7 @@ class Main extends Model {
 
 		var res = J("<tr>").addClass("list");
 		J("<td>").appendTo(res);
-		var cell = J("<td>").attr("colspan", "" + (sheet.columns.length)).appendTo(res);
+		var cell = J("<td>").attr("colspan", "" + (sheet.columns.length + (sheet.props.levelProps != null ? 1 : 0))).appendTo(res);
 		var div = J("<div>").appendTo(cell);
 		div.hide();
 		var content = J("<table>").appendTo(div);
@@ -1237,7 +1237,7 @@ class Main extends Model {
 						}
 						next = J("<tr>").addClass("list").data("name", c.name);
 						J("<td>").appendTo(next);
-						var cell = J("<td>").attr("colspan", "" + (sheet.columns.length)).appendTo(next);
+						var cell = J("<td>").attr("colspan", "" + colCount).appendTo(next);
 						var div = J("<div>").appendTo(cell);
 						if( !inTodo )
 							div.hide();
@@ -1313,7 +1313,7 @@ class Main extends Model {
 		var snext = 0;
 		for( i in 0...lines.length ) {
 			if( sheet.separators[snext] == i ) {
-				var sep = J("<tr>").addClass("separator").append('<td colspan="${sheet.columns.length+1}">').appendTo(content);
+				var sep = J("<tr>").addClass("separator").append('<td colspan="${colCount+1}">').appendTo(content);
 				var content = sep.find("td");
 				var title = if( sheet.props.separatorTitles != null ) sheet.props.separatorTitles[snext] else null;
 				if( title != null ) content.text(title);

@@ -3153,7 +3153,7 @@ Main.prototype = $extend(Model.prototype,{
 		line.next("tr.list").change();
 		var res = new js.JQuery("<tr>").addClass("list");
 		new js.JQuery("<td>").appendTo(res);
-		var cell = new js.JQuery("<td>").attr("colspan","" + sheet.columns.length).appendTo(res);
+		var cell = new js.JQuery("<td>").attr("colspan","" + (sheet.columns.length + (sheet.props.levelProps != null?1:0))).appendTo(res);
 		var div = new js.JQuery("<div>").appendTo(cell);
 		div.hide();
 		var content = new js.JQuery("<table>").appendTo(div);
@@ -4251,7 +4251,7 @@ Main.prototype = $extend(Model.prototype,{
 								}
 								next = new js.JQuery("<tr>").addClass("list").data("name",c[0].name);
 								new js.JQuery("<td>").appendTo(next);
-								var cell = new js.JQuery("<td>").attr("colspan","" + sheet.columns.length).appendTo(next);
+								var cell = new js.JQuery("<td>").attr("colspan","" + colCount).appendTo(next);
 								var div = new js.JQuery("<div>").appendTo(cell);
 								if(!inTodo) div.hide();
 								var content1 = new js.JQuery("<table>").appendTo(div);
@@ -4338,7 +4338,7 @@ Main.prototype = $extend(Model.prototype,{
 		while(_g33 < _g24) {
 			var i1 = _g33++;
 			if(sheet.separators[snext] == i1) {
-				var sep = new js.JQuery("<tr>").addClass("separator").append("<td colspan=\"" + (sheet.columns.length + 1) + "\">").appendTo(content);
+				var sep = new js.JQuery("<tr>").addClass("separator").append("<td colspan=\"" + (colCount + 1) + "\">").appendTo(content);
 				var content2 = [sep.find("td")];
 				var title = [sheet.props.separatorTitles != null?sheet.props.separatorTitles[snext]:null];
 				if(title[0] != null) content2[0].text(title[0]);
