@@ -8,7 +8,7 @@ ul, li {
 	padding : 0;
 	list-style : none;
 }
-body, td, li, p, a, input, select {
+body, td, th, li, p, a, input, select {
 	font-family : Verdana, serif;
 	font-size : 10pt;
 }
@@ -247,14 +247,14 @@ div#menu ul.sheets li.active {
 .castle tr.clickable:hover {
 	background-color : #f8f8f8;
 }
-.castle tr.head {
+.castle tr.head, .castle th {
 	font-weight : bold;
 	text-align : center;
 	border-bottom : 1px solid #888;
 	background-color : #333;
 	color : #EEE;
 }
-.castle tr.head td.display {
+.castle tr.head td.display, .castle th td.display {
 	font-style : italic;
 }
 .castle tr.selected, .castle td.selected {
@@ -410,6 +410,21 @@ div#menu ul.sheets li.active {
 }
 #content .level .scroll .scrollContent {
 	position : relative;
+}
+#content .level .scroll .popup {
+	z-index : 1;
+	position : absolute;
+	background-color : white;
+	border : 1px solid black;
+}
+#content .level .scroll .popup table {
+	width : auto;
+}
+#content .level .scroll .popup th {
+	width : 80px;
+}
+#content .level .scroll .popup td {
+	width : 160px;
 }
 #content .level .scroll canvas {
 	cursor : none;

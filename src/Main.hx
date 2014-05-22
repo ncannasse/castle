@@ -450,7 +450,7 @@ class Main extends Model {
 			J(".errorMsg").text(msg).show();
 	}
 
-	function valueHtml( c : Column, v : Dynamic, sheet : Sheet, obj : Dynamic ) : String {
+	public function valueHtml( c : Column, v : Dynamic, sheet : Sheet, obj : Dynamic ) : String {
 		if( v == null ) {
 			if( c.opt )
 				return "&nbsp;";
@@ -817,7 +817,7 @@ class Main extends Model {
 		n.popup(mousePos.x, mousePos.y);
 	}
 
-	function editCell( c : Column, v : js.JQuery, sheet : Sheet, index : Int ) {
+	public function editCell( c : Column, v : js.JQuery, sheet : Sheet, index : Int ) {
 		var obj = sheet.lines[index];
 		var val : Dynamic = Reflect.field(obj, c.name);
 		inline function getValue() {

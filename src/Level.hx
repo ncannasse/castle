@@ -211,7 +211,7 @@ class Level {
 		canvas.attr("width", (width * tileSize) + "px");
 		canvas.attr("height", (height * tileSize) + "px");
 		var scroll = content.find(".scroll");
-		var scont = J(".scrollContent");
+		var scont = content.find(".scrollContent");
 
 		var win = nodejs.webkit.Window.get();
 		function onResize(_) {
@@ -273,9 +273,13 @@ class Level {
 			case Objects(idCol, objs):
 				var px = currentLayer.floatCoord ? curPos.xf : curPos.x;
 				var py = currentLayer.floatCoord ? curPos.yf : curPos.y;
-				for( o in objs )
-					if( o.x == px && o.y == py )
+				for( i in 0...objs.length ) {
+					var o = objs[i];
+					if( o.x == px && o.y == py ) {
+						editProps(currentLayer, i);
 						return;
+					}
+				}
 				var o = { x : px, y : py };
 				Reflect.setField(o, idCol, currentLayer.indexToId[currentLayer.current]);
 				for( c in currentLayer.baseSheet.columns ) {
@@ -284,6 +288,7 @@ class Level {
 					if( v != null ) Reflect.setField(o, c.name, v);
 				}
 				objs.push(o);
+				editProps(currentLayer, objs.length - 1);
 				objs.sort(function(o1, o2) {
 					var r = Reflect.compare(o1.y, o2.y);
 					return if( r == 0 ) Reflect.compare(o1.x, o2.x) else r;
@@ -295,8 +300,53 @@ class Level {
 		});
 	}
 
+	function editProps( l : LayerData, index : Int ) {
+		var hasProp = false;
+		var o = Reflect.field(obj, l.name)[index];
+		trace(o, index);
+		var idCol = switch( l.data ) { case Objects(idCol, _): idCol; default: null; };
+		for( c in l.baseSheet.columns )
+			if( c.name != "x" && c.name != "y" && c.name != idCol )
+				hasProp = true;
+		if( !hasProp ) return;
+		var popup = J("<div>").addClass("popup").prependTo(content.find(".scrollContent"));
+		J(js.Browser.window).bind("mousedown", function(_) {
+			popup.remove();
+			draw();
+			J(js.Browser.window).unbind("mousedown");
+		});
+		popup.mousedown(function(e) e.stopPropagation());
+		popup.mouseup(function(e) e.stopPropagation());
+		popup.click(function(e) e.stopPropagation());
+
+		var table = J("<table>").appendTo(popup);
+		var main = Std.instance(model, Main);
+		for( c in l.baseSheet.columns ) {
+			var tr = J("<tr>").appendTo(table);
+			var th = J("<th>").text(c.name).appendTo(tr);
+			var td = J("<td>").html(main.valueHtml(c, Reflect.field(o, c.name), l.baseSheet, o)).appendTo(tr);
+			td.click(function(e) {
+				var psheet : Sheet = {
+					columns : l.baseSheet.columns, // SHARE
+					props : l.baseSheet.props, // SHARE
+					name : l.baseSheet.name, // same
+					path : model.getPath(l.baseSheet) + ":" + index, // unique
+					parent : { sheet : sheet, column : Lambda.indexOf(sheet.columns,Lambda.find(sheet.columns,function(c) return c.name == l.name)), line : index },
+					lines : Reflect.field(obj, l.name), // ref
+					separators : [], // none
+				};
+				main.editCell(c, td, psheet, index);
+				e.preventDefault();
+				e.stopPropagation();
+			});
+		}
+
+		popup.css( { marginLeft : Std.int((o.x + 1) * tileSize * zoomView) + "px", marginTop : Std.int((o.y + 1) * tileSize * zoomView) + "px" } );
+	}
+
 	function updateZoom( ?f ) {
 		if( f != null ) {
+			J(".popup").remove();
 			if( f ) zoomView *= 1.2 else zoomView /= 1.2;
 		}
 		savePrefs();
@@ -347,8 +397,18 @@ class Level {
 					draw();
 				}
 			}
+		case "E".code:
+			var p = pick();
+			switch( p.layer.data ) {
+			case Layer(_):
+			case Objects(_,objs):
+				J(".popup").remove();
+				editProps(p.layer, p.index);
+			}
+		case K.ESC:
+			J(".popup").remove();
+			draw();
 		default:
-			trace(e.keyCode);
 		}
 	}
 

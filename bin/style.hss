@@ -10,7 +10,7 @@ ul, li {
 	list-style : none;
 }
 
-body, td, li, p, a, input, select {
+body, td, th, li, p, a, input, select {
 	font-family : Verdana, serif;
 	font-size : 10pt;
 }
@@ -273,7 +273,7 @@ div#menu {
 		background-color : #f8f8f8;
 	}
 
-	tr.head {
+	tr.head, th {
 		font-weight: bold;
 		text-align: center;
 		border-bottom : 1px solid #888;
@@ -447,6 +447,22 @@ div#menu {
 
 		.scrollContent {
 			position : relative;
+		}
+
+		.popup {
+			z-index : 1;
+			position : absolute;
+			background-color : white;
+			border : 1px solid black;
+			table {
+				width : auto;
+			}
+			th {
+				width : 80px;
+			}
+			td {
+				width : 160px;
+			}
 		}
 
 		canvas {

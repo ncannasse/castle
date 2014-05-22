@@ -431,7 +431,7 @@ Level.prototype = {
 		canvas.attr("width",this.width * this.tileSize + "px");
 		canvas.attr("height",this.height * this.tileSize + "px");
 		var scroll = this.content.find(".scroll");
-		var scont = new js.JQuery(".scrollContent");
+		var scont = this.content.find(".scrollContent");
 		var win = nodejs.webkit.Window.get();
 		var onResize = function(_3) {
 			scroll.css("height",win.height - 195 + "px");
@@ -502,24 +502,29 @@ Level.prototype = {
 					if(_g2.currentLayer.floatCoord) px = _g2.curPos.xf; else px = _g2.curPos.x;
 					var py;
 					if(_g2.currentLayer.floatCoord) py = _g2.curPos.yf; else py = _g2.curPos.y;
-					var _g11 = 0;
-					while(_g11 < objs.length) {
-						var o = objs[_g11];
-						++_g11;
-						if(o.x == px && o.y == py) return;
+					var _g33 = 0;
+					var _g11 = objs.length;
+					while(_g33 < _g11) {
+						var i2 = _g33++;
+						var o = objs[i2];
+						if(o.x == px && o.y == py) {
+							_g2.editProps(_g2.currentLayer,i2);
+							return;
+						}
 					}
 					var o1 = { x : px, y : py};
 					o1[idCol] = _g2.currentLayer.indexToId[_g2.currentLayer.current];
 					var _g12 = 0;
-					var _g33 = _g2.currentLayer.baseSheet.columns;
-					while(_g12 < _g33.length) {
-						var c1 = _g33[_g12];
+					var _g34 = _g2.currentLayer.baseSheet.columns;
+					while(_g12 < _g34.length) {
+						var c1 = _g34[_g12];
 						++_g12;
 						if(c1.opt || c1.name == "x" || c1.name == "y" || c1.name == idCol) continue;
 						var v = _g2.model.getDefault(c1);
 						if(v != null) o1[c1.name] = v;
 					}
 					objs.push(o1);
+					_g2.editProps(_g2.currentLayer,objs.length - 1);
 					objs.sort(function(o11,o2) {
 						var r = Reflect.compare(o11.y,o2.y);
 						if(r == 0) return Reflect.compare(o11.x,o2.x); else return r;
@@ -532,8 +537,84 @@ Level.prototype = {
 			}
 		});
 	}
+	,editProps: function(l,index) {
+		var _g = this;
+		var hasProp = false;
+		var o = Reflect.field(this.obj,l.name)[index];
+		haxe.Log.trace(o,{ fileName : "Level.hx", lineNumber : 306, className : "Level", methodName : "editProps", customParams : [index]});
+		var idCol;
+		{
+			var _g1 = l.data;
+			switch(_g1[1]) {
+			case 1:
+				var idCol1 = _g1[2];
+				idCol = idCol1;
+				break;
+			default:
+				idCol = null;
+			}
+		}
+		var _g2 = 0;
+		var _g11 = l.baseSheet.columns;
+		while(_g2 < _g11.length) {
+			var c = _g11[_g2];
+			++_g2;
+			if(c.name != "x" && c.name != "y" && c.name != idCol) hasProp = true;
+		}
+		if(!hasProp) return;
+		var popup = new js.JQuery("<div>").addClass("popup").prependTo(this.content.find(".scrollContent"));
+		((function($this) {
+			var $r;
+			var html = window;
+			$r = new js.JQuery(html);
+			return $r;
+		}(this))).bind("mousedown",function(_) {
+			popup.remove();
+			_g.draw();
+			((function($this) {
+				var $r;
+				var html1 = window;
+				$r = new js.JQuery(html1);
+				return $r;
+			}(this))).unbind("mousedown");
+		});
+		popup.mousedown(function(e) {
+			e.stopPropagation();
+		});
+		popup.mouseup(function(e1) {
+			e1.stopPropagation();
+		});
+		popup.click(function(e2) {
+			e2.stopPropagation();
+		});
+		var table = new js.JQuery("<table>").appendTo(popup);
+		var main = Std.instance(this.model,Main);
+		var _g3 = 0;
+		var _g12 = l.baseSheet.columns;
+		while(_g3 < _g12.length) {
+			var c1 = [_g12[_g3]];
+			++_g3;
+			var tr = new js.JQuery("<tr>").appendTo(table);
+			var th = new js.JQuery("<th>").text(c1[0].name).appendTo(tr);
+			var td = [new js.JQuery("<td>").html(main.valueHtml(c1[0],Reflect.field(o,c1[0].name),l.baseSheet,o)).appendTo(tr)];
+			td[0].click((function(td,c1) {
+				return function(e3) {
+					var psheet = { columns : l.baseSheet.columns, props : l.baseSheet.props, name : l.baseSheet.name, path : _g.model.getPath(l.baseSheet) + ":" + index, parent : { sheet : _g.sheet, column : Lambda.indexOf(_g.sheet.columns,Lambda.find(_g.sheet.columns,(function() {
+						return function(c2) {
+							return c2.name == l.name;
+						};
+					})())), line : index}, lines : Reflect.field(_g.obj,l.name), separators : []};
+					main.editCell(c1[0],td[0],psheet,index);
+					e3.preventDefault();
+					e3.stopPropagation();
+				};
+			})(td,c1));
+		}
+		popup.css({ marginLeft : ((o.x + 1) * this.tileSize * this.zoomView | 0) + "px", marginTop : ((o.y + 1) * this.tileSize * this.zoomView | 0) + "px"});
+	}
 	,updateZoom: function(f) {
 		if(f != null) {
+			new js.JQuery(".popup").remove();
 			if(f) this.zoomView *= 1.2; else this.zoomView /= 1.2;
 		}
 		this.savePrefs();
@@ -604,8 +685,26 @@ Level.prototype = {
 				}
 			}
 			break;
+		case 69:
+			var p1 = this.pick();
+			{
+				var _g12 = p1.layer.data;
+				switch(_g12[1]) {
+				case 0:
+					break;
+				case 1:
+					var objs1 = _g12[3];
+					new js.JQuery(".popup").remove();
+					this.editProps(p1.layer,p1.index);
+					break;
+				}
+			}
+			break;
+		case 27:
+			new js.JQuery(".popup").remove();
+			this.draw();
+			break;
 		default:
-			console.log(e.keyCode);
 		}
 	}
 	,set: function(x,y) {
@@ -5315,6 +5414,12 @@ haxe.Json.stringify = function(obj,replacer,insertion) {
 haxe.Json.parse = function(jsonString) {
 	return js.Node.parse(jsonString);
 };
+haxe.Log = function() { };
+$hxClasses["haxe.Log"] = haxe.Log;
+haxe.Log.__name__ = ["haxe","Log"];
+haxe.Log.trace = function(v,infos) {
+	js.Boot.__trace(v,infos);
+};
 haxe.Serializer = function() {
 	this.buf = new StringBuf();
 	this.cache = new Array();
@@ -6378,6 +6483,25 @@ var js = {};
 js.Boot = function() { };
 $hxClasses["js.Boot"] = js.Boot;
 js.Boot.__name__ = ["js","Boot"];
+js.Boot.__unhtml = function(s) {
+	return s.split("&").join("&amp;").split("<").join("&lt;").split(">").join("&gt;");
+};
+js.Boot.__trace = function(v,i) {
+	var msg;
+	if(i != null) msg = i.fileName + ":" + i.lineNumber + ": "; else msg = "";
+	msg += js.Boot.__string_rec(v,"");
+	if(i != null && i.customParams != null) {
+		var _g = 0;
+		var _g1 = i.customParams;
+		while(_g < _g1.length) {
+			var v1 = _g1[_g];
+			++_g;
+			msg += "," + js.Boot.__string_rec(v1,"");
+		}
+	}
+	var d;
+	if(typeof(document) != "undefined" && (d = document.getElementById("haxe:trace")) != null) d.innerHTML += js.Boot.__unhtml(msg) + "<br/>"; else if(typeof console != "undefined" && console.log != null) console.log(msg);
+};
 js.Boot.getClass = function(o) {
 	if((o instanceof Array) && o.__enum__ == null) return Array; else return o.__class__;
 };
