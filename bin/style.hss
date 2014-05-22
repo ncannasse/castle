@@ -425,11 +425,16 @@ div#menu {
 		padding-left : 20px;
 		vertical-align : top;
 		.item {
-			vertical-align : middle;
+			line-height : 32px;
+			height : 32px;
 			width : 100px;
 			display : inline-block;
 			input[type=range] {
 				width : 50px;
+				vertical-align : -5px;
+			}
+			.sp_replacer {
+				vertical-align : 2px;
 			}
 		}
 	}

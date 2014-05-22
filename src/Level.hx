@@ -88,10 +88,11 @@ class Level {
 						default:
 						}
 					var l = new LayerData(this, c.name, getProps(c.name));
-					l.floatCoord = floatCoord;
+					l.hasFloatCoord = l.floatCoord = floatCoord;
 					l.baseSheet = sheet;
 					l.loadSheetData(sid);
 					l.setObjectsData(idCol, val);
+					l.hasSize = model.hasColumn(sheet, "width", [floatCoord?TFloat:TInt]) && model.hasColumn(sheet, "height", [floatCoord?TFloat:TInt]);
 					layers.push(l);
 				}
 			default:
@@ -143,7 +144,9 @@ class Level {
 				var y = curPos.yf;
 				for( i in 0...objs.length ) {
 					var o = objs[i];
-					if( !(o.x >= x + 1 || o.y >= y + 1 || o.x + 1 < x || o.y + 1 < y) ) {
+					var w = l.hasSize ? o.width : 1;
+					var h = l.hasSize ? o.height : 1;
+					if( !(o.x >= x + 1 || o.y >= y + 1 || o.x + w < x || o.y + h < y) ) {
 						if( l.idToIndex == null )
 							return { k : 0, layer : l, index : i };
 						var k = l.idToIndex.get(Reflect.field(o, idCol));
@@ -231,7 +234,7 @@ class Level {
 
 		var win = nodejs.webkit.Window.get();
 		function onResize(_) {
-			scroll.css("height", (win.height - 195) + "px");
+			scroll.css("height", (win.height - 240) + "px");
 		}
 		win.on("resize", onResize);
 		onResize(null);
@@ -246,6 +249,8 @@ class Level {
 
 		ctx = Std.instance(canvas[0],js.html.CanvasElement).getContext2d();
 
+		var startPos : { x : Int, y : Int, xf : Float, yf : Float } = null;
+
 		scont.mouseleave(function(_) { curPos = null; cursor.hide(); } );
 		scont.mousemove(function(e) {
 			var off = canvas.parent().offset();
@@ -253,11 +258,32 @@ class Level {
 			var cyf = Std.int((e.pageY - off.top) / zoomView) / tileSize;
 			var cx = Std.int(cxf);
 			var cy = Std.int(cyf);
-			var delta = currentLayer.images != null ? 0 : -1;
 			if( cx < width && cy < height ) {
 				cursor.show();
 				var fc = currentLayer.floatCoord;
-				cursor.css( { marginLeft : Std.int((fc?cxf:cx) * tileSize * zoomView + delta) + "px", marginTop : Std.int((fc?cyf:cy) * tileSize * zoomView + delta) + "px" } );
+				var w = 1., h = 1.;
+				var border = 0;
+				var ccx = fc ? cxf : cx, ccy = fc ? cyf : cy;
+				if( currentLayer.hasSize && mouseDown ) {
+					var px = fc ? startPos.xf : startPos.x;
+					var py = fc ? startPos.yf : startPos.y;
+					var pw = (fc?cxf:cx) - px;
+					var ph = (fc?cyf:cy) - py;
+					if( pw < 0.5 ) pw = fc ? 0.5 : 1;
+					if( ph < 0.5 ) ph = fc ? 0.5 : 1;
+					ccx = px;
+					ccy = py;
+					w = pw;
+					h = ph;
+				}
+				if( currentLayer.images == null )
+					border = 1;
+				cursor.css({
+					marginLeft : Std.int(ccx * tileSize * zoomView - border) + "px",
+					marginTop : Std.int(ccy * tileSize * zoomView - border) + "px",
+					width : Std.int(w * tileSize * zoomView + border * 2) + "px",
+					height : Std.int(h * tileSize * zoomView + border * 2) + "px"
+				});
 				curPos = { x : cx, y : cy, xf : cxf, yf : cyf };
 				if( mouseDown ) set(cx, cy);
 			} else {
@@ -272,7 +298,11 @@ class Level {
 		scroll.mousedown(function(e) {
 			switch( e.which ) {
 			case 1:
-				mouseDown = true; if( curPos != null ) set(curPos.x, curPos.y);
+				mouseDown = true;
+				if( curPos != null ) {
+					set(curPos.x, curPos.y);
+					startPos = Reflect.copy(curPos);
+				}
 			case 3:
 				var p = pick();
 				if( p != null ) {
@@ -284,11 +314,27 @@ class Level {
 		scroll.mouseleave(onMouseUp);
 		scroll.mouseup(function(e) {
 			onMouseUp(e);
-			if( curPos == null ) return;
+			if( curPos == null ) {
+				startPos = null;
+				return;
+			}
 			switch( currentLayer.data ) {
 			case Objects(idCol, objs):
-				var px = currentLayer.floatCoord ? curPos.xf : curPos.x;
-				var py = currentLayer.floatCoord ? curPos.yf : curPos.y;
+				var fc = currentLayer.floatCoord;
+				var px = fc ? curPos.xf : curPos.x;
+				var py = fc ? curPos.yf : curPos.y;
+				var w = 0., h = 0.;
+				if( currentLayer.hasSize ) {
+					if( startPos == null ) return;
+					var sx = fc ? startPos.xf : startPos.x;
+					var sy = fc ? startPos.yf : startPos.y;
+					w = px - sx;
+					h = py - sy;
+					px = sx;
+					py = sy;
+					if( w < 0.5 ) w = fc ? 0.5 : 1;
+					if( h < 0.5 ) h = fc ? 0.5 : 1;
+				}
 				for( i in 0...objs.length ) {
 					var o = objs[i];
 					if( o.x == px && o.y == py ) {
@@ -296,14 +342,19 @@ class Level {
 						return;
 					}
 				}
-				var o = { x : px, y : py };
-				if( idCol != null ) Reflect.setField(o, idCol, currentLayer.indexToId[currentLayer.current]);
+				var o : { x : Float, y : Float, ?width : Float, ?height : Float } = { x : px, y : py };
+				objs.push(o);
+				if( idCol != null )
+					Reflect.setField(o, idCol, currentLayer.indexToId[currentLayer.current]);
 				for( c in currentLayer.baseSheet.columns ) {
 					if( c.opt || c.name == "x" || c.name == "y" || c.name == idCol ) continue;
 					var v = model.getDefault(c);
 					if( v != null ) Reflect.setField(o, c.name, v);
 				}
-				objs.push(o);
+				if( currentLayer.hasSize ) {
+					o.width = w;
+					o.height = h;
+				}
 				editProps(currentLayer, objs.length - 1);
 				objs.sort(function(o1, o2) {
 					var r = Reflect.compare(o1.y, o2.y);
@@ -313,13 +364,13 @@ class Level {
 				save();
 			default:
 			}
+			startPos = null;
 		});
 	}
 
 	function editProps( l : LayerData, index : Int ) {
 		var hasProp = false;
 		var o = Reflect.field(obj, l.name)[index];
-		trace(o, index);
 		var idCol = switch( l.data ) { case Objects(idCol, _): idCol; default: null; };
 		for( c in l.baseSheet.columns )
 			if( c.name != "x" && c.name != "y" && c.name != idCol )
@@ -467,8 +518,11 @@ class Level {
 			case Objects(idCol, objs):
 				if( idCol == null ) {
 					ctx.fillStyle = toColor(l.props.color);
-					for( o in objs )
-						ctx.fillRect(o.x * tileSize, o.y * tileSize, tileSize, tileSize);
+					for( o in objs ) {
+						var w = l.hasSize ? o.width * tileSize : tileSize;
+						var h = l.hasSize ? o.height * tileSize : tileSize;
+						ctx.fillRect(o.x * tileSize, o.y * tileSize, w, h);
+					}
 				} else {
 					for( o in objs ) {
 						var id : String = Reflect.field(o, idCol);
@@ -485,7 +539,9 @@ class Level {
 							continue;
 						}
 						ctx.fillStyle = toColor(l.colors[k]);
-						ctx.fillRect(o.x * tileSize, o.y * tileSize, tileSize, tileSize);
+						var w = l.hasSize ? o.width * tileSize : tileSize;
+						var h = l.hasSize ? o.height * tileSize : tileSize;
+						ctx.fillRect(o.x * tileSize, o.y * tileSize, w, h);
 					}
 				}
 			}
@@ -516,6 +572,11 @@ class Level {
 		js.Browser.getLocalStorage().setItem(sheetPath, haxe.Serializer.run(state));
 	}
 
+	@:keep function setLock(b:Bool) {
+		currentLayer.floatCoord = currentLayer.hasFloatCoord && !b;
+		currentLayer.saveState();
+	}
+
 	@:keep function setVisible(b:Bool) {
 		currentLayer.visible = b;
 		draw();
@@ -536,7 +597,8 @@ class Level {
 			savePrefs();
 			J("[name=alpha]").val(Std.string(Std.int(l.props.alpha * 100)));
 			J("[name=visible]").prop("checked", l.visible);
-			(untyped J("[name=color]")).spectrum("set",toColor(l.props.color)).parent().toggle( cast l.idToIndex == null );
+			J("[name=lock]").prop("checked", !l.floatCoord).closest(".item").css({ display : l.hasFloatCoord ? "" : "none" });
+			(untyped J("[name=color]")).spectrum("set",toColor(l.props.color)).closest(".item").css({ display : l.idToIndex == null ? "" : "none" });
 		}
 		var size = Std.int(tileSize * zoomView);
 		if( l.images != null ) {
@@ -553,11 +615,12 @@ class Level {
 typedef LayerState = {
 	var current : Int;
 	var visible : Bool;
+	var lock : Bool;
 }
 
 enum LayerInnerData {
 	Layer( a : Array<Int> );
-	Objects( idCol : String, objs : Array<{ x : Float, y : Float }> );
+	Objects( idCol : String, objs : Array<{ x : Float, y : Float, ?width : Float, ?height : Float }> );
 }
 
 
@@ -582,6 +645,8 @@ class LayerData {
 	public var idToIndex : Map<String,Int>;
 	public var indexToId : Array<String>;
 	public var floatCoord : Bool;
+	public var hasFloatCoord : Bool;
+	public var hasSize : Bool;
 
 	public function new(level, name, p) {
 		this.level = level;
@@ -654,6 +719,7 @@ class LayerData {
 		var state : LayerState = try haxe.Unserializer.run(js.Browser.getLocalStorage().getItem(level.sheetPath + ":" + name)) catch( e : Dynamic ) null;
 		if( state != null ) {
 			visible = state.visible;
+			floatCoord = hasFloatCoord && !state.lock;
 			if( state.current < names.length ) current = state.current;
 		}
 	}
@@ -686,10 +752,11 @@ class LayerData {
 		return v;
 	}
 
-	function saveState() {
+	public function saveState() {
 		var s : LayerState = {
 			current : current,
 			visible : visible,
+			lock : hasFloatCoord && !floatCoord,
 		};
 		js.Browser.getLocalStorage().setItem(level.sheetPath + ":" + name, haxe.Serializer.run(s));
 	}
