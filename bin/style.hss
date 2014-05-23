@@ -357,6 +357,28 @@ div#menu {
 	span.error {
 		color : #A00;
 	}
+
+	.preview {
+		.previewContent {
+			.label {
+				text-align : center;
+				margin-bottom : 5px;
+				background-color : white;
+				font-family : monospace;
+			}
+			display : none;
+			position : absolute;
+			background-color : #EEE;
+			border : 1px solid black;
+			padding : 5px;
+		}
+	}
+	.preview:hover {
+		.previewContent {
+			display : block;
+		}
+	}
+
 }
 
 

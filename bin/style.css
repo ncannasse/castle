@@ -323,6 +323,22 @@ div#menu ul.sheets li.active {
 .castle span.error {
 	color : #A00;
 }
+.castle .preview .previewContent {
+	display : none;
+	position : absolute;
+	background-color : #EEE;
+	border : 1px solid black;
+	padding : 5px;
+}
+.castle .preview .previewContent .label {
+	text-align : center;
+	margin-bottom : 5px;
+	background-color : white;
+	font-family : monospace;
+}
+.castle .preview:hover .previewContent {
+	display : block;
+}
 #content .level {
 	user-select : none;
 	-moz-user-select : none;

@@ -1304,7 +1304,7 @@ Model.prototype = {
 			switch(_g[1]) {
 			case 3:case 4:case 5:case 10:case 11:
 				return 0;
-			case 1:case 0:case 6:case 7:case 12:
+			case 1:case 0:case 6:case 7:case 12:case 13:
 				return "";
 			case 2:
 				return false;
@@ -2136,7 +2136,7 @@ Model.prototype = {
 		switch(t[1]) {
 		case 3:case 4:case 2:case 7:
 			return Std.string(val);
-		case 0:case 6:case 12:
+		case 0:case 6:case 12:case 13:
 			if(esc) return "\"" + Std.string(val) + "\""; else return val;
 			break;
 		case 1:
@@ -3385,7 +3385,7 @@ Main.prototype = $extend(Model.prototype,{
 					return $r;
 				}(this))).obj == obj) return v; else return "<span class=\"error\">#DUP(" + Std.string(v) + ")</span>";
 				break;
-			case 1:
+			case 1:case 12:
 				if(v == "") return "&nbsp;"; else return StringTools.htmlEscape(v);
 				break;
 			case 6:
@@ -3471,8 +3471,15 @@ Main.prototype = $extend(Model.prototype,{
 			case 11:
 				var id = Main.UID++;
 				return "<input type=\"text\" id=\"_c" + id + "\"/><script>$(\"#_c" + id + "\").spectrum({ color : \"#" + StringTools.hex(v,6) + "\", showInput: true, clickoutFiresChange : true, showButtons: false, change : function(e) { _.colorChangeEvent(e,$(this),\"" + c.name + "\"); } })</script>";
-			case 12:
-				return "";
+			case 13:
+				var path;
+				if(v.charAt(0) == "/" || v.charAt(1) == ":") path = v; else path = new haxe.io.Path(this.prefs.curFile).dir.split("\\").join("/") + "/" + Std.string(v);
+				var ext = v.split(".").pop().toLowerCase();
+				var html;
+				if(v == "") html = "<span class=\"error\">#MISSING</span>"; else html = StringTools.htmlEscape(v);
+				if(ext == "png" || ext == "jpg" || ext == "jpeg" || ext == "gif") html = "<span class=\"preview\">" + html + "<div class=\"previewContent\"><div class=\"label\"></div><img src=\"" + path + "\" onload=\"$(this).parent().find('.label').text(this.width+'x'+this.height)\"/></div></span>";
+				if(v != "") html += " <input type=\"submit\" value=\"open\" onclick=\"_.openFile('" + path + "')\"/>";
+				return html;
 			}
 		}
 	}
@@ -4132,7 +4139,7 @@ Main.prototype = $extend(Model.prototype,{
 					_g.save();
 				};
 				break;
-			case 8:case 11:case 12:
+			case 8:case 11:case 12:case 13:
 				throw "assert";
 				break;
 			}
@@ -4400,9 +4407,45 @@ Main.prototype = $extend(Model.prototype,{
 						break;
 					case 11:case 12:
 						break;
+					case 13:
+						v[0].find("input").addClass("deletable").change((function(obj,c) {
+							return function(e9) {
+								if(Reflect.field(obj[0],c[0].name) != null) {
+									Reflect.deleteField(obj[0],c[0].name);
+									_g4.refresh();
+									_g4.save();
+								}
+							};
+						})(obj,c));
+						v[0].dblclick((function(html,v,val,obj,c) {
+							return function(_2) {
+								var fs = new js.JQuery("#fileSelect");
+								if(fs.attr("nwworkingdir") == null) fs.attr("nwworkingdir",new haxe.io.Path(_g4.prefs.curFile).dir);
+								fs.change((function(html,v,val,obj,c) {
+									return function(_3) {
+										var path = fs.val().split("\\").join("/");
+										fs.attr("nwworkingdir","");
+										var parts = path.split("/");
+										var base = _g4.prefs.curFile.split("\\").join("/").split("/");
+										base.pop();
+										while(parts.length > 1 && base.length > 0 && parts[0] == base[0]) {
+											parts.shift();
+											base.shift();
+										}
+										if(parts.length == 0 || parts[0] != "" && parts[0].charAt(1) != ":") while(base.length > 0) parts.unshift("..");
+										val[0] = parts.join("/");
+										obj[0][c[0].name] = val[0];
+										html[0] = _g4.valueHtml(c[0],val[0],sheet,obj[0]);
+										v[0].html(html[0]);
+										_g4.save();
+									};
+								})(html,v,val,obj,c)).click();
+							};
+						})(html,v,val,obj,c));
+						break;
 					default:
 						v[0].dblclick((function(v,index,c) {
-							return function(e9) {
+							return function(e10) {
 								_g4.editCell(c[0],v[0],sheet,index[0]);
 							};
 						})(v,index,c));
@@ -4442,10 +4485,10 @@ Main.prototype = $extend(Model.prototype,{
 				if(title[0] != null) content2[0].text(title[0]);
 				var pos = [snext];
 				sep.dblclick((function(pos,title,content2) {
-					return function(e10) {
+					return function(e11) {
 						content2[0].empty();
 						new js.JQuery("<input>").appendTo(content2[0]).focus().val(title[0] == null?"":title[0]).blur((function(pos,title,content2) {
-							return function(_2) {
+							return function(_4) {
 								title[0] = $(this).val();
 								$(this).remove();
 								content2[0].text(title[0]);
@@ -4459,16 +4502,16 @@ Main.prototype = $extend(Model.prototype,{
 								_g4.save();
 							};
 						})(pos,title,content2)).keypress((function() {
-							return function(e11) {
-								e11.stopPropagation();
+							return function(e12) {
+								e12.stopPropagation();
 							};
 						})()).keydown((function(title,content2) {
-							return function(e12) {
-								if(e12.keyCode == 13) {
+							return function(e13) {
+								if(e13.keyCode == 13) {
 									$(this).blur();
-									e12.preventDefault();
-								} else if(e12.keyCode == 27) content2[0].text(title[0]);
-								e12.stopPropagation();
+									e13.preventDefault();
+								} else if(e13.keyCode == 27) content2[0].text(title[0]);
+								e13.stopPropagation();
 							};
 						})(title,content2));
 					};
@@ -4485,6 +4528,9 @@ Main.prototype = $extend(Model.prototype,{
 			t1();
 		}
 		inTodo = false;
+	}
+	,openFile: function(file) {
+		nodejs.webkit.Shell.openItem(file);
 	}
 	,setCursor: function(s,x,y,sel,update) {
 		if(update == null) update = true;
@@ -4873,6 +4919,9 @@ Main.prototype = $extend(Model.prototype,{
 				return;
 			}
 			t = cdb.ColumnType.TLayer(s1.name);
+			break;
+		case "file":
+			t = cdb.ColumnType.TFile;
 			break;
 		default:
 			return;
@@ -5377,7 +5426,7 @@ Type.enumEq = function(a,b) {
 	return true;
 };
 var cdb = {};
-cdb.ColumnType = $hxClasses["cdb.ColumnType"] = { __ename__ : ["cdb","ColumnType"], __constructs__ : ["TId","TString","TBool","TInt","TFloat","TEnum","TRef","TImage","TList","TCustom","TFlags","TColor","TLayer"] };
+cdb.ColumnType = $hxClasses["cdb.ColumnType"] = { __ename__ : ["cdb","ColumnType"], __constructs__ : ["TId","TString","TBool","TInt","TFloat","TEnum","TRef","TImage","TList","TCustom","TFlags","TColor","TLayer","TFile"] };
 cdb.ColumnType.TId = ["TId",0];
 cdb.ColumnType.TId.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TString = ["TString",1];
@@ -5399,6 +5448,8 @@ cdb.ColumnType.TFlags = function(values) { var $x = ["TFlags",10,values]; $x.__e
 cdb.ColumnType.TColor = ["TColor",11];
 cdb.ColumnType.TColor.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TLayer = function(type) { var $x = ["TLayer",12,type]; $x.__enum__ = cdb.ColumnType; return $x; };
+cdb.ColumnType.TFile = ["TFile",13];
+cdb.ColumnType.TFile.__enum__ = cdb.ColumnType;
 cdb.Parser = function() { };
 $hxClasses["cdb.Parser"] = cdb.Parser;
 cdb.Parser.__name__ = ["cdb","Parser"];
@@ -5412,7 +5463,7 @@ cdb.Parser.saveType = function(t) {
 	case 10:
 		var values = t[2];
 		return t[1] + ":" + values.join(",");
-	case 0:case 1:case 8:case 3:case 7:case 4:case 2:case 11:
+	case 0:case 1:case 8:case 3:case 7:case 4:case 2:case 11:case 13:
 		return Std.string(t[1]);
 	}
 };
@@ -5470,6 +5521,8 @@ cdb.Parser.getType = function(str) {
 			$r = HxOverrides.substr(str,pos4,null);
 			return $r;
 		}(this)));
+	case 13:
+		return cdb.ColumnType.TFile;
 	default:
 		throw "Unknown type " + str;
 	} else throw "Unknown type " + str;
@@ -6582,6 +6635,37 @@ haxe.io.Error.Custom = function(e) { var $x = ["Custom",3,e]; $x.__enum__ = haxe
 haxe.io.Output = function() { };
 $hxClasses["haxe.io.Output"] = haxe.io.Output;
 haxe.io.Output.__name__ = ["haxe","io","Output"];
+haxe.io.Path = function(path) {
+	switch(path) {
+	case ".":case "..":
+		this.dir = path;
+		this.file = "";
+		return;
+	}
+	var c1 = path.lastIndexOf("/");
+	var c2 = path.lastIndexOf("\\");
+	if(c1 < c2) {
+		this.dir = HxOverrides.substr(path,0,c2);
+		path = HxOverrides.substr(path,c2 + 1,null);
+		this.backslash = true;
+	} else if(c2 < c1) {
+		this.dir = HxOverrides.substr(path,0,c1);
+		path = HxOverrides.substr(path,c1 + 1,null);
+	} else this.dir = null;
+	var cp = path.lastIndexOf(".");
+	if(cp != -1) {
+		this.ext = HxOverrides.substr(path,cp + 1,null);
+		this.file = HxOverrides.substr(path,0,cp);
+	} else {
+		this.ext = null;
+		this.file = path;
+	}
+};
+$hxClasses["haxe.io.Path"] = haxe.io.Path;
+haxe.io.Path.__name__ = ["haxe","io","Path"];
+haxe.io.Path.prototype = {
+	__class__: haxe.io.Path
+};
 var js = {};
 js.Boot = function() { };
 $hxClasses["js.Boot"] = js.Boot;
@@ -6992,6 +7076,7 @@ nodejs.webkit.$ui = require('nw.gui');
 nodejs.webkit.Clipboard = nodejs.webkit.$ui.Clipboard;
 nodejs.webkit.Menu = nodejs.webkit.$ui.Menu;
 nodejs.webkit.MenuItem = nodejs.webkit.$ui.MenuItem;
+nodejs.webkit.Shell = nodejs.webkit.$ui.Shell;
 nodejs.webkit.Window = nodejs.webkit.$ui.Window;
 Level.UID = 0;
 K.INSERT = 45;

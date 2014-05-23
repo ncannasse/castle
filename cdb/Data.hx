@@ -14,6 +14,7 @@ enum ColumnType {
 	TFlags( values : Array<String> );
 	TColor;
 	TLayer( type : String );
+	TFile;
 }
 
 #if macro

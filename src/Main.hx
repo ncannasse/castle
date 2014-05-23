@@ -466,7 +466,7 @@ class Main extends Model {
 			}
 		case TId:
 			v == "" ? '<span class="error">#MISSING</span>' : (smap.get(sheet.name).index.get(v).obj == obj ? v : '<span class="error">#DUP($v)</span>');
-		case TString:
+		case TString, TLayer(_):
 			v == "" ? "&nbsp;" : StringTools.htmlEscape(v);
 		case TRef(sname):
 			if( v == "" )
@@ -531,8 +531,15 @@ class Main extends Model {
 		case TColor:
 			var id = UID++;
 			'<input type="text" id="_c${id}"/><script>$("#_c${id}").spectrum({ color : "#${StringTools.hex(v,6)}", showInput: true, clickoutFiresChange : true, showButtons: false, change : function(e) { _.colorChangeEvent(e,$(this),"${c.name}"); } })</script>';
-		case TLayer(_):
-			"";
+		case TFile:
+			var path = v.charAt(0) == "/" || v.charAt(1) == ":" ? v : new haxe.io.Path(prefs.curFile).dir.split("\\").join("/") + "/" + v;
+			var ext = v.split(".").pop().toLowerCase();
+			var html = v == "" ? '<span class="error">#MISSING</span>' : StringTools.htmlEscape(v);
+			if( ext == "png" || ext == "jpg" || ext == "jpeg" || ext == "gif" )
+				html = '<span class="preview">$html<div class="previewContent"><div class="label"></div><img src="$path" onload="$(this).parent().find(\'.label\').text(this.width+\'x\'+this.height)"/></div></span>';
+			if( v != "" )
+				html += ' <input type="submit" value="open" onclick="_.openFile(\'$path\')"/>';
+			html;
 		}
 	}
 
@@ -1071,7 +1078,7 @@ class Main extends Model {
 				editDone();
 				save();
 			};
-		case TList, TColor, TLayer(_):
+		case TList, TColor, TLayer(_), TFile:
 			throw "assert";
 		}
 	}
@@ -1287,6 +1294,39 @@ class Main extends Model {
 						todo.push(function() v.click());
 				case TColor, TLayer(_):
 					// nothing
+				case TFile:
+					v.find("input").addClass("deletable").change(function(e) {
+						if( Reflect.field(obj,c.name) != null ) {
+							Reflect.deleteField(obj, c.name);
+							refresh();
+							save();
+						}
+					});
+					v.dblclick(function(_) {
+						var fs = J("#fileSelect");
+						if( fs.attr("nwworkingdir") == null )
+							fs.attr("nwworkingdir", new haxe.io.Path(prefs.curFile).dir);
+						fs.change(function(_) {
+							var path = fs.val().split("\\").join("/");
+							fs.attr("nwworkingdir", ""); // keep path
+
+							var parts = path.split("/");
+							var base = prefs.curFile.split("\\").join("/").split("/");
+							base.pop();
+							while( parts.length > 1 && base.length > 0 && parts[0] == base[0] ) {
+								parts.shift();
+								base.shift();
+							}
+							if( parts.length == 0 || (parts[0] != "" && parts[0].charAt(1) != ":") )
+								while( base.length > 0 )
+									parts.unshift("..");
+							val = parts.join("/");
+							Reflect.setField(obj, c.name, val);
+							html = valueHtml(c, val, sheet, obj);
+							v.html(html);
+							save();
+						}).click();
+					});
 				default:
 					v.dblclick(function(e) editCell(c, v, sheet, index));
 				}
@@ -1349,6 +1389,10 @@ class Main extends Model {
 		inTodo = true;
 		for( t in todo ) t();
 		inTodo = false;
+	}
+
+	@:keep function openFile( file : String ) {
+		nodejs.webkit.Shell.openItem(file);
 	}
 
 	function setCursor( ?s, ?x=0, ?y=0, ?sel, update = true ) {
@@ -1646,6 +1690,8 @@ class Main extends Model {
 				return;
 			}
 			TLayer(s.name);
+		case "file":
+			TFile;
 		default:
 			return;
 		}

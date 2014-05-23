@@ -118,7 +118,7 @@ class Model {
 			return null;
 		return switch( c.type ) {
 		case TInt, TFloat, TEnum(_), TFlags(_), TColor: 0;
-		case TString, TId, TRef(_), TImage, TLayer(_): "";
+		case TString, TId, TRef(_), TImage, TLayer(_), TFile: "";
 		case TBool: false;
 		case TList: [];
 		case TCustom(_): null;
@@ -633,7 +633,7 @@ class Model {
 			return "null";
 		return switch( t ) {
 		case TInt, TFloat, TBool, TImage: Std.string(val);
-		case TId, TRef(_), TLayer(_): esc ? '"'+val+'"' : val;
+		case TId, TRef(_), TLayer(_), TFile: esc ? '"'+val+'"' : val;
 		case TString:
 			var val : String = val;
 			if( ~/^[A-Za-z0-9_]+$/g.match(val) && !esc )

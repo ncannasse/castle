@@ -8,7 +8,7 @@ class Parser {
 			Type.enumIndex(t) + ":" + Type.enumParameters(t)[0];
 		case TEnum(values), TFlags(values):
 			Type.enumIndex(t) + ":" + values.join(",");
-		case TId, TString, TList, TInt, TImage, TFloat, TBool, TColor:
+		case TId, TString, TList, TInt, TImage, TFloat, TBool, TColor, TFile:
 			Std.string(Type.enumIndex(t));
 		};
 	}
@@ -28,6 +28,7 @@ class Parser {
 		case 10: TFlags(str.substr(str.indexOf(":") + 1).split(","));
 		case 11: TColor;
 		case 12: TLayer(str.substr(str.indexOf(":") + 1));
+		case 13: TFile;
 		default: throw "Unknown type " + str;
 		}
 	}
