@@ -251,7 +251,11 @@ class Level {
 
 		var startPos : { x : Int, y : Int, xf : Float, yf : Float } = null;
 
-		scont.mouseleave(function(_) { curPos = null; cursor.hide(); } );
+		scont.mouseleave(function(_) {
+			curPos = null;
+			cursor.hide();
+			J(".cursorPosition").text("");
+		});
 		scont.mousemove(function(e) {
 			var off = canvas.parent().offset();
 			var cxf = Std.int((e.pageX - off.left) / zoomView) / tileSize;
@@ -285,10 +289,12 @@ class Level {
 					height : Std.int(h * tileSize * zoomView + border * 2) + "px"
 				});
 				curPos = { x : cx, y : cy, xf : cxf, yf : cyf };
+				J(".cursorPosition").text(cx + "," + cy);
 				if( mouseDown ) set(cx, cy);
 			} else {
 				cursor.hide();
 				curPos = null;
+				J(".cursorPosition").text("");
 			}
 		});
 		function onMouseUp(_) {
@@ -504,8 +510,8 @@ class Level {
 			}
 			switch( l.data ) {
 			case Layer(data):
-				for( y in 0...width )
-					for( x in 0...height ) {
+				for( y in 0...height )
+					for( x in 0...width ) {
 						var k = data[x + y * width];
 						if( k == 0 && !first ) continue;
 						if( l.images != null ) {
@@ -588,8 +594,38 @@ class Level {
 		draw();
 	}
 
+	@:keep function setTileSize( value : Int ) {
+		this.props.tileSize = tileSize = value;
+		for( l in layers ) {
+			if( !l.hasFloatCoord ) continue;
+			switch( l.data ) {
+			case Objects(_, objs):
+				for( o in objs ) {
+					o.x = Std.int(o.x * tileSize) / tileSize;
+					o.y = Std.int(o.y * tileSize) / tileSize;
+					if( l.hasSize ) {
+						o.width = Std.int(o.width * tileSize) / tileSize;
+						o.height = Std.int(o.height * tileSize) / tileSize;
+					}
+				}
+			default:
+			}
+		}
+		var canvas = content.find("canvas");
+		canvas.attr("width", (width * tileSize) + "px");
+		canvas.attr("height", (height * tileSize) + "px");
+		setCursor(currentLayer);
+		draw();
+		save();
+	}
+
+	@:keep function toggleOptions() {
+		content.find(".submenu").toggle();
+		content.find("[name=tileSize]").val("" + tileSize);
+	}
+
 	function setCursor( l : LayerData ) {
-		J(".menu .item.selected").removeClass("selected");
+		content.find(".menu .item.selected").removeClass("selected");
 		l.comp.addClass("selected");
 		var old = currentLayer;
 		currentLayer = l;

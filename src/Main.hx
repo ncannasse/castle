@@ -415,13 +415,46 @@ class Main extends Model {
 		return index;
 	}
 
-	function changed( sheet : Sheet, c : Column, index : Int ) {
-		save();
+	function changed( sheet : Sheet, c : Column, index : Int, old : Dynamic ) {
 		switch( c.type ) {
 		case TId:
 			makeSheet(sheet);
 		case TImage:
 			saveImages();
+		case TInt if( sheet.props.levelProps != null && c.name == "width" || c.name == "height" ):
+			var obj = sheet.lines[index];
+			var newW : Int = Reflect.field(obj, "width");
+			var newH : Int = Reflect.field(obj, "height");
+			var oldW = newW;
+			var oldH = newH;
+			if( c.name == "width" )
+				oldW = old;
+			else
+				oldH = old;
+			for( c in sheet.columns )
+				switch( c.type ) {
+				case TLayer(_):
+					var v = Reflect.field(obj, c.name);
+					if( v == null || v == "" ) continue;
+					var odat = haxe.crypto.Base64.decode(v);
+					var ndat = haxe.io.Bytes.alloc(newW * newH);
+					for( y in 0...newH )
+						for( x in 0...newW ) {
+							var k = y < oldH && x < oldW ? odat.get(x + y * oldW) : 0;
+							ndat.set(x + y * newW, k);
+						}
+					v = haxe.crypto.Base64.encode(ndat);
+					Reflect.setField(obj, c.name, v);
+				case TList:
+					var s = getPseudoSheet(sheet, c);
+					if( hasColumn(s, "x", [TInt,TFloat]) && hasColumn(s, "y", [TInt,TFloat]) ) {
+						var elts : Array<{ x : Float, y : Float }> = Reflect.field(obj, c.name);
+						for( e in elts.copy() )
+							if( e.x >= newW || e.y >= newH )
+								elts.remove(e);
+					}
+				default:
+				}
 		default:
 			if( sheet.props.displayColumn == c.name ) {
 				var obj = sheet.lines[index];
@@ -437,6 +470,7 @@ class Main extends Model {
 					}
 			}
 		}
+		save();
 	}
 
 	function error( msg ) {
@@ -535,7 +569,9 @@ class Main extends Model {
 			var path = v.charAt(0) == "/" || v.charAt(1) == ":" ? v : new haxe.io.Path(prefs.curFile).dir.split("\\").join("/") + "/" + v;
 			var ext = v.split(".").pop().toLowerCase();
 			var html = v == "" ? '<span class="error">#MISSING</span>' : StringTools.htmlEscape(v);
-			if( ext == "png" || ext == "jpg" || ext == "jpeg" || ext == "gif" )
+			if( v != "" && !sys.FileSystem.exists(path) )
+				html = '<span class="error">' + html + '</span>';
+			else if( ext == "png" || ext == "jpg" || ext == "jpeg" || ext == "gif" )
 				html = '<span class="preview">$html<div class="previewContent"><div class="label"></div><img src="$path" onload="$(this).parent().find(\'.label\').text(this.width+\'x\'+this.height)"/></div></span>';
 			if( v != "" )
 				html += ' <input type="submit" value="open" onclick="_.openFile(\'$path\')"/>';
@@ -827,11 +863,12 @@ class Main extends Model {
 	public function editCell( c : Column, v : js.JQuery, sheet : Sheet, index : Int ) {
 		var obj = sheet.lines[index];
 		var val : Dynamic = Reflect.field(obj, c.name);
+		var old = val;
 		inline function getValue() {
 			return valueHtml(c, val, sheet, obj);
 		}
 		inline function changed() {
-			this.changed(sheet, c, index);
+			this.changed(sheet, c, index, old);
 		}
 		var html = getValue();
 		if( v.hasClass("edit") ) return;

@@ -18,7 +18,7 @@
 #download a {
 	display : inline-block;
 	padding : 3px 10px;
-	border-radius : 5px;	
+	border-radius : 5px;
 	font-size : 20px;
 	margin-right : 40px;
 }
@@ -68,12 +68,12 @@ li{
 	list-style-image : url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAQUlEQVQYV2NkYGD4D8QgwAilsfJBkiQrhBqInUI2kWiFs4Aq09BUw8XIMpFoq2EKQdaBAIoz0K2GKYJpgismWiEAvrITAYtX410AAAAASUVORK5CYII=");
 }
 
-.bg.blue li {
+.bg.blue li, .bg.black li {
 	list-style-image : url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAOUlEQVQYV2P8DwQMQMAIBCAaJ59khSDT8AFGZBNhbJgGkHPg8iQrJNpqkhWiBxPcvdg8gByeJCsEAC8WU+NrziCSAAAAAElFTkSuQmCC");
 }
 
 .bg.blue {
-	background-color : #95A7B3;
+	background-color : #306588;
 	color : #EAEFF1;
 }
 
@@ -86,8 +86,21 @@ li{
 	color : #1b1b1b;
 }
 
-.bg.blue p code, .bg.blue li code {
-	background-color : #D4E0E7;
+.bg.black ~ .bg.blue {
+	margin-bottom : 0px;
+	padding-bottom : 50px;
+}
+
+.bg.blue p code, .bg.blue li code, .bg.blue dd code {
+	background-color : #27516D;
+	color : white;
+	border-color : #1F447C;
+}
+
+.bg.black p code, .bg.black li code, .bg.black dd code {
+	background-color : #333;
+	color : #DDD;
+	border-color : #444;
 }
 
 .bg.blue a {

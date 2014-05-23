@@ -390,6 +390,10 @@ div#menu {
 
 		background-color : #EEE;
 
+		.options {
+			float : right;
+		}
+
 		.item.hidden {
 			opacity : 0.5;
 		}
@@ -458,6 +462,16 @@ div#menu {
 			.sp_replacer {
 				vertical-align : 2px;
 			}
+		}
+	}
+
+	.submenu.options {
+		display : none;
+		.item {
+			width : auto;
+		}
+		input[type=text] {
+			width : 80px;
 		}
 	}
 

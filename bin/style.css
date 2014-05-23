@@ -347,6 +347,9 @@ div#menu ul.sheets li.active {
 #content .level .menu {
 	background-color : #EEE;
 }
+#content .level .menu .options {
+	float : right;
+}
 #content .level .menu .item.hidden {
 	opacity : 0.5;
 	filter : alpha(opacity=50);
@@ -419,6 +422,15 @@ div#menu ul.sheets li.active {
 }
 #content .level .submenu .item .sp_replacer {
 	vertical-align : 2px;
+}
+#content .level .submenu.options {
+	display : none;
+}
+#content .level .submenu.options .item {
+	width : auto;
+}
+#content .level .submenu.options input[type=text] {
+	width : 80px;
 }
 #content .level #cursor {
 	position : absolute;

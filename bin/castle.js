@@ -465,6 +465,7 @@ Level.prototype = {
 		scont.mouseleave(function(_4) {
 			_g2.curPos = null;
 			_g2.cursor.hide();
+			new js.JQuery(".cursorPosition").text("");
 		});
 		scont.mousemove(function(e3) {
 			var off = canvas.parent().offset();
@@ -501,10 +502,12 @@ Level.prototype = {
 				if(_g2.currentLayer.images == null) border = 1;
 				_g2.cursor.css({ marginLeft : (ccx * _g2.tileSize * _g2.zoomView - border | 0) + "px", marginTop : (ccy * _g2.tileSize * _g2.zoomView - border | 0) + "px", width : (w * _g2.tileSize * _g2.zoomView + border * 2 | 0) + "px", height : (h * _g2.tileSize * _g2.zoomView + border * 2 | 0) + "px"});
 				_g2.curPos = { x : cx, y : cy, xf : cxf, yf : cyf};
+				new js.JQuery(".cursorPosition").text(cx + "," + cy);
 				if(_g2.mouseDown) _g2.set(cx,cy);
 			} else {
 				_g2.cursor.hide();
 				_g2.curPos = null;
+				new js.JQuery(".cursorPosition").text("");
 			}
 		});
 		var onMouseUp = function(_5) {
@@ -810,11 +813,11 @@ Level.prototype = {
 				case 0:
 					var data = _g2[2];
 					var _g4 = 0;
-					var _g3 = this.width;
+					var _g3 = this.height;
 					while(_g4 < _g3) {
 						var y = _g4++;
 						var _g6 = 0;
-						var _g5 = this.height;
+						var _g5 = this.width;
 						while(_g6 < _g5) {
 							var x = _g6++;
 							var k = data[x + y * this.width];
@@ -911,8 +914,48 @@ Level.prototype = {
 		this.model.save(false);
 		this.draw();
 	}
+	,setTileSize: function(value) {
+		this.props.tileSize = this.tileSize = value;
+		var _g = 0;
+		var _g1 = this.layers;
+		while(_g < _g1.length) {
+			var l = _g1[_g];
+			++_g;
+			if(!l.hasFloatCoord) continue;
+			{
+				var _g2 = l.data;
+				switch(_g2[1]) {
+				case 1:
+					var objs = _g2[3];
+					var _g3 = 0;
+					while(_g3 < objs.length) {
+						var o = objs[_g3];
+						++_g3;
+						o.x = (o.x * this.tileSize | 0) / this.tileSize;
+						o.y = (o.y * this.tileSize | 0) / this.tileSize;
+						if(l.hasSize) {
+							o.width = (o.width * this.tileSize | 0) / this.tileSize;
+							o.height = (o.height * this.tileSize | 0) / this.tileSize;
+						}
+					}
+					break;
+				default:
+				}
+			}
+		}
+		var canvas = this.content.find("canvas");
+		canvas.attr("width",this.width * this.tileSize + "px");
+		canvas.attr("height",this.height * this.tileSize + "px");
+		this.setCursor(this.currentLayer);
+		this.draw();
+		this.save();
+	}
+	,toggleOptions: function() {
+		this.content.find(".submenu").toggle();
+		this.content.find("[name=tileSize]").val("" + this.tileSize);
+	}
 	,setCursor: function(l) {
-		new js.JQuery(".menu .item.selected").removeClass("selected");
+		this.content.find(".menu .item.selected").removeClass("selected");
 		l.comp.addClass("selected");
 		var old = this.currentLayer;
 		this.currentLayer = l;
@@ -3323,8 +3366,7 @@ Main.prototype = $extend(Model.prototype,{
 		}
 		return index1;
 	}
-	,changed: function(sheet,c,index) {
-		this.save();
+	,changed: function(sheet,c,index,old) {
 		var _g = c.type;
 		switch(_g[1]) {
 		case 0:
@@ -3333,26 +3375,98 @@ Main.prototype = $extend(Model.prototype,{
 		case 7:
 			this.saveImages();
 			break;
-		default:
-			if(sheet.props.displayColumn == c.name) {
+		case 3:
+			if(sheet.props.levelProps != null && c.name == "width" || c.name == "height") {
 				var obj = sheet.lines[index];
-				var s = this.smap.get(sheet.name);
+				var newW = Reflect.field(obj,"width");
+				var newH = Reflect.field(obj,"height");
+				var oldW = newW;
+				var oldH = newH;
+				if(c.name == "width") oldW = old; else oldH = old;
 				var _g1 = 0;
 				var _g2 = sheet.columns;
 				while(_g1 < _g2.length) {
-					var cid = _g2[_g1];
+					var c1 = _g2[_g1];
 					++_g1;
+					{
+						var _g3 = c1.type;
+						switch(_g3[1]) {
+						case 12:
+							var v = Reflect.field(obj,c1.name);
+							if(v == null || v == "") continue;
+							var odat = haxe.crypto.Base64.decode(v);
+							var ndat = haxe.io.Bytes.alloc(newW * newH);
+							var _g4 = 0;
+							while(_g4 < newH) {
+								var y = _g4++;
+								var _g5 = 0;
+								while(_g5 < newW) {
+									var x = _g5++;
+									var k;
+									if(y < oldH && x < oldW) k = odat.b[x + y * oldW]; else k = 0;
+									ndat.b[x + y * newW] = k;
+								}
+							}
+							v = haxe.crypto.Base64.encode(ndat);
+							obj[c1.name] = v;
+							break;
+						case 8:
+							var s = this.smap.get(sheet.name + "@" + c1.name).s;
+							if(this.hasColumn(s,"x",[cdb.ColumnType.TInt,cdb.ColumnType.TFloat]) && this.hasColumn(s,"y",[cdb.ColumnType.TInt,cdb.ColumnType.TFloat])) {
+								var elts = Reflect.field(obj,c1.name);
+								var _g41 = 0;
+								var _g51 = elts.slice();
+								while(_g41 < _g51.length) {
+									var e = _g51[_g41];
+									++_g41;
+									if(e.x >= newW || e.y >= newH) HxOverrides.remove(elts,e);
+								}
+							}
+							break;
+						default:
+						}
+					}
+				}
+			} else if(sheet.props.displayColumn == c.name) {
+				var obj1 = sheet.lines[index];
+				var s1 = this.smap.get(sheet.name);
+				var _g11 = 0;
+				var _g21 = sheet.columns;
+				while(_g11 < _g21.length) {
+					var cid = _g21[_g11];
+					++_g11;
 					if(cid.type == cdb.ColumnType.TId) {
-						var id = Reflect.field(obj,cid.name);
+						var id = Reflect.field(obj1,cid.name);
 						if(id != null) {
-							var disp = Reflect.field(obj,c.name);
+							var disp = Reflect.field(obj1,c.name);
 							if(disp == null) disp = "#" + id;
-							s.index.get(id).disp = disp;
+							s1.index.get(id).disp = disp;
+						}
+					}
+				}
+			}
+			break;
+		default:
+			if(sheet.props.displayColumn == c.name) {
+				var obj1 = sheet.lines[index];
+				var s1 = this.smap.get(sheet.name);
+				var _g11 = 0;
+				var _g21 = sheet.columns;
+				while(_g11 < _g21.length) {
+					var cid = _g21[_g11];
+					++_g11;
+					if(cid.type == cdb.ColumnType.TId) {
+						var id = Reflect.field(obj1,cid.name);
+						if(id != null) {
+							var disp = Reflect.field(obj1,c.name);
+							if(disp == null) disp = "#" + id;
+							s1.index.get(id).disp = disp;
 						}
 					}
 				}
 			}
 		}
+		this.save();
 	}
 	,error: function(msg) {
 		js.Lib.alert(msg);
@@ -3477,7 +3591,7 @@ Main.prototype = $extend(Model.prototype,{
 				var ext = v.split(".").pop().toLowerCase();
 				var html;
 				if(v == "") html = "<span class=\"error\">#MISSING</span>"; else html = StringTools.htmlEscape(v);
-				if(ext == "png" || ext == "jpg" || ext == "jpeg" || ext == "gif") html = "<span class=\"preview\">" + html + "<div class=\"previewContent\"><div class=\"label\"></div><img src=\"" + path + "\" onload=\"$(this).parent().find('.label').text(this.width+'x'+this.height)\"/></div></span>";
+				if(v != "" && !js.Node.require("fs").existsSync(path)) html = "<span class=\"error\">" + html + "</span>"; else if(ext == "png" || ext == "jpg" || ext == "jpeg" || ext == "gif") html = "<span class=\"preview\">" + html + "<div class=\"previewContent\"><div class=\"label\"></div><img src=\"" + path + "\" onload=\"$(this).parent().find('.label').text(this.width+'x'+this.height)\"/></div></span>";
 				if(v != "") html += " <input type=\"submit\" value=\"open\" onclick=\"_.openFile('" + path + "')\"/>";
 				return html;
 			}
@@ -3835,6 +3949,7 @@ Main.prototype = $extend(Model.prototype,{
 		var _g = this;
 		var obj = sheet.lines[index];
 		var val = Reflect.field(obj,c.name);
+		var old = val;
 		var html = _g.valueHtml(c,val,sheet,obj);
 		if(v.hasClass("edit")) return;
 		var editDone = function() {
@@ -3895,7 +4010,7 @@ Main.prototype = $extend(Model.prototype,{
 						if(val != null) {
 							val = html = null;
 							Reflect.deleteField(obj,c.name);
-							_g.changed(sheet,c,index);
+							_g.changed(sheet,c,index,old);
 						}
 					} else {
 						var val2;
@@ -3934,7 +4049,7 @@ Main.prototype = $extend(Model.prototype,{
 							}
 							val = val2;
 							obj[c.name] = val;
-							_g.changed(sheet,c,index);
+							_g.changed(sheet,c,index,old);
 							html = _g.valueHtml(c,val,sheet,obj);
 						}
 					}
@@ -3986,7 +4101,7 @@ Main.prototype = $extend(Model.prototype,{
 						Reflect.deleteField(obj,c.name);
 					} else obj[c.name] = val;
 					html = _g.valueHtml(c,val,sheet,obj);
-					_g.changed(sheet,c,index);
+					_g.changed(sheet,c,index,old);
 					editDone();
 					e3.stopPropagation();
 				});
@@ -4039,7 +4154,7 @@ Main.prototype = $extend(Model.prototype,{
 						Reflect.deleteField(obj,c.name);
 					} else obj[c.name] = val;
 					html = _g.valueHtml(c,val,sheet,obj);
-					_g.changed(sheet,c,index);
+					_g.changed(sheet,c,index,old);
 					editDone();
 					e5.stopPropagation();
 				});
@@ -4078,7 +4193,7 @@ Main.prototype = $extend(Model.prototype,{
 					obj[c.name] = val;
 				}
 				v.html(_g.valueHtml(c,val,sheet,obj));
-				_g.changed(sheet,c,index);
+				_g.changed(sheet,c,index,old);
 				break;
 			case 7:
 				var i2 = new js.JQuery("<input>").attr("type","file").css("display","none").change(function(e7) {
@@ -4100,7 +4215,7 @@ Main.prototype = $extend(Model.prototype,{
 					val = md5;
 					obj[c.name] = val;
 					v.html(_g.valueHtml(c,val,sheet,obj));
-					_g.changed(sheet,c,index);
+					_g.changed(sheet,c,index,old);
 					j.remove();
 				});
 				i2.appendTo(new js.JQuery("body"));

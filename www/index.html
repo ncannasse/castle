@@ -22,39 +22,39 @@
 			</div>
 		</div>
 	</div>
-		
+
 	<div class="bg">
 	<div class="container">
-		
+
 		<div class="head">
-		
+
 		<h1><img src="img/icon_hd.png"/> CastleDB</h1>
-		
+
 		<p class="tagLine">
 			<b>CastleDB</b> is a structured static database easing collaboration.
 		</p>
-		
+
 		<div class="img"><img src="img/screen.png"/></div>
-		
+
 		<div class="download">
 
 		<a onclick="$('#download').slideToggle(200)" class="start btn btn-large btn-success"><i class="icon-download-alt icon-white"></i> Download</a>
-		
+
 		<div id="download" style="display:none">
-		
-		
+
+
 			<a href="file/castledb-win.zip"><img src="img/win.png"/> Windows</a>
-			
+
 			<a href="file/castledb-osx.zip"><img src="img/osx.png"/> OSX</a>
-			
+
 			<a href="file/castledb-linux.tgz"><img src="img/linux.png"/> Linux</a>
 
 			<a href="http://github.com/ncannasse/castle"><img src="img/github.png"/> GitHub</a>
 
 			<div class="ver">version 1.0</div>
-			
+
 		</div>
-		
+
 		</div>
 
 		</div>
@@ -91,7 +91,7 @@
 					For example a given column can reference another sheet row, so you will be able to select it directly.
 				</p>
 			</div>
-			
+
 		</div>
 
 		<div class="row">
@@ -120,13 +120,13 @@
 					Unlike online spreadsheet editors, changes are made locally, which allows local experiments before either commiting or reverting.
 				</p>
 			</div>
-			
+
 		</div>
 	</div>
 	</div>
-	
+
 	<!--- DATA MODEL ---------------------------------------------------------------------------------------- -->
-	
+
 	<div class="bg">
 	<div class="container">
 
@@ -134,100 +134,115 @@
 
 
 		<div class="row">
-		
+
 			<div class="img"><img src="img/json.png"/></div>
-			
+
 			<p>
 				A database consists in several <em>sheets</em>. Each sheet is a collection of structured object (similar to a TABLE in a traditional database).
 			</p>
-			
+
 			<p>
 				Each sheet consists in several named <em>columns</em>. The columns will represent the stored data object fields.
 			</p>
-			
+
 			<p>
 				Each column has a given <em>type</em> which represents the kind of data that is stored in this column.
 			</p>
-		
+
 			<p>
 				CastleDB handles column renaming, deleting, and conversion between column types.
 			</p>
-			
+
 		</div>
-		
+
 		<div class="row">
-		
+
 			<h3>Column Types</h3>
-			
+
 			<p>
 				The following types are available for columns types:
 			</p>
-			
+
 			<dl class="dl-horizontal big">
-			
+
 			<dt>Unique Identifier</dt>
 			<dd>
 				This is an unique identifier for the current row. It will allows to <em>reference</em> this row from other sheets or columns. Unique identifiers must be valid code identifiers <code>[A-Za-z_][A-Za-z0_9_]*</code>.
 			</dd>
-			
+
 			<dt>Text</dt>
 			<dd>
 				Any text can be input into this column. CastleDB currently does not allow multiline text.
 			</dd>
-			
+
 			<dt>Boolean</dt>
 			<dd>
 				A checkbox will allow to specify if the column is <code>true</code> or <code>false</code>.
 			</dd>
-			
+
 			<dt>Integer</dt>
 			<dd>
 				A integer number (which does not have fractional component).
 			</dd>
-			
+
 			<dt>Float</dt>
 			<dd>
 				Any number.
 			</dd>
-			
+
+			<dt>Color</dt>
+			<dd>
+				A numerical value that represents a RGB color.
+			</dd>
+
 			<dt>Enumeration</dt>
 			<dd>
 				An exclusive choice between a number of given custom values. For instance <code>Yes,No,Cancel,Error</code>
 			</dd>
-			
+
 			<dt>Flags</dt>
 			<dd>
 				Several optional choices between a list of given custom values. For instance <code>hasHat,hasShirt,hasShoes</code>.
 			</dd>
-			
+
 			<dt>Reference</dt>
 			<dd>
 				A reference to another sheet row, using its unique idenfier.
 			</dd>
-			
+
 			<dt>Image</dt>
 			<dd>
 				An image to be displayed.
 			</dd>
-			
+
+			<dt>File</dt>
+			<dd>
+				A relative or absolute path to a target file.
+			</dd>
+
 			<dt>List</dt>
 			<dd>
 				A list of structured values <a href="#list">learn more</a>.
 			</dd>
-			
+
 			<dt>Custom</dt>
 			<dd>
 				A custom type <a href="#custom">learn more</a>.
 			</dd>
-			
+
+			<dt>Layer</dt>
+			<dd>
+				Packed layer information for map edition <a href="#level">learn more</a>.
+			</dd>
+
 			</dl>
-			
+
 			<h3>Column Storage and default value</h3>
-			
+
 			<p>
 				The following table tells how each type is stored into the CDB/JSON file:
 			</p>
-			
+
 			<table class="table table-striped">
 			<tr>
 				<th>Column Type</th>
@@ -260,6 +275,11 @@
 				<td><code>0</code></td>
 			</tr>
 			<tr>
+				<td>Color</td>
+				<td>the color value as integer</td>
+				<td><code>0</code> (black)</td>
+			</tr>
+			<tr>
 				<td>Enumeration</td>
 				<td>the integer index of the selected value</td>
 				<td><code>0</code> (first value)</td>
@@ -280,6 +300,11 @@
 				<td><code>""</code> (missing image)</td>
 			</tr>
 			<tr>
+				<td>File</td>
+				<td>the relative (if possible) or absolute path to the file</td>
+				<td><code>""</code> (missing file)</td>
+			</tr>
+			<tr>
 				<td>List</td>
 				<td>an Array of structured objects <a href="#list">learn more</a></td>
 				<td><code>[]</code> (empty array)</td>
@@ -289,14 +314,19 @@
 				<td>a mixed array representation <a href="#custom">learn more</a></td>
 				<td><code>null</code> (missing type)</td>
 			</tr>
+			<tr>
+				<td>Layer</td>
+				<td>width x height bytes indexes encoded as Base64</td>
+				<td><code>""</code> (empty layer)</td>
+			</tr>
 			</table>
 
 			<h3>Optional Column</h3>
-			
+
 			<p>
 				If you uncheck the <b>Required</b> checkbox when creating/modifying a column, default data will be <code>null</code>. It will also remove the field from the stored object in case no data is present.
 			</p>
-			
+
 		</div>
 
     </div>
@@ -306,29 +336,29 @@
 
 	<div class="bg blue">
 	<div class="container">
-	
+
 		<h1>Using CastleDB Editor</h1>
-		
+
 		<div class="row">
-		
+
 		<div class="img"><img src="img/using.png"/></div>
-		
+
 		<h3>Loading and Saving</h3>
-		
+
 		<p>
 			Using the File menu, you can create a <code>New</code> file and <code>Load</code> and <code>Save As</code> your <code>.cdb</code> file.
 		</p>
-		
+
 		<p>
 			Everytime you make a change, the database file is automatically saved.
 		</p>
-		
+
 		<h3>Keys</h3>
-		
+
 		<p>
 			Here's the most used keys for CastleDB:
 		</p>
-		
+
 		<ul>
 		<li>Arrows are used to navigate between the cells. You can start typing to replace the cell content or use <code>F2</code> or <code>Enter</code> to edit it.</li>
 		<li>Use <code>Esc</code> to exit cell edition or close opened List</li>
@@ -337,9 +367,9 @@
 		<li>Use <code>Tab</code> and <code>Shift+Tab</code> to navigate to next/prev cell on the same row</li>
 		<li>Use <code>F4</code> to go the row referenced by the cell and <code>F3</code> to search for references of this row"</li>
 		</ul>
-		
+
 		<h3>Managing sheets</h3>
-		
+
 		<p>
 			In order to manage sheets, right click on the sheet title in the bottom bar of the editor. You will be able to:
 		</p>
@@ -349,9 +379,9 @@
 			<li>Rename and Delete the sheet</li>
 			<li>Access sheet options such as <a href="#index">Index</a> and <a href="#group">Groups</a></li>
 		</ul>
-		
+
 		<h3>Managing columns</h3>
-		
+
 		<p>
 			Right click on the column title in order to access to the following options:
 		</p>
@@ -362,21 +392,21 @@
 			<li>Delete the column or set it as <a href="#disp">Display Column</a></li>
 			<li>Convert the column content if some convert functions are available for this type.</li>
 		</ul>
-				
+
 		<p>
 			CastleDB offers automatic conversion between column types, which is used when changing the column type or copy/pasting data between columns/sheets.
 		</p>
-		
+
 		<p>
 			If no convertion is available, you will get an error when changing the column type.
 		</p>
 
 		<h3>Managing rows</h3>
-		
+
 		<p>
 			Right click on a row index to select the row and access the following options:
 		</p>
-		
+
 		<ul>
 			<li>Move Up and Down the row, which can also be triggered by using <code>Ctrl+Up</code> and <code>Ctrl+Down</code> arrows</li>
 			<li>Insert a new row at the cursor position, same as <code>Insert</code> key</li>
@@ -386,21 +416,21 @@
 		</ul>
 
 		<h3>Selection</h3>
-		
+
 		<p>
 			You can select one row by clicking on its index, then select several of them by clicking while olding shift on another row index.
 		</p>
-		
+
 		<p>
 			You can select a range of cells by first selecting a cell then clicking while holding shift on another cell.
 		</p>
-		
+
 		<p>
 			You can Copy/Paste using <code>Ctrl+C</code>, <code>Ctrl+V</code> and <code>Ctrl+X</code> between columns and rows.
 		</p>
 
 		</div>
-	
+
 	</div>
 	</div>
 
@@ -410,61 +440,61 @@
 	<div class="container">
 
 		<h1>More Features</h1>
-	
+
 		<div class="row">
 
 			<a class="anch" name="disp"></a>
 			<h3>Display Column</h3>
-			
+
 			<p>
 				If you right click on a column and check <code>Display Column</code>, this column will be used instead of the unique identifier when displaying a row reference.
 			</p>
-			
+
 			<p>
 				This can be useful for instance to display the real name of an item instead of its unique identifier.
 			</p>
-			
+
 			<p>
 				The stored data and that data input is still made using the unique identifier, this only affects how things are displayed in CastleDB editor.
 			</p>
-		
+
 			<a class="anch" name="index"></a>
 			<h3>Index</h3>
-			
+
 			<p>
 				When you open CastleDB, each row is referenced by an 0-based index.
 			</p>
-			
+
 			<p>
 				Usually this index is not part of the exported data but you can add it by right-clicking on the sheet name, then check <code>Index</code>. It will add an <code>index</code> object field to your data.
 			</p>
-			
+
 			<p>
 				For List column types, the index will be unique for the given column.
 			</p>
-			
+
 			<a class="anch" name="sep"></a>
 			<h3>Separators</h3>
-			
+
 			<p>
 				If you right click on a row index, you can check <code>Separator</code> which will create a small visible separator between this row and the previous one.
 			</p>
-			
+
 			<p>
 				You can also double-click on the separator to name it.
 			</p>
 
 			<a class="anch" name="group"></a>
 			<h3>Add Group</h3>
-			
+
 			<p>
 				If you right-click on the sheet name and check the <code>Add Group</code>, it will create for each row a <code>group</code> field that will be an integer index.
 			</p>
-			
+
 			<p>
 				The index starts at 0, then each time a new separator with a title set is reached, it will increment by one (unless the first row separator has a title).
 			</p>
-			
+
 			<p>
 				This will allow you to categorize your sheet rows easily without having to create a specific column for it.
 			</p>
@@ -481,56 +511,56 @@
 		<h1>Advanced Types</h1>
 
 		<div class="row">
-		
+
 			<a class="anch" name="list"></a>
 			<h3>List Column Type</h3>
-			
+
 			<p>
 				When you set the type of a column as <code>List</code> this will create a new hidden sheet.
 			</p>
-			
+
 			<p>
 				You can then add columns to this sub-sheet and modify it as you would for another sheet.
 			</p>
-			
+
 			<p>
 				However the difference is that the data of this sheet is split between your original sheet rows.
 			</p>
-			
+
 			<p>
 				You can click on the list to toggle its content and insert rows into it.
 			</p>
-			
+
 			<p>
 				A List is similar to the one-to-many database association.
 			</p>
-			
+
 			<a class="anch" name="img"></a>
 			<h3>Image</h3>
-			
+
 			<p>
 				The images inserted into the database are stored into a separate <code>.img</code> file. Only the MD5 key of the image is stored into the <code>.cdb</code> database.
 			</p>
-			
+
 			<p>
 				As a consequence it means that the same image can be used multiple times without increasing overall file size.
 			</p>
-			
+
 			<p>
 				If you do a lot of images changes, you can use the <code>Clean Images</code> command in the application File menu. This will remove from the <code>.img</code> file all images that are no longer used.
 			</p>
 
 			<a class="anch" name="custom"></a>
 			<h3>Custom Types</h3>
-			
+
 			<p>
 				Custom types are a structured type declared as enums, consisting in several <em>constructors</em>.
 			</p>
-			
+
 			<p>
 				Custom types can be created and modified by using the <code>Edit Types</code> link at the bottom-right of the editor.
 			</p>
-			
+
 			<p>
 				Here's an example of a custom type with four constructors:
 			</p>
@@ -544,7 +574,7 @@
 			<p>
 				In that case, a column of this custom type can be one of the following values:
 			</p>
-			
+
 			<pre>Fixed
 Random(0.5)
 Monster(MyMonsterId)
@@ -553,7 +583,7 @@ Or(Random(0.5),Fixed)</pre>
 			<p>
 				A custom type constructor parameter can use the following types:
 			</p>
-			
+
 			<ul>
 			<li><code>Int</code> : an integer value</li>
 			<li><code>Bool</code> : a boolean value</li>
@@ -562,11 +592,11 @@ Or(Random(0.5),Fixed)</pre>
 			<li><code>CustomType</code> : any custom type, including itself</li>
 			<li><code>SheetName</code> : any sheet name created in the database</li>
 			</ul>
-			
+
 			<p>
 				If a constructor parameter is prefixed with a <code>?</code>, then it means it's optional and can be omited.
 			</p>
-			
+
 			<p>
 				Custom types are stored as a mixed array content. The first element of the Array is the index in the constructors list, followed by the eventual parameters for this constructor.
 			</p>
@@ -593,17 +623,85 @@ Or(Random(0.5),Fixed)</pre>
 				<td><code>[3,[1,0.5],[0]]</code></td>
 			</tr>
 			</table>
-	
+
 			<p>
 				Custom type input is strictly validated by CastleDB editor.
 			</p>
-	
+
 		</div>
 	</div>
 	</div>
 
 	<!--- HAXE ---------------------------------------------------------------------------------------- -->
-	
+
+	<div class="bg black">
+	<div class="container">
+		<a class="anch" name="level"></a>
+		<h1>Map Editor</h1>
+
+		<div class="row">
+
+			<div class="img"><img src="img/levelEdit.png"/></div>
+
+			<p>
+			Starting with CastleDB 1.1, you can now have a 2D Map Editor that uses CastleDB data for all its input.
+			</p>
+
+			<h3>Level</h3>
+
+			<p>
+				First, you must turn one of your sheets into a Level. In order to do that, add both <code>width:Integer</code> and <code>height:Integer</code> fields, then right click on the sheet name and check the <code>Level</code> option.
+				This will add a <code>Edit</code> button at the end of each row, enabling you to edit the different level <em>Layers</em>.
+			</p>
+
+			<h3>Layers</h3>
+
+			<p>
+				A layer is a set of informations that is stored in one of the fields of the Level sheet. There are several kind of layers:
+			</p>
+
+			<ul>
+				<li>
+					<b>List Layer</b> : if you add a <a href="#list">List</a> column to your level sheet which has <code>x</code> and <code>y</code> numerical properties, this will create a list layer which you can visually edit. Each time you click on the map preview, an element will be added to the list.
+					You can add extra properties/columns to the List that you will be able to input directly into the editor.
+				</li>
+				<li>
+					<b>Index Layers</b> : if you want to to paint things and have them stored in a compact array instead as of a list of position, add a column of type <code>Layer</code> to your level sheet. As a restriction, you will not be able to add custom per-cell properties. If you are not on the first layer, the first element of your layer (which has <code>0</code> index) will not be displayed and will act as a "no information" element.
+				</li>
+				<li>
+					<b>Zone Layer</b> : a zone layer is similar to the List Layer except that it has additional <code>width</code> and <code>height</code> numerical properties. It will be displayed as a given zone in the map editor (yellow rectangles in the screenshot above).
+				</li>
+			</ul>
+
+			<h4>Layer Display</h4>
+
+			<p>
+				A layer extracts the information from the reference it targets:
+			</p>
+
+			<ul>
+				<li>if the reference has a field of type <code>Image</code>, it will use the image for display</li>
+				<li>if the reference has a field of type <code>Color</code>, it will use the color for display</li>
+				<li>if there is no information available, you will be able to customize the layer global color</li>
+			</ul>
+
+			<h4>Grid and Precise coords</h4>
+
+			<p>
+				Index layers are always grid-aligned. Other layers can have more precise position if you use <code>Float</code> instead of <code>Int</code> for their positions. In that case it's still possible to activate the <em>Lock Grid</em> option.
+			</p>
+
+			<p>
+				By default the grid size is set to <code>16</code> pixels. This can be modified in the level options.
+			</p>
+
+		</div>
+
+	</div>
+	</div>
+
+	<!--- HAXE ---------------------------------------------------------------------------------------- -->
+
 	<div class="bg">
 	<div class="container">
 
@@ -612,57 +710,57 @@ Or(Random(0.5),Fixed)</pre>
 		<div class="row">
 
 			<div class="img"><img src="img/haxelogo.png"/></div>
-			
+
 			<p>
 				CastleDB was created using the <a href="http://haxe.org">Haxe</a> technology, it also allows some Haxe-specific integration.
 			</p>
-			
+
 			<p>
 				The powerful Haxe Macros will allow to directly generate all the types declaration from the CastleDB Data Model.
 			</p>
-			
+
 			<p>
 				This is simply done by creating a source file such as:
 			</p>
-			
+
 			<pre><span class="cmt">// Data.hx</span>
 <span class="kwd">private typedef</span> Init = haxe.macro.MacroType&lt;[cdb.Module.build(<span class="str">"myDataFile.cdb"</span>)]&gt;;
 </pre>
-			
+
 			<p>
 				When compiling with <code>-lib castle</code>, this will create all the types stored in the CDB model.
 			</p>
-			
+
 			<p>
 				You can still initialize at runtime your CDB data, then access it using the accessors:
 			</p>
-			
+
 			<pre>
 <span class="kwd">var</span> content : String = .... <span class="cmt">// load CDB file content</span>
 Data.load(content);
 Data.monsters.all; <span class="cmt">// all the objects of the "monsters" sheet</span>
 <span class="kwd">var</span> dragon : Data.Monsters = Data.monsters.get(Dragon); <span class="cmt">// using the unique ID generated enum</span>
 trace(d.loot.name); <span class="cmt">// automatically fetch the Refenced objects</span></pre>
-			
+
 			<p>
 				All the accesses are strictly typed by Haxe.
 			</p>
-			
+
 			<h3>Generated types</h3>
-			
+
 			<p>
 				The main type of the module is generated with the <code>load</code> static field and for each declared sheet a static field corresponding to the sheet name.
 			</p>
 
-			
+
 			<p>
 				If the sheet does not have an unique identifier, only the <code>all</code> field is available.
 			</p>
-			
+
 			<p>
 				If the sheet has an unique identifier, you can access the <code>all</code> field, but also use <code>get</code> (by id) and <code>resolve</code> (by string).
 			</p>
-			
+
 			<p>
 				For each sheet named <code>mySheet</code> we will generate the following types:
 			</p>
@@ -671,109 +769,125 @@ trace(d.loot.name); <span class="cmt">// automatically fetch the Refenced object
 				<li><code>MySheet</code> is an abstract type that allows only reading the fields and perform some conversions (see below)</li>
 				<li><code>MySheetKind</code> is an enum containing all the unique identifiers found in <code>mySheet</code></li>
 			</ul>
-			
+
 			<p>
 				The <code>MySheetKind</code> type is an abstract value so the actual runtime value is still the identifier string, however it allows for strictly typing the identifiers. You can still use <code>.toString()</code> to access the original string.
 			</p>
 
 			<h3>Column type mapping</h3>
-			
+
 			<p>
 				The different column types are mapped to the following types:
 			</p>
-			
+
 			<dl class="dl-horizontal big">
 				<dt>Unique Identifier</dt>
 				<dd>
 					<code>SheetNameKind</code> : an abstract enum is created for each sheet
 				</dd>
-				
+
 				<dt>Text</dt>
 				<dd>
 					<code>String</code>
 				</dd>
-				
+
 				<dt>Boolean</dt>
 				<dd>
 					<code>Bool</code>
 				</dd>
-				
+
 				<dt>Integer</dt>
 				<dd>
 					<code>Int</code>
 				</dd>
-				
+
 				<dt>Float</dt>
 				<dd>
 					<code>Float</code>
 				</dd>
-				
+
+				<dt>Color</dt>
+				<dd>
+					<code>Int</code>
+				</dd>
+
 				<dt>Enumeration</dt>
 				<dd>
 					<code>SheetName_ColumName</code> : an abstract enum is created. If they have the same values in the same order, they are all aliases to the same enum.
 				</dd>
-				
+
 				<dt>Flags</dt>
 				<dd>
 					<code>cdb.Module.Flags&lt;SheetName_ColumnName&gt;</code> : an abstract enum is created as for Enumeration. The bits are wrapped using the <code>Flags</code> abstract which allows typed <code>has</code> and <code>iterator</code> methods.
 				</dd>
-				
+
 				<dt>Reference</dt>
 				<dd>
 					<code>TargetSheetName</code> : referenced object is fetched when accessed. You can access only the identifier by using <code><em>columnName</em>Id</code> field.
 				</dd>
-				
+
 				<dt>Image</dt>
 				<dd>
 					<code>String</code> : the MD5 key only, no image loading is supported atm.
 				</dd>
-				
+
+				<dt>File</dt>
+				<dd>
+					<code>String</code>
+				</dd>
+
 				<dt>List</dt>
 				<dd>
 					<code>cdb.Module.ArrayRead&lt;SheetName_ColumnName&gt;</code> : a read-only array of the structured objects, allows indexed access, length and iteration.
 				</dd>
-				
+
 				<dt>Custom</dt>
 				<dd>
 					<code>SheetName_ColumnName</code> : values are converted on-the-fly to the enum created as it's been declared.
 				</dd>
+
+				<dt>Layer</dt>
+				<dd>
+					<code>cbd.Module.Layer&lt;SheetName&gt;</code> : you can decode the layer by passing the <code>Data.sheetName.all</code> array to the <code>decode()</code> function.
+				</dd>
+
 			</dl>
-			
+
 			<h3>Example</h3>
-			
+
 			<p>
 				You can see a small example of Haxe integration on GitHub <a href="https://github.com/ncannasse/castle/tree/master/src/test">here</a>.
 			</p>
-			
+
 			<p>
 				If you want to see what code is being actually generated, you can compile with <code>-D dump=pretty</code> and look at the <code>dump</code> directory after successful compilation.
 			</p>
-			
+
 			<p>
 				<b style="color:#A00">Warning</b> : castle library require either Haxe 3.2+ or a recent Haxe build to work. You can download it from <a href="http://hxbuilds.s3-website-us-east-1.amazonaws.com/builds/haxe/">this page</a>
 			</p>
-			
+
 		</div>
 	</div>
 	</div>
 
 	<!--- ABOUT ---------------------------------------------------------------------------------------- -->
-	
+
 	<div class="bg black last">
 	<div class="container">
 
 		<div class="row">
-		
+
 			<h3>About</h3>
-			
+
 			<p>
 				CastleDB was created by <a href="https://twitter.com/ncannasse">@ncannasse</a> using <a href="http://haxe.org">Haxe</a> and <a href="https://github.com/rogerwang/node-webkit">Node Webkit</a>. It's hosted on <a href="http://github.com/ncannasse/castle">GitHub</a> and used professionally by <a href="http://shirogames.com">Shiro Games</a>.
 			</p>
-			
+
 			<p>
 				CastleDB is an open source software usable in commercial projects without any restriction.
 			</p>
-			
+
 			<div class="p">
 				If you wish to help CastleDB development, you can
 			<form action="https://www.paypal.com/cgi-bin/webscr" method="post">
@@ -783,10 +897,10 @@ trace(d.loot.name); <span class="cmt">// automatically fetch the Refenced object
 <img alt="" style="border:none" src="https://www.paypalobjects.com/fr_FR/i/scr/pixel.gif" width="1" height="1">
 </form>
 			</div>
-						
+
 		</div>
 	</div>
-	
+
 </div>
 </body>
 
