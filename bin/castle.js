@@ -156,6 +156,7 @@ var Level = function(model,sheet,index) {
 	this.obj = sheet.lines[index];
 	this.model = model;
 	this.layers = [];
+	this.images = [];
 	this.props = sheet.props.levelProps;
 	if(this.props.tileSize == null) this.props.tileSize = 16;
 	this.tileSize = this.props.tileSize;
@@ -242,14 +243,48 @@ var Level = function(model,sheet,index) {
 					this.layers.push(l1);
 				}
 				break;
+			case 13:
+				var index1 = [this.layers.length];
+				var path = model.getAbsPath(val);
+				var _g31 = path.split(".").pop().toLowerCase();
+				switch(_g31) {
+				case "png":case "jpeg":case "jpg":
+					var img = [new js.JQuery("<img>")];
+					img[0][0].onload = (function(img,index1) {
+						return function(_) {
+							var c1;
+							var _this = window.document;
+							c1 = _this.createElement("canvas");
+							c1.width = img[0].width();
+							c1.height = img[0].height();
+							var ctx = c1.getContext("2d");
+							ctx.drawImage(img[0][0],0,0);
+							img[0].remove();
+							_g.images.push({ index : index1[0], data : c1});
+							_g.images.sort((function() {
+								return function(i1,i2) {
+									return i1.index - i2.index;
+								};
+							})());
+							_g.draw();
+						};
+					})(img,index1);
+					img[0].attr("src",path);
+					img[0].appendTo("body");
+					break;
+				case "tmx":
+					break;
+				default:
+				}
+				break;
 			default:
 			}
 		}
 	}
 	var $it0 = lprops.iterator();
 	while( $it0.hasNext() ) {
-		var c1 = $it0.next();
-		HxOverrides.remove(this.props.layers,c1);
+		var c2 = $it0.next();
+		HxOverrides.remove(this.props.layers,c2);
 	}
 	if(sheet.props.displayColumn != null) {
 		var t = Reflect.field(this.obj,sheet.props.displayColumn);
@@ -359,11 +394,12 @@ Level.prototype = {
 				isel[0].append(new js.JQuery(l[0].images[l[0].current]));
 				isel[0].click((function(isel,td,l) {
 					return function(e) {
+						_g2.setCursor(l[0]);
 						var list = new js.JQuery("<div class='imglist'>");
-						var _g3 = 0;
-						var _g21 = l[0].images.length;
-						while(_g3 < _g21) {
-							var i = [_g3++];
+						var _g4 = 0;
+						var _g3 = l[0].images.length;
+						while(_g4 < _g3) {
+							var i = [_g4++];
 							list.append(new js.JQuery("<img>").attr("src",l[0].images[i[0]].src).click((function(i,isel,l) {
 								return function(_1) {
 									isel[0].html("");
@@ -409,25 +445,29 @@ Level.prototype = {
 			}(this))).appendTo(td[0]);
 			t.spectrum({ color : this.toColor(l[0].colors[l[0].current]), clickoutFiresChange : true, showButtons : false, showPaletteOnly : true, showPalette : true, palette : (function($this) {
 				var $r;
-				var _g22 = [];
+				var _g21 = [];
 				{
 					var _g31 = 0;
-					var _g4 = l[0].colors;
-					while(_g31 < _g4.length) {
-						var c = _g4[_g31];
+					var _g41 = l[0].colors;
+					while(_g31 < _g41.length) {
+						var c = _g41[_g31];
 						++_g31;
-						_g22.push($this.toColor(c));
+						_g21.push($this.toColor(c));
 					}
 				}
-				$r = _g22;
+				$r = _g21;
 				return $r;
-			}(this)), change : (function(l) {
+			}(this)), show : (function(l) {
+				return function(_3) {
+					_g2.setCursor(l[0]);
+				};
+			})(l), change : (function(l) {
 				return function(e1) {
 					var color = Std.parseInt("0x" + e1.toHex());
-					var _g41 = 0;
+					var _g42 = 0;
 					var _g32 = l[0].colors.length;
-					while(_g41 < _g32) {
-						var i1 = _g41++;
+					while(_g42 < _g32) {
+						var i1 = _g42++;
 						if(l[0].colors[i1] == color) {
 							l[0].set_current(i1);
 							_g2.setCursor(l[0]);
@@ -449,7 +489,7 @@ Level.prototype = {
 			_g2.save();
 		}});
 		var win = nodejs.webkit.Window.get();
-		var onResize = function(_3) {
+		var onResize = function(_4) {
 			scroll.css("height",win.height - 240 + "px");
 		};
 		win.on("resize",onResize);
@@ -462,7 +502,7 @@ Level.prototype = {
 		var _this = Std.instance(canvas[0],HTMLCanvasElement);
 		this.ctx = _this.getContext("2d");
 		var startPos = null;
-		scont.mouseleave(function(_4) {
+		scont.mouseleave(function(_5) {
 			_g2.curPos = null;
 			_g2.cursor.hide();
 			new js.JQuery(".cursorPosition").text("");
@@ -510,7 +550,7 @@ Level.prototype = {
 				new js.JQuery(".cursorPosition").text("");
 			}
 		});
-		var onMouseUp = function(_5) {
+		var onMouseUp = function(_6) {
 			_g2.mouseDown = false;
 			if(_g2.needSave) _g2.save();
 		};
@@ -796,22 +836,25 @@ Level.prototype = {
 		this.ctx.fillStyle = "black";
 		this.ctx.globalAlpha = 1;
 		this.ctx.fillRect(0,0,this.width * this.tileSize,this.height * this.tileSize);
-		var first = true;
-		var _g = 0;
-		var _g1 = this.layers;
-		while(_g < _g1.length) {
-			var l = _g1[_g];
-			++_g;
-			this.ctx.globalAlpha = l.props.alpha;
-			if(!l.visible) {
-				first = false;
-				continue;
+		var curImage = 0;
+		var _g1 = 0;
+		var _g = this.layers.length;
+		while(_g1 < _g) {
+			var index = _g1++;
+			while(curImage < this.images.length && this.images[curImage].index == index) {
+				this.ctx.globalAlpha = 1;
+				this.ctx.drawImage(this.images[curImage].data,0,0);
+				curImage++;
 			}
+			var l = this.layers[index];
+			this.ctx.globalAlpha = l.props.alpha;
+			if(!l.visible) continue;
 			{
 				var _g2 = l.data;
 				switch(_g2[1]) {
 				case 0:
 					var data = _g2[2];
+					var first = index == 0;
 					var _g4 = 0;
 					var _g3 = this.height;
 					while(_g4 < _g3) {
@@ -875,7 +918,6 @@ Level.prototype = {
 					break;
 				}
 			}
-			first = false;
 		}
 	}
 	,save: function() {
@@ -1233,6 +1275,9 @@ Model.__name__ = ["Model"];
 Model.prototype = {
 	getImageData: function(key) {
 		return Reflect.field(this.imageBank,key);
+	}
+	,getAbsPath: function(file) {
+		if(file.charAt(0) == "/" || file.charAt(1) == ":") return file; else return new haxe.io.Path(this.prefs.curFile).dir.split("\\").join("/") + "/" + file;
 	}
 	,getSheet: function(name) {
 		return this.smap.get(name).s;
@@ -3586,8 +3631,7 @@ Main.prototype = $extend(Model.prototype,{
 				var id = Main.UID++;
 				return "<input type=\"text\" id=\"_c" + id + "\"/><script>$(\"#_c" + id + "\").spectrum({ color : \"#" + StringTools.hex(v,6) + "\", showInput: true, clickoutFiresChange : true, showButtons: false, change : function(e) { _.colorChangeEvent(e,$(this),\"" + c.name + "\"); } })</script>";
 			case 13:
-				var path;
-				if(v.charAt(0) == "/" || v.charAt(1) == ":") path = v; else path = new haxe.io.Path(this.prefs.curFile).dir.split("\\").join("/") + "/" + Std.string(v);
+				var path = this.getAbsPath(v);
 				var ext = v.split(".").pop().toLowerCase();
 				var html;
 				if(v == "") html = "<span class=\"error\">#MISSING</span>"; else html = StringTools.htmlEscape(v);
@@ -4539,6 +4583,7 @@ Main.prototype = $extend(Model.prototype,{
 								fs.change((function(html,v,val,obj,c) {
 									return function(_3) {
 										var path = fs.val().split("\\").join("/");
+										if(path == "") return;
 										fs.attr("nwworkingdir","");
 										var parts = path.split("/");
 										var base = _g4.prefs.curFile.split("\\").join("/").split("/");
@@ -4547,7 +4592,10 @@ Main.prototype = $extend(Model.prototype,{
 											parts.shift();
 											base.shift();
 										}
-										if(parts.length == 0 || parts[0] != "" && parts[0].charAt(1) != ":") while(base.length > 0) parts.unshift("..");
+										if(parts.length == 0 || parts[0] != "" && parts[0].charAt(1) != ":") while(base.length > 0) {
+											parts.unshift("..");
+											base.pop();
+										}
 										val[0] = parts.join("/");
 										obj[0][c[0].name] = val[0];
 										html[0] = _g4.valueHtml(c[0],val[0],sheet,obj[0]);

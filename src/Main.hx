@@ -566,7 +566,7 @@ class Main extends Model {
 			var id = UID++;
 			'<input type="text" id="_c${id}"/><script>$("#_c${id}").spectrum({ color : "#${StringTools.hex(v,6)}", showInput: true, clickoutFiresChange : true, showButtons: false, change : function(e) { _.colorChangeEvent(e,$(this),"${c.name}"); } })</script>';
 		case TFile:
-			var path = v.charAt(0) == "/" || v.charAt(1) == ":" ? v : new haxe.io.Path(prefs.curFile).dir.split("\\").join("/") + "/" + v;
+			var path = getAbsPath(v);
 			var ext = v.split(".").pop().toLowerCase();
 			var html = v == "" ? '<span class="error">#MISSING</span>' : StringTools.htmlEscape(v);
 			if( v != "" && !sys.FileSystem.exists(path) )
@@ -1344,7 +1344,10 @@ class Main extends Model {
 						if( fs.attr("nwworkingdir") == null )
 							fs.attr("nwworkingdir", new haxe.io.Path(prefs.curFile).dir);
 						fs.change(function(_) {
+
 							var path = fs.val().split("\\").join("/");
+							if( path == "" ) return;
+
 							fs.attr("nwworkingdir", ""); // keep path
 
 							var parts = path.split("/");
@@ -1355,8 +1358,10 @@ class Main extends Model {
 								base.shift();
 							}
 							if( parts.length == 0 || (parts[0] != "" && parts[0].charAt(1) != ":") )
-								while( base.length > 0 )
+								while( base.length > 0 ) {
 									parts.unshift("..");
+									base.pop();
+								}
 							val = parts.join("/");
 							Reflect.setField(obj, c.name, val);
 							html = valueHtml(c, val, sheet, obj);

@@ -22,6 +22,7 @@ class Level {
 	var obj : Dynamic;
 	var content : js.JQuery;
 	var layers : Array<LayerData>;
+	var images : Array<{ index : Int, data : js.html.CanvasElement }>;
 	var props : LevelProps;
 
 	var ctx : js.html.CanvasRenderingContext2D;
@@ -39,6 +40,7 @@ class Level {
 		this.obj = sheet.lines[index];
 		this.model = model;
 		layers = [];
+		images = [];
 		props = sheet.props.levelProps;
 		if( props.tileSize == null ) props.tileSize = 16;
 
@@ -94,6 +96,29 @@ class Level {
 					l.setObjectsData(idCol, val);
 					l.hasSize = model.hasColumn(sheet, "width", [floatCoord?TFloat:TInt]) && model.hasColumn(sheet, "height", [floatCoord?TFloat:TInt]);
 					layers.push(l);
+				}
+			case TFile:
+				var index = layers.length;
+				var path : String = model.getAbsPath(val);
+				switch( path.split(".").pop().toLowerCase() ) {
+				case "png", "jpeg", "jpg":
+					var img = J("<img>");
+					img[0].onload = function(_) {
+						var c = js.Browser.document.createCanvasElement();
+						c.width = img.width();
+						c.height = img.height();
+						var ctx = c.getContext2d();
+						ctx.drawImage(cast img[0], 0, 0);
+						img.remove();
+						images.push( { index : index, data : c } );
+						images.sort(function(i1, i2) return i1.index - i2.index);
+						draw();
+					};
+					img.attr("src", path);
+					img.appendTo("body");
+				case "tmx":
+					// TODO
+				default:
 				}
 			default:
 			}
@@ -175,6 +200,7 @@ class Level {
 				var isel = J("<div class='img'>").appendTo(td);
 				isel.append(J(l.images[l.current]));
 				isel.click(function(e) {
+					setCursor(l);
 					var list = J("<div class='imglist'>");
 					for( i in 0...l.images.length )
 						list.append(J("<img>").attr("src", l.images[i].src).click(function(_) {
@@ -202,6 +228,9 @@ class Level {
 				showPaletteOnly : true,
 				showPalette : true,
 				palette : [for( c in l.colors ) toColor(c)],
+				show : function(_) {
+					setCursor(l);
+				},
 				change : function(e) {
 					var color = Std.parseInt("0x" + e.toHex());
 					for( i in 0...l.colors.length )
@@ -501,15 +530,20 @@ class Level {
 		ctx.fillStyle = "black";
 		ctx.globalAlpha = 1;
 		ctx.fillRect(0, 0, width * tileSize, height * tileSize);
-		var first = true;
-		for( l in layers ) {
-			ctx.globalAlpha = l.props.alpha;
-			if( !l.visible ) {
-				first = false;
-				continue;
+		var curImage = 0;
+		for( index in 0...layers.length ) {
+			while( curImage < images.length && images[curImage].index == index ) {
+				ctx.globalAlpha = 1;
+				ctx.drawImage(images[curImage].data, 0, 0);
+				curImage++;
 			}
+			var l = layers[index];
+			ctx.globalAlpha = l.props.alpha;
+			if( !l.visible )
+				continue;
 			switch( l.data ) {
 			case Layer(data):
+				var first = index == 0;
 				for( y in 0...height )
 					for( x in 0...width ) {
 						var k = data[x + y * width];
@@ -551,7 +585,6 @@ class Level {
 					}
 				}
 			}
-			first = false;
 		}
 	}
 

@@ -40,6 +40,10 @@ class Model {
 		return Reflect.field(imageBank, key);
 	}
 
+	public function getAbsPath( file : String ) {
+		return file.charAt(0) == "/" || file.charAt(1) == ":" ? file : new haxe.io.Path(prefs.curFile).dir.split("\\").join("/") + "/" + file;
+	}
+
 	public inline function getSheet( name : String ) {
 		return smap.get(name).s;
 	}
