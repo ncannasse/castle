@@ -178,6 +178,7 @@ var Level = function(model,sheet,index) {
 		lprops.remove(name);
 		return p.p;
 	};
+	this.waitCount = 1;
 	var title = "";
 	var _g2 = 0;
 	var _g12 = sheet.columns;
@@ -244,7 +245,7 @@ var Level = function(model,sheet,index) {
 				}
 				break;
 			case 13:
-				if(val == null) continue;
+				if(val == null || c.name.toLowerCase().indexOf("layer") < 0) continue;
 				var index1 = [this.layers.length];
 				var path = model.getAbsPath(val);
 				var _g31 = path.split(".").pop().toLowerCase();
@@ -291,35 +292,42 @@ var Level = function(model,sheet,index) {
 		var t = Reflect.field(this.obj,sheet.props.displayColumn);
 		if(t != null) title = t;
 	}
-	this.setup();
-	this.draw();
-	var layer = this.layers[0];
-	var state;
-	try {
-		state = haxe.Unserializer.run(js.Browser.getLocalStorage().getItem(this.sheetPath));
-	} catch( e ) {
-		state = null;
-	}
-	if(state != null) {
-		var _g6 = 0;
-		var _g13 = this.layers;
-		while(_g6 < _g13.length) {
-			var l2 = _g13[_g6];
-			++_g6;
-			if(l2.name == state.curLayer) {
-				layer = l2;
-				break;
-			}
-		}
-		this.zoomView = state.zoomView;
-	}
-	this.setCursor(layer);
-	this.updateZoom();
+	this.waitDone();
 };
 $hxClasses["Level"] = Level;
 Level.__name__ = ["Level"];
 Level.prototype = {
-	toColor: function(v) {
+	wait: function() {
+		this.waitCount++;
+	}
+	,waitDone: function() {
+		if(--this.waitCount != 0) return;
+		this.setup();
+		this.draw();
+		var layer = this.layers[0];
+		var state;
+		try {
+			state = haxe.Unserializer.run(js.Browser.getLocalStorage().getItem(this.sheetPath));
+		} catch( e ) {
+			state = null;
+		}
+		if(state != null) {
+			var _g = 0;
+			var _g1 = this.layers;
+			while(_g < _g1.length) {
+				var l = _g1[_g];
+				++_g;
+				if(l.name == state.curLayer) {
+					layer = l;
+					break;
+				}
+			}
+			this.zoomView = state.zoomView;
+		}
+		this.setCursor(layer);
+		this.updateZoom();
+	}
+	,toColor: function(v) {
 		return "#" + StringTools.hex(v,6);
 	}
 	,pick: function() {
@@ -1032,6 +1040,7 @@ $hxClasses["LayerData"] = LayerData;
 LayerData.__name__ = ["LayerData"];
 LayerData.prototype = {
 	loadSheetData: function(sheet) {
+		var _g5 = this;
 		this.sheet = sheet;
 		if(sheet == null) {
 			if(this.props.color == null) this.props.color = 16711680;
@@ -1040,6 +1049,9 @@ LayerData.prototype = {
 			return;
 		}
 		var idCol = null;
+		var first = this.level.layers.length == 0;
+		var erase;
+		if(first) erase = "#ccc"; else erase = "rgba(0,0,0,0)";
 		var _g = 0;
 		var _g1 = sheet.columns;
 		while(_g < _g1.length) {
@@ -1050,9 +1062,9 @@ LayerData.prototype = {
 			case 11:
 				var _g3 = [];
 				var _g4 = 0;
-				var _g5 = sheet.lines;
-				while(_g4 < _g5.length) {
-					var o = _g5[_g4];
+				var _g51 = sheet.lines;
+				while(_g4 < _g51.length) {
+					var o = _g51[_g4];
 					++_g4;
 					_g3.push((function($this) {
 						var $r;
@@ -1064,7 +1076,7 @@ LayerData.prototype = {
 				this.colors = _g3;
 				break;
 			case 7:
-				this.images = [];
+				if(this.images == null) this.images = [];
 				var canvas;
 				var _this = window.document;
 				canvas = _this.createElement("canvas");
@@ -1084,9 +1096,9 @@ LayerData.prototype = {
 						$r = _this1.createElement("img");
 						return $r;
 					}(this))];
-					this.images[idx] = i[0];
+					if(idat != null || this.images[idx] == null) this.images[idx] = i[0];
 					if(idat == null) {
-						ctx.fillStyle = "rgba(0,0,0,0)";
+						ctx.fillStyle = erase;
 						ctx.fillRect(0,0,size,size);
 						ctx.fillStyle = "white";
 						ctx.fillText("#" + idx,0,12);
@@ -1100,6 +1112,58 @@ LayerData.prototype = {
 						};
 					})(i);
 					window.document.body.appendChild(i[0]);
+				}
+				break;
+			case 14:
+				if(this.images == null) this.images = [];
+				var canvas1 = [(function($this) {
+					var $r;
+					var _this2 = window.document;
+					$r = _this2.createElement("canvas");
+					return $r;
+				}(this))];
+				var size1 = [this.level.tileSize];
+				canvas1[0].setAttribute("width",size1[0] + "px");
+				canvas1[0].setAttribute("height",size1[0] + "px");
+				var ctx1 = [canvas1[0].getContext("2d")];
+				var loadCount = 0;
+				var _g42 = 0;
+				var _g32 = sheet.lines.length;
+				while(_g42 < _g32) {
+					var idx1 = _g42++;
+					var data = [Reflect.field(sheet.lines[idx1],c.name)];
+					var i1 = [(function($this) {
+						var $r;
+						var _this3 = window.document;
+						$r = _this3.createElement("img");
+						return $r;
+					}(this))];
+					if(data[0] != null || this.images[idx1] == null) this.images[idx1] = i1[0];
+					if(data[0] == null) {
+						ctx1[0].fillStyle = erase;
+						ctx1[0].fillRect(0,0,size1[0],size1[0]);
+						ctx1[0].fillStyle = "white";
+						ctx1[0].fillText("#" + idx1,0,12);
+						i1[0].src = ctx1[0].canvas.toDataURL();
+						continue;
+					}
+					this.level.wait();
+					i1[0].src = this.level.model.getAbsPath(data[0].file);
+					i1[0].onload = (function(i1,data,ctx1,size1,canvas1) {
+						return function(_1) {
+							if(i1[0].parentNode != null && i1[0].parentNode.nodeName.toLowerCase() == "body") i1[0].parentNode.removeChild(i1[0]);
+							i1[0].onload = (function() {
+								return function(_2) {
+								};
+							})();
+							ctx1[0].fillStyle = erase;
+							ctx1[0].fillRect(0,0,size1[0],size1[0]);
+							ctx1[0].drawImage(i1[0],data[0].x * data[0].size,data[0].y * data[0].size,data[0].size,data[0].size,0,0,size1[0],size1[0]);
+							i1[0].src = canvas1[0].toDataURL();
+							_g5.level.waitDone();
+						};
+					})(i1,data,ctx1,size1,canvas1);
+					window.document.body.appendChild(i1[0]);
 				}
 				break;
 			case 0:
@@ -5861,6 +5925,173 @@ cdb.Parser.parse = function(content) {
 		}
 	}
 	return data;
+};
+cdb._Types = {};
+cdb._Types.ArrayIterator = function(a) {
+	this.a = a;
+	this.pos = 0;
+};
+$hxClasses["cdb._Types.ArrayIterator"] = cdb._Types.ArrayIterator;
+cdb._Types.ArrayIterator.__name__ = ["cdb","_Types","ArrayIterator"];
+cdb._Types.ArrayIterator.prototype = {
+	hasNext: function() {
+		return this.pos < this.a.length;
+	}
+	,next: function() {
+		return this.a[this.pos++];
+	}
+	,__class__: cdb._Types.ArrayIterator
+};
+cdb._Types.FlagsIterator = function(flags) {
+	this.flags = flags;
+	this.k = 0;
+};
+$hxClasses["cdb._Types.FlagsIterator"] = cdb._Types.FlagsIterator;
+cdb._Types.FlagsIterator.__name__ = ["cdb","_Types","FlagsIterator"];
+cdb._Types.FlagsIterator.prototype = {
+	hasNext: function() {
+		return this.flags >= 1 << this.k;
+	}
+	,next: function() {
+		while((this.flags & 1 << this.k) == 0) this.k++;
+		return this.k++;
+	}
+	,__class__: cdb._Types.FlagsIterator
+};
+cdb._Types.ArrayRead_Impl_ = function() { };
+$hxClasses["cdb._Types.ArrayRead_Impl_"] = cdb._Types.ArrayRead_Impl_;
+cdb._Types.ArrayRead_Impl_.__name__ = ["cdb","_Types","ArrayRead_Impl_"];
+cdb._Types.ArrayRead_Impl_._new = function(a) {
+	return a;
+};
+cdb._Types.ArrayRead_Impl_.get_length = function(this1) {
+	return this1.length;
+};
+cdb._Types.ArrayRead_Impl_.iterator = function(this1) {
+	return new cdb._Types.ArrayIterator(this1);
+};
+cdb._Types.ArrayRead_Impl_.castArray = function(this1) {
+	return this1;
+};
+cdb._Types.ArrayRead_Impl_.toArrayCopy = function(this1) {
+	return this1.slice();
+};
+cdb._Types.ArrayRead_Impl_.getIndex = function(this1,v) {
+	return this1[v];
+};
+cdb._Types.Flags_Impl_ = function() { };
+$hxClasses["cdb._Types.Flags_Impl_"] = cdb._Types.Flags_Impl_;
+cdb._Types.Flags_Impl_.__name__ = ["cdb","_Types","Flags_Impl_"];
+cdb._Types.Flags_Impl_._new = function(x) {
+	return x;
+};
+cdb._Types.Flags_Impl_.has = function(this1,t) {
+	return (this1 & 1 << t) != 0;
+};
+cdb._Types.Flags_Impl_.set = function(this1,t) {
+	this1 |= 1 << t;
+};
+cdb._Types.Flags_Impl_.unset = function(this1,t) {
+	this1 &= ~(1 << t);
+};
+cdb._Types.Flags_Impl_.iterator = function(this1) {
+	return new cdb._Types.FlagsIterator(this1);
+};
+cdb._Types.Flags_Impl_.toInt = function(this1) {
+	return this1;
+};
+cdb._Types.Layer_Impl_ = function() { };
+$hxClasses["cdb._Types.Layer_Impl_"] = cdb._Types.Layer_Impl_;
+cdb._Types.Layer_Impl_.__name__ = ["cdb","_Types","Layer_Impl_"];
+cdb._Types.Layer_Impl_._new = function(x) {
+	return x;
+};
+cdb._Types.Layer_Impl_.decode = function(this1,all) {
+	var k = haxe.crypto.Base64.decode(this1);
+	var _g = [];
+	var _g2 = 0;
+	var _g1 = k.length;
+	while(_g2 < _g1) {
+		var i = _g2++;
+		_g.push(all[k.b[i]]);
+	}
+	return _g;
+};
+cdb.IndexNoId = function(data,sheet) {
+	this.name = sheet;
+	var _g = 0;
+	var _g1 = data.sheets;
+	while(_g < _g1.length) {
+		var s = _g1[_g];
+		++_g;
+		if(s.name == sheet) {
+			this.all = s.lines;
+			return;
+		}
+	}
+	throw "'" + sheet + "' not found in CDB data";
+};
+$hxClasses["cdb.IndexNoId"] = cdb.IndexNoId;
+cdb.IndexNoId.__name__ = ["cdb","IndexNoId"];
+cdb.IndexNoId.prototype = {
+	__class__: cdb.IndexNoId
+};
+cdb.Index = function(data,sheet) {
+	this.name = sheet;
+	var _g = 0;
+	var _g1 = data.sheets;
+	while(_g < _g1.length) {
+		var s = _g1[_g];
+		++_g;
+		if(s.name == sheet) {
+			this.all = s.lines;
+			this.byId = new haxe.ds.StringMap();
+			this.byIndex = [];
+			var _g2 = 0;
+			var _g3 = s.columns;
+			try {
+				while(_g2 < _g3.length) {
+					var c = _g3[_g2];
+					++_g2;
+					var _g4 = c.type;
+					switch(_g4[1]) {
+					case 0:
+						var cname = c.name;
+						var _g5 = 0;
+						var _g6 = s.lines;
+						while(_g5 < _g6.length) {
+							var a = _g6[_g5];
+							++_g5;
+							var id = Reflect.field(a,cname);
+							if(id != null && id != "") {
+								var value = a;
+								this.byId.set(id,value);
+								this.byIndex.push(a);
+							}
+						}
+						throw "__break__";
+						break;
+					default:
+					}
+				}
+			} catch( e ) { if( e != "__break__" ) throw e; }
+			return;
+		}
+	}
+	throw "'" + sheet + "' not found in CDB data";
+};
+$hxClasses["cdb.Index"] = cdb.Index;
+cdb.Index.__name__ = ["cdb","Index"];
+cdb.Index.prototype = {
+	get: function(k) {
+		return this.byId.get(k);
+	}
+	,resolve: function(id,opt) {
+		if(id == null) return null;
+		var v = this.byId.get(id);
+		if(v == null && !opt) throw "Missing " + this.name + "." + id; else return v;
+	}
+	,__class__: cdb.Index
 };
 var haxe = {};
 haxe.Json = function() { };

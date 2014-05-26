@@ -32,6 +32,7 @@ class Level {
 	var curPos : { x : Int, y : Int, xf : Float, yf : Float };
 	var mouseDown : Bool;
 	var needSave : Bool;
+	var waitCount : Int;
 
 	public function new( model : Model, sheet : Sheet, index : Int ) {
 		this.sheet = sheet;
@@ -59,6 +60,8 @@ class Level {
 			lprops.remove(name);
 			return p.p;
 		}
+
+		waitCount = 1;
 
 		var title = "";
 		for( c in sheet.columns ) {
@@ -98,7 +101,7 @@ class Level {
 					layers.push(l);
 				}
 			case TFile:
-				if( val == null ) continue;
+				if( val == null || c.name.toLowerCase().indexOf("layer") < 0 ) continue;
 				var index = layers.length;
 				var path : String = model.getAbsPath(val);
 				switch( path.split(".").pop().toLowerCase() ) {
@@ -132,6 +135,18 @@ class Level {
 			var t = Reflect.field(obj, sheet.props.displayColumn);
 			if( t != null ) title = t;
 		}
+
+		waitDone();
+	}
+
+	public function wait() {
+		waitCount++;
+	}
+
+	public function waitDone() {
+
+		if( --waitCount != 0 ) return;
+
 		setup();
 		draw();
 
@@ -527,7 +542,7 @@ class Level {
 		}
 	}
 
-	function draw() {
+	public function draw() {
 		ctx.fillStyle = "black";
 		ctx.globalAlpha = 1;
 		ctx.fillRect(0, 0, width * tileSize, height * tileSize);
@@ -733,6 +748,8 @@ class LayerData {
 			return;
 		}
 		var idCol = null;
+		var first = @:privateAccess level.layers.length == 0;
+		var erase = first ? "#ccc" : "rgba(0,0,0,0)";
 		for( c in sheet.columns )
 			switch( c.type ) {
 			case TColor:
@@ -749,9 +766,9 @@ class LayerData {
 					var key = Reflect.field(sheet.lines[idx], c.name);
 					var idat = level.model.getImageData(key);
 					var i = js.Browser.document.createImageElement();
-					if( images[idx] == null ) images[idx] = i;
+					if( idat != null || images[idx] == null ) images[idx] = i;
 					if( idat == null ) {
-						ctx.fillStyle = "rgba(0,0,0,0)";
+						ctx.fillStyle = erase;
 						ctx.fillRect(0, 0, size, size);
 						ctx.fillStyle = "white";
 						ctx.fillText("#" + idx, 0, 12);
@@ -764,7 +781,43 @@ class LayerData {
 					};
 					js.Browser.document.body.appendChild(i);
 				}
-			case TTile
+			case TTilePos:
+				if( images == null ) images = [];
+
+				var canvas = js.Browser.document.createCanvasElement();
+				var size = level.tileSize;
+				canvas.setAttribute("width", size+"px");
+				canvas.setAttribute("height", size+"px");
+				var ctx = canvas.getContext2d();
+				var loadCount = 0;
+
+				for( idx in 0...sheet.lines.length ) {
+					var data : cdb.Types.TilePos = Reflect.field(sheet.lines[idx], c.name);
+					var i = js.Browser.document.createImageElement();
+					if( data != null || images[idx] == null ) images[idx] = i;
+					if( data == null ) {
+						ctx.fillStyle = erase;
+						ctx.fillRect(0, 0, size, size);
+						ctx.fillStyle = "white";
+						ctx.fillText("#" + idx, 0, 12);
+						i.src = ctx.canvas.toDataURL();
+						continue;
+					}
+					level.wait();
+					i.src = level.model.getAbsPath(data.file);
+					i.onload = function(_) {
+						if( i.parentNode != null && i.parentNode.nodeName.toLowerCase() == "body" )
+							i.parentNode.removeChild(i);
+						i.onload = function(_) { };
+						ctx.fillStyle = erase;
+						ctx.fillRect(0, 0, size, size);
+						ctx.drawImage(i, data.x * data.size, data.y * data.size, data.size, data.size, 0, 0, size, size);
+						i.src = canvas.toDataURL();
+						level.waitDone();
+					};
+					js.Browser.document.body.appendChild(i);
+				}
+
 			case TId:
 				idCol = c;
 			default:
