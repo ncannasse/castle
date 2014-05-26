@@ -1344,8 +1344,10 @@ class Main extends Model {
 						if( fs.attr("nwworkingdir") == null )
 							fs.attr("nwworkingdir", new haxe.io.Path(prefs.curFile).dir);
 						fs.change(function(_) {
+							fs.unbind("change");
 
 							var path = fs.val().split("\\").join("/");
+							fs.val("");
 							if( path == "" ) return;
 
 							fs.attr("nwworkingdir", ""); // keep path

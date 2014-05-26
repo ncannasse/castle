@@ -244,6 +244,7 @@ var Level = function(model,sheet,index) {
 				}
 				break;
 			case 13:
+				if(val == null) continue;
 				var index1 = [this.layers.length];
 				var path = model.getAbsPath(val);
 				var _g31 = path.split(".").pop().toLowerCase();
@@ -4582,7 +4583,9 @@ Main.prototype = $extend(Model.prototype,{
 								if(fs.attr("nwworkingdir") == null) fs.attr("nwworkingdir",new haxe.io.Path(_g4.prefs.curFile).dir);
 								fs.change((function(html,v,val,obj,c) {
 									return function(_3) {
+										fs.unbind("change");
 										var path = fs.val().split("\\").join("/");
+										fs.val("");
 										if(path == "") return;
 										fs.attr("nwworkingdir","");
 										var parts = path.split("/");

@@ -98,6 +98,7 @@ class Level {
 					layers.push(l);
 				}
 			case TFile:
+				if( val == null ) continue;
 				var index = layers.length;
 				var path : String = model.getAbsPath(val);
 				switch( path.split(".").pop().toLowerCase() ) {
