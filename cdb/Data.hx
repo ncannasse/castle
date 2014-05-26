@@ -15,6 +15,7 @@ enum ColumnType {
 	TColor;
 	TLayer( type : String );
 	TFile;
+	TTilePos;
 }
 
 #if macro

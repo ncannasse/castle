@@ -120,6 +120,31 @@ div.modal {
 	}
 }
 
+.modal.tileSelect {
+	.menu {
+		input[name=size] {
+			width : 30px;
+		}
+		margin-bottom : 5px;
+	}
+	.tileCursor {
+		position : absolute;
+		z-index : 100;
+		width : 16px;
+		height : 16px;
+		border : 1px solid black;
+	}
+	.tileCursor.current {
+		border : 2px solid red;
+	}
+	.tileView {
+		min-height : 64px;
+		background-color : #eee;
+		background-repeat : no-repeat;
+		border : 1px solid black;
+	}
+}
+
 .modal#newtype .content {
 	width : 500px;
 }

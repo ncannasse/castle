@@ -1399,7 +1399,7 @@ Model.prototype = {
 				return false;
 			case 8:
 				return [];
-			case 9:
+			case 9:case 14:
 				return null;
 			}
 		}
@@ -2235,7 +2235,7 @@ Model.prototype = {
 		case 5:
 			var values = t[2];
 			return this.valToString(cdb.ColumnType.TString,values[val],esc);
-		case 8:
+		case 8:case 14:
 			return "????";
 		case 9:
 			var t1 = t[2];
@@ -3639,6 +3639,17 @@ Main.prototype = $extend(Model.prototype,{
 				if(v != "" && !js.Node.require("fs").existsSync(path)) html = "<span class=\"error\">" + html + "</span>"; else if(ext == "png" || ext == "jpg" || ext == "jpeg" || ext == "gif") html = "<span class=\"preview\">" + html + "<div class=\"previewContent\"><div class=\"label\"></div><img src=\"" + path + "\" onload=\"$(this).parent().find('.label').text(this.width+'x'+this.height)\"/></div></span>";
 				if(v != "") html += " <input type=\"submit\" value=\"open\" onclick=\"_.openFile('" + path + "')\"/>";
 				return html;
+			case 14:
+				var v3 = v;
+				var path1 = this.getAbsPath(v3.file);
+				if(!js.Node.require("fs").existsSync(path1)) return "<span class=\"error\">" + v3.file + "</span>"; else {
+					var id1 = Main.UID++;
+					var zoom = 2;
+					var html1 = "<div id=\"_c" + id1 + "\" style=\"width : " + v3.size * zoom + "px; height : " + v3.size * zoom + "px; background : url('" + path1 + "') -" + v3.size * v3.x * zoom + "px -" + v3.size * v3.y * zoom + "px; border : 1px solid black;\"></div>";
+					html1 += "<img src=\"" + path1 + "\" onload=\"$('#_c" + id1 + "').css({backgroundSize : (this.width*" + zoom + ")+'px ' + (this.height*" + zoom + ")+'px'}); this.parentNode.removeChild(this)\"/>";
+					return html1;
+				}
+				break;
 			}
 		}
 	}
@@ -4299,7 +4310,7 @@ Main.prototype = $extend(Model.prototype,{
 					_g.save();
 				};
 				break;
-			case 8:case 11:case 12:case 13:
+			case 8:case 11:case 12:case 13:case 14:
 				throw "assert";
 				break;
 			}
@@ -4355,6 +4366,21 @@ Main.prototype = $extend(Model.prototype,{
 		content.empty();
 		t.appendTo(content);
 		this.updateCursor();
+	}
+	,chooseFile: function(callb,cancel) {
+		var fs = new js.JQuery("#fileSelect");
+		if(fs.attr("nwworkingdir") == null) fs.attr("nwworkingdir",new haxe.io.Path(this.prefs.curFile).dir);
+		fs.change(function(_) {
+			fs.unbind("change");
+			var path = fs.val().split("\\").join("/");
+			fs.val("");
+			if(path == "") {
+				if(cancel != null) cancel();
+				return;
+			}
+			fs.attr("nwworkingdir","");
+			callb(path);
+		}).click();
 	}
 	,fillTable: function(content,sheet) {
 		var _g4 = this;
@@ -4478,6 +4504,14 @@ Main.prototype = $extend(Model.prototype,{
 						e4.stopPropagation();
 					};
 				})(index,cindex));
+				var set = [(function(html,v,val,obj,c) {
+					return function(val2) {
+						val[0] = val2;
+						if(val[0] == null) Reflect.deleteField(obj[0],c[0].name); else obj[0][c[0].name] = val[0];
+						html[0] = _g4.valueHtml(c[0],val[0],sheet,obj[0]);
+						v[0].html(html[0]);
+					};
+				})(html,v,val,obj,c)];
 				{
 					var _g6 = c[0].type;
 					switch(_g6[1]) {
@@ -4577,17 +4611,10 @@ Main.prototype = $extend(Model.prototype,{
 								}
 							};
 						})(obj,c));
-						v[0].dblclick((function(html,v,val,obj,c) {
+						v[0].dblclick((function(set) {
 							return function(_2) {
-								var fs = new js.JQuery("#fileSelect");
-								if(fs.attr("nwworkingdir") == null) fs.attr("nwworkingdir",new haxe.io.Path(_g4.prefs.curFile).dir);
-								fs.change((function(html,v,val,obj,c) {
-									return function(_3) {
-										fs.unbind("change");
-										var path = fs.val().split("\\").join("/");
-										fs.val("");
-										if(path == "") return;
-										fs.attr("nwworkingdir","");
+								_g4.chooseFile((function(set) {
+									return function(path) {
 										var parts = path.split("/");
 										var base = _g4.prefs.curFile.split("\\").join("/").split("/");
 										base.pop();
@@ -4599,19 +4626,115 @@ Main.prototype = $extend(Model.prototype,{
 											parts.unshift("..");
 											base.pop();
 										}
-										val[0] = parts.join("/");
-										obj[0][c[0].name] = val[0];
-										html[0] = _g4.valueHtml(c[0],val[0],sheet,obj[0]);
-										v[0].html(html[0]);
+										set[0](parts.join("/"));
 										_g4.save();
 									};
-								})(html,v,val,obj,c)).click();
+								})(set));
 							};
-						})(html,v,val,obj,c));
+						})(set));
+						break;
+					case 14:
+						v[0].find("div").addClass("deletable").change((function(obj,c) {
+							return function(e10) {
+								if(Reflect.field(obj[0],c[0].name) != null) {
+									Reflect.deleteField(obj[0],c[0].name);
+									_g4.refresh();
+									_g4.save();
+								}
+							};
+						})(obj,c));
+						v[0].dblclick((function(set,v,val,index,c) {
+							return function(_3) {
+								var rv = val[0];
+								var file;
+								if(rv == null) file = null; else file = rv.file;
+								var size;
+								if(rv == null) size = 16; else size = rv.size;
+								var posX;
+								if(rv == null) posX = 0; else posX = rv.x;
+								var posY;
+								if(rv == null) posY = 0; else posY = rv.y;
+								if(file == null) {
+									var i1 = index[0] - 1;
+									while(i1 >= 0) {
+										var o = sheet.lines[i1--];
+										var v2 = Reflect.field(o,c[0].name);
+										if(v2 != null) {
+											file = v2.file;
+											size = v2.size;
+											break;
+										}
+									}
+								}
+								if(file == null) {
+									_g4.chooseFile((function(set,v) {
+										return function(path1) {
+											set[0]({ file : path1, size : size, x : 0, y : 0});
+											v[0].dblclick();
+										};
+									})(set,v));
+									return;
+								}
+								var dialog = ((function($this) {
+									var $r;
+									var html1 = new js.JQuery(".tileSelect").parent().html();
+									$r = new js.JQuery(html1);
+									return $r;
+								}(this))).prependTo(new js.JQuery("body"));
+								dialog.find(".tileView").css({ backgroundImage : "url(\"" + _g4.getAbsPath(file) + "\")"}).mousemove((function() {
+									return function(e11) {
+										var off = $(this).offset();
+										posX = (e11.pageX - off.left) / size | 0;
+										posY = (e11.pageY - off.top) / size | 0;
+										new js.JQuery(".tileCursor").not(".current").css({ marginLeft : size * posX - 1 + "px", marginTop : size * posY - 1 + "px"});
+									};
+								})()).click((function(set) {
+									return function(_4) {
+										set[0]({ file : file, size : size, x : posX, y : posY});
+										dialog.remove();
+										_g4.save();
+									};
+								})(set));
+								dialog.find("[name=size]").val("" + size).change((function() {
+									return function(_5) {
+										size = Std.parseInt($(this).val());
+										new js.JQuery(".tileCursor").css({ width : size + "px", height : size + "px"});
+										new js.JQuery(".tileCursor.current").css({ marginLeft : size * posX - 2 + "px", marginTop : size * posY - 2 + "px"});
+									};
+								})()).change();
+								dialog.find("[name=cancel]").click((function() {
+									return function() {
+										dialog.remove();
+									};
+								})());
+								dialog.find("[name=file]").click((function(set,v) {
+									return function() {
+										_g4.chooseFile((function(set,v) {
+											return function(file1) {
+												dialog.remove();
+												set[0]({ file : file1, size : size, x : posX, y : posY});
+												_g4.save();
+												v[0].dblclick();
+											};
+										})(set,v));
+									};
+								})(set,v));
+								dialog.keydown((function() {
+									return function(e12) {
+										e12.stopPropagation();
+									};
+								})()).keypress((function() {
+									return function(e13) {
+										e13.stopPropagation();
+									};
+								})());
+								dialog.show();
+							};
+						})(set,v,val,index,c));
 						break;
 					default:
 						v[0].dblclick((function(v,index,c) {
-							return function(e10) {
+							return function(e14) {
 								_g4.editCell(c[0],v[0],sheet,index[0]);
 							};
 						})(v,index,c));
@@ -4643,18 +4766,18 @@ Main.prototype = $extend(Model.prototype,{
 		var _g33 = 0;
 		var _g24 = lines.length;
 		while(_g33 < _g24) {
-			var i1 = _g33++;
-			if(sheet.separators[snext] == i1) {
+			var i2 = _g33++;
+			if(sheet.separators[snext] == i2) {
 				var sep = new js.JQuery("<tr>").addClass("separator").append("<td colspan=\"" + (colCount + 1) + "\">").appendTo(content);
 				var content2 = [sep.find("td")];
 				var title = [sheet.props.separatorTitles != null?sheet.props.separatorTitles[snext]:null];
 				if(title[0] != null) content2[0].text(title[0]);
 				var pos = [snext];
 				sep.dblclick((function(pos,title,content2) {
-					return function(e11) {
+					return function(e15) {
 						content2[0].empty();
 						new js.JQuery("<input>").appendTo(content2[0]).focus().val(title[0] == null?"":title[0]).blur((function(pos,title,content2) {
-							return function(_4) {
+							return function(_6) {
 								title[0] = $(this).val();
 								$(this).remove();
 								content2[0].text(title[0]);
@@ -4668,23 +4791,23 @@ Main.prototype = $extend(Model.prototype,{
 								_g4.save();
 							};
 						})(pos,title,content2)).keypress((function() {
-							return function(e12) {
-								e12.stopPropagation();
+							return function(e16) {
+								e16.stopPropagation();
 							};
 						})()).keydown((function(title,content2) {
-							return function(e13) {
-								if(e13.keyCode == 13) {
+							return function(e17) {
+								if(e17.keyCode == 13) {
 									$(this).blur();
-									e13.preventDefault();
-								} else if(e13.keyCode == 27) content2[0].text(title[0]);
-								e13.stopPropagation();
+									e17.preventDefault();
+								} else if(e17.keyCode == 27) content2[0].text(title[0]);
+								e17.stopPropagation();
 							};
 						})(title,content2));
 					};
 				})(pos,title,content2));
 				snext++;
 			}
-			content.append(lines[i1]);
+			content.append(lines[i2]);
 		}
 		inTodo = true;
 		var _g25 = 0;
@@ -5088,6 +5211,9 @@ Main.prototype = $extend(Model.prototype,{
 			break;
 		case "file":
 			t = cdb.ColumnType.TFile;
+			break;
+		case "tilepos":
+			t = cdb.ColumnType.TTilePos;
 			break;
 		default:
 			return;
@@ -5592,7 +5718,7 @@ Type.enumEq = function(a,b) {
 	return true;
 };
 var cdb = {};
-cdb.ColumnType = $hxClasses["cdb.ColumnType"] = { __ename__ : ["cdb","ColumnType"], __constructs__ : ["TId","TString","TBool","TInt","TFloat","TEnum","TRef","TImage","TList","TCustom","TFlags","TColor","TLayer","TFile"] };
+cdb.ColumnType = $hxClasses["cdb.ColumnType"] = { __ename__ : ["cdb","ColumnType"], __constructs__ : ["TId","TString","TBool","TInt","TFloat","TEnum","TRef","TImage","TList","TCustom","TFlags","TColor","TLayer","TFile","TTilePos"] };
 cdb.ColumnType.TId = ["TId",0];
 cdb.ColumnType.TId.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TString = ["TString",1];
@@ -5616,6 +5742,8 @@ cdb.ColumnType.TColor.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TLayer = function(type) { var $x = ["TLayer",12,type]; $x.__enum__ = cdb.ColumnType; return $x; };
 cdb.ColumnType.TFile = ["TFile",13];
 cdb.ColumnType.TFile.__enum__ = cdb.ColumnType;
+cdb.ColumnType.TTilePos = ["TTilePos",14];
+cdb.ColumnType.TTilePos.__enum__ = cdb.ColumnType;
 cdb.Parser = function() { };
 $hxClasses["cdb.Parser"] = cdb.Parser;
 cdb.Parser.__name__ = ["cdb","Parser"];
@@ -5629,7 +5757,7 @@ cdb.Parser.saveType = function(t) {
 	case 10:
 		var values = t[2];
 		return t[1] + ":" + values.join(",");
-	case 0:case 1:case 8:case 3:case 7:case 4:case 2:case 11:case 13:
+	case 0:case 1:case 8:case 3:case 7:case 4:case 2:case 11:case 13:case 14:
 		return Std.string(t[1]);
 	}
 };
@@ -5689,6 +5817,8 @@ cdb.Parser.getType = function(str) {
 		}(this)));
 	case 13:
 		return cdb.ColumnType.TFile;
+	case 14:
+		return cdb.ColumnType.TTilePos;
 	default:
 		throw "Unknown type " + str;
 	} else throw "Unknown type " + str;

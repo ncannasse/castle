@@ -125,7 +125,7 @@ class Model {
 		case TString, TId, TRef(_), TImage, TLayer(_), TFile: "";
 		case TBool: false;
 		case TList: [];
-		case TCustom(_): null;
+		case TCustom(_), TTilePos: null;
 		}
 	}
 
@@ -646,7 +646,7 @@ class Model {
 				'"' + val.split("\\").join("\\\\").split('"').join("\\\"") + '"';
 		case TEnum(values):
 			valToString(TString, values[val], esc);
-		case TList:
+		case TList, TTilePos:
 			"????";
 		case TCustom(t):
 			typeValToString(tmap.get(t), val, esc);

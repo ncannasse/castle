@@ -2,172 +2,6 @@ package cdb;
 import haxe.macro.Context;
 using haxe.macro.Tools;
 
-private class ArrayIterator<T> {
-	var a : Array<T>;
-	var pos : Int;
-	public inline function new(a) {
-		this.a = a;
-		this.pos = 0;
-	}
-	public inline function hasNext() {
-		return pos < a.length;
-	}
-	public inline function next() {
-		return a[pos++];
-	}
-}
-
-private class FlagsIterator<T> {
-	var flags : Flags<T>;
-	var k : Int;
-	public inline function new(flags) {
-		this.flags = flags;
-		k = 0;
-	}
-	public inline function hasNext() {
-		return flags.toInt() >= 1<<k;
-	}
-	public inline function next() : T {
-		while( flags.toInt() & (1<<k) == 0 )
-			k++;
-		return cast k++;
-	}
-
-}
-
-abstract ArrayRead<T>(Array<T>) {
-
-	public var length(get, never) : Int;
-
-	public inline function new(a : Array<T>) {
-		this = a;
-	}
-
-	inline function get_length() {
-		return this.length;
-	}
-
-	public inline function iterator() : ArrayIterator<T> {
-		return new ArrayIterator(castArray());
-	}
-
-	inline function castArray() : Array<T> {
-		return this;
-	}
-
-	public inline function toArrayCopy() {
-		return this.copy();
-	}
-
-	@:arrayAccess inline function getIndex( v : Int ) {
-		return this[v];
-	}
-
-}
-
-abstract Flags<T>(Int) {
-
-	inline function new(x:Int) {
-		this = x;
-	}
-
-	public inline function has( t : T ) {
-		return this & (1 << (cast t)) != 0;
-	}
-
-	public inline function set( t : T ) {
-		this |= 1 << (cast t);
-	}
-
-	public inline function unset( t : T ) {
-		this &= ~(1 << (cast t));
-	}
-
-	public inline function iterator() {
-		return new FlagsIterator<T>(new Flags(this));
-	}
-
-	public inline function toInt() : Int {
-		return this;
-	}
-
-}
-
-abstract Layer<T>(String) {
-
-	inline function new(x:String) {
-		this = x;
-	}
-
-	public function decode( all : ArrayRead<T> ) : Array<T> {
-		var k = haxe.crypto.Base64.decode(this);
-		return [for( i in 0...k.length ) all[k.get(i)]];
-	}
-
-}
-
-class IndexNoId<T> {
-
-	var name : String;
-	public var all : ArrayRead<T>;
-
-	public function new( data : Data, sheet : String ) {
-		this.name = sheet;
-		for( s in data.sheets )
-			if( s.name == sheet ) {
-				all = cast s.lines;
-				return;
-			}
-		throw "'" + sheet + "' not found in CDB data";
-	}
-
-}
-
-class Index<T,Kind> {
-
-	public var all : ArrayRead<T>;
-	var byIndex : Array<T>;
-	var byId : Map<String,T>;
-	var name : String;
-
-	public function new( data : Data, sheet : String ) {
-		this.name = sheet;
-		for( s in data.sheets )
-			if( s.name == sheet ) {
-				all = cast s.lines;
-				byId = new Map();
-				byIndex = [];
-				for( c in s.columns )
-					switch( c.type ) {
-					case TId:
-						var cname = c.name;
-						for( a in s.lines ) {
-							var id = Reflect.field(a, cname);
-							if( id != null && id != "" ) {
-								byId.set(id, a);
-								byIndex.push(a);
-							}
-						}
-						break;
-					default:
-					}
-				return;
-			}
-		throw "'" + sheet + "' not found in CDB data";
-	}
-
-	public inline function get( k : Kind ) {
-		return byId.get(cast k);
-	}
-
-	public function resolve( id : String, ?opt : Bool ) : T {
-		if( id == null ) return null;
-		var v = byId.get(id);
-		return v == null && !opt ? throw "Missing " + name + "." + id : v;
-	}
-
-}
-
 class Module {
 
 	#if macro
@@ -290,7 +124,7 @@ class Module {
 				case TString, TFile: macro : String;
 				case TList:
 					var t = makeTypeName(s.name + "@" + c.name).toComplex();
-					macro : cdb.Module.ArrayRead<$t>;
+					macro : cdb.Types.ArrayRead<$t>;
 				case TRef(t): makeTypeName(t).toComplex();
 				case TImage: macro : String;
 				case TId:
@@ -305,10 +139,12 @@ class Module {
 					var t = makeTypeName(s.name + "@" + c.name);
 					types.push(makeFakeEnum(t, curMod, pos, values));
 					var t = t.toComplex();
-					macro : cdb.Module.Flags<$t>;
+					macro : cdb.Types.Flags<$t>;
 				case TLayer(t):
 					var t = makeTypeName(t).toComplex();
-					macro : cdb.Module.Layer<$t>;
+					macro : cdb.Types.Layer<$t>;
+				case TTilePos:
+					macro : cdb.Types.TilePos;
 				}
 
 				var rt = switch( c.type ) {
@@ -321,6 +157,7 @@ class Module {
 					var t = (makeTypeName(s.name+"@"+c.name) + "Def").toComplex();
 					macro : Array<$t>;
 				case TLayer(_): macro : String;
+				case TTilePos: macro : { file : String, size : Int, x : Int, y : Int };
 				};
 
 				if( c.opt ) {
@@ -336,7 +173,7 @@ class Module {
 				});
 
 				switch( c.type ) {
-				case TInt, TFloat, TString, TBool, TImage, TColor, TFile:
+				case TInt, TFloat, TString, TBool, TImage, TColor, TFile, TTilePos:
 					var cname = c.name;
 					fields.push({
 						name : "get_"+c.name,
@@ -575,7 +412,7 @@ class Module {
 					case TRef(s):
 						var fname = fieldName(s);
 						macro $i{modName}.$fname.resolve(v[$v{ai+1}]);
-					case TList, TLayer(_):
+					case TList, TLayer(_), TTilePos:
 						throw "assert";
 					}
 					eargs.push(econv);
@@ -621,17 +458,17 @@ class Module {
 					name : fname,
 					pos : pos,
 					access : [APublic, AStatic],
-					kind : FVar(macro : cdb.Module.Index<$t,$kind>),
+					kind : FVar(macro : cdb.Types.Index<$t,$kind>),
 				});
-				assigns.push(macro $i { fname } = new cdb.Module.Index(root, $v { s.name } ));
+				assigns.push(macro $i { fname } = new cdb.Types.Index(root, $v { s.name } ));
 			} else {
 				fields.push({
 					name : fname,
 					pos : pos,
 					access : [APublic, AStatic],
-					kind : FVar(macro : cdb.Module.IndexNoId<$t>),
+					kind : FVar(macro : cdb.Types.IndexNoId<$t>),
 				});
-				assigns.push(macro $i { fname } = new cdb.Module.IndexNoId(root, $v { s.name } ));
+				assigns.push(macro $i { fname } = new cdb.Types.IndexNoId(root, $v { s.name } ));
 			}
 		}
 		types.push({

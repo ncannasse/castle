@@ -107,6 +107,28 @@ div.modal #col_options.t_layer .sheet {
 div.modal #col_options.t_custom .custom {
 	display : block;
 }
+.modal.tileSelect .menu {
+	margin-bottom : 5px;
+}
+.modal.tileSelect .menu input[name=size] {
+	width : 30px;
+}
+.modal.tileSelect .tileCursor {
+	position : absolute;
+	z-index : 100;
+	width : 16px;
+	height : 16px;
+	border : 1px solid black;
+}
+.modal.tileSelect .tileCursor.current {
+	border : 2px solid red;
+}
+.modal.tileSelect .tileView {
+	min-height : 64px;
+	background-color : #eee;
+	background-repeat : no-repeat;
+	border : 1px solid black;
+}
 #newtype.modal .content {
 	width : 500px;
 }

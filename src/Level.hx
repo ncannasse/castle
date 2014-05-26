@@ -738,7 +738,7 @@ class LayerData {
 			case TColor:
 				colors = [for( o in sheet.lines ) { var c = Reflect.field(o, c.name); c == null ? 0 : c; } ];
 			case TImage:
-				images = [];
+				if( images == null ) images = [];
 				var canvas = js.Browser.document.createCanvasElement();
 				var size = level.tileSize;
 				canvas.setAttribute("width", size+"px");
@@ -749,7 +749,7 @@ class LayerData {
 					var key = Reflect.field(sheet.lines[idx], c.name);
 					var idat = level.model.getImageData(key);
 					var i = js.Browser.document.createImageElement();
-					images[idx] = i;
+					if( images[idx] == null ) images[idx] = i;
 					if( idat == null ) {
 						ctx.fillStyle = "rgba(0,0,0,0)";
 						ctx.fillRect(0, 0, size, size);
@@ -764,6 +764,7 @@ class LayerData {
 					};
 					js.Browser.document.body.appendChild(i);
 				}
+			case TTile
 			case TId:
 				idCol = c;
 			default:

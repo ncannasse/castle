@@ -576,6 +576,18 @@ class Main extends Model {
 			if( v != "" )
 				html += ' <input type="submit" value="open" onclick="_.openFile(\'$path\')"/>';
 			html;
+		case TTilePos:
+			var v : { file : String, size : Int, x : Int, y : Int } = v;
+			var path = getAbsPath(v.file);
+			if( !sys.FileSystem.exists(path) )
+				'<span class="error">' + v.file + '</span>';
+			else {
+				var id = UID++;
+				var zoom = 2;
+				var html = '<div id="_c${id}" style="width : ${v.size*zoom}px; height : ${v.size*zoom}px; background : url(\'$path\') -${v.size*v.x*zoom}px -${v.size*v.y*zoom}px; border : 1px solid black;"></div>';
+				html += '<img src="$path" onload="$(\'#_c$id\').css({backgroundSize : (this.width*$zoom)+\'px \' + (this.height*$zoom)+\'px\'}); this.parentNode.removeChild(this)"/>';
+				html;
+			}
 		}
 	}
 
@@ -1115,7 +1127,7 @@ class Main extends Model {
 				editDone();
 				save();
 			};
-		case TList, TColor, TLayer(_), TFile:
+		case TList, TColor, TLayer(_), TFile, TTilePos:
 			throw "assert";
 		}
 	}
@@ -1168,6 +1180,23 @@ class Main extends Model {
 		content.empty();
 		t.appendTo(content);
 		updateCursor();
+	}
+
+	function chooseFile( callb : String -> Void, ?cancel : Void -> Void ) {
+		var fs = J("#fileSelect");
+		if( fs.attr("nwworkingdir") == null )
+			fs.attr("nwworkingdir", new haxe.io.Path(prefs.curFile).dir);
+		fs.change(function(_) {
+			fs.unbind("change");
+			var path = fs.val().split("\\").join("/");
+			fs.val("");
+			if( path == "" ) {
+				if( cancel != null ) cancel();
+				return;
+			}
+			fs.attr("nwworkingdir", ""); // keep path
+			callb(path);
+		}).click();
 	}
 
 	function fillTable( content : js.JQuery, sheet : Sheet ) {
@@ -1255,6 +1284,17 @@ class Main extends Model {
 						setCursor(sheet, cindex, index);
 					e.stopPropagation();
 				});
+
+				function set(val2:Dynamic) {
+					val = val2;
+					if( val == null )
+						Reflect.deleteField(obj, c.name);
+					else
+						Reflect.setField(obj, c.name, val);
+					html = valueHtml(c, val, sheet, obj);
+					v.html(html);
+				}
+
 				switch( c.type ) {
 				case TImage:
 					v.find("img").addClass("deletable").change(function(e) {
@@ -1340,18 +1380,7 @@ class Main extends Model {
 						}
 					});
 					v.dblclick(function(_) {
-						var fs = J("#fileSelect");
-						if( fs.attr("nwworkingdir") == null )
-							fs.attr("nwworkingdir", new haxe.io.Path(prefs.curFile).dir);
-						fs.change(function(_) {
-							fs.unbind("change");
-
-							var path = fs.val().split("\\").join("/");
-							fs.val("");
-							if( path == "" ) return;
-
-							fs.attr("nwworkingdir", ""); // keep path
-
+						chooseFile(function(path) {
 							var parts = path.split("/");
 							var base = prefs.curFile.split("\\").join("/").split("/");
 							base.pop();
@@ -1364,13 +1393,76 @@ class Main extends Model {
 									parts.unshift("..");
 									base.pop();
 								}
-							val = parts.join("/");
-							Reflect.setField(obj, c.name, val);
-							html = valueHtml(c, val, sheet, obj);
-							v.html(html);
+							set(parts.join("/"));
 							save();
-						}).click();
+						});
 					});
+				case TTilePos:
+
+					v.find("div").addClass("deletable").change(function(e) {
+						if( Reflect.field(obj,c.name) != null ) {
+							Reflect.deleteField(obj, c.name);
+							refresh();
+							save();
+						}
+					});
+
+					v.dblclick(function(_) {
+						var rv : { file : String, size : Int, x : Int, y : Int } = val;
+						var file = rv == null ? null : rv.file;
+						var size = rv == null ? 16 : rv.size;
+						var posX = rv == null ? 0 : rv.x;
+						var posY = rv == null ? 0 : rv.y;
+						if( file == null ) {
+							var i = index - 1;
+							while( i >= 0 ) {
+								var o = sheet.lines[i--];
+								var v2 = Reflect.field(o, c.name);
+								if( v2 != null ) {
+									file = v2.file;
+									size = v2.size;
+									break;
+								}
+							}
+						}
+						if( file == null ) {
+							chooseFile(function(path) {
+								set( { file : path, size : size, x : 0, y : 0 } );
+								v.dblclick();
+							});
+							return;
+						}
+						var dialog = J(J(".tileSelect").parent().html()).prependTo(J("body"));
+
+						dialog.find(".tileView").css( { backgroundImage : 'url("${getAbsPath(file)}")' } ).mousemove(function(e) {
+							var off = JTHIS.offset();
+							posX = Std.int((e.pageX - off.left)/size);
+							posY = Std.int((e.pageY - off.top)/size);
+							J(".tileCursor").not(".current").css( { marginLeft : (size * posX - 1) + "px", marginTop : (size * posY - 1) + "px" } );
+						}).click(function(_) {
+							set( { file : file, size : size, x : posX, y : posY } );
+							dialog.remove();
+							save();
+						});
+						dialog.find("[name=size]").val("" + size).change(function(_) {
+							size = Std.parseInt(JTHIS.val());
+							J(".tileCursor").css( { width:size+"px", height:size+"px" } );
+							J(".tileCursor.current").css( { marginLeft : (size * posX - 2) + "px", marginTop : (size * posY - 2) + "px" } );
+						}).change();
+						dialog.find("[name=cancel]").click(function() dialog.remove());
+						dialog.find("[name=file]").click(function() {
+							chooseFile(function(file) {
+								dialog.remove();
+								set({ file : file, size : size, x : posX, y : posY });
+								save();
+								v.dblclick();
+							});
+						});
+						dialog.keydown(function(e) e.stopPropagation()).keypress(function(e) e.stopPropagation());
+						dialog.show();
+					});
+
+
 				default:
 					v.dblclick(function(e) editCell(c, v, sheet, index));
 				}
@@ -1736,6 +1828,8 @@ class Main extends Model {
 			TLayer(s.name);
 		case "file":
 			TFile;
+		case "tilepos":
+			TTilePos;
 		default:
 			return;
 		}
