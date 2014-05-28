@@ -805,6 +805,15 @@ class LayerData {
 					}
 					level.wait();
 					i.src = level.model.getAbsPath(data.file);
+					i.onerror = function(_) {
+						if( i.parentNode != null && i.parentNode.nodeName.toLowerCase() == "body" )
+							i.parentNode.removeChild(i);
+						i.onload = function(_) { };
+						ctx.fillStyle = "#F0F";
+						ctx.fillRect(0, 0, size, size);
+						i.src = canvas.toDataURL();
+						level.waitDone();
+					};
 					i.onload = function(_) {
 						if( i.parentNode != null && i.parentNode.nodeName.toLowerCase() == "body" )
 							i.parentNode.removeChild(i);

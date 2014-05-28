@@ -455,6 +455,22 @@ class Main extends Model {
 					}
 				default:
 				}
+		case TTilePos:
+			// if we change a file that has moved, change it for all instances having the same file
+			var obj = sheet.lines[index];
+			var oldV : cdb.Types.TilePos = old;
+			var newV : cdb.Types.TilePos = Reflect.field(obj, c.name);
+			if( newV != null && oldV != null && oldV.file != newV.file && !sys.FileSystem.exists(getAbsPath(oldV.file)) && sys.FileSystem.exists(getAbsPath(newV.file)) ) {
+				var change = false;
+				for( i in 0...sheet.lines.length ) {
+					var t : Dynamic = Reflect.field(sheet.lines[i], c.name);
+					if( t != null && t.file == oldV.file ) {
+						t.file = newV.file;
+						change = true;
+					}
+				}
+				if( change ) refresh();
+			}
 		default:
 			if( sheet.props.displayColumn == c.name ) {
 				var obj = sheet.lines[index];
@@ -1195,7 +1211,23 @@ class Main extends Model {
 				return;
 			}
 			fs.attr("nwworkingdir", ""); // keep path
-			callb(path);
+
+			// make the path relative
+			var parts = path.split("/");
+			var base = prefs.curFile.split("\\").join("/").split("/");
+			base.pop();
+			while( parts.length > 1 && base.length > 0 && parts[0] == base[0] ) {
+				parts.shift();
+				base.shift();
+			}
+			if( parts.length == 0 || (parts[0] != "" && parts[0].charAt(1) != ":") )
+				while( base.length > 0 ) {
+					parts.unshift("..");
+					base.pop();
+				}
+			var relPath = parts.join("/");
+
+			callb(relPath);
 		}).click();
 	}
 
@@ -1286,6 +1318,7 @@ class Main extends Model {
 				});
 
 				function set(val2:Dynamic) {
+					var old = val;
 					val = val2;
 					if( val == null )
 						Reflect.deleteField(obj, c.name);
@@ -1293,6 +1326,7 @@ class Main extends Model {
 						Reflect.setField(obj, c.name, val);
 					html = valueHtml(c, val, sheet, obj);
 					v.html(html);
+					this.changed(sheet, c, index, old);
 				}
 
 				switch( c.type ) {
@@ -1381,19 +1415,7 @@ class Main extends Model {
 					});
 					v.dblclick(function(_) {
 						chooseFile(function(path) {
-							var parts = path.split("/");
-							var base = prefs.curFile.split("\\").join("/").split("/");
-							base.pop();
-							while( parts.length > 1 && base.length > 0 && parts[0] == base[0] ) {
-								parts.shift();
-								base.shift();
-							}
-							if( parts.length == 0 || (parts[0] != "" && parts[0].charAt(1) != ":") )
-								while( base.length > 0 ) {
-									parts.unshift("..");
-									base.pop();
-								}
-							set(parts.join("/"));
+							set(path);
 							save();
 						});
 					});
@@ -1413,6 +1435,8 @@ class Main extends Model {
 						var size = rv == null ? 16 : rv.size;
 						var posX = rv == null ? 0 : rv.x;
 						var posY = rv == null ? 0 : rv.y;
+						var prevX = posX;
+						var prevY = posY;
 						if( file == null ) {
 							var i = index - 1;
 							while( i >= 0 ) {
@@ -1427,7 +1451,7 @@ class Main extends Model {
 						}
 						if( file == null ) {
 							chooseFile(function(path) {
-								set( { file : path, size : size, x : 0, y : 0 } );
+								set( { file : path, size : size, x : prevX, y : prevY } );
 								v.dblclick();
 							});
 							return;
@@ -1437,7 +1461,8 @@ class Main extends Model {
 						dialog.find(".tileView").css( { backgroundImage : 'url("${getAbsPath(file)}")' } ).mousemove(function(e) {
 							var off = JTHIS.offset();
 							posX = Std.int((e.pageX - off.left)/size);
-							posY = Std.int((e.pageY - off.top)/size);
+							posY = Std.int((e.pageY - off.top) / size);
+							// TODO : make sure we don't get out the image bounds
 							J(".tileCursor").not(".current").css( { marginLeft : (size * posX - 1) + "px", marginTop : (size * posY - 1) + "px" } );
 						}).click(function(_) {
 							set( { file : file, size : size, x : posX, y : posY } );

@@ -1149,11 +1149,24 @@ LayerData.prototype = {
 					}
 					this.level.wait();
 					i1[0].src = this.level.model.getAbsPath(data[0].file);
-					i1[0].onload = (function(i1,data,ctx1,size1,canvas1) {
+					i1[0].onerror = (function(i1,ctx1,size1,canvas1) {
 						return function(_1) {
 							if(i1[0].parentNode != null && i1[0].parentNode.nodeName.toLowerCase() == "body") i1[0].parentNode.removeChild(i1[0]);
 							i1[0].onload = (function() {
 								return function(_2) {
+								};
+							})();
+							ctx1[0].fillStyle = "#F0F";
+							ctx1[0].fillRect(0,0,size1[0],size1[0]);
+							i1[0].src = canvas1[0].toDataURL();
+							_g5.level.waitDone();
+						};
+					})(i1,ctx1,size1,canvas1);
+					i1[0].onload = (function(i1,data,ctx1,size1,canvas1) {
+						return function(_3) {
+							if(i1[0].parentNode != null && i1[0].parentNode.nodeName.toLowerCase() == "body") i1[0].parentNode.removeChild(i1[0]);
+							i1[0].onload = (function() {
+								return function(_4) {
 								};
 							})();
 							ctx1[0].fillStyle = erase;
@@ -3395,7 +3408,7 @@ Main.prototype = $extend(Model.prototype,{
 			this.setErrorMessage(id + " not found");
 			haxe.Timer.delay((function(f) {
 				return function() {
-					return f();
+					f();
 				};
 			})($bind(this,this.setErrorMessage)),500);
 			return;
@@ -3554,6 +3567,25 @@ Main.prototype = $extend(Model.prototype,{
 						}
 					}
 				}
+			}
+			break;
+		case 14:
+			var obj2 = sheet.lines[index];
+			var oldV = old;
+			var newV = Reflect.field(obj2,c.name);
+			if(newV != null && oldV != null && oldV.file != newV.file && !sys.FileSystem.exists(this.getAbsPath(oldV.file)) && sys.FileSystem.exists(this.getAbsPath(newV.file))) {
+				var change = false;
+				var _g22 = 0;
+				var _g12 = sheet.lines.length;
+				while(_g22 < _g12) {
+					var i = _g22++;
+					var t = Reflect.field(sheet.lines[i],c.name);
+					if(t != null && t.file == oldV.file) {
+						t.file = newV.file;
+						change = true;
+					}
+				}
+				if(change) this.refresh();
 			}
 			break;
 		default:
@@ -4432,6 +4464,7 @@ Main.prototype = $extend(Model.prototype,{
 		this.updateCursor();
 	}
 	,chooseFile: function(callb,cancel) {
+		var _g = this;
 		var fs = new js.JQuery("#fileSelect");
 		if(fs.attr("nwworkingdir") == null) fs.attr("nwworkingdir",new haxe.io.Path(this.prefs.curFile).dir);
 		fs.change(function(_) {
@@ -4443,7 +4476,19 @@ Main.prototype = $extend(Model.prototype,{
 				return;
 			}
 			fs.attr("nwworkingdir","");
-			callb(path);
+			var parts = path.split("/");
+			var base = _g.prefs.curFile.split("\\").join("/").split("/");
+			base.pop();
+			while(parts.length > 1 && base.length > 0 && parts[0] == base[0]) {
+				parts.shift();
+				base.shift();
+			}
+			if(parts.length == 0 || parts[0] != "" && parts[0].charAt(1) != ":") while(base.length > 0) {
+				parts.unshift("..");
+				base.pop();
+			}
+			var relPath = parts.join("/");
+			callb(relPath);
 		}).click();
 	}
 	,fillTable: function(content,sheet) {
@@ -4492,7 +4537,7 @@ Main.prototype = $extend(Model.prototype,{
 								return function(f,a1,a2) {
 									return (function() {
 										return function() {
-											return f(a1,a2);
+											f(a1,a2);
 										};
 									})();
 								};
@@ -4533,7 +4578,7 @@ Main.prototype = $extend(Model.prototype,{
 							return function(f1,a11,c1) {
 								return (function() {
 									return function() {
-										return f1(a11,c1);
+										f1(a11,c1);
 									};
 								})();
 							};
@@ -4568,14 +4613,16 @@ Main.prototype = $extend(Model.prototype,{
 						e4.stopPropagation();
 					};
 				})(index,cindex));
-				var set = [(function(html,v,val,obj,c) {
+				var set = [(function(html,v,val,obj,index,c) {
 					return function(val2) {
+						var old = val[0];
 						val[0] = val2;
 						if(val[0] == null) Reflect.deleteField(obj[0],c[0].name); else obj[0][c[0].name] = val[0];
 						html[0] = _g4.valueHtml(c[0],val[0],sheet,obj[0]);
 						v[0].html(html[0]);
+						_g4.changed(sheet,c[0],index[0],old);
 					};
-				})(html,v,val,obj,c)];
+				})(html,v,val,obj,index,c)];
 				{
 					var _g6 = c[0].type;
 					switch(_g6[1]) {
@@ -4679,18 +4726,7 @@ Main.prototype = $extend(Model.prototype,{
 							return function(_2) {
 								_g4.chooseFile((function(set) {
 									return function(path) {
-										var parts = path.split("/");
-										var base = _g4.prefs.curFile.split("\\").join("/").split("/");
-										base.pop();
-										while(parts.length > 1 && base.length > 0 && parts[0] == base[0]) {
-											parts.shift();
-											base.shift();
-										}
-										if(parts.length == 0 || parts[0] != "" && parts[0].charAt(1) != ":") while(base.length > 0) {
-											parts.unshift("..");
-											base.pop();
-										}
-										set[0](parts.join("/"));
+										set[0](path);
 										_g4.save();
 									};
 								})(set));
@@ -4718,6 +4754,8 @@ Main.prototype = $extend(Model.prototype,{
 								if(rv == null) posX = 0; else posX = rv.x;
 								var posY;
 								if(rv == null) posY = 0; else posY = rv.y;
+								var prevX = posX;
+								var prevY = posY;
 								if(file == null) {
 									var i1 = index[0] - 1;
 									while(i1 >= 0) {
@@ -4733,7 +4771,7 @@ Main.prototype = $extend(Model.prototype,{
 								if(file == null) {
 									_g4.chooseFile((function(set,v) {
 										return function(path1) {
-											set[0]({ file : path1, size : size, x : 0, y : 0});
+											set[0]({ file : path1, size : size, x : prevX, y : prevY});
 											v[0].dblclick();
 										};
 									})(set,v));
@@ -5325,7 +5363,7 @@ Main.prototype = $extend(Model.prototype,{
 				return function(f,s1) {
 					return (function() {
 						return function() {
-							return f(s1);
+							f(s1);
 						};
 					})();
 				};
@@ -5391,7 +5429,7 @@ Main.prototype = $extend(Model.prototype,{
 							return function(f2,s3,li1) {
 								return (function() {
 									return function() {
-										return f2(s3,li1);
+										f2(s3,li1);
 									};
 								})();
 							};
