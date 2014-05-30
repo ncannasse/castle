@@ -145,6 +145,8 @@ class Module {
 					macro : cdb.Types.Layer<$t>;
 				case TTilePos:
 					macro : cdb.Types.TilePos;
+				case TTileLayer:
+					macro : cdb.Types.TileLayer;
 				}
 
 				var rt = switch( c.type ) {
@@ -158,6 +160,7 @@ class Module {
 					macro : Array<$t>;
 				case TLayer(_): macro : String;
 				case TTilePos: macro : { file : String, size : Int, x : Int, y : Int };
+				case TTileLayer: macro : { file : String, stride : Int, size : Int, data : String };
 				};
 
 				if( c.opt ) {
@@ -209,7 +212,7 @@ class Module {
 						}),
 						access : [AInline, APrivate],
 					});
-				case TList, TEnum(_), TFlags(_), TLayer(_):
+				case TList, TEnum(_), TFlags(_), TLayer(_), TTileLayer:
 					// cast
 					var cname = c.name;
 					fields.push({
@@ -402,7 +405,7 @@ class Module {
 				for( ai in 0...c.args.length ) {
 					var a = c.args[ai];
 					var econv = switch( a.type ) {
-					case TId, TString, TBool, TInt, TFloat, TImage, TEnum(_), TFlags(_), TColor, TFile:
+					case TId, TString, TBool, TInt, TFloat, TImage, TEnum(_), TFlags(_), TColor, TFile, TTileLayer:
 						macro v[$v { ai + 1 } ];
 					case TCustom(id):
 						if( a.opt )

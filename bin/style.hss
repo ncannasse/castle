@@ -478,11 +478,14 @@ div#menu {
 		.item {
 			line-height : 32px;
 			height : 32px;
-			width : 100px;
+			margin-right: 30px;
 			display : inline-block;
 			input[type=range] {
 				width : 50px;
 				vertical-align : -5px;
+			}
+			input[name=size] {
+				width : 30px;
 			}
 			.sp_replacer {
 				vertical-align : 2px;

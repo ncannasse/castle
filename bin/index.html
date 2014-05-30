@@ -54,6 +54,7 @@
 				<option value="layer">Layer</option>
 				<option value="file">File</option>
 				<option value="tilepos">Tile</option>
+				<option value="tilelayer">Tile Layer</option>
 				</select>
 			</p>
 			<div id="col_options">
@@ -160,6 +161,12 @@
 				<div class="item">
 					<label><input type="checkbox" name="lock" onchange="_.level.setLock(this.checked)"/> Lock Grid</label>
 				</div>
+				<div class="item">
+					<input type="submit" name="file" value="File..." onclick="_.level.selectFile()"/>
+				</div>
+				<div class="item">
+					<label>Size <input name="size" onchange="_.level.setSize(parseInt(this.value))"/>px</label>
+				</div>
 			</div>
 			<div class="submenu options">
 				<div class="item">
@@ -169,7 +176,7 @@
 			<div class="scroll">
 				<div class="scrollContent">
 					<div id="cursor"></div>
-					<canvas/>
+					<canvas class="display"/>
 				</div>
 			</div>
 		</div>

@@ -16,6 +16,7 @@ enum ColumnType {
 	TLayer( type : String );
 	TFile;
 	TTilePos;
+	TTileLayer;
 }
 
 #if macro

@@ -433,7 +433,7 @@ div#menu ul.sheets li.active {
 #content .level .submenu .item {
 	line-height : 32px;
 	height : 32px;
-	width : 100px;
+	margin-right : 30px;
 	display : inline-block;
 	zoom : 1;
 	*display : inline;
@@ -441,6 +441,9 @@ div#menu ul.sheets li.active {
 #content .level .submenu .item input[type=range] {
 	width : 50px;
 	vertical-align : -5px;
+}
+#content .level .submenu .item input[name=size] {
+	width : 30px;
 }
 #content .level .submenu .item .sp_replacer {
 	vertical-align : 2px;

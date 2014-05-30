@@ -125,7 +125,7 @@ class Model {
 		case TString, TId, TRef(_), TImage, TLayer(_), TFile: "";
 		case TBool: false;
 		case TList: [];
-		case TCustom(_), TTilePos: null;
+		case TCustom(_), TTilePos, TTileLayer: null;
 		}
 	}
 
@@ -537,7 +537,7 @@ class Model {
 		initContent();
 	}
 
-	function initContent() {
+	public function initContent() {
 		smap = new Map();
 		for( s in data.sheets )
 			makeSheet(s);
@@ -646,7 +646,7 @@ class Model {
 				'"' + val.split("\\").join("\\\\").split('"').join("\\\"") + '"';
 		case TEnum(values):
 			valToString(TString, values[val], esc);
-		case TList, TTilePos:
+		case TList, TTilePos, TTileLayer:
 			"????";
 		case TCustom(t):
 			typeValToString(tmap.get(t), val, esc);

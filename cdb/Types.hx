@@ -104,11 +104,27 @@ abstract Layer<T>(String) {
 
 }
 
+abstract TileLayerData(String) {
+
+	public function decode() {
+		var k = haxe.crypto.Base64.decode(this);
+		return [for( i in 0...k.length>>1 ) k.get(i<<1) | (k.get((i<<1)+1) << 8)];
+	}
+
+}
+
 typedef TilePos = {
 	var file(default, never) : String;
 	var size(default, never) : Int;
 	var x(default, never) : Int;
 	var y(default, never) : Int;
+}
+
+typedef TileLayer = {
+	var file(default, never) : String;
+	var stride(default, never) : Int;
+	var size(default, never) : Int;
+	var data(default, never) : TileLayerData;
 }
 
 class IndexNoId<T> {

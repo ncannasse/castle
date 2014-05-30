@@ -147,7 +147,113 @@ Lambda.find = function(it,f) {
 	}
 	return null;
 };
+var Image = function(w,h) {
+	this.width = w;
+	this.height = h;
+	var c;
+	var _this = window.document;
+	c = _this.createElement("canvas");
+	c.width = w;
+	c.height = h;
+	this.ctx = c.getContext("2d");
+};
+$hxClasses["Image"] = Image;
+Image.__name__ = ["Image"];
+Image.load = function(url,callb,onError) {
+	var i;
+	var _this = window.document;
+	i = _this.createElement("img");
+	i.onload = function(_) {
+		var im = new Image(i.width,i.height);
+		im.ctx.drawImage(i,0,0);
+		callb(im);
+	};
+	i.onerror = function(_1) {
+		if(onError != null) {
+			onError();
+			return;
+		}
+		var i1 = new Image(16,16);
+		i1.fill(-65281);
+		callb(i1);
+	};
+	i.src = url;
+};
+Image.fromCanvas = function(c) {
+	var i = new Image(0,0);
+	i.width = c.width;
+	i.height = c.height;
+	i.ctx = c.getContext("2d");
+	return i;
+};
+Image.prototype = {
+	getColor: function(color) {
+		if(color >>> 24 == 255) return "#" + StringTools.hex(color & 16777215,6); else return "rgba(" + (color >> 16 & 255) + "," + (color >> 8 & 255) + "," + (color & 255) + "," + (color >>> 24) / 255 + ")";
+	}
+	,getCanvas: function() {
+		return this.ctx.canvas;
+	}
+	,clear: function() {
+		this.ctx.clearRect(0,0,this.width,this.height);
+	}
+	,fill: function(color) {
+		this.ctx.fillStyle = this.getColor(color);
+		this.ctx.fillRect(0,0,this.width,this.height);
+	}
+	,sub: function(x,y,w,h) {
+		var i = new Image(w,h);
+		i.ctx.drawImage(this.ctx.canvas,x,y,w,h,0,0,w,h);
+		return i;
+	}
+	,text: function(text,x,y,color) {
+		if(color == null) color = -1;
+		this.ctx.fillStyle = this.getColor(color);
+		this.ctx.fillText(text,x,y);
+	}
+	,draw: function(i,x,y) {
+		this.ctx.drawImage(i.ctx.canvas,0,0,i.width,i.height,x,y,i.width,i.height);
+	}
+	,drawSub: function(i,srcX,srcY,srcW,srcH,x,y,dstW,dstH) {
+		if(dstH == null) dstH = -1;
+		if(dstW == null) dstW = -1;
+		if(dstW < 0) dstW = srcW;
+		if(dstH < 0) dstH = srcH;
+		this.ctx.drawImage(i.ctx.canvas,srcX,srcY,srcW,srcH,x,y,dstW,dstH);
+	}
+	,copyFrom: function(i,smooth) {
+		if(smooth == null) smooth = false;
+		this.ctx.fillStyle = "rgba(0,0,0,0)";
+		this.ctx.fillRect(0,0,this.width,this.height);
+		this.ctx.imageSmoothingEnabled = smooth;
+		this.ctx.drawImage(i.ctx.canvas,0,0,i.width,i.height,0,0,this.width,this.height);
+	}
+	,setSize: function(width,height) {
+		if(width == this.width && height == this.height) return;
+		this.ctx.canvas.width = width;
+		this.ctx.canvas.height = height;
+		this.width = width;
+		this.height = height;
+	}
+	,resize: function(width,height,smooth) {
+		if(width == this.width && height == this.height) return;
+		if(smooth == null) smooth = width < this.width || height < this.height;
+		var c;
+		var _this = window.document;
+		c = _this.createElement("canvas");
+		c.width = width;
+		c.height = height;
+		var ctx2 = c.getContext("2d");
+		ctx2.imageSmoothingEnabled = smooth;
+		ctx2.drawImage(this.ctx.canvas,0,0,this.width,this.height,0,0,width,height);
+		this.ctx = ctx2;
+		this.width = width;
+		this.height = height;
+	}
+	,__class__: Image
+};
 var Level = function(model,sheet,index) {
+	this.startPos = null;
+	this.mousePos = { x : 0, y : 0};
 	this.zoomView = 1.;
 	var _g = this;
 	this.sheet = sheet;
@@ -251,18 +357,9 @@ var Level = function(model,sheet,index) {
 				var _g31 = path.split(".").pop().toLowerCase();
 				switch(_g31) {
 				case "png":case "jpeg":case "jpg":
-					var img = [new js.JQuery("<img>")];
-					img[0][0].onload = (function(img,index1) {
-						return function(_) {
-							var c1;
-							var _this = window.document;
-							c1 = _this.createElement("canvas");
-							c1.width = img[0].width();
-							c1.height = img[0].height();
-							var ctx = c1.getContext("2d");
-							ctx.drawImage(img[0][0],0,0);
-							img[0].remove();
-							_g.images.push({ index : index1[0], data : c1});
+					Image.load(path,(function(index1) {
+						return function(i) {
+							_g.images.push({ index : index1[0], data : i});
 							_g.images.sort((function() {
 								return function(i1,i2) {
 									return i1.index - i2.index;
@@ -270,14 +367,17 @@ var Level = function(model,sheet,index) {
 							})());
 							_g.draw();
 						};
-					})(img,index1);
-					img[0].attr("src",path);
-					img[0].appendTo("body");
+					})(index1));
 					break;
 				case "tmx":
 					break;
 				default:
 				}
+				break;
+			case 15:
+				var l2 = new LayerData(this,c.name,getProps(c.name));
+				l2.setTilesData(val);
+				this.layers.push(l2);
 				break;
 			default:
 			}
@@ -285,8 +385,8 @@ var Level = function(model,sheet,index) {
 	}
 	var $it0 = lprops.iterator();
 	while( $it0.hasNext() ) {
-		var c2 = $it0.next();
-		HxOverrides.remove(this.props.layers,c2);
+		var c1 = $it0.next();
+		HxOverrides.remove(this.props.layers,c1);
 	}
 	if(sheet.props.displayColumn != null) {
 		var t = Reflect.field(this.obj,sheet.props.displayColumn);
@@ -326,6 +426,11 @@ Level.prototype = {
 		}
 		this.setCursor(layer);
 		this.updateZoom();
+		if(state != null) {
+			var sc = this.content.find(".scroll");
+			sc.scrollLeft(state.scrollX);
+			sc.scrollTop(state.scrollY);
+		}
 	}
 	,toColor: function(v) {
 		return "#" + StringTools.hex(v,6);
@@ -368,6 +473,12 @@ Level.prototype = {
 						}
 					}
 					break;
+				case 2:
+					var data1 = _g[3];
+					var idx1 = this.curPos.x + this.curPos.y * this.width;
+					var k2 = data1[idx1] - 1;
+					if(k2 < 0) continue;
+					return { k : k2, layer : l, index : idx1};
 				}
 			}
 		}
@@ -400,7 +511,12 @@ Level.prototype = {
 			new js.JQuery("<span>").text(l[0].name).appendTo(td[0]);
 			if(l[0].images != null) {
 				var isel = [new js.JQuery("<div class='img'>").appendTo(td[0])];
-				isel[0].append(new js.JQuery(l[0].images[l[0].current]));
+				if(l[0].images.length > 0) isel[0].append((function($this) {
+					var $r;
+					var html1 = l[0].images[l[0].current].getCanvas();
+					$r = new js.JQuery(html1);
+					return $r;
+				}(this)));
 				isel[0].click((function(isel,td,l) {
 					return function(e) {
 						_g2.setCursor(l[0]);
@@ -409,10 +525,15 @@ Level.prototype = {
 						var _g3 = l[0].images.length;
 						while(_g4 < _g3) {
 							var i = [_g4++];
-							list.append(new js.JQuery("<img>").attr("src",l[0].images[i[0]].src).click((function(i,isel,l) {
+							list.append(new js.JQuery("<img>").attr("src",l[0].images[i[0]].getCanvas().toDataURL()).click((function(i,isel,l) {
 								return function(_1) {
 									isel[0].html("");
-									isel[0].append(new js.JQuery(l[0].images[i[0]]));
+									isel[0].append((function($this) {
+										var $r;
+										var html2 = l[0].images[i[0]].getCanvas();
+										$r = new js.JQuery(html2);
+										return $r;
+									}(this)));
 									l[0].set_current(i[0]);
 									_g2.setCursor(l[0]);
 								};
@@ -424,16 +545,16 @@ Level.prototype = {
 								list.detach();
 								((function($this) {
 									var $r;
-									var html1 = window;
-									$r = new js.JQuery(html1);
+									var html3 = window;
+									$r = new js.JQuery(html3);
 									return $r;
 								}(this))).unbind("click");
 							};
 						})();
 						((function($this) {
 							var $r;
-							var html2 = window;
-							$r = new js.JQuery(html2);
+							var html4 = window;
+							$r = new js.JQuery(html4);
 							return $r;
 						}(this))).bind("click",(function() {
 							return function(_2) {
@@ -448,8 +569,8 @@ Level.prototype = {
 			var id = Level.UID++;
 			var t = ((function($this) {
 				var $r;
-				var html3 = "<input type=\"text\" id=\"_" + Level.UID++ + "\">";
-				$r = new js.JQuery(html3);
+				var html5 = "<input type=\"text\" id=\"_" + Level.UID++ + "\">";
+				$r = new js.JQuery(html5);
 				return $r;
 			}(this))).appendTo(td[0]);
 			t.spectrum({ color : this.toColor(l[0].colors[l[0].current]), clickoutFiresChange : true, showButtons : false, showPaletteOnly : true, showPalette : true, palette : (function($this) {
@@ -487,79 +608,51 @@ Level.prototype = {
 				};
 			})(l)});
 		}
-		var canvas = this.content.find("canvas");
-		canvas.attr("width",this.width * this.tileSize + "px");
-		canvas.attr("height",this.height * this.tileSize + "px");
+		var _this;
+		_this = js.Boot.__cast(this.content.find("canvas.display")[0] , HTMLCanvasElement);
+		this.displayCanvas = _this.getContext("2d");
+		var canvas;
+		var _this1 = window.document;
+		canvas = _this1.createElement("canvas");
+		this.displayCanvas.canvas.width = canvas.width = this.width * this.tileSize;
+		this.displayCanvas.canvas.height = canvas.height = this.height * this.tileSize;
+		this.ctx = canvas.getContext("2d");
 		var scroll = this.content.find(".scroll");
 		var scont = this.content.find(".scrollContent");
+		scroll.scroll(function(_4) {
+			_g2.savePrefs();
+		});
 		this.content.find("[name=color]").spectrum({ clickoutFiresChange : true, showButtons : false, change : function(c1) {
 			_g2.currentLayer.props.color = Std.parseInt("0x" + c1.toHex());
 			_g2.draw();
 			_g2.save();
 		}});
 		var win = nodejs.webkit.Window.get();
-		var onResize = function(_4) {
+		var onResize = function(_5) {
 			scroll.css("height",win.height - 240 + "px");
 		};
 		win.on("resize",onResize);
 		onResize(null);
 		scroll.bind("mousewheel",function(e2) {
-			_g2.updateZoom(e2.originalEvent.wheelDelta > 0);
 		});
 		this.cursor = this.content.find("#cursor");
+		var curCanvas;
+		var _this2 = window.document;
+		curCanvas = _this2.createElement("canvas");
+		new js.JQuery(curCanvas).appendTo(this.cursor);
+		this.cursorImage = Image.fromCanvas(curCanvas);
 		this.cursor.hide();
-		var _this = Std.instance(canvas[0],HTMLCanvasElement);
-		this.ctx = _this.getContext("2d");
-		var startPos = null;
-		scont.mouseleave(function(_5) {
+		scont.mouseleave(function(_6) {
 			_g2.curPos = null;
 			_g2.cursor.hide();
 			new js.JQuery(".cursorPosition").text("");
 		});
 		scont.mousemove(function(e3) {
-			var off = canvas.parent().offset();
-			var cxf = ((e3.pageX - off.left) / _g2.zoomView | 0) / _g2.tileSize;
-			var cyf = ((e3.pageY - off.top) / _g2.zoomView | 0) / _g2.tileSize;
-			var cx = cxf | 0;
-			var cy = cyf | 0;
-			if(cx < _g2.width && cy < _g2.height) {
-				_g2.cursor.show();
-				var fc = _g2.currentLayer.floatCoord;
-				var w = 1.;
-				var h = 1.;
-				var border = 0;
-				var ccx;
-				if(fc) ccx = cxf; else ccx = cx;
-				var ccy;
-				if(fc) ccy = cyf; else ccy = cy;
-				if(_g2.currentLayer.hasSize && _g2.mouseDown) {
-					var px;
-					if(fc) px = startPos.xf; else px = startPos.x;
-					var py;
-					if(fc) py = startPos.yf; else py = startPos.y;
-					var pw;
-					pw = (fc?cxf:cx) - px;
-					var ph;
-					ph = (fc?cyf:cy) - py;
-					if(pw < 0.5) if(fc) pw = 0.5; else pw = 1;
-					if(ph < 0.5) if(fc) ph = 0.5; else ph = 1;
-					ccx = px;
-					ccy = py;
-					w = pw;
-					h = ph;
-				}
-				if(_g2.currentLayer.images == null) border = 1;
-				_g2.cursor.css({ marginLeft : (ccx * _g2.tileSize * _g2.zoomView - border | 0) + "px", marginTop : (ccy * _g2.tileSize * _g2.zoomView - border | 0) + "px", width : (w * _g2.tileSize * _g2.zoomView + border * 2 | 0) + "px", height : (h * _g2.tileSize * _g2.zoomView + border * 2 | 0) + "px"});
-				_g2.curPos = { x : cx, y : cy, xf : cxf, yf : cyf};
-				new js.JQuery(".cursorPosition").text(cx + "," + cy);
-				if(_g2.mouseDown) _g2.set(cx,cy);
-			} else {
-				_g2.cursor.hide();
-				_g2.curPos = null;
-				new js.JQuery(".cursorPosition").text("");
-			}
+			_g2.mousePos.x = e3.pageX;
+			_g2.mousePos.y = e3.pageY;
+			_g2.updateCursorPos();
 		});
-		var onMouseUp = function(_6) {
+		var onMouseUp = function(_7) {
 			_g2.mouseDown = false;
 			if(_g2.needSave) _g2.save();
 		};
@@ -570,7 +663,7 @@ Level.prototype = {
 				_g2.mouseDown = true;
 				if(_g2.curPos != null) {
 					_g2.set(_g2.curPos.x,_g2.curPos.y);
-					startPos = Reflect.copy(_g2.curPos);
+					_g2.startPos = Reflect.copy(_g2.curPos);
 				}
 				break;
 			case 3:
@@ -586,7 +679,7 @@ Level.prototype = {
 		scroll.mouseup(function(e5) {
 			onMouseUp(e5);
 			if(_g2.curPos == null) {
-				startPos = null;
+				_g2.startPos = null;
 				return;
 			}
 			{
@@ -595,37 +688,37 @@ Level.prototype = {
 				case 1:
 					var objs = _g6[3];
 					var idCol = _g6[2];
-					var fc1 = _g2.currentLayer.floatCoord;
-					var px1;
-					if(fc1) px1 = _g2.curPos.xf; else px1 = _g2.curPos.x;
-					var py1;
-					if(fc1) py1 = _g2.curPos.yf; else py1 = _g2.curPos.y;
-					var w1 = 0.;
-					var h1 = 0.;
+					var fc = _g2.currentLayer.floatCoord;
+					var px;
+					if(fc) px = _g2.curPos.xf; else px = _g2.curPos.x;
+					var py;
+					if(fc) py = _g2.curPos.yf; else py = _g2.curPos.y;
+					var w = 0.;
+					var h = 0.;
 					if(_g2.currentLayer.hasSize) {
-						if(startPos == null) return;
+						if(_g2.startPos == null) return;
 						var sx;
-						if(fc1) sx = startPos.xf; else sx = startPos.x;
+						if(fc) sx = _g2.startPos.xf; else sx = _g2.startPos.x;
 						var sy;
-						if(fc1) sy = startPos.yf; else sy = startPos.y;
-						w1 = px1 - sx;
-						h1 = py1 - sy;
-						px1 = sx;
-						py1 = sy;
-						if(w1 < 0.5) if(fc1) w1 = 0.5; else w1 = 1;
-						if(h1 < 0.5) if(fc1) h1 = 0.5; else h1 = 1;
+						if(fc) sy = _g2.startPos.yf; else sy = _g2.startPos.y;
+						w = px - sx;
+						h = py - sy;
+						px = sx;
+						py = sy;
+						if(w < 0.5) if(fc) w = 0.5; else w = 1;
+						if(h < 0.5) if(fc) h = 0.5; else h = 1;
 					}
 					var _g33 = 0;
 					var _g11 = objs.length;
 					while(_g33 < _g11) {
 						var i2 = _g33++;
 						var o = objs[i2];
-						if(o.x == px1 && o.y == py1) {
+						if(o.x == px && o.y == py) {
 							_g2.editProps(_g2.currentLayer,i2);
 							return;
 						}
 					}
-					var o1 = { x : px1, y : py1};
+					var o1 = { x : px, y : py};
 					objs.push(o1);
 					if(idCol != null) o1[idCol] = _g2.currentLayer.indexToId[_g2.currentLayer.current];
 					var _g12 = 0;
@@ -638,8 +731,8 @@ Level.prototype = {
 						if(v != null) o1[c2.name] = v;
 					}
 					if(_g2.currentLayer.hasSize) {
-						o1.width = w1;
-						o1.height = h1;
+						o1.width = w;
+						o1.height = h;
 					}
 					_g2.editProps(_g2.currentLayer,objs.length - 1);
 					objs.sort(function(o11,o2) {
@@ -652,8 +745,51 @@ Level.prototype = {
 				default:
 				}
 			}
-			startPos = null;
+			_g2.startPos = null;
 		});
+	}
+	,updateCursorPos: function() {
+		var off = new js.JQuery(this.displayCanvas.canvas).parent().offset();
+		var cxf = ((this.mousePos.x - off.left) / this.zoomView | 0) / this.tileSize;
+		var cyf = ((this.mousePos.y - off.top) / this.zoomView | 0) / this.tileSize;
+		var cx = cxf | 0;
+		var cy = cyf | 0;
+		if(cx < this.width && cy < this.height) {
+			this.cursor.show();
+			var fc = this.currentLayer.floatCoord;
+			var w = 1.;
+			var h = 1.;
+			var border = 0;
+			var ccx;
+			if(fc) ccx = cxf; else ccx = cx;
+			var ccy;
+			if(fc) ccy = cyf; else ccy = cy;
+			if(this.currentLayer.hasSize && this.mouseDown) {
+				var px;
+				if(fc) px = this.startPos.xf; else px = this.startPos.x;
+				var py;
+				if(fc) py = this.startPos.yf; else py = this.startPos.y;
+				var pw;
+				pw = (fc?cxf:cx) - px;
+				var ph;
+				ph = (fc?cyf:cy) - py;
+				if(pw < 0.5) if(fc) pw = 0.5; else pw = 1;
+				if(ph < 0.5) if(fc) ph = 0.5; else ph = 1;
+				ccx = px;
+				ccy = py;
+				w = pw;
+				h = ph;
+			}
+			if(this.currentLayer.images == null) border = 1;
+			this.cursor.css({ marginLeft : (ccx * this.tileSize * this.zoomView - border | 0) + "px", marginTop : (ccy * this.tileSize * this.zoomView - border | 0) + "px"});
+			this.curPos = { x : cx, y : cy, xf : cxf, yf : cyf};
+			new js.JQuery(".cursorPosition").text(cx + "," + cy);
+			if(this.mouseDown) this.set(cx,cy);
+		} else {
+			this.cursor.hide();
+			this.curPos = null;
+			new js.JQuery(".cursorPosition").text("");
+		}
 	}
 	,editProps: function(l,index) {
 		var _g = this;
@@ -735,7 +871,10 @@ Level.prototype = {
 			if(f) this.zoomView *= 1.2; else this.zoomView /= 1.2;
 		}
 		this.savePrefs();
-		this.content.find("canvas").css({ width : (this.width * this.tileSize * this.zoomView | 0) + "px", height : (this.height * this.tileSize * this.zoomView | 0) + "px"});
+		this.displayCanvas.canvas.width = this.width * this.tileSize * this.zoomView | 0;
+		this.displayCanvas.canvas.height = this.height * this.tileSize * this.zoomView | 0;
+		this.copy();
+		this.updateCursorPos();
 		this.setCursor(this.currentLayer);
 	}
 	,onKey: function(e) {
@@ -799,6 +938,14 @@ Level.prototype = {
 						this.draw();
 					}
 					break;
+				case 2:
+					var data2 = _g11[3];
+					if(data2[p.index] == 0) return;
+					data2[p.index] = 0;
+					p.layer.dirty = true;
+					this.save();
+					this.draw();
+					break;
 				}
 			}
 			break;
@@ -807,7 +954,7 @@ Level.prototype = {
 			{
 				var _g12 = p1.layer.data;
 				switch(_g12[1]) {
-				case 0:
+				case 0:case 2:
 					break;
 				case 1:
 					var objs1 = _g12[3];
@@ -836,6 +983,14 @@ Level.prototype = {
 				this.save();
 				this.draw();
 				break;
+			case 2:
+				var data1 = _g[3];
+				if(data1[x + y * this.width] == this.currentLayer.current + 1) return;
+				data1[x + y * this.width] = this.currentLayer.current + 1;
+				this.currentLayer.dirty = true;
+				this.save();
+				this.draw();
+				break;
 			case 1:
 				break;
 			}
@@ -852,7 +1007,7 @@ Level.prototype = {
 			var index = _g1++;
 			while(curImage < this.images.length && this.images[curImage].index == index) {
 				this.ctx.globalAlpha = 1;
-				this.ctx.drawImage(this.images[curImage].data,0,0);
+				this.ctx.drawImage(this.images[curImage].data.getCanvas(),0,0);
 				curImage++;
 			}
 			var l = this.layers[index];
@@ -875,11 +1030,28 @@ Level.prototype = {
 							var k = data[x + y * this.width];
 							if(k == 0 && !first) continue;
 							if(l.images != null) {
-								this.ctx.drawImage(l.images[k],x * this.tileSize,y * this.tileSize);
+								this.ctx.drawImage(l.images[k].getCanvas(),x * this.tileSize,y * this.tileSize);
 								continue;
 							}
 							this.ctx.fillStyle = this.toColor(l.colors[k]);
 							this.ctx.fillRect(x * this.tileSize,y * this.tileSize,this.tileSize,this.tileSize);
+						}
+					}
+					break;
+				case 2:
+					var data1 = _g2[3];
+					var t = _g2[2];
+					var _g41 = 0;
+					var _g31 = this.height;
+					while(_g41 < _g31) {
+						var y1 = _g41++;
+						var _g61 = 0;
+						var _g51 = this.width;
+						while(_g61 < _g51) {
+							var x1 = _g61++;
+							var k1 = data1[x1 + y1 * this.width] - 1;
+							if(k1 < 0) continue;
+							this.ctx.drawImage(l.images[k1].getCanvas(),x1 * this.tileSize,y1 * this.tileSize,this.tileSize,this.tileSize);
 						}
 					}
 					break;
@@ -888,10 +1060,10 @@ Level.prototype = {
 					var idCol = _g2[2];
 					if(idCol == null) {
 						this.ctx.fillStyle = this.toColor(l.props.color);
-						var _g31 = 0;
-						while(_g31 < objs.length) {
-							var o = objs[_g31];
-							++_g31;
+						var _g32 = 0;
+						while(_g32 < objs.length) {
+							var o = objs[_g32];
+							++_g32;
 							var w;
 							if(l.hasSize) w = o.width * this.tileSize; else w = this.tileSize;
 							var h;
@@ -899,13 +1071,13 @@ Level.prototype = {
 							this.ctx.fillRect(o.x * this.tileSize,o.y * this.tileSize,w,h);
 						}
 					} else {
-						var _g32 = 0;
-						while(_g32 < objs.length) {
-							var o1 = objs[_g32];
-							++_g32;
+						var _g33 = 0;
+						while(_g33 < objs.length) {
+							var o1 = objs[_g33];
+							++_g33;
 							var id = Reflect.field(o1,idCol);
-							var k1 = l.idToIndex.get(id);
-							if(k1 == null) {
+							var k2 = l.idToIndex.get(id);
+							if(k2 == null) {
 								this.ctx.fillStyle = "red";
 								this.ctx.fillRect(o1.x * this.tileSize,o1.y * this.tileSize,this.tileSize,this.tileSize);
 								this.ctx.fillStyle = "white";
@@ -913,10 +1085,10 @@ Level.prototype = {
 								continue;
 							}
 							if(l.images != null) {
-								this.ctx.drawImage(l.images[k1],o1.x * this.tileSize,o1.y * this.tileSize);
+								this.ctx.drawImage(l.images[k2].getCanvas(),o1.x * this.tileSize,o1.y * this.tileSize);
 								continue;
 							}
-							this.ctx.fillStyle = this.toColor(l.colors[k1]);
+							this.ctx.fillStyle = this.toColor(l.colors[k2]);
 							var w1;
 							if(l.hasSize) w1 = o1.width * this.tileSize; else w1 = this.tileSize;
 							var h1;
@@ -928,6 +1100,12 @@ Level.prototype = {
 				}
 			}
 		}
+		this.copy();
+	}
+	,copy: function() {
+		var canvas = this.ctx.canvas;
+		this.displayCanvas.imageSmoothingEnabled = this.zoomView < 1;
+		this.displayCanvas.drawImage(canvas,0,0,canvas.width,canvas.height,0,0,this.displayCanvas.canvas.width,this.displayCanvas.canvas.height);
 	}
 	,save: function() {
 		if(this.mouseDown) {
@@ -949,7 +1127,8 @@ Level.prototype = {
 		this.model.save();
 	}
 	,savePrefs: function() {
-		var state = { zoomView : this.zoomView, curLayer : this.currentLayer.name};
+		var sc = this.content.find(".scroll");
+		var state = { zoomView : this.zoomView, curLayer : this.currentLayer.name, scrollX : sc.scrollLeft(), scrollY : sc.scrollTop()};
 		js.Browser.getLocalStorage().setItem(this.sheetPath,haxe.Serializer.run(state));
 	}
 	,setLock: function(b) {
@@ -1005,6 +1184,43 @@ Level.prototype = {
 		this.content.find(".submenu").toggle();
 		this.content.find("[name=tileSize]").val("" + this.tileSize);
 	}
+	,setSize: function(size) {
+		{
+			var _g = this.currentLayer.data;
+			switch(_g[1]) {
+			case 2:
+				var t = _g[2];
+				t.stride = t.size * t.stride / size | 0;
+				t.size = size;
+				this.currentLayer.dirty = true;
+				this.save();
+				this.model.initContent();
+				break;
+			default:
+			}
+		}
+	}
+	,selectFile: function() {
+		var _g = this;
+		var m;
+		m = js.Boot.__cast(this.model , Main);
+		m.chooseFile(function(path) {
+			{
+				var _g1 = _g.currentLayer.data;
+				switch(_g1[1]) {
+				case 2:
+					var data = _g1[3];
+					var t = _g1[2];
+					t.file = path;
+					_g.currentLayer.dirty = true;
+					_g.save();
+					_g.model.initContent();
+					break;
+				default:
+				}
+			}
+		});
+	}
 	,setCursor: function(l) {
 		this.content.find(".menu .item.selected").removeClass("selected");
 		l.comp.addClass("selected");
@@ -1012,23 +1228,60 @@ Level.prototype = {
 		this.currentLayer = l;
 		if(old != l) {
 			this.savePrefs();
-			new js.JQuery("[name=alpha]").val(Std.string(l.props.alpha * 100 | 0));
-			new js.JQuery("[name=visible]").prop("checked",l.visible);
-			new js.JQuery("[name=lock]").prop("checked",!l.floatCoord).closest(".item").css({ display : l.hasFloatCoord?"":"none"});
-			new js.JQuery("[name=color]").spectrum("set",this.toColor(l.props.color)).closest(".item").css({ display : l.idToIndex == null?"":"none"});
+			this.content.find("[name=alpha]").val(Std.string(l.props.alpha * 100 | 0));
+			this.content.find("[name=visible]").prop("checked",l.visible);
+			this.content.find("[name=lock]").prop("checked",!l.floatCoord).closest(".item").css({ display : l.hasFloatCoord?"":"none"});
+			this.content.find("[name=color]").spectrum("set",this.toColor(l.props.color)).closest(".item").css({ display : l.idToIndex == null && !(function($this) {
+				var $r;
+				var _g = l.data;
+				$r = (function($this) {
+					var $r;
+					switch(_g[1]) {
+					case 2:
+						$r = true;
+						break;
+					default:
+						$r = false;
+					}
+					return $r;
+				}($this));
+				return $r;
+			}(this))?"":"none"});
+			{
+				var _g1 = l.data;
+				switch(_g1[1]) {
+				case 2:
+					var t = _g1[2];
+					this.content.find("[name=size]").val("" + t.size).closest(".item").show();
+					this.content.find("[name=file]").closest(".item").show();
+					break;
+				default:
+					this.content.find("[name=size]").closest(".item").hide();
+					this.content.find("[name=file]").closest(".item").hide();
+				}
+			}
 		}
-		var size = this.tileSize * this.zoomView | 0;
-		if(l.images != null) this.cursor.css({ background : "url('" + l.images[l.current].src + "')", backgroundSize : "cover", width : size + "px", height : size + "px", border : "none"}); else {
+		var size;
+		if(this.zoomView < 1) size = this.tileSize * this.zoomView | 0; else size = Math.ceil(this.tileSize * this.zoomView);
+		this.cursorImage.setSize(size,size);
+		if(l.images != null) {
+			this.cursorImage.clear();
+			this.cursorImage.copyFrom(l.images[l.current],this.zoomView < 1);
+			this.cursorImage.fill(1616617979);
+			this.cursor.css({ border : "none"});
+		} else {
 			var c = l.colors[l.current];
 			var lum = ((c & 255) + (c >> 8 & 255) + (c >> 16 & 255)) / 765;
-			this.cursor.css({ background : "#" + StringTools.hex(c,6), width : size + 2 + "px", height : size + 2 + "px", border : "1px solid " + (lum < 0.25?"white":"black")});
+			this.cursorImage.fill(c | -16777216);
+			this.cursor.css({ border : "1px solid " + (lum < 0.25?"white":"black")});
 		}
 	}
 	,__class__: Level
 };
-var LayerInnerData = $hxClasses["LayerInnerData"] = { __ename__ : ["LayerInnerData"], __constructs__ : ["Layer","Objects"] };
+var LayerInnerData = $hxClasses["LayerInnerData"] = { __ename__ : ["LayerInnerData"], __constructs__ : ["Layer","Objects","Tiles"] };
 LayerInnerData.Layer = function(a) { var $x = ["Layer",0,a]; $x.__enum__ = LayerInnerData; return $x; };
 LayerInnerData.Objects = function(idCol,objs) { var $x = ["Objects",1,idCol,objs]; $x.__enum__ = LayerInnerData; return $x; };
+LayerInnerData.Tiles = function(t,data) { var $x = ["Tiles",2,t,data]; $x.__enum__ = LayerInnerData; return $x; };
 var LayerData = function(level,name,p) {
 	this.current = 0;
 	this.visible = true;
@@ -1077,106 +1330,56 @@ LayerData.prototype = {
 				break;
 			case 7:
 				if(this.images == null) this.images = [];
-				var canvas;
-				var _this = window.document;
-				canvas = _this.createElement("canvas");
-				var size = this.level.tileSize;
-				canvas.setAttribute("width",size + "px");
-				canvas.setAttribute("height",size + "px");
-				var ctx = canvas.getContext("2d");
+				var size = [this.level.tileSize];
 				var _g41 = 0;
 				var _g31 = sheet.lines.length;
 				while(_g41 < _g31) {
-					var idx = _g41++;
-					var key = Reflect.field(sheet.lines[idx],c.name);
+					var idx = [_g41++];
+					var key = Reflect.field(sheet.lines[idx[0]],c.name);
 					var idat = this.level.model.getImageData(key);
-					var i = [(function($this) {
-						var $r;
-						var _this1 = window.document;
-						$r = _this1.createElement("img");
-						return $r;
-					}(this))];
-					if(idat != null || this.images[idx] == null) this.images[idx] = i[0];
+					if(idat == null && this.images[idx[0]] != null) continue;
 					if(idat == null) {
-						ctx.fillStyle = erase;
-						ctx.fillRect(0,0,size,size);
-						ctx.fillStyle = "white";
-						ctx.fillText("#" + idx,0,12);
-						i[0].src = ctx.canvas.toDataURL();
+						var i = new Image(size[0],size[0]);
+						i.text("#" + idx[0],0,12);
+						this.images[idx[0]] = i;
 						continue;
 					}
-					i[0].src = idat;
-					i[0].onload = (function(i) {
-						return function(_) {
-							if(i[0].parentNode != null && i[0].parentNode.nodeName.toLowerCase() == "body") i[0].parentNode.removeChild(i[0]);
+					this.level.wait();
+					Image.load(idat,(function(idx,size) {
+						return function(i1) {
+							i1.resize(size[0],size[0]);
+							_g5.images[idx[0]] = i1;
+							_g5.level.waitDone();
 						};
-					})(i);
-					window.document.body.appendChild(i[0]);
+					})(idx,size));
 				}
 				break;
 			case 14:
 				if(this.images == null) this.images = [];
-				var canvas1 = [(function($this) {
-					var $r;
-					var _this2 = window.document;
-					$r = _this2.createElement("canvas");
-					return $r;
-				}(this))];
 				var size1 = [this.level.tileSize];
-				canvas1[0].setAttribute("width",size1[0] + "px");
-				canvas1[0].setAttribute("height",size1[0] + "px");
-				var ctx1 = [canvas1[0].getContext("2d")];
-				var loadCount = 0;
 				var _g42 = 0;
 				var _g32 = sheet.lines.length;
 				while(_g42 < _g32) {
-					var idx1 = _g42++;
-					var data = [Reflect.field(sheet.lines[idx1],c.name)];
-					var i1 = [(function($this) {
-						var $r;
-						var _this3 = window.document;
-						$r = _this3.createElement("img");
-						return $r;
-					}(this))];
-					if(data[0] != null || this.images[idx1] == null) this.images[idx1] = i1[0];
+					var idx1 = [_g42++];
+					var data = [Reflect.field(sheet.lines[idx1[0]],c.name)];
+					if(data[0] == null && this.images[idx1[0]] != null) continue;
 					if(data[0] == null) {
-						ctx1[0].fillStyle = erase;
-						ctx1[0].fillRect(0,0,size1[0],size1[0]);
-						ctx1[0].fillStyle = "white";
-						ctx1[0].fillText("#" + idx1,0,12);
-						i1[0].src = ctx1[0].canvas.toDataURL();
+						var i2 = new Image(size1[0],size1[0]);
+						i2.text("#" + idx1[0],0,12);
+						this.images[idx1[0]] = i2;
 						continue;
 					}
 					this.level.wait();
-					i1[0].src = this.level.model.getAbsPath(data[0].file);
-					i1[0].onerror = (function(i1,ctx1,size1,canvas1) {
-						return function(_1) {
-							if(i1[0].parentNode != null && i1[0].parentNode.nodeName.toLowerCase() == "body") i1[0].parentNode.removeChild(i1[0]);
-							i1[0].onload = (function() {
-								return function(_2) {
-								};
-							})();
-							ctx1[0].fillStyle = "#F0F";
-							ctx1[0].fillRect(0,0,size1[0],size1[0]);
-							i1[0].src = canvas1[0].toDataURL();
+					Image.load(this.level.model.getAbsPath(data[0].file),(function(data,idx1,size1) {
+						return function(i3) {
+							var i21 = new Image(data[0].size,data[0].size);
+							i21.fill(-1118482);
+							i21.drawSub(i3,data[0].x * data[0].size,data[0].y * data[0].size,data[0].size,data[0].size,0,0,data[0].size,data[0].size);
+							i21.resize(size1[0],size1[0]);
+							_g5.images[idx1[0]] = i21;
 							_g5.level.waitDone();
 						};
-					})(i1,ctx1,size1,canvas1);
-					i1[0].onload = (function(i1,data,ctx1,size1,canvas1) {
-						return function(_3) {
-							if(i1[0].parentNode != null && i1[0].parentNode.nodeName.toLowerCase() == "body") i1[0].parentNode.removeChild(i1[0]);
-							i1[0].onload = (function() {
-								return function(_4) {
-								};
-							})();
-							ctx1[0].fillStyle = erase;
-							ctx1[0].fillRect(0,0,size1[0],size1[0]);
-							ctx1[0].drawImage(i1[0],data[0].x * data[0].size,data[0].y * data[0].size,data[0].size,data[0].size,0,0,size1[0],size1[0]);
-							i1[0].src = canvas1[0].toDataURL();
-							_g5.level.waitDone();
-						};
-					})(i1,data,ctx1,size1,canvas1);
-					window.document.body.appendChild(i1[0]);
+					})(data,idx1,size1));
 				}
 				break;
 			case 0:
@@ -1204,6 +1407,9 @@ LayerData.prototype = {
 			}
 			this.names.push(n);
 		}
+		this.loadState();
+	}
+	,loadState: function() {
 		var state;
 		try {
 			state = haxe.Unserializer.run(js.Browser.getLocalStorage().getItem(this.level.sheetPath + ":" + this.name));
@@ -1213,7 +1419,7 @@ LayerData.prototype = {
 		if(state != null) {
 			this.set_visible(state.visible);
 			this.floatCoord = this.hasFloatCoord && !state.lock;
-			if(state.current < this.names.length) this.set_current(state.current);
+			if(state.current < (this.images != null?this.images.length:this.names.length)) this.set_current(state.current);
 		}
 	}
 	,setLayerData: function(val) {
@@ -1252,6 +1458,67 @@ LayerData.prototype = {
 	}
 	,setObjectsData: function(id,val) {
 		this.data = LayerInnerData.Objects(id,val);
+	}
+	,setTilesData: function(val) {
+		var _g3 = this;
+		var file;
+		if(val == null) file = null; else file = val.file;
+		var size;
+		if(val == null) size = 16; else size = val.size;
+		var data;
+		if(val == null) {
+			var _g = [];
+			var _g2 = 0;
+			var _g1 = this.level.width * this.level.height;
+			while(_g2 < _g1) {
+				var i = _g2++;
+				_g.push(0);
+			}
+			data = _g;
+		} else data = cdb._Types.TileLayerData_Impl_.decode(val.data);
+		var stride;
+		if(val == null) stride = 0; else stride = val.stride;
+		var d = { file : file, size : size, stride : stride};
+		this.images = [];
+		this.data = LayerInnerData.Tiles(d,data);
+		if(file == null) {
+			var i1 = new Image(16,16);
+			i1.fill(-65281);
+			this.images.push(i1);
+			return;
+		}
+		this.level.wait();
+		Image.load(this.level.model.getAbsPath(file),function(i2) {
+			var w = i2.width / size | 0;
+			var h = i2.height / size | 0;
+			var max = w * h;
+			var _g21 = 0;
+			var _g11 = data.length;
+			while(_g21 < _g11) {
+				var i3 = _g21++;
+				var v = data[i3] - 1;
+				if(v < 0) continue;
+				var vx = v % stride;
+				var vy = v / stride | 0;
+				if(vx >= w || vy >= h) data[i3] = 0; else {
+					v = vx + vy * w;
+					data[i3] = v + 1;
+				}
+			}
+			d.stride = w;
+			var _g12 = 0;
+			while(_g12 < h) {
+				var y = _g12++;
+				var _g22 = 0;
+				while(_g22 < w) {
+					var x = _g22++;
+					var i4 = i2.sub(x * size,y * size,size,size);
+					_g3.images.push(i4);
+				}
+			}
+			_g3.loadState();
+			_g3.level.waitDone();
+		});
 	}
 	,set_visible: function(v) {
 		this.visible = v;
@@ -1292,6 +1559,24 @@ LayerData.prototype = {
 			case 1:
 				var objs = _g[3];
 				return objs;
+			case 2:
+				var data1 = _g[3];
+				var t = _g[2];
+				var b1 = new haxe.io.BytesOutput();
+				var r = 0;
+				var _g21 = 0;
+				var _g11 = this.level.width;
+				while(_g21 < _g11) {
+					var y1 = _g21++;
+					var _g41 = 0;
+					var _g31 = this.level.height;
+					while(_g41 < _g31) {
+						var x1 = _g41++;
+						b1.writeUInt16(data1[r++]);
+					}
+				}
+				if(t.file == null) return null; else return { file : t.file, size : t.size, stride : t.stride, data : haxe.crypto.Base64.encode(b1.getBytes())};
+				break;
 			}
 		}
 	}
@@ -1476,7 +1761,7 @@ Model.prototype = {
 				return false;
 			case 8:
 				return [];
-			case 9:case 14:
+			case 9:case 14:case 15:
 				return null;
 			}
 		}
@@ -2312,7 +2597,7 @@ Model.prototype = {
 		case 5:
 			var values = t[2];
 			return this.valToString(cdb.ColumnType.TString,values[val],esc);
-		case 8:case 14:
+		case 8:case 14:case 15:
 			return "????";
 		case 9:
 			var t1 = t[2];
@@ -3746,6 +4031,11 @@ Main.prototype = $extend(Model.prototype,{
 					return html1;
 				}
 				break;
+			case 15:
+				var v4 = v;
+				var path2 = this.getAbsPath(v4.file);
+				if(!js.Node.require("fs").existsSync(path2)) return "<span class=\"error\">" + v4.file + "</span>"; else return "#DATA";
+				break;
 			}
 		}
 	}
@@ -4405,6 +4695,8 @@ Main.prototype = $extend(Model.prototype,{
 					editDone();
 					_g.save();
 				};
+				break;
+			case 15:
 				break;
 			case 8:case 11:case 12:case 13:case 14:
 				throw "assert";
@@ -5317,6 +5609,9 @@ Main.prototype = $extend(Model.prototype,{
 		case "tilepos":
 			t = cdb.ColumnType.TTilePos;
 			break;
+		case "tilelayer":
+			t = cdb.ColumnType.TTileLayer;
+			break;
 		default:
 			return;
 		}
@@ -5820,7 +6115,7 @@ Type.enumEq = function(a,b) {
 	return true;
 };
 var cdb = {};
-cdb.ColumnType = $hxClasses["cdb.ColumnType"] = { __ename__ : ["cdb","ColumnType"], __constructs__ : ["TId","TString","TBool","TInt","TFloat","TEnum","TRef","TImage","TList","TCustom","TFlags","TColor","TLayer","TFile","TTilePos"] };
+cdb.ColumnType = $hxClasses["cdb.ColumnType"] = { __ename__ : ["cdb","ColumnType"], __constructs__ : ["TId","TString","TBool","TInt","TFloat","TEnum","TRef","TImage","TList","TCustom","TFlags","TColor","TLayer","TFile","TTilePos","TTileLayer"] };
 cdb.ColumnType.TId = ["TId",0];
 cdb.ColumnType.TId.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TString = ["TString",1];
@@ -5846,6 +6141,8 @@ cdb.ColumnType.TFile = ["TFile",13];
 cdb.ColumnType.TFile.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TTilePos = ["TTilePos",14];
 cdb.ColumnType.TTilePos.__enum__ = cdb.ColumnType;
+cdb.ColumnType.TTileLayer = ["TTileLayer",15];
+cdb.ColumnType.TTileLayer.__enum__ = cdb.ColumnType;
 cdb.Parser = function() { };
 $hxClasses["cdb.Parser"] = cdb.Parser;
 cdb.Parser.__name__ = ["cdb","Parser"];
@@ -5859,7 +6156,7 @@ cdb.Parser.saveType = function(t) {
 	case 10:
 		var values = t[2];
 		return t[1] + ":" + values.join(",");
-	case 0:case 1:case 8:case 3:case 7:case 4:case 2:case 11:case 13:case 14:
+	case 0:case 1:case 8:case 3:case 7:case 4:case 2:case 11:case 13:case 14:case 15:
 		return Std.string(t[1]);
 	}
 };
@@ -5921,6 +6218,8 @@ cdb.Parser.getType = function(str) {
 		return cdb.ColumnType.TFile;
 	case 14:
 		return cdb.ColumnType.TTilePos;
+	case 15:
+		return cdb.ColumnType.TTileLayer;
 	default:
 		throw "Unknown type " + str;
 	} else throw "Unknown type " + str;
@@ -6052,6 +6351,20 @@ cdb._Types.Layer_Impl_.decode = function(this1,all) {
 	while(_g2 < _g1) {
 		var i = _g2++;
 		_g.push(all[k.b[i]]);
+	}
+	return _g;
+};
+cdb._Types.TileLayerData_Impl_ = function() { };
+$hxClasses["cdb._Types.TileLayerData_Impl_"] = cdb._Types.TileLayerData_Impl_;
+cdb._Types.TileLayerData_Impl_.__name__ = ["cdb","_Types","TileLayerData_Impl_"];
+cdb._Types.TileLayerData_Impl_.decode = function(this1) {
+	var k = haxe.crypto.Base64.decode(this1);
+	var _g = [];
+	var _g2 = 0;
+	var _g1 = k.length >> 1;
+	while(_g2 < _g1) {
+		var i = _g2++;
+		_g.push(k.b[i << 1] | k.b[(i << 1) + 1] << 8);
 	}
 	return _g;
 };
@@ -6702,7 +7015,9 @@ haxe.io.Bytes = function(length,b) {
 $hxClasses["haxe.io.Bytes"] = haxe.io.Bytes;
 haxe.io.Bytes.__name__ = ["haxe","io","Bytes"];
 haxe.io.Bytes.alloc = function(length) {
-	return new haxe.io.Bytes(length,new Buffer(length));
+	var b = new Buffer(length);
+	b.fill(0,0);
+	return new haxe.io.Bytes(length,b);
 };
 haxe.io.Bytes.ofString = function(s) {
 	var nb = new Buffer(s,"utf8");
@@ -7178,8 +7493,45 @@ haxe.io.BytesBuffer.prototype = {
 		this.b = null;
 		return bytes;
 	}
+	,get_length: function() {
+		return this.b.length;
+	}
 	,__class__: haxe.io.BytesBuffer
 };
+haxe.io.Output = function() { };
+$hxClasses["haxe.io.Output"] = haxe.io.Output;
+haxe.io.Output.__name__ = ["haxe","io","Output"];
+haxe.io.Output.prototype = {
+	writeByte: function(c) {
+		throw "Not implemented";
+	}
+	,writeUInt16: function(x) {
+		if(x < 0 || x >= 65536) throw haxe.io.Error.Overflow;
+		if(this.bigEndian) {
+			this.writeByte(x >> 8);
+			this.writeByte(x & 255);
+		} else {
+			this.writeByte(x & 255);
+			this.writeByte(x >> 8);
+		}
+	}
+	,__class__: haxe.io.Output
+};
+haxe.io.BytesOutput = function() {
+	this.b = new haxe.io.BytesBuffer();
+};
+$hxClasses["haxe.io.BytesOutput"] = haxe.io.BytesOutput;
+haxe.io.BytesOutput.__name__ = ["haxe","io","BytesOutput"];
+haxe.io.BytesOutput.__super__ = haxe.io.Output;
+haxe.io.BytesOutput.prototype = $extend(haxe.io.Output.prototype,{
+	writeByte: function(c) {
+		this.b.b.push(c);
+	}
+	,getBytes: function() {
+		return this.b.getBytes();
+	}
+	,__class__: haxe.io.BytesOutput
+});
 haxe.io.Eof = function() { };
 $hxClasses["haxe.io.Eof"] = haxe.io.Eof;
 haxe.io.Eof.__name__ = ["haxe","io","Eof"];
@@ -7197,9 +7549,6 @@ haxe.io.Error.Overflow.__enum__ = haxe.io.Error;
 haxe.io.Error.OutsideBounds = ["OutsideBounds",2];
 haxe.io.Error.OutsideBounds.__enum__ = haxe.io.Error;
 haxe.io.Error.Custom = function(e) { var $x = ["Custom",3,e]; $x.__enum__ = haxe.io.Error; return $x; };
-haxe.io.Output = function() { };
-$hxClasses["haxe.io.Output"] = haxe.io.Output;
-haxe.io.Output.__name__ = ["haxe","io","Output"];
 haxe.io.Path = function(path) {
 	switch(path) {
 	case ".":case "..":
@@ -7346,6 +7695,9 @@ js.Boot.__instanceof = function(o,cl) {
 		if(cl == Enum && o.__ename__ != null) return true;
 		return o.__enum__ == cl;
 	}
+};
+js.Boot.__cast = function(o,t) {
+	if(js.Boot.__instanceof(o,t)) return o; else throw "Cannot cast " + Std.string(o) + " to " + Std.string(t);
 };
 js.Browser = function() { };
 $hxClasses["js.Browser"] = js.Browser;

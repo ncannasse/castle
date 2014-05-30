@@ -593,7 +593,7 @@ class Main extends Model {
 				html += ' <input type="submit" value="open" onclick="_.openFile(\'$path\')"/>';
 			html;
 		case TTilePos:
-			var v : { file : String, size : Int, x : Int, y : Int } = v;
+			var v : cdb.Types.TilePos = v;
 			var path = getAbsPath(v.file);
 			if( !sys.FileSystem.exists(path) )
 				'<span class="error">' + v.file + '</span>';
@@ -604,6 +604,13 @@ class Main extends Model {
 				html += '<img src="$path" onload="$(\'#_c$id\').css({backgroundSize : (this.width*$zoom)+\'px \' + (this.height*$zoom)+\'px\'}); this.parentNode.removeChild(this)"/>';
 				html;
 			}
+		case TTileLayer:
+			var v : cdb.Types.TileLayer = v;
+			var path = getAbsPath(v.file);
+			if( !sys.FileSystem.exists(path) )
+				'<span class="error">' + v.file + '</span>';
+			else
+				'#DATA';
 		}
 	}
 
@@ -1143,6 +1150,8 @@ class Main extends Model {
 				editDone();
 				save();
 			};
+		case TTileLayer:
+			// nothing
 		case TList, TColor, TLayer(_), TFile, TTilePos:
 			throw "assert";
 		}
@@ -1198,7 +1207,7 @@ class Main extends Model {
 		updateCursor();
 	}
 
-	function chooseFile( callb : String -> Void, ?cancel : Void -> Void ) {
+	public function chooseFile( callb : String -> Void, ?cancel : Void -> Void ) {
 		var fs = J("#fileSelect");
 		if( fs.attr("nwworkingdir") == null )
 			fs.attr("nwworkingdir", new haxe.io.Path(prefs.curFile).dir);
@@ -1430,7 +1439,7 @@ class Main extends Model {
 					});
 
 					v.dblclick(function(_) {
-						var rv : { file : String, size : Int, x : Int, y : Int } = val;
+						var rv : cdb.Types.TilePos = val;
 						var file = rv == null ? null : rv.file;
 						var size = rv == null ? 16 : rv.size;
 						var posX = rv == null ? 0 : rv.x;
@@ -1855,6 +1864,8 @@ class Main extends Model {
 			TFile;
 		case "tilepos":
 			TTilePos;
+		case "tilelayer":
+			TTileLayer;
 		default:
 			return;
 		}
