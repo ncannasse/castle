@@ -448,6 +448,9 @@ div#menu ul.sheets li.active {
 #content .level .submenu .item .sp_replacer {
 	vertical-align : 2px;
 }
+#content .level .submenu.newlayer {
+	display : none;
+}
 #content .level .submenu.options {
 	display : none;
 }

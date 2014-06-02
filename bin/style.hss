@@ -493,6 +493,10 @@ div#menu {
 		}
 	}
 
+	.submenu.newlayer {
+		display : none;
+	}
+
 	.submenu.options {
 		display : none;
 		.item {

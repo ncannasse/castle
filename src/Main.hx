@@ -431,10 +431,36 @@ class Main extends Model {
 				oldW = old;
 			else
 				oldH = old;
-			for( c in sheet.columns )
+
+			function remapTileLayer( v : cdb.Types.TileLayer ) {
+
+				if( v == null ) return null;
+
+				var odat = v.data.decode();
+				var pos = 0;
+				var ndat = [];
+				for( y in 0...newH ) {
+					if( y >= oldH ) {
+						for( x in 0...newW )
+							ndat.push(0);
+					} else if( newW <= oldW ) {
+						for( x in 0...newW )
+							ndat.push(odat[pos++]);
+						pos += oldW - newW;
+					} else {
+						for( x in 0...oldW )
+							ndat.push(odat[pos++]);
+						for( x in oldW...newW )
+							ndat.push(0);
+					}
+				}
+				return { file : v.file, size : v.size, stride : v.stride, data : cdb.Types.TileLayerData.encode(ndat) };
+			}
+
+			for( c in sheet.columns ) {
+				var v : Dynamic = Reflect.field(obj, c.name);
 				switch( c.type ) {
 				case TLayer(_):
-					var v = Reflect.field(obj, c.name);
 					if( v == null || v == "" ) continue;
 					var odat = haxe.crypto.Base64.decode(v);
 					var ndat = haxe.io.Bytes.alloc(newW * newH);
@@ -452,9 +478,16 @@ class Main extends Model {
 						for( e in elts.copy() )
 							if( e.x >= newW || e.y >= newH )
 								elts.remove(e);
+					} else if( hasColumn(s, "data", [TTileLayer]) ) {
+						var a : Array<{ data : cdb.Types.TileLayer }> = v;
+						for( o in a )
+							o.data = remapTileLayer(o.data);
 					}
+				case TTileLayer:
+					Reflect.setField(obj, c.name, remapTileLayer(v));
 				default:
 				}
+			}
 		case TTilePos:
 			// if we change a file that has moved, change it for all instances having the same file
 			var obj = sheet.lines[index];

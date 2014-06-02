@@ -106,9 +106,23 @@ abstract Layer<T>(String) {
 
 abstract TileLayerData(String) {
 
+	function new(v) {
+		this = v;
+	}
+
 	public function decode() {
 		var k = haxe.crypto.Base64.decode(this);
 		return [for( i in 0...k.length>>1 ) k.get(i<<1) | (k.get((i<<1)+1) << 8)];
+	}
+
+	public static function encode( a : Array<Int> ) : TileLayerData {
+		var b = haxe.io.Bytes.alloc(a.length * 2);
+		for( i in 0...a.length ) {
+			var v = a[i];
+			b.set(i << 1, v & 0xFF);
+			b.set((i << 1) + 1 , (v>>8) & 0xFF);
+		}
+		return new TileLayerData(haxe.crypto.Base64.encode(b));
 	}
 
 }

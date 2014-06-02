@@ -150,12 +150,12 @@ Lambda.find = function(it,f) {
 var Image = function(w,h) {
 	this.width = w;
 	this.height = h;
-	var c;
 	var _this = window.document;
-	c = _this.createElement("canvas");
-	c.width = w;
-	c.height = h;
-	this.ctx = c.getContext("2d");
+	this.canvas = _this.createElement("canvas");
+	this.origin = this.canvas;
+	this.canvas.width = w;
+	this.canvas.height = h;
+	this.ctx = this.canvas.getContext("2d");
 };
 $hxClasses["Image"] = Image;
 Image.__name__ = ["Image"];
@@ -166,6 +166,7 @@ Image.load = function(url,callb,onError) {
 	i.onload = function(_) {
 		var im = new Image(i.width,i.height);
 		im.ctx.drawImage(i,0,0);
+		im.origin = i;
 		callb(im);
 	};
 	i.onerror = function(_1) {
@@ -191,48 +192,55 @@ Image.prototype = {
 		if(color >>> 24 == 255) return "#" + StringTools.hex(color & 16777215,6); else return "rgba(" + (color >> 16 & 255) + "," + (color >> 8 & 255) + "," + (color & 255) + "," + (color >>> 24) / 255 + ")";
 	}
 	,getCanvas: function() {
-		return this.ctx.canvas;
+		return this.canvas;
 	}
 	,clear: function() {
 		this.ctx.clearRect(0,0,this.width,this.height);
+		this.origin = this.canvas;
 	}
 	,fill: function(color) {
 		this.ctx.fillStyle = this.getColor(color);
 		this.ctx.fillRect(0,0,this.width,this.height);
+		this.origin = this.canvas;
 	}
 	,sub: function(x,y,w,h) {
 		var i = new Image(w,h);
-		i.ctx.drawImage(this.ctx.canvas,x,y,w,h,0,0,w,h);
+		i.ctx.drawImage(this.origin,x,y,w,h,0,0,w,h);
 		return i;
 	}
 	,text: function(text,x,y,color) {
 		if(color == null) color = -1;
 		this.ctx.fillStyle = this.getColor(color);
 		this.ctx.fillText(text,x,y);
+		this.origin = this.canvas;
 	}
 	,draw: function(i,x,y) {
-		this.ctx.drawImage(i.ctx.canvas,0,0,i.width,i.height,x,y,i.width,i.height);
+		this.ctx.drawImage(i.origin,0,0,i.width,i.height,x,y,i.width,i.height);
+		this.origin = this.canvas;
 	}
 	,drawSub: function(i,srcX,srcY,srcW,srcH,x,y,dstW,dstH) {
 		if(dstH == null) dstH = -1;
 		if(dstW == null) dstW = -1;
 		if(dstW < 0) dstW = srcW;
 		if(dstH < 0) dstH = srcH;
-		this.ctx.drawImage(i.ctx.canvas,srcX,srcY,srcW,srcH,x,y,dstW,dstH);
+		this.ctx.drawImage(i.origin,srcX,srcY,srcW,srcH,x,y,dstW,dstH);
+		this.origin = this.canvas;
 	}
 	,copyFrom: function(i,smooth) {
 		if(smooth == null) smooth = false;
 		this.ctx.fillStyle = "rgba(0,0,0,0)";
 		this.ctx.fillRect(0,0,this.width,this.height);
 		this.ctx.imageSmoothingEnabled = smooth;
-		this.ctx.drawImage(i.ctx.canvas,0,0,i.width,i.height,0,0,this.width,this.height);
+		this.ctx.drawImage(i.origin,0,0,i.width,i.height,0,0,this.width,this.height);
+		this.origin = this.canvas;
 	}
 	,setSize: function(width,height) {
 		if(width == this.width && height == this.height) return;
-		this.ctx.canvas.width = width;
-		this.ctx.canvas.height = height;
+		this.canvas.width = width;
+		this.canvas.height = height;
 		this.width = width;
 		this.height = height;
+		this.origin = this.canvas;
 	}
 	,resize: function(width,height,smooth) {
 		if(width == this.width && height == this.height) return;
@@ -244,8 +252,10 @@ Image.prototype = {
 		c.height = height;
 		var ctx2 = c.getContext("2d");
 		ctx2.imageSmoothingEnabled = smooth;
-		ctx2.drawImage(this.ctx.canvas,0,0,this.width,this.height,0,0,width,height);
+		ctx2.drawImage(this.canvas,0,0,this.width,this.height,0,0,width,height);
 		this.ctx = ctx2;
+		this.canvas = c;
+		this.origin = c;
 		this.width = width;
 		this.height = height;
 	}
@@ -310,7 +320,7 @@ var Level = function(model,sheet,index) {
 				break;
 			case 12:
 				var type = _g22[2];
-				var l = new LayerData(this,c.name,getProps(c.name));
+				var l = new LayerData(this,c.name,getProps(c.name),{ o : this.obj, f : c.name});
 				l.loadSheetData(model.smap.get(type).s);
 				l.setLayerData(val);
 				this.layers.push(l);
@@ -341,21 +351,33 @@ var Level = function(model,sheet,index) {
 							}
 						}
 					} catch( e ) { if( e != "__break__" ) throw e; }
-					var l1 = new LayerData(this,c.name,getProps(c.name));
+					var l1 = new LayerData(this,c.name,getProps(c.name),{ o : this.obj, f : c.name});
 					l1.hasFloatCoord = l1.floatCoord = floatCoord;
 					l1.baseSheet = sheet1;
 					l1.loadSheetData(sid);
 					l1.setObjectsData(idCol,val);
 					l1.hasSize = model.hasColumn(sheet1,"width",[floatCoord?cdb.ColumnType.TFloat:cdb.ColumnType.TInt]) && model.hasColumn(sheet1,"height",[floatCoord?cdb.ColumnType.TFloat:cdb.ColumnType.TInt]);
 					this.layers.push(l1);
+				} else if(model.hasColumn(sheet1,"name",[cdb.ColumnType.TString]) && model.hasColumn(sheet1,"data",[cdb.ColumnType.TTileLayer])) {
+					var val1 = val;
+					var _g31 = 0;
+					while(_g31 < val1.length) {
+						var lobj = val1[_g31];
+						++_g31;
+						if(lobj.name == null) continue;
+						var l2 = new LayerData(this,lobj.name,getProps(lobj.name),{ o : lobj, f : "data"});
+						l2.setTilesData(lobj.data);
+						this.layers.push(l2);
+					}
+					this.newLayer = c;
 				}
 				break;
 			case 13:
 				if(val == null || c.name.toLowerCase().indexOf("layer") < 0) continue;
 				var index1 = [this.layers.length];
 				var path = model.getAbsPath(val);
-				var _g31 = path.split(".").pop().toLowerCase();
-				switch(_g31) {
+				var _g32 = path.split(".").pop().toLowerCase();
+				switch(_g32) {
 				case "png":case "jpeg":case "jpg":
 					Image.load(path,(function(index1) {
 						return function(i) {
@@ -375,9 +397,9 @@ var Level = function(model,sheet,index) {
 				}
 				break;
 			case 15:
-				var l2 = new LayerData(this,c.name,getProps(c.name));
-				l2.setTilesData(val);
-				this.layers.push(l2);
+				var l3 = new LayerData(this,c.name,getProps(c.name),{ o : this.obj, f : c.name});
+				l3.setTilesData(val);
+				this.layers.push(l3);
 				break;
 			default:
 			}
@@ -483,6 +505,62 @@ Level.prototype = {
 			}
 		}
 		return null;
+	}
+	,addNewLayer: function(name) {
+		if(this.newLayer == null) return;
+		if(name == null) {
+			var opt = this.content.find(".submenu.newlayer");
+			var hide = opt["is"](":visible");
+			this.content.find(".submenu").hide();
+			if(hide) this.content.find(".submenu.layer").show(); else {
+				opt.show();
+				this.content.find("[name=newName]").val("");
+			}
+			return;
+		}
+		var _g = this.newLayer.type;
+		switch(_g[1]) {
+		case 8:
+			var s = this.model.smap.get(this.sheet.name + "@" + this.newLayer.name).s;
+			var o = { name : null, data : null};
+			var _g1 = 0;
+			var _g2 = s.columns;
+			while(_g1 < _g2.length) {
+				var c = _g2[_g1];
+				++_g1;
+				var v = this.model.getDefault(c);
+				if(v != null) o[c.name] = v;
+			}
+			var a = Reflect.field(this.obj,this.newLayer.name);
+			o.name = name;
+			a.push(o);
+			var n = a.length - 2;
+			while(n >= 0) {
+				var o2 = a[n--];
+				if(o2.data != null) {
+					var a1 = cdb._Types.TileLayerData_Impl_.encode((function($this) {
+						var $r;
+						var _g11 = [];
+						{
+							var _g3 = 0;
+							var _g21 = $this.width * $this.height;
+							while(_g3 < _g21) {
+								var k = _g3++;
+								_g11.push(0);
+							}
+						}
+						$r = _g11;
+						return $r;
+					}(this)));
+					o.data = { file : o2.data.file, size : o2.data.size, stride : o2.data.stride, data : a1};
+					break;
+				}
+			}
+			this.save();
+			this.model.initContent();
+			break;
+		default:
+		}
 	}
 	,setup: function() {
 		var _g2 = this;
@@ -608,6 +686,7 @@ Level.prototype = {
 				};
 			})(l)});
 		}
+		this.content.find("[name=newlayer]").css({ display : this.newLayer != null?"block":"none"});
 		var _this;
 		_this = js.Boot.__cast(this.content.find("canvas.display")[0] , HTMLCanvasElement);
 		this.displayCanvas = _this.getContext("2d");
@@ -907,6 +986,25 @@ Level.prototype = {
 					this.save();
 					this.draw();
 					break;
+				case 2:
+					var data1 = _g1[3];
+					if(data1[x + y * this.width] != 0) return;
+					var fillRec2;
+					var fillRec3 = null;
+					fillRec3 = function(x2,y2,k1) {
+						if(data1[x2 + y2 * _g2.width] != 0) return;
+						data1[x2 + y2 * _g2.width] = _g2.currentLayer.current + 1;
+						_g2.currentLayer.dirty = true;
+						if(x2 > 0) fillRec3(x2 - 1,y2,k1);
+						if(y2 > 0) fillRec3(x2,y2 - 1,k1);
+						if(x2 < _g2.width - 1) fillRec3(x2 + 1,y2,k1);
+						if(y2 < _g2.height - 1) fillRec3(x2,y2 + 1,k1);
+					};
+					fillRec2 = fillRec3;
+					fillRec2(x,y,data1[x + y * this.width]);
+					this.save();
+					this.draw();
+					break;
 				default:
 				}
 			}
@@ -924,9 +1022,9 @@ Level.prototype = {
 				var _g11 = p.layer.data;
 				switch(_g11[1]) {
 				case 0:
-					var data1 = _g11[2];
-					if(data1[p.index] == 0) return;
-					data1[p.index] = 0;
+					var data2 = _g11[2];
+					if(data2[p.index] == 0) return;
+					data2[p.index] = 0;
 					p.layer.dirty = true;
 					this.save();
 					this.draw();
@@ -939,9 +1037,9 @@ Level.prototype = {
 					}
 					break;
 				case 2:
-					var data2 = _g11[3];
-					if(data2[p.index] == 0) return;
-					data2[p.index] = 0;
+					var data3 = _g11[3];
+					if(data3[p.index] == 0) return;
+					data3[p.index] = 0;
 					p.layer.dirty = true;
 					this.save();
 					this.draw();
@@ -1113,16 +1211,12 @@ Level.prototype = {
 			return;
 		}
 		this.needSave = false;
-		var changed = false;
 		var _g = 0;
 		var _g1 = this.layers;
 		while(_g < _g1.length) {
 			var l = _g1[_g];
 			++_g;
-			if(l.dirty) {
-				l.dirty = false;
-				Reflect.setField(this.obj,l.name,l.getData());
-			}
+			l.save();
 		}
 		this.model.save();
 	}
@@ -1181,8 +1275,13 @@ Level.prototype = {
 		this.save();
 	}
 	,toggleOptions: function() {
-		this.content.find(".submenu").toggle();
-		this.content.find("[name=tileSize]").val("" + this.tileSize);
+		var opt = this.content.find(".submenu.options");
+		var hide = opt["is"](":visible");
+		this.content.find(".submenu").hide();
+		if(hide) this.content.find(".submenu.layer").show(); else {
+			opt.show();
+			this.content.find("[name=tileSize]").val("" + this.tileSize);
+		}
 	}
 	,setSize: function(size) {
 		{
@@ -1282,12 +1381,13 @@ var LayerInnerData = $hxClasses["LayerInnerData"] = { __ename__ : ["LayerInnerDa
 LayerInnerData.Layer = function(a) { var $x = ["Layer",0,a]; $x.__enum__ = LayerInnerData; return $x; };
 LayerInnerData.Objects = function(idCol,objs) { var $x = ["Objects",1,idCol,objs]; $x.__enum__ = LayerInnerData; return $x; };
 LayerInnerData.Tiles = function(t,data) { var $x = ["Tiles",2,t,data]; $x.__enum__ = LayerInnerData; return $x; };
-var LayerData = function(level,name,p) {
+var LayerData = function(level,name,p,target) {
 	this.current = 0;
 	this.visible = true;
 	this.level = level;
 	this.name = name;
 	this.props = p;
+	this.targetObj = target;
 };
 $hxClasses["LayerData"] = LayerData;
 LayerData.__name__ = ["LayerData"];
@@ -1534,6 +1634,11 @@ LayerData.prototype = {
 	,saveState: function() {
 		var s = { current : this.current, visible : this.visible, lock : this.hasFloatCoord && !this.floatCoord};
 		js.Browser.getLocalStorage().setItem(this.level.sheetPath + ":" + this.name,haxe.Serializer.run(s));
+	}
+	,save: function() {
+		if(!this.dirty) return;
+		this.dirty = false;
+		Reflect.setField(this.targetObj.o,this.targetObj.f,this.getData());
 	}
 	,getData: function() {
 		{
@@ -3791,32 +3896,68 @@ Main.prototype = $extend(Model.prototype,{
 				var oldW = newW;
 				var oldH = newH;
 				if(c.name == "width") oldW = old; else oldH = old;
-				var _g1 = 0;
-				var _g2 = sheet.columns;
-				while(_g1 < _g2.length) {
-					var c1 = _g2[_g1];
-					++_g1;
+				var remapTileLayer = function(v) {
+					if(v == null) return null;
+					var odat = cdb._Types.TileLayerData_Impl_.decode(v.data);
+					var pos = 0;
+					var ndat = [];
+					var _g1 = 0;
+					while(_g1 < newH) {
+						var y = _g1++;
+						if(y >= oldH) {
+							var _g2 = 0;
+							while(_g2 < newW) {
+								var x = _g2++;
+								ndat.push(0);
+							}
+						} else if(newW <= oldW) {
+							var _g21 = 0;
+							while(_g21 < newW) {
+								var x1 = _g21++;
+								ndat.push(odat[pos++]);
+							}
+							pos += oldW - newW;
+						} else {
+							var _g22 = 0;
+							while(_g22 < oldW) {
+								var x2 = _g22++;
+								ndat.push(odat[pos++]);
+							}
+							var _g23 = oldW;
+							while(_g23 < newW) {
+								var x3 = _g23++;
+								ndat.push(0);
+							}
+						}
+					}
+					return { file : v.file, size : v.size, stride : v.stride, data : cdb._Types.TileLayerData_Impl_.encode(ndat)};
+				};
+				var _g11 = 0;
+				var _g24 = sheet.columns;
+				while(_g11 < _g24.length) {
+					var c1 = _g24[_g11];
+					++_g11;
+					var v1 = Reflect.field(obj,c1.name);
 					{
 						var _g3 = c1.type;
 						switch(_g3[1]) {
 						case 12:
-							var v = Reflect.field(obj,c1.name);
-							if(v == null || v == "") continue;
-							var odat = haxe.crypto.Base64.decode(v);
-							var ndat = haxe.io.Bytes.alloc(newW * newH);
+							if(v1 == null || v1 == "") continue;
+							var odat1 = haxe.crypto.Base64.decode(v1);
+							var ndat1 = haxe.io.Bytes.alloc(newW * newH);
 							var _g4 = 0;
 							while(_g4 < newH) {
-								var y = _g4++;
+								var y1 = _g4++;
 								var _g5 = 0;
 								while(_g5 < newW) {
-									var x = _g5++;
+									var x4 = _g5++;
 									var k;
-									if(y < oldH && x < oldW) k = odat.b[x + y * oldW]; else k = 0;
-									ndat.b[x + y * newW] = k;
+									if(y1 < oldH && x4 < oldW) k = odat1.b[x4 + y1 * oldW]; else k = 0;
+									ndat1.b[x4 + y1 * newW] = k;
 								}
 							}
-							v = haxe.crypto.Base64.encode(ndat);
-							obj[c1.name] = v;
+							v1 = haxe.crypto.Base64.encode(ndat1);
+							obj[c1.name] = v1;
 							break;
 						case 8:
 							var s = this.smap.get(sheet.name + "@" + c1.name).s;
@@ -3829,7 +3970,18 @@ Main.prototype = $extend(Model.prototype,{
 									++_g41;
 									if(e.x >= newW || e.y >= newH) HxOverrides.remove(elts,e);
 								}
+							} else if(this.hasColumn(s,"data",[cdb.ColumnType.TTileLayer])) {
+								var a = v1;
+								var _g42 = 0;
+								while(_g42 < a.length) {
+									var o = a[_g42];
+									++_g42;
+									o.data = remapTileLayer(o.data);
+								}
 							}
+							break;
+						case 15:
+							Reflect.setField(obj,c1.name,remapTileLayer(v1));
 							break;
 						default:
 						}
@@ -3838,11 +3990,11 @@ Main.prototype = $extend(Model.prototype,{
 			} else if(sheet.props.displayColumn == c.name) {
 				var obj1 = sheet.lines[index];
 				var s1 = this.smap.get(sheet.name);
-				var _g11 = 0;
-				var _g21 = sheet.columns;
-				while(_g11 < _g21.length) {
-					var cid = _g21[_g11];
-					++_g11;
+				var _g12 = 0;
+				var _g25 = sheet.columns;
+				while(_g12 < _g25.length) {
+					var cid = _g25[_g12];
+					++_g12;
 					if(cid.type == cdb.ColumnType.TId) {
 						var id = Reflect.field(obj1,cid.name);
 						if(id != null) {
@@ -3860,10 +4012,10 @@ Main.prototype = $extend(Model.prototype,{
 			var newV = Reflect.field(obj2,c.name);
 			if(newV != null && oldV != null && oldV.file != newV.file && !sys.FileSystem.exists(this.getAbsPath(oldV.file)) && sys.FileSystem.exists(this.getAbsPath(newV.file))) {
 				var change = false;
-				var _g22 = 0;
-				var _g12 = sheet.lines.length;
-				while(_g22 < _g12) {
-					var i = _g22++;
+				var _g26 = 0;
+				var _g13 = sheet.lines.length;
+				while(_g26 < _g13) {
+					var i = _g26++;
 					var t = Reflect.field(sheet.lines[i],c.name);
 					if(t != null && t.file == oldV.file) {
 						t.file = newV.file;
@@ -3877,11 +4029,11 @@ Main.prototype = $extend(Model.prototype,{
 			if(sheet.props.displayColumn == c.name) {
 				var obj1 = sheet.lines[index];
 				var s1 = this.smap.get(sheet.name);
-				var _g11 = 0;
-				var _g21 = sheet.columns;
-				while(_g11 < _g21.length) {
-					var cid = _g21[_g11];
-					++_g11;
+				var _g12 = 0;
+				var _g25 = sheet.columns;
+				while(_g12 < _g25.length) {
+					var cid = _g25[_g12];
+					++_g12;
 					if(cid.type == cdb.ColumnType.TId) {
 						var id = Reflect.field(obj1,cid.name);
 						if(id != null) {
@@ -6357,6 +6509,9 @@ cdb._Types.Layer_Impl_.decode = function(this1,all) {
 cdb._Types.TileLayerData_Impl_ = function() { };
 $hxClasses["cdb._Types.TileLayerData_Impl_"] = cdb._Types.TileLayerData_Impl_;
 cdb._Types.TileLayerData_Impl_.__name__ = ["cdb","_Types","TileLayerData_Impl_"];
+cdb._Types.TileLayerData_Impl_._new = function(v) {
+	return v;
+};
 cdb._Types.TileLayerData_Impl_.decode = function(this1) {
 	var k = haxe.crypto.Base64.decode(this1);
 	var _g = [];
@@ -6367,6 +6522,18 @@ cdb._Types.TileLayerData_Impl_.decode = function(this1) {
 		_g.push(k.b[i << 1] | k.b[(i << 1) + 1] << 8);
 	}
 	return _g;
+};
+cdb._Types.TileLayerData_Impl_.encode = function(a) {
+	var b = haxe.io.Bytes.alloc(a.length * 2);
+	var _g1 = 0;
+	var _g = a.length;
+	while(_g1 < _g) {
+		var i = _g1++;
+		var v = a[i];
+		b.b[i << 1] = v & 255;
+		b.b[(i << 1) + 1] = v >> 8 & 255;
+	}
+	return cdb._Types.TileLayerData_Impl_._new(haxe.crypto.Base64.encode(b));
 };
 cdb.IndexNoId = function(data,sheet) {
 	this.name = sheet;

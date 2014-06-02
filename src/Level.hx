@@ -13,14 +13,19 @@ class Image {
 	public var width(default, null) : Int;
 	public var height(default, null) : Int;
 	var ctx : js.html.CanvasRenderingContext2D;
+	var canvas : js.html.CanvasElement;
+	// origin can be either the canvas element or the original IMG if not modified
+	// this speed up things a lot since drawing canvas to canvas is very slow on Chrome
+	var origin : Dynamic;
 
 	public function new(w, h) {
 		this.width = w;
 		this.height = h;
-		var c = js.Browser.document.createCanvasElement();
-		c.width = w;
-		c.height = h;
-		ctx = c.getContext2d();
+		canvas = js.Browser.document.createCanvasElement();
+		origin = canvas;
+		canvas.width = w;
+		canvas.height = h;
+		ctx = canvas.getContext2d();
 	}
 
 	function getColor( color : Int ) {
@@ -28,53 +33,60 @@ class Image {
 	}
 
 	public function getCanvas() {
-		return ctx.canvas;
+		return canvas;
 	}
 
 	public function clear() {
 		ctx.clearRect(0, 0, width, height);
+		origin = canvas;
 	}
 
 	public function fill( color : Int ) {
 		ctx.fillStyle = getColor(color);
 		ctx.fillRect(0, 0, width, height);
+		origin = canvas;
 	}
 
 	public function sub( x : Int, y : Int, w : Int, h : Int ) {
 		var i = new Image(w, h);
-		i.ctx.drawImage(ctx.canvas, x, y, w, h, 0, 0, w, h);
+		i.ctx.drawImage(origin, x, y, w, h, 0, 0, w, h);
 		return i;
 	}
 
 	public function text( text : String, x : Int, y : Int, color : Int = 0xFFFFFFFF ) {
 		ctx.fillStyle = getColor(color);
 		ctx.fillText(text, x, y);
+		origin = canvas;
 	}
 
 	public function draw( i : Image, x : Int, y : Int ) {
-		ctx.drawImage(i.ctx.canvas, 0, 0, i.width, i.height, x, y, i.width, i.height);
+		ctx.drawImage(i.origin, 0, 0, i.width, i.height, x, y, i.width, i.height);
+		origin = canvas;
 	}
 
 	public function drawSub( i : Image, srcX : Int, srcY : Int, srcW : Int, srcH : Int, x : Int, y : Int, dstW : Int = -1, dstH : Int = -1 ) {
 		if( dstW < 0 ) dstW = srcW;
 		if( dstH < 0 ) dstH = srcH;
-		ctx.drawImage(i.ctx.canvas, srcX, srcY, srcW, srcH, x, y, dstW, dstH);
+		ctx.drawImage(i.origin, srcX, srcY, srcW, srcH, x, y, dstW, dstH);
+		origin = canvas;
 	}
 
 	public function copyFrom( i : Image, smooth = false ) {
 		ctx.fillStyle = "rgba(0,0,0,0)";
 		ctx.fillRect(0, 0, width, height);
 		ctx.imageSmoothingEnabled = smooth;
-		ctx.drawImage(i.ctx.canvas, 0, 0, i.width, i.height, 0, 0, width, height);
+		ctx.drawImage(i.origin, 0, 0, i.width, i.height, 0, 0, width, height);
+		origin = canvas;
 	}
 
 	public function setSize( width, height ) {
 		if( width == this.width && height == this.height )
 			return;
-		ctx.canvas.width = width;
-		ctx.canvas.height = height;
+		canvas.width = width;
+		canvas.height = height;
 		this.width = width;
 		this.height = height;
+		origin = canvas;
 	}
 
 	public function resize( width : Int, height : Int, ?smooth : Bool ) {
@@ -87,8 +99,10 @@ class Image {
 		c.height = height;
 		var ctx2 = c.getContext2d();
 		ctx2.imageSmoothingEnabled = smooth;
-		ctx2.drawImage(ctx.canvas, 0, 0, this.width, this.height, 0, 0, width, height);
+		ctx2.drawImage(canvas, 0, 0, this.width, this.height, 0, 0, width, height);
 		ctx = ctx2;
+		canvas = c;
+		origin = c;
 		this.width = width;
 		this.height = height;
 	}
@@ -98,6 +112,7 @@ class Image {
 		i.onload = function(_) {
 			var im = new Image(i.width, i.height);
 			im.ctx.drawImage(i, 0, 0);
+			im.origin = i;
 			callb(im);
 		};
 		i.onerror = function(_) {
@@ -155,6 +170,7 @@ class Level {
 
 	var mousePos = { x : 0, y : 0 };
 	var startPos : { x : Int, y : Int, xf : Float, yf : Float } = null;
+	var newLayer : Column;
 
 	public function new( model : Model, sheet : Sheet, index : Int ) {
 		this.sheet = sheet;
@@ -197,7 +213,7 @@ class Level {
 			case TId:
 				title = val;
 			case TLayer(type):
-				var l = new LayerData(this, c.name, getProps(c.name));
+				var l = new LayerData(this, c.name, getProps(c.name), { o : obj, f : c.name });
 				l.loadSheetData(model.getSheet(type));
 				l.setLayerData(val);
 				layers.push(l);
@@ -214,13 +230,22 @@ class Level {
 							break;
 						default:
 						}
-					var l = new LayerData(this, c.name, getProps(c.name));
+					var l = new LayerData(this, c.name, getProps(c.name), { o : obj, f : c.name });
 					l.hasFloatCoord = l.floatCoord = floatCoord;
 					l.baseSheet = sheet;
 					l.loadSheetData(sid);
 					l.setObjectsData(idCol, val);
 					l.hasSize = model.hasColumn(sheet, "width", [floatCoord?TFloat:TInt]) && model.hasColumn(sheet, "height", [floatCoord?TFloat:TInt]);
 					layers.push(l);
+				} else if( model.hasColumn(sheet, "name", [TString]) && model.hasColumn(sheet, "data", [TTileLayer]) ) {
+					var val : Array<{ name : String, data : Dynamic }> = val;
+					for( lobj in val ) {
+						if( lobj.name == null ) continue;
+						var l = new LayerData(this, lobj.name, getProps(lobj.name), { o : lobj, f : "data" });
+						l.setTilesData(lobj.data);
+						layers.push(l);
+					}
+					newLayer = c;
 				}
 			case TFile:
 				if( val == null || c.name.toLowerCase().indexOf("layer") < 0 ) continue;
@@ -238,7 +263,7 @@ class Level {
 				default:
 				}
 			case TTileLayer:
-				var l = new LayerData(this, c.name, getProps(c.name));
+				var l = new LayerData(this, c.name, getProps(c.name), { o : obj, f : c.name });
 				l.setTilesData(val);
 				layers.push(l);
 			default:
@@ -329,6 +354,46 @@ class Level {
 		return null;
 	}
 
+	@:keep function addNewLayer( ?name ) {
+		if( newLayer == null ) return;
+		if( name == null ) {
+			var opt = content.find(".submenu.newlayer");
+			var hide = opt.is(":visible");
+			content.find(".submenu").hide();
+			if( hide )
+				content.find(".submenu.layer").show();
+			else {
+				opt.show();
+				content.find("[name=newName]").val("");
+			}
+			return;
+		}
+		switch( newLayer.type ) {
+		case TList:
+			var s = model.getPseudoSheet(sheet, newLayer);
+			var o = { name : null, data : null };
+			for( c in s.columns ) {
+				var v = model.getDefault(c);
+				if( v != null ) Reflect.setField(o, c.name, v);
+			}
+			var a : Array<{ name : String, data : cdb.Types.TileLayer }> = Reflect.field(obj, newLayer.name);
+			o.name = name;
+			a.push(o);
+			var n = a.length - 2;
+			while( n >= 0 ) {
+				var o2 = a[n--];
+				if( o2.data != null ) {
+					var a = cdb.Types.TileLayerData.encode([for( k in 0...width * height ) 0]);
+					o.data = cast { file : o2.data.file, size : o2.data.size, stride : o2.data.stride, data : a };
+					break;
+				}
+			}
+			save();
+			model.initContent();
+		default:
+		}
+	}
+
 	function setup() {
 		var page = J("#content");
 		page.html("");
@@ -388,6 +453,8 @@ class Level {
 				},
 			});
 		}
+
+		content.find('[name=newlayer]').css({ display : newLayer != null ? 'block' : 'none' });
 
 
 		displayCanvas = cast(content.find("canvas.display")[0], js.html.CanvasElement).getContext2d();
@@ -638,6 +705,20 @@ class Level {
 				fillRec(x, y, data[x + y * width]);
 				save();
 				draw();
+			case Tiles(_, data):
+				if( data[x + y * width] != 0 ) return;
+				function fillRec(x, y, k) {
+					if( data[x + y * width] != 0 ) return;
+					data[x + y * width] = currentLayer.current + 1;
+					currentLayer.dirty = true;
+					if( x > 0 ) fillRec(x - 1, y, k);
+					if( y > 0 ) fillRec(x, y - 1, k);
+					if( x < width - 1 ) fillRec(x + 1, y, k);
+					if( y < height - 1 ) fillRec(x, y + 1, k);
+				}
+				fillRec(x, y, data[x + y * width]);
+				save();
+				draw();
 			default:
 			}
 		case K.NUMPAD_ADD:
@@ -781,12 +862,8 @@ class Level {
 			return;
 		}
 		needSave = false;
-		var changed = false;
 		for( l in layers )
-			if( l.dirty ) {
-				l.dirty = false;
-				Reflect.setField(obj, l.name, l.getData());
-			}
+			l.save();
 		model.save();
 	}
 
@@ -843,8 +920,15 @@ class Level {
 	}
 
 	@:keep function toggleOptions() {
-		content.find(".submenu").toggle();
-		content.find("[name=tileSize]").val("" + tileSize);
+		var opt = content.find(".submenu.options");
+		var hide = opt.is(":visible");
+		content.find(".submenu").hide();
+		if( hide )
+			content.find(".submenu.layer").show();
+		else {
+			opt.show();
+			content.find("[name=tileSize]").val("" + tileSize);
+		}
 	}
 
 	@:keep function setSize(size) {
@@ -947,10 +1031,13 @@ class LayerData {
 	public var hasFloatCoord : Bool;
 	public var hasSize : Bool;
 
-	public function new(level, name, p) {
+	public var targetObj : { o : Dynamic, f : String };
+
+	public function new(level, name, p, target) {
 		this.level = level;
 		this.name = name;
 		props = p;
+		targetObj = target;
 	}
 
 	public function loadSheetData( sheet : Sheet ) {
@@ -1125,7 +1212,13 @@ class LayerData {
 		js.Browser.getLocalStorage().setItem(level.sheetPath + ":" + name, haxe.Serializer.run(s));
 	}
 
-	public function getData() : Dynamic {
+	public function save() {
+		if( !dirty ) return;
+		dirty = false;
+		Reflect.setField(targetObj.o, targetObj.f, getData());
+	}
+
+	function getData() : Dynamic {
 		switch( data ) {
 		case Layer(data):
 			var b = haxe.io.Bytes.alloc(level.width * level.height);

@@ -145,10 +145,11 @@
 			<div class="menu">
 				<div class="options">
 					<input type="submit" value="Options" onclick="_.level.toggleOptions()"/>
+					<input name="newlayer" type="submit" value="New Layer" onclick="_.level.addNewLayer()"/>
 					<div class="cursorPosition"></div>
 				</div>
 			</div>
-			<div class="submenu">
+			<div class="submenu layer">
 				<div class="item">
 					<label><input type="checkbox" name="visible" onchange="_.level.setVisible(this.checked)"/> Visible</label>
 				</div>
@@ -171,6 +172,14 @@
 			<div class="submenu options">
 				<div class="item">
 					<label>Tile Size <input type="text" name="tileSize" onchange="_.level.setTileSize(parseInt(this.value))"/></label>
+					<input type="submit" value="Cancel" onclick="_.level.toggleOptions()"/>
+				</div>
+			</div>
+			<div class="submenu newlayer">
+				<div class="item">
+					<label>Name <input type="text" name="newName"/></label>
+					<input type="submit" value="Create" onclick="_.level.addNewLayer($(parentNode).find('[name=newName]').val())"/>
+					<input type="submit" value="Cancel" onclick="_.level.addNewLayer()"/>
 				</div>
 			</div>
 			<div class="scroll">
