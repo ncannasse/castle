@@ -147,120 +147,6 @@ Lambda.find = function(it,f) {
 	}
 	return null;
 };
-var Image = function(w,h) {
-	this.width = w;
-	this.height = h;
-	var _this = window.document;
-	this.canvas = _this.createElement("canvas");
-	this.origin = this.canvas;
-	this.canvas.width = w;
-	this.canvas.height = h;
-	this.ctx = this.canvas.getContext("2d");
-};
-$hxClasses["Image"] = Image;
-Image.__name__ = ["Image"];
-Image.load = function(url,callb,onError) {
-	var i;
-	var _this = window.document;
-	i = _this.createElement("img");
-	i.onload = function(_) {
-		var im = new Image(i.width,i.height);
-		im.ctx.drawImage(i,0,0);
-		im.origin = i;
-		callb(im);
-	};
-	i.onerror = function(_1) {
-		if(onError != null) {
-			onError();
-			return;
-		}
-		var i1 = new Image(16,16);
-		i1.fill(-65281);
-		callb(i1);
-	};
-	i.src = url;
-};
-Image.fromCanvas = function(c) {
-	var i = new Image(0,0);
-	i.width = c.width;
-	i.height = c.height;
-	i.ctx = c.getContext("2d");
-	return i;
-};
-Image.prototype = {
-	getColor: function(color) {
-		if(color >>> 24 == 255) return "#" + StringTools.hex(color & 16777215,6); else return "rgba(" + (color >> 16 & 255) + "," + (color >> 8 & 255) + "," + (color & 255) + "," + (color >>> 24) / 255 + ")";
-	}
-	,getCanvas: function() {
-		return this.canvas;
-	}
-	,clear: function() {
-		this.ctx.clearRect(0,0,this.width,this.height);
-		this.origin = this.canvas;
-	}
-	,fill: function(color) {
-		this.ctx.fillStyle = this.getColor(color);
-		this.ctx.fillRect(0,0,this.width,this.height);
-		this.origin = this.canvas;
-	}
-	,sub: function(x,y,w,h) {
-		var i = new Image(w,h);
-		i.ctx.drawImage(this.origin,x,y,w,h,0,0,w,h);
-		return i;
-	}
-	,text: function(text,x,y,color) {
-		if(color == null) color = -1;
-		this.ctx.fillStyle = this.getColor(color);
-		this.ctx.fillText(text,x,y);
-		this.origin = this.canvas;
-	}
-	,draw: function(i,x,y) {
-		this.ctx.drawImage(i.origin,0,0,i.width,i.height,x,y,i.width,i.height);
-		this.origin = this.canvas;
-	}
-	,drawSub: function(i,srcX,srcY,srcW,srcH,x,y,dstW,dstH) {
-		if(dstH == null) dstH = -1;
-		if(dstW == null) dstW = -1;
-		if(dstW < 0) dstW = srcW;
-		if(dstH < 0) dstH = srcH;
-		this.ctx.drawImage(i.origin,srcX,srcY,srcW,srcH,x,y,dstW,dstH);
-		this.origin = this.canvas;
-	}
-	,copyFrom: function(i,smooth) {
-		if(smooth == null) smooth = false;
-		this.ctx.fillStyle = "rgba(0,0,0,0)";
-		this.ctx.fillRect(0,0,this.width,this.height);
-		this.ctx.imageSmoothingEnabled = smooth;
-		this.ctx.drawImage(i.origin,0,0,i.width,i.height,0,0,this.width,this.height);
-		this.origin = this.canvas;
-	}
-	,setSize: function(width,height) {
-		if(width == this.width && height == this.height) return;
-		this.canvas.width = width;
-		this.canvas.height = height;
-		this.width = width;
-		this.height = height;
-		this.origin = this.canvas;
-	}
-	,resize: function(width,height,smooth) {
-		if(width == this.width && height == this.height) return;
-		if(smooth == null) smooth = width < this.width || height < this.height;
-		var c;
-		var _this = window.document;
-		c = _this.createElement("canvas");
-		c.width = width;
-		c.height = height;
-		var ctx2 = c.getContext("2d");
-		ctx2.imageSmoothingEnabled = smooth;
-		ctx2.drawImage(this.canvas,0,0,this.width,this.height,0,0,width,height);
-		this.ctx = ctx2;
-		this.canvas = c;
-		this.origin = c;
-		this.width = width;
-		this.height = height;
-	}
-	,__class__: Image
-};
 var Level = function(model,sheet,index) {
 	this.startPos = null;
 	this.mousePos = { x : 0, y : 0};
@@ -320,7 +206,7 @@ var Level = function(model,sheet,index) {
 				break;
 			case 12:
 				var type = _g22[2];
-				var l = new LayerData(this,c.name,getProps(c.name),{ o : this.obj, f : c.name});
+				var l = new lvl.LayerData(this,c.name,getProps(c.name),{ o : this.obj, f : c.name});
 				l.loadSheetData(model.smap.get(type).s);
 				l.setLayerData(val);
 				this.layers.push(l);
@@ -351,7 +237,7 @@ var Level = function(model,sheet,index) {
 							}
 						}
 					} catch( e ) { if( e != "__break__" ) throw e; }
-					var l1 = new LayerData(this,c.name,getProps(c.name),{ o : this.obj, f : c.name});
+					var l1 = new lvl.LayerData(this,c.name,getProps(c.name),{ o : this.obj, f : c.name});
 					l1.hasFloatCoord = l1.floatCoord = floatCoord;
 					l1.baseSheet = sheet1;
 					l1.loadSheetData(sid);
@@ -365,7 +251,7 @@ var Level = function(model,sheet,index) {
 						var lobj = val1[_g31];
 						++_g31;
 						if(lobj.name == null) continue;
-						var l2 = new LayerData(this,lobj.name,getProps(lobj.name),{ o : lobj, f : "data"});
+						var l2 = new lvl.LayerData(this,lobj.name,getProps(lobj.name),{ o : lobj, f : "data"});
 						l2.setTilesData(lobj.data);
 						this.layers.push(l2);
 					}
@@ -379,7 +265,7 @@ var Level = function(model,sheet,index) {
 				var _g32 = path.split(".").pop().toLowerCase();
 				switch(_g32) {
 				case "png":case "jpeg":case "jpg":
-					Image.load(path,(function(index1) {
+					lvl.Image.load(path,(function(index1) {
 						return function(i) {
 							_g.images.push({ index : index1[0], data : i});
 							_g.images.sort((function() {
@@ -397,7 +283,7 @@ var Level = function(model,sheet,index) {
 				}
 				break;
 			case 15:
-				var l3 = new LayerData(this,c.name,getProps(c.name),{ o : this.obj, f : c.name});
+				var l3 = new lvl.LayerData(this,c.name,getProps(c.name),{ o : this.obj, f : c.name});
 				l3.setTilesData(val);
 				this.layers.push(l3);
 				break;
@@ -719,7 +605,7 @@ Level.prototype = {
 		var _this2 = window.document;
 		curCanvas = _this2.createElement("canvas");
 		new js.JQuery(curCanvas).appendTo(this.cursor);
-		this.cursorImage = Image.fromCanvas(curCanvas);
+		this.cursorImage = lvl.Image.fromCanvas(curCanvas);
 		this.cursor.hide();
 		scont.mouseleave(function(_6) {
 			_g2.curPos = null;
@@ -1376,316 +1262,6 @@ Level.prototype = {
 		}
 	}
 	,__class__: Level
-};
-var LayerInnerData = $hxClasses["LayerInnerData"] = { __ename__ : ["LayerInnerData"], __constructs__ : ["Layer","Objects","Tiles"] };
-LayerInnerData.Layer = function(a) { var $x = ["Layer",0,a]; $x.__enum__ = LayerInnerData; return $x; };
-LayerInnerData.Objects = function(idCol,objs) { var $x = ["Objects",1,idCol,objs]; $x.__enum__ = LayerInnerData; return $x; };
-LayerInnerData.Tiles = function(t,data) { var $x = ["Tiles",2,t,data]; $x.__enum__ = LayerInnerData; return $x; };
-var LayerData = function(level,name,p,target) {
-	this.current = 0;
-	this.visible = true;
-	this.level = level;
-	this.name = name;
-	this.props = p;
-	this.targetObj = target;
-};
-$hxClasses["LayerData"] = LayerData;
-LayerData.__name__ = ["LayerData"];
-LayerData.prototype = {
-	loadSheetData: function(sheet) {
-		var _g5 = this;
-		this.sheet = sheet;
-		if(sheet == null) {
-			if(this.props.color == null) this.props.color = 16711680;
-			this.colors = [this.props.color];
-			this.names = [this.name];
-			return;
-		}
-		var idCol = null;
-		var first = this.level.layers.length == 0;
-		var erase;
-		if(first) erase = "#ccc"; else erase = "rgba(0,0,0,0)";
-		var _g = 0;
-		var _g1 = sheet.columns;
-		while(_g < _g1.length) {
-			var c = _g1[_g];
-			++_g;
-			var _g2 = c.type;
-			switch(_g2[1]) {
-			case 11:
-				var _g3 = [];
-				var _g4 = 0;
-				var _g51 = sheet.lines;
-				while(_g4 < _g51.length) {
-					var o = _g51[_g4];
-					++_g4;
-					_g3.push((function($this) {
-						var $r;
-						var c1 = Reflect.field(o,c.name);
-						$r = c1 == null?0:c1;
-						return $r;
-					}(this)));
-				}
-				this.colors = _g3;
-				break;
-			case 7:
-				if(this.images == null) this.images = [];
-				var size = [this.level.tileSize];
-				var _g41 = 0;
-				var _g31 = sheet.lines.length;
-				while(_g41 < _g31) {
-					var idx = [_g41++];
-					var key = Reflect.field(sheet.lines[idx[0]],c.name);
-					var idat = this.level.model.getImageData(key);
-					if(idat == null && this.images[idx[0]] != null) continue;
-					if(idat == null) {
-						var i = new Image(size[0],size[0]);
-						i.text("#" + idx[0],0,12);
-						this.images[idx[0]] = i;
-						continue;
-					}
-					this.level.wait();
-					Image.load(idat,(function(idx,size) {
-						return function(i1) {
-							i1.resize(size[0],size[0]);
-							_g5.images[idx[0]] = i1;
-							_g5.level.waitDone();
-						};
-					})(idx,size));
-				}
-				break;
-			case 14:
-				if(this.images == null) this.images = [];
-				var size1 = [this.level.tileSize];
-				var _g42 = 0;
-				var _g32 = sheet.lines.length;
-				while(_g42 < _g32) {
-					var idx1 = [_g42++];
-					var data = [Reflect.field(sheet.lines[idx1[0]],c.name)];
-					if(data[0] == null && this.images[idx1[0]] != null) continue;
-					if(data[0] == null) {
-						var i2 = new Image(size1[0],size1[0]);
-						i2.text("#" + idx1[0],0,12);
-						this.images[idx1[0]] = i2;
-						continue;
-					}
-					this.level.wait();
-					Image.load(this.level.model.getAbsPath(data[0].file),(function(data,idx1,size1) {
-						return function(i3) {
-							var i21 = new Image(data[0].size,data[0].size);
-							i21.fill(-1118482);
-							i21.drawSub(i3,data[0].x * data[0].size,data[0].y * data[0].size,data[0].size,data[0].size,0,0,data[0].size,data[0].size);
-							i21.resize(size1[0],size1[0]);
-							_g5.images[idx1[0]] = i21;
-							_g5.level.waitDone();
-						};
-					})(data,idx1,size1));
-				}
-				break;
-			case 0:
-				idCol = c;
-				break;
-			default:
-			}
-		}
-		this.names = [];
-		this.idToIndex = new haxe.ds.StringMap();
-		this.indexToId = [];
-		var _g11 = 0;
-		var _g6 = sheet.lines.length;
-		while(_g11 < _g6) {
-			var index = _g11++;
-			var o1 = sheet.lines[index];
-			var n;
-			if(sheet.props.displayColumn != null) n = Reflect.field(o1,sheet.props.displayColumn); else n = null;
-			if((n == null || n == "") && idCol != null) n = Reflect.field(o1,idCol.name);
-			if(n == null || n == "") n = "#" + index;
-			if(idCol != null) {
-				var id = Reflect.field(o1,idCol.name);
-				if(id != null && id != "") this.idToIndex.set(id,index);
-				this.indexToId[index] = id;
-			}
-			this.names.push(n);
-		}
-		this.loadState();
-	}
-	,loadState: function() {
-		var state;
-		try {
-			state = haxe.Unserializer.run(js.Browser.getLocalStorage().getItem(this.level.sheetPath + ":" + this.name));
-		} catch( e ) {
-			state = null;
-		}
-		if(state != null) {
-			this.set_visible(state.visible);
-			this.floatCoord = this.hasFloatCoord && !state.lock;
-			if(state.current < (this.images != null?this.images.length:this.names.length)) this.set_current(state.current);
-		}
-	}
-	,setLayerData: function(val) {
-		if(val == null || val == "") this.data = LayerInnerData.Layer((function($this) {
-			var $r;
-			var _g = [];
-			{
-				var _g2 = 0;
-				var _g1 = $this.level.width * $this.level.height;
-				while(_g2 < _g1) {
-					var x = _g2++;
-					_g.push(0);
-				}
-			}
-			$r = _g;
-			return $r;
-		}(this))); else {
-			var a = haxe.crypto.Base64.decode(val);
-			if(a.length != this.level.width * this.level.height) throw "Invalid layer data";
-			this.data = LayerInnerData.Layer((function($this) {
-				var $r;
-				var _g11 = [];
-				{
-					var _g3 = 0;
-					var _g21 = $this.level.width * $this.level.height;
-					while(_g3 < _g21) {
-						var i = _g3++;
-						_g11.push(a.b[i]);
-					}
-				}
-				$r = _g11;
-				return $r;
-			}(this)));
-		}
-		if(this.sheet.lines.length > 256) throw "Too many lines";
-	}
-	,setObjectsData: function(id,val) {
-		this.data = LayerInnerData.Objects(id,val);
-	}
-	,setTilesData: function(val) {
-		var _g3 = this;
-		var file;
-		if(val == null) file = null; else file = val.file;
-		var size;
-		if(val == null) size = 16; else size = val.size;
-		var data;
-		if(val == null) {
-			var _g = [];
-			var _g2 = 0;
-			var _g1 = this.level.width * this.level.height;
-			while(_g2 < _g1) {
-				var i = _g2++;
-				_g.push(0);
-			}
-			data = _g;
-		} else data = cdb._Types.TileLayerData_Impl_.decode(val.data);
-		var stride;
-		if(val == null) stride = 0; else stride = val.stride;
-		var d = { file : file, size : size, stride : stride};
-		this.images = [];
-		this.data = LayerInnerData.Tiles(d,data);
-		if(file == null) {
-			var i1 = new Image(16,16);
-			i1.fill(-65281);
-			this.images.push(i1);
-			return;
-		}
-		this.level.wait();
-		Image.load(this.level.model.getAbsPath(file),function(i2) {
-			var w = i2.width / size | 0;
-			var h = i2.height / size | 0;
-			var max = w * h;
-			var _g21 = 0;
-			var _g11 = data.length;
-			while(_g21 < _g11) {
-				var i3 = _g21++;
-				var v = data[i3] - 1;
-				if(v < 0) continue;
-				var vx = v % stride;
-				var vy = v / stride | 0;
-				if(vx >= w || vy >= h) data[i3] = 0; else {
-					v = vx + vy * w;
-					data[i3] = v + 1;
-				}
-			}
-			d.stride = w;
-			var _g12 = 0;
-			while(_g12 < h) {
-				var y = _g12++;
-				var _g22 = 0;
-				while(_g22 < w) {
-					var x = _g22++;
-					var i4 = i2.sub(x * size,y * size,size,size);
-					_g3.images.push(i4);
-				}
-			}
-			_g3.loadState();
-			_g3.level.waitDone();
-		});
-	}
-	,set_visible: function(v) {
-		this.visible = v;
-		if(this.comp != null) this.comp.toggleClass("hidden",!this.visible);
-		this.saveState();
-		return v;
-	}
-	,set_current: function(v) {
-		this.current = v;
-		this.saveState();
-		return v;
-	}
-	,saveState: function() {
-		var s = { current : this.current, visible : this.visible, lock : this.hasFloatCoord && !this.floatCoord};
-		js.Browser.getLocalStorage().setItem(this.level.sheetPath + ":" + this.name,haxe.Serializer.run(s));
-	}
-	,save: function() {
-		if(!this.dirty) return;
-		this.dirty = false;
-		Reflect.setField(this.targetObj.o,this.targetObj.f,this.getData());
-	}
-	,getData: function() {
-		{
-			var _g = this.data;
-			switch(_g[1]) {
-			case 0:
-				var data = _g[2];
-				var b = haxe.io.Bytes.alloc(this.level.width * this.level.height);
-				var p = 0;
-				var _g2 = 0;
-				var _g1 = this.level.height;
-				while(_g2 < _g1) {
-					var y = _g2++;
-					var _g4 = 0;
-					var _g3 = this.level.width;
-					while(_g4 < _g3) {
-						var x = _g4++;
-						b.b[p] = data[p];
-						p++;
-					}
-				}
-				return haxe.crypto.Base64.encode(b);
-			case 1:
-				var objs = _g[3];
-				return objs;
-			case 2:
-				var data1 = _g[3];
-				var t = _g[2];
-				var b1 = new haxe.io.BytesOutput();
-				var r = 0;
-				var _g21 = 0;
-				var _g11 = this.level.width;
-				while(_g21 < _g11) {
-					var y1 = _g21++;
-					var _g41 = 0;
-					var _g31 = this.level.height;
-					while(_g41 < _g31) {
-						var x1 = _g41++;
-						b1.writeUInt16(data1[r++]);
-					}
-				}
-				if(t.file == null) return null; else return { file : t.file, size : t.size, stride : t.stride, data : haxe.crypto.Base64.encode(b1.getBytes())};
-				break;
-			}
-		}
-	}
-	,__class__: LayerData
 };
 var List = function() {
 	this.length = 0;
@@ -7978,6 +7554,431 @@ js.Selection.prototype = {
 		range.select();
 	}
 	,__class__: js.Selection
+};
+var lvl = {};
+lvl.Image = function(w,h) {
+	this.width = w;
+	this.height = h;
+	var _this = window.document;
+	this.canvas = _this.createElement("canvas");
+	this.origin = this.canvas;
+	this.canvas.width = w;
+	this.canvas.height = h;
+	this.ctx = this.canvas.getContext("2d");
+};
+$hxClasses["lvl.Image"] = lvl.Image;
+lvl.Image.__name__ = ["lvl","Image"];
+lvl.Image.load = function(url,callb,onError) {
+	var i;
+	var _this = window.document;
+	i = _this.createElement("img");
+	i.onload = function(_) {
+		var im = new lvl.Image(i.width,i.height);
+		im.ctx.drawImage(i,0,0);
+		im.origin = i;
+		callb(im);
+	};
+	i.onerror = function(_1) {
+		if(onError != null) {
+			onError();
+			return;
+		}
+		var i1 = new lvl.Image(16,16);
+		i1.fill(-65281);
+		callb(i1);
+	};
+	i.src = url;
+};
+lvl.Image.fromCanvas = function(c) {
+	var i = new lvl.Image(0,0);
+	i.width = c.width;
+	i.height = c.height;
+	i.ctx = c.getContext("2d");
+	return i;
+};
+lvl.Image.prototype = {
+	getColor: function(color) {
+		if(color >>> 24 == 255) return "#" + StringTools.hex(color & 16777215,6); else return "rgba(" + (color >> 16 & 255) + "," + (color >> 8 & 255) + "," + (color & 255) + "," + (color >>> 24) / 255 + ")";
+	}
+	,getCanvas: function() {
+		return this.canvas;
+	}
+	,clear: function() {
+		this.ctx.clearRect(0,0,this.width,this.height);
+		this.origin = this.canvas;
+	}
+	,fill: function(color) {
+		this.ctx.fillStyle = this.getColor(color);
+		this.ctx.fillRect(0,0,this.width,this.height);
+		this.origin = this.canvas;
+	}
+	,sub: function(x,y,w,h) {
+		var i = new lvl.Image(w,h);
+		i.ctx.drawImage(this.origin,x,y,w,h,0,0,w,h);
+		return i;
+	}
+	,text: function(text,x,y,color) {
+		if(color == null) color = -1;
+		this.ctx.fillStyle = this.getColor(color);
+		this.ctx.fillText(text,x,y);
+		this.origin = this.canvas;
+	}
+	,draw: function(i,x,y) {
+		this.ctx.drawImage(i.origin,0,0,i.width,i.height,x,y,i.width,i.height);
+		this.origin = this.canvas;
+	}
+	,drawSub: function(i,srcX,srcY,srcW,srcH,x,y,dstW,dstH) {
+		if(dstH == null) dstH = -1;
+		if(dstW == null) dstW = -1;
+		if(dstW < 0) dstW = srcW;
+		if(dstH < 0) dstH = srcH;
+		this.ctx.drawImage(i.origin,srcX,srcY,srcW,srcH,x,y,dstW,dstH);
+		this.origin = this.canvas;
+	}
+	,copyFrom: function(i,smooth) {
+		if(smooth == null) smooth = false;
+		this.ctx.fillStyle = "rgba(0,0,0,0)";
+		this.ctx.fillRect(0,0,this.width,this.height);
+		this.ctx.imageSmoothingEnabled = smooth;
+		this.ctx.drawImage(i.origin,0,0,i.width,i.height,0,0,this.width,this.height);
+		this.origin = this.canvas;
+	}
+	,setSize: function(width,height) {
+		if(width == this.width && height == this.height) return;
+		this.canvas.width = width;
+		this.canvas.height = height;
+		this.width = width;
+		this.height = height;
+		this.origin = this.canvas;
+	}
+	,resize: function(width,height,smooth) {
+		if(width == this.width && height == this.height) return;
+		if(smooth == null) smooth = width < this.width || height < this.height;
+		var c;
+		var _this = window.document;
+		c = _this.createElement("canvas");
+		c.width = width;
+		c.height = height;
+		var ctx2 = c.getContext("2d");
+		ctx2.imageSmoothingEnabled = smooth;
+		ctx2.drawImage(this.canvas,0,0,this.width,this.height,0,0,width,height);
+		this.ctx = ctx2;
+		this.canvas = c;
+		this.origin = c;
+		this.width = width;
+		this.height = height;
+	}
+	,__class__: lvl.Image
+};
+lvl.LayerInnerData = $hxClasses["lvl.LayerInnerData"] = { __ename__ : ["lvl","LayerInnerData"], __constructs__ : ["Layer","Objects","Tiles"] };
+lvl.LayerInnerData.Layer = function(a) { var $x = ["Layer",0,a]; $x.__enum__ = lvl.LayerInnerData; return $x; };
+lvl.LayerInnerData.Objects = function(idCol,objs) { var $x = ["Objects",1,idCol,objs]; $x.__enum__ = lvl.LayerInnerData; return $x; };
+lvl.LayerInnerData.Tiles = function(t,data) { var $x = ["Tiles",2,t,data]; $x.__enum__ = lvl.LayerInnerData; return $x; };
+lvl.LayerData = function(level,name,p,target) {
+	this.current = 0;
+	this.visible = true;
+	this.level = level;
+	this.name = name;
+	this.props = p;
+	this.targetObj = target;
+};
+$hxClasses["lvl.LayerData"] = lvl.LayerData;
+lvl.LayerData.__name__ = ["lvl","LayerData"];
+lvl.LayerData.prototype = {
+	loadSheetData: function(sheet) {
+		var _g5 = this;
+		this.sheet = sheet;
+		if(sheet == null) {
+			if(this.props.color == null) this.props.color = 16711680;
+			this.colors = [this.props.color];
+			this.names = [this.name];
+			return;
+		}
+		var idCol = null;
+		var first = this.level.layers.length == 0;
+		var erase;
+		if(first) erase = "#ccc"; else erase = "rgba(0,0,0,0)";
+		var _g = 0;
+		var _g1 = sheet.columns;
+		while(_g < _g1.length) {
+			var c = _g1[_g];
+			++_g;
+			var _g2 = c.type;
+			switch(_g2[1]) {
+			case 11:
+				var _g3 = [];
+				var _g4 = 0;
+				var _g51 = sheet.lines;
+				while(_g4 < _g51.length) {
+					var o = _g51[_g4];
+					++_g4;
+					_g3.push((function($this) {
+						var $r;
+						var c1 = Reflect.field(o,c.name);
+						$r = c1 == null?0:c1;
+						return $r;
+					}(this)));
+				}
+				this.colors = _g3;
+				break;
+			case 7:
+				if(this.images == null) this.images = [];
+				var size = [this.level.tileSize];
+				var _g41 = 0;
+				var _g31 = sheet.lines.length;
+				while(_g41 < _g31) {
+					var idx = [_g41++];
+					var key = Reflect.field(sheet.lines[idx[0]],c.name);
+					var idat = this.level.model.getImageData(key);
+					if(idat == null && this.images[idx[0]] != null) continue;
+					if(idat == null) {
+						var i = new lvl.Image(size[0],size[0]);
+						i.text("#" + idx[0],0,12);
+						this.images[idx[0]] = i;
+						continue;
+					}
+					this.level.wait();
+					lvl.Image.load(idat,(function(idx,size) {
+						return function(i1) {
+							i1.resize(size[0],size[0]);
+							_g5.images[idx[0]] = i1;
+							_g5.level.waitDone();
+						};
+					})(idx,size));
+				}
+				break;
+			case 14:
+				if(this.images == null) this.images = [];
+				var size1 = [this.level.tileSize];
+				var _g42 = 0;
+				var _g32 = sheet.lines.length;
+				while(_g42 < _g32) {
+					var idx1 = [_g42++];
+					var data = [Reflect.field(sheet.lines[idx1[0]],c.name)];
+					if(data[0] == null && this.images[idx1[0]] != null) continue;
+					if(data[0] == null) {
+						var i2 = new lvl.Image(size1[0],size1[0]);
+						i2.text("#" + idx1[0],0,12);
+						this.images[idx1[0]] = i2;
+						continue;
+					}
+					this.level.wait();
+					lvl.Image.load(this.level.model.getAbsPath(data[0].file),(function(data,idx1,size1) {
+						return function(i3) {
+							var i21 = new lvl.Image(data[0].size,data[0].size);
+							i21.fill(-1118482);
+							i21.drawSub(i3,data[0].x * data[0].size,data[0].y * data[0].size,data[0].size,data[0].size,0,0,data[0].size,data[0].size);
+							i21.resize(size1[0],size1[0]);
+							_g5.images[idx1[0]] = i21;
+							_g5.level.waitDone();
+						};
+					})(data,idx1,size1));
+				}
+				break;
+			case 0:
+				idCol = c;
+				break;
+			default:
+			}
+		}
+		this.names = [];
+		this.idToIndex = new haxe.ds.StringMap();
+		this.indexToId = [];
+		var _g11 = 0;
+		var _g6 = sheet.lines.length;
+		while(_g11 < _g6) {
+			var index = _g11++;
+			var o1 = sheet.lines[index];
+			var n;
+			if(sheet.props.displayColumn != null) n = Reflect.field(o1,sheet.props.displayColumn); else n = null;
+			if((n == null || n == "") && idCol != null) n = Reflect.field(o1,idCol.name);
+			if(n == null || n == "") n = "#" + index;
+			if(idCol != null) {
+				var id = Reflect.field(o1,idCol.name);
+				if(id != null && id != "") this.idToIndex.set(id,index);
+				this.indexToId[index] = id;
+			}
+			this.names.push(n);
+		}
+		this.loadState();
+	}
+	,loadState: function() {
+		var state;
+		try {
+			state = haxe.Unserializer.run(js.Browser.getLocalStorage().getItem(this.level.sheetPath + ":" + this.name));
+		} catch( e ) {
+			state = null;
+		}
+		if(state != null) {
+			this.set_visible(state.visible);
+			this.floatCoord = this.hasFloatCoord && !state.lock;
+			if(state.current < (this.images != null?this.images.length:this.names.length)) this.set_current(state.current);
+		}
+	}
+	,setLayerData: function(val) {
+		if(val == null || val == "") this.data = lvl.LayerInnerData.Layer((function($this) {
+			var $r;
+			var _g = [];
+			{
+				var _g2 = 0;
+				var _g1 = $this.level.width * $this.level.height;
+				while(_g2 < _g1) {
+					var x = _g2++;
+					_g.push(0);
+				}
+			}
+			$r = _g;
+			return $r;
+		}(this))); else {
+			var a = haxe.crypto.Base64.decode(val);
+			if(a.length != this.level.width * this.level.height) throw "Invalid layer data";
+			this.data = lvl.LayerInnerData.Layer((function($this) {
+				var $r;
+				var _g11 = [];
+				{
+					var _g3 = 0;
+					var _g21 = $this.level.width * $this.level.height;
+					while(_g3 < _g21) {
+						var i = _g3++;
+						_g11.push(a.b[i]);
+					}
+				}
+				$r = _g11;
+				return $r;
+			}(this)));
+		}
+		if(this.sheet.lines.length > 256) throw "Too many lines";
+	}
+	,setObjectsData: function(id,val) {
+		this.data = lvl.LayerInnerData.Objects(id,val);
+	}
+	,setTilesData: function(val) {
+		var _g3 = this;
+		var file;
+		if(val == null) file = null; else file = val.file;
+		var size;
+		if(val == null) size = 16; else size = val.size;
+		var data;
+		if(val == null) {
+			var _g = [];
+			var _g2 = 0;
+			var _g1 = this.level.width * this.level.height;
+			while(_g2 < _g1) {
+				var i = _g2++;
+				_g.push(0);
+			}
+			data = _g;
+		} else data = cdb._Types.TileLayerData_Impl_.decode(val.data);
+		var stride;
+		if(val == null) stride = 0; else stride = val.stride;
+		var d = { file : file, size : size, stride : stride};
+		this.images = [];
+		this.data = lvl.LayerInnerData.Tiles(d,data);
+		if(file == null) {
+			var i1 = new lvl.Image(16,16);
+			i1.fill(-65281);
+			this.images.push(i1);
+			return;
+		}
+		this.level.wait();
+		lvl.Image.load(this.level.model.getAbsPath(file),function(i2) {
+			var w = i2.width / size | 0;
+			var h = i2.height / size | 0;
+			var max = w * h;
+			var _g21 = 0;
+			var _g11 = data.length;
+			while(_g21 < _g11) {
+				var i3 = _g21++;
+				var v = data[i3] - 1;
+				if(v < 0) continue;
+				var vx = v % stride;
+				var vy = v / stride | 0;
+				if(vx >= w || vy >= h) data[i3] = 0; else {
+					v = vx + vy * w;
+					data[i3] = v + 1;
+				}
+			}
+			d.stride = w;
+			var _g12 = 0;
+			while(_g12 < h) {
+				var y = _g12++;
+				var _g22 = 0;
+				while(_g22 < w) {
+					var x = _g22++;
+					var i4 = i2.sub(x * size,y * size,size,size);
+					_g3.images.push(i4);
+				}
+			}
+			_g3.loadState();
+			_g3.level.waitDone();
+		});
+	}
+	,set_visible: function(v) {
+		this.visible = v;
+		if(this.comp != null) this.comp.toggleClass("hidden",!this.visible);
+		this.saveState();
+		return v;
+	}
+	,set_current: function(v) {
+		this.current = v;
+		this.saveState();
+		return v;
+	}
+	,saveState: function() {
+		var s = { current : this.current, visible : this.visible, lock : this.hasFloatCoord && !this.floatCoord};
+		js.Browser.getLocalStorage().setItem(this.level.sheetPath + ":" + this.name,haxe.Serializer.run(s));
+	}
+	,save: function() {
+		if(!this.dirty) return;
+		this.dirty = false;
+		Reflect.setField(this.targetObj.o,this.targetObj.f,this.getData());
+	}
+	,getData: function() {
+		{
+			var _g = this.data;
+			switch(_g[1]) {
+			case 0:
+				var data = _g[2];
+				var b = haxe.io.Bytes.alloc(this.level.width * this.level.height);
+				var p = 0;
+				var _g2 = 0;
+				var _g1 = this.level.height;
+				while(_g2 < _g1) {
+					var y = _g2++;
+					var _g4 = 0;
+					var _g3 = this.level.width;
+					while(_g4 < _g3) {
+						var x = _g4++;
+						b.b[p] = data[p];
+						p++;
+					}
+				}
+				return haxe.crypto.Base64.encode(b);
+			case 1:
+				var objs = _g[3];
+				return objs;
+			case 2:
+				var data1 = _g[3];
+				var t = _g[2];
+				var b1 = new haxe.io.BytesOutput();
+				var r = 0;
+				var _g21 = 0;
+				var _g11 = this.level.width;
+				while(_g21 < _g11) {
+					var y1 = _g21++;
+					var _g41 = 0;
+					var _g31 = this.level.height;
+					while(_g41 < _g31) {
+						var x1 = _g41++;
+						b1.writeUInt16(data1[r++]);
+					}
+				}
+				if(t.file == null) return null; else return { file : t.file, size : t.size, stride : t.stride, data : haxe.crypto.Base64.encode(b1.getBytes())};
+				break;
+			}
+		}
+	}
+	,__class__: lvl.LayerData
 };
 var nodejs = {};
 nodejs.webkit = {};

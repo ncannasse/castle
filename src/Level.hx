@@ -1,6 +1,7 @@
 import cdb.Data;
 import js.JQuery.JQueryHelper.*;
 import Main.K;
+import lvl.LayerData;
 
 typedef LevelState = {
 	var curLayer : String;
@@ -8,135 +9,6 @@ typedef LevelState = {
 	var scrollX : Int;
 	var scrollY : Int;
 }
-
-class Image {
-	public var width(default, null) : Int;
-	public var height(default, null) : Int;
-	var ctx : js.html.CanvasRenderingContext2D;
-	var canvas : js.html.CanvasElement;
-	// origin can be either the canvas element or the original IMG if not modified
-	// this speed up things a lot since drawing canvas to canvas is very slow on Chrome
-	var origin : Dynamic;
-
-	public function new(w, h) {
-		this.width = w;
-		this.height = h;
-		canvas = js.Browser.document.createCanvasElement();
-		origin = canvas;
-		canvas.width = w;
-		canvas.height = h;
-		ctx = canvas.getContext2d();
-	}
-
-	function getColor( color : Int ) {
-		 return color >>> 24 == 0xFF ? "#" + StringTools.hex(color&0xFFFFFF, 6) : "rgba(" + ((color >> 16) & 0xFF) + "," + ((color >> 8) & 0xFF) + "," + (color & 0xFF) + "," + ((color >>> 24) / 255) + ")";
-	}
-
-	public function getCanvas() {
-		return canvas;
-	}
-
-	public function clear() {
-		ctx.clearRect(0, 0, width, height);
-		origin = canvas;
-	}
-
-	public function fill( color : Int ) {
-		ctx.fillStyle = getColor(color);
-		ctx.fillRect(0, 0, width, height);
-		origin = canvas;
-	}
-
-	public function sub( x : Int, y : Int, w : Int, h : Int ) {
-		var i = new Image(w, h);
-		i.ctx.drawImage(origin, x, y, w, h, 0, 0, w, h);
-		return i;
-	}
-
-	public function text( text : String, x : Int, y : Int, color : Int = 0xFFFFFFFF ) {
-		ctx.fillStyle = getColor(color);
-		ctx.fillText(text, x, y);
-		origin = canvas;
-	}
-
-	public function draw( i : Image, x : Int, y : Int ) {
-		ctx.drawImage(i.origin, 0, 0, i.width, i.height, x, y, i.width, i.height);
-		origin = canvas;
-	}
-
-	public function drawSub( i : Image, srcX : Int, srcY : Int, srcW : Int, srcH : Int, x : Int, y : Int, dstW : Int = -1, dstH : Int = -1 ) {
-		if( dstW < 0 ) dstW = srcW;
-		if( dstH < 0 ) dstH = srcH;
-		ctx.drawImage(i.origin, srcX, srcY, srcW, srcH, x, y, dstW, dstH);
-		origin = canvas;
-	}
-
-	public function copyFrom( i : Image, smooth = false ) {
-		ctx.fillStyle = "rgba(0,0,0,0)";
-		ctx.fillRect(0, 0, width, height);
-		ctx.imageSmoothingEnabled = smooth;
-		ctx.drawImage(i.origin, 0, 0, i.width, i.height, 0, 0, width, height);
-		origin = canvas;
-	}
-
-	public function setSize( width, height ) {
-		if( width == this.width && height == this.height )
-			return;
-		canvas.width = width;
-		canvas.height = height;
-		this.width = width;
-		this.height = height;
-		origin = canvas;
-	}
-
-	public function resize( width : Int, height : Int, ?smooth : Bool ) {
-		if( width == this.width && height == this.height )
-			return;
-		if( smooth == null )
-			smooth = width < this.width || height < this.height;
-		var c = js.Browser.document.createCanvasElement();
-		c.width = width;
-		c.height = height;
-		var ctx2 = c.getContext2d();
-		ctx2.imageSmoothingEnabled = smooth;
-		ctx2.drawImage(canvas, 0, 0, this.width, this.height, 0, 0, width, height);
-		ctx = ctx2;
-		canvas = c;
-		origin = c;
-		this.width = width;
-		this.height = height;
-	}
-
-	public static function load( url : String, callb : Image -> Void, ?onError : Void -> Void ) {
-		var i = js.Browser.document.createImageElement();
-		i.onload = function(_) {
-			var im = new Image(i.width, i.height);
-			im.ctx.drawImage(i, 0, 0);
-			im.origin = i;
-			callb(im);
-		};
-		i.onerror = function(_) {
-			if( onError != null ) {
-				onError();
-				return;
-			}
-			var i = new Image(16, 16);
-			i.fill(0xFFFF00FF);
-			callb(i);
-		};
-		i.src = url;
-	}
-
-	public static function fromCanvas( c : js.html.CanvasElement ) {
-		var i = new Image(0, 0);
-		i.width = c.width;
-		i.height = c.height;
-		i.ctx = c.getContext2d();
-		return i;
-	}
-}
-
-
 
 class Level {
 
@@ -153,12 +25,12 @@ class Level {
 	var obj : Dynamic;
 	var content : js.JQuery;
 	var layers : Array<LayerData>;
-	var images : Array<{ index : Int, data : Image }>;
+	var images : Array<{ index : Int, data : lvl.Image }>;
 	var props : LevelProps;
 
 	var currentLayer : LayerData;
 	var cursor : js.JQuery;
-	var cursorImage : Image;
+	var cursorImage : lvl.Image;
 	var zoomView = 1.;
 	var curPos : { x : Int, y : Int, xf : Float, yf : Float };
 	var mouseDown : Bool;
@@ -253,7 +125,7 @@ class Level {
 				var path : String = model.getAbsPath(val);
 				switch( path.split(".").pop().toLowerCase() ) {
 				case "png", "jpeg", "jpg":
-					Image.load(path, function(i) {
+					lvl.Image.load(path, function(i) {
 						images.push( { index : index, data : i } );
 						images.sort(function(i1, i2) return i1.index - i2.index);
 						draw();
@@ -496,7 +368,7 @@ class Level {
 		cursor = content.find("#cursor");
 		var curCanvas = js.Browser.document.createCanvasElement();
 		J(curCanvas).appendTo(cursor);
-		cursorImage = Image.fromCanvas(curCanvas);
+		cursorImage = lvl.Image.fromCanvas(curCanvas);
 		cursor.hide();
 
 
@@ -993,254 +865,3 @@ class Level {
 	}
 
 }
-
-typedef LayerState = {
-	var current : Int;
-	var visible : Bool;
-	var lock : Bool;
-}
-
-enum LayerInnerData {
-	Layer( a : Array<Int> );
-	Objects( idCol : String, objs : Array<{ x : Float, y : Float, ?width : Float, ?height : Float }> );
-	Tiles( t : { file : String, stride : Int, size : Int }, data : Array<Int> );
-}
-
-
-class LayerData {
-
-	var level : Level;
-	public var name : String;
-	public var sheet : Sheet;
-	public var names : Array<String>;
-	public var colors : Array<Int>;
-	public var images : Array<Image>;
-	public var props : LayerProps;
-	public var data : LayerInnerData;
-
-	public var visible(default,set) : Bool = true;
-	public var dirty : Bool;
-
-	public var current(default,set) : Int = 0;
-	public var comp : js.JQuery;
-
-	public var baseSheet : Sheet;
-	public var idToIndex : Map<String,Int>;
-	public var indexToId : Array<String>;
-	public var floatCoord : Bool;
-	public var hasFloatCoord : Bool;
-	public var hasSize : Bool;
-
-	public var targetObj : { o : Dynamic, f : String };
-
-	public function new(level, name, p, target) {
-		this.level = level;
-		this.name = name;
-		props = p;
-		targetObj = target;
-	}
-
-	public function loadSheetData( sheet : Sheet ) {
-		this.sheet = sheet;
-		if( sheet == null ) {
-			if( props.color == null ) props.color = 0xFF0000;
-			colors = [props.color];
-			names = [name];
-			return;
-		}
-		var idCol = null;
-		var first = @:privateAccess level.layers.length == 0;
-		var erase = first ? "#ccc" : "rgba(0,0,0,0)";
-		for( c in sheet.columns )
-			switch( c.type ) {
-			case TColor:
-				colors = [for( o in sheet.lines ) { var c = Reflect.field(o, c.name); c == null ? 0 : c; } ];
-			case TImage:
-				if( images == null ) images = [];
-				var size = level.tileSize;
-				for( idx in 0...sheet.lines.length ) {
-					var key = Reflect.field(sheet.lines[idx], c.name);
-					var idat = level.model.getImageData(key);
-					if( idat == null && images[idx] != null ) continue;
-					if( idat == null ) {
-						var i = new Image(size, size);
-						i.text("#" + idx, 0, 12);
-						images[idx] = i;
-						continue;
-					}
-					level.wait();
-					Image.load(idat, function(i) {
-						i.resize(size, size);
-						images[idx] = i;
-						level.waitDone();
-					});
-				}
-			case TTilePos:
-				if( images == null ) images = [];
-
-				var size = level.tileSize;
-
-				for( idx in 0...sheet.lines.length ) {
-					var data : cdb.Types.TilePos = Reflect.field(sheet.lines[idx], c.name);
-					if( data == null && images[idx] != null ) continue;
-					if( data == null ) {
-						var i = new Image(size, size);
-						i.text("#" + idx, 0, 12);
-						images[idx] = i;
-						continue;
-					}
-					level.wait();
-					Image.load(level.model.getAbsPath(data.file), function(i) {
-						var i2 = new Image(data.size, data.size);
-						i2.fill(0xFFEEEEEE);
-						i2.drawSub(i, data.x * data.size, data.y * data.size, data.size, data.size, 0, 0, data.size, data.size);
-						i2.resize(size, size);
-						images[idx] = i2;
-						level.waitDone();
-					});
-				}
-
-			case TId:
-				idCol = c;
-			default:
-			}
-		names = [];
-		idToIndex = new Map();
-		indexToId = [];
-		for( index in 0...sheet.lines.length ) {
-			var o = sheet.lines[index];
-			var n = if( sheet.props.displayColumn != null ) Reflect.field(o, sheet.props.displayColumn) else null;
-			if( (n == null || n == "") && idCol != null )
-				n = Reflect.field(o, idCol.name);
-			if( n == null || n == "" )
-				n = "#" + index;
-			if( idCol != null ) {
-				var id = Reflect.field(o, idCol.name);
-				if( id != null && id != "" ) idToIndex.set(id, index);
-				indexToId[index] = id;
-			}
-			names.push(n);
-		}
-		loadState();
-	}
-
-	function loadState() {
-		var state : LayerState = try haxe.Unserializer.run(js.Browser.getLocalStorage().getItem(level.sheetPath + ":" + name)) catch( e : Dynamic ) null;
-		if( state != null ) {
-			visible = state.visible;
-			floatCoord = hasFloatCoord && !state.lock;
-			if( state.current < (images != null ? images.length : names.length) ) current = state.current;
-		}
-	}
-
-	public function setLayerData( val : String ) {
-		if( val == null || val == "" )
-			data = Layer([for( x in 0...level.width * level.height ) 0]);
-		else {
-			var a = haxe.crypto.Base64.decode(val);
-			if( a.length != level.width * level.height ) throw "Invalid layer data";
-			data = Layer([for( i in 0...level.width * level.height ) a.get(i)]);
-		}
-		if( sheet.lines.length > 256 ) throw "Too many lines";
-	}
-
-	public function setObjectsData( id, val ) {
-		data = Objects(id, val);
-	}
-
-	public function setTilesData( val : cdb.Types.TileLayer ) {
-		var file = val == null ? null : val.file;
-		var size = val == null ? 16 : val.size;
-		var data = val == null ? [for( i in 0...level.width*level.height ) 0] : val.data.decode();
-		var stride = val == null ? 0 : val.stride;
-		var d = { file : file, size : size, stride : stride };
-		images = [];
-		this.data = Tiles(d, data);
-		if( file == null ) {
-			var i = new Image(16, 16);
-			i.fill(0xFFFF00FF);
-			images.push(i);
-			return;
-		}
-		level.wait();
-		Image.load(level.model.getAbsPath(file), function(i) {
-			var w = Std.int(i.width / size);
-			var h = Std.int(i.height / size);
-			var max = w * h;
-			for( i in 0...data.length ) {
-				var v = data[i] - 1;
-				if( v < 0 ) continue;
-				var vx = v % stride;
-				var vy = Std.int(v / stride);
-				if( vx >= w || vy >= h )
-					data[i] = 0;
-				else {
-					v = vx + vy * w;
-					data[i] = v + 1;
-				}
-			}
-			d.stride = w;
-			for( y in 0...h )
-				for( x in 0...w ) {
-					var i = i.sub(x * size, y * size, size, size);
-					images.push(i);
-				}
-			loadState();
-			level.waitDone();
-		});
-	}
-
-	function set_visible(v) {
-		visible = v;
-		if( comp != null ) comp.toggleClass("hidden", !visible);
-		saveState();
-		return v;
-	}
-
-	function set_current(v) {
-		current = v;
-		saveState();
-		return v;
-	}
-
-	public function saveState() {
-		var s : LayerState = {
-			current : current,
-			visible : visible,
-			lock : hasFloatCoord && !floatCoord,
-		};
-		js.Browser.getLocalStorage().setItem(level.sheetPath + ":" + name, haxe.Serializer.run(s));
-	}
-
-	public function save() {
-		if( !dirty ) return;
-		dirty = false;
-		Reflect.setField(targetObj.o, targetObj.f, getData());
-	}
-
-	function getData() : Dynamic {
-		switch( data ) {
-		case Layer(data):
-			var b = haxe.io.Bytes.alloc(level.width * level.height);
-			var p = 0;
-			for( y in 0...level.height )
-				for( x in 0...level.width ) {
-					b.set(p, data[p]);
-					p++;
-				}
-			return haxe.crypto.Base64.encode(b);
-		case Objects(_, objs):
-			return objs;
-		case Tiles(t, data):
-			var b = new haxe.io.BytesOutput();
-			var r = 0;
-			for( y in 0...level.width )
-				for( x in 0...level.height )
-					b.writeUInt16(data[r++]);
-			return t.file == null ? null : { file : t.file, size : t.size, stride : t.stride, data : haxe.crypto.Base64.encode(b.getBytes()) };
-		}
-	}
-
-
-}
-
