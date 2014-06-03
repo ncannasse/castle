@@ -411,6 +411,53 @@ div#menu {
 
 	user-select : none;
 
+	.palette {
+		border : 1px solid #aaa;
+		background-color : rgba(0,0,0,0.7);
+		position : fixed;
+		right : 30px;
+		bottom : 60px;
+		.bar {
+			background-color : #CCC;
+			height : 16px;
+			padding : 1px 2px;
+			padding-bottom : 3px;
+			border-bottom : 1px solid #AAA;
+			.icon {
+				width : 16px;
+				height : 16px;
+				border : 1 px solid #CCC;
+				background-color : #EEE;
+				cursor : pointer;
+				display : inline-block;
+				margin-right : 2px;
+				background-repeat : no-repeat;
+				opacity : 0.8;
+			}
+			.icon:hover {
+				border-color : #888;
+			}
+			.icon.active {
+				background-position : 0px 1px;
+				background-color : #FFF;
+				border-color : #FFF;
+				opacity : 1;
+			}
+			.random {
+				background : url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAA8klEQVR4Xr2TMcrCQBCFd01llcob5ABWqT2ACILgDQTBlIKSlLFJq+QA1oIInsHCM3gC65/8jbC+hBdZNmOhAQe+zOwyb3Z2kmhjjGpjHfDbAlprHyzbdpChSFwVBO4QdphL5Jw6h8uFQonUwQKCvSUewW2VbL7CaS9gK3Y05ToEBffyOo/rrIrxcIv06QNwp/gEPCsnrWONQJp0D+7CIlcwgOBffI2CuAt3pvgGhqKYuO17bNew/YD7M+cKMeNGgZziAoQUp+IQOQcuGkys5DF4vMnLpO9gDeHBuuIRLlKy/ZUJHwHzgeEcvv4XEog3ZfAE5ebT+WJKBcEAAAAASUVORK5CYII=');
+			}
+			.paint {
+				background : url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAB3RJTUUH3gYDCgYFUrJbbgAAABd0RVh0U29mdHdhcmUAR0xEUE5HIHZlciAzLjRxhaThAAAACHRwTkdHTEQzAAAAAEqAKR8AAAAEZ0FNQQAAsY8L/GEFAAAABmJLR0QAagALAE638FflAAAAc0lEQVR4nJWSUQ7AIAhDvf+l2T7mIvBaNhNijPZJtSsiVq17xC7aT2dJ7Na/AF+6kIBnHq1I/3tMINVBA5yQZNOJK4AgsvXavoK0f3cWEFDFBDFiDTDvkTVkgSAUsBcwQSjeDeAg55nyYzqJLsIySHTDVBd+rl+9TJZX8wAAAABJRU5ErkJggg==');
+			}
+		}
+		.content {
+			padding : 10px;
+		}
+		.select {
+			position : absolute;
+		}
+	}
+
 	.menu {
 
 		background-color : #EEE;

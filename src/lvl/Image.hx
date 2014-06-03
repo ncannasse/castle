@@ -38,6 +38,12 @@ class Image {
 		origin = canvas;
 	}
 
+	public function fillRect( x : Int, y : Int, w : Int, h : Int, color : Int ) {
+		ctx.fillStyle = getColor(color);
+		ctx.fillRect(x, y, w, h);
+		origin = canvas;
+	}
+
 	public function sub( x : Int, y : Int, w : Int, h : Int ) {
 		var i = new Image(w, h);
 		i.ctx.drawImage(origin, x, y, w, h, 0, 0, w, h);
@@ -55,9 +61,10 @@ class Image {
 		origin = canvas;
 	}
 
-	public function drawSub( i : Image, srcX : Int, srcY : Int, srcW : Int, srcH : Int, x : Int, y : Int, dstW : Int = -1, dstH : Int = -1 ) {
+	public function drawSub( i : Image, srcX : Int, srcY : Int, srcW : Int, srcH : Int, x : Int, y : Int, dstW : Int = -1, dstH : Int = -1, smooth = false ) {
 		if( dstW < 0 ) dstW = srcW;
 		if( dstH < 0 ) dstH = srcH;
+		ctx.imageSmoothingEnabled = smooth;
 		ctx.drawImage(i.origin, srcX, srcY, srcW, srcH, x, y, dstW, dstH);
 		origin = canvas;
 	}
@@ -75,6 +82,9 @@ class Image {
 			return;
 		canvas.width = width;
 		canvas.height = height;
+		canvas.setAttribute("width", width + "px");
+		canvas.setAttribute("height", height + "px");
+		ctx = canvas.getContext2d();
 		this.width = width;
 		this.height = height;
 		origin = canvas;
@@ -98,9 +108,20 @@ class Image {
 		this.height = height;
 	}
 
+	static var cache = new Map<String,js.html.ImageElement>();
+
 	public static function load( url : String, callb : Image -> Void, ?onError : Void -> Void ) {
-		var i = js.Browser.document.createImageElement();
+		var i = cache.get(url);
+		if( i != null ) {
+			var im = new Image(i.width, i.height);
+			im.ctx.drawImage(i, 0, 0);
+			im.origin = i;
+			callb(im);
+			return;
+		}
+		i = js.Browser.document.createImageElement();
 		i.onload = function(_) {
+			cache.set(url, i);
 			var im = new Image(i.width, i.height);
 			im.ctx.drawImage(i, 0, 0);
 			im.origin = i;
@@ -122,6 +143,7 @@ class Image {
 		var i = new Image(0, 0);
 		i.width = c.width;
 		i.height = c.height;
+		i.canvas = i.origin = c;
 		i.ctx = c.getContext2d();
 		return i;
 	}

@@ -58,6 +58,7 @@ class Main extends Model {
 		sheetCursors = new Map();
 		window.window.addEventListener("keydown", onKey);
 		window.window.addEventListener("keypress", onKeyPress);
+		window.window.addEventListener("keyup", onKeyUp);
 		window.window.addEventListener("mousemove", onMouseMove);
 		J(".modal").keypress(function(e) e.stopPropagation()).keydown(function(e) e.stopPropagation());
 		cursor = {
@@ -287,6 +288,10 @@ class Main extends Model {
 		default:
 		}
 		if( level != null ) level.onKey(e);
+	}
+
+	function onKeyUp( e : js.html.KeyboardEvent ) {
+		if( level != null ) level.onKeyUp(e);
 	}
 
 	function getLine( sheet : Sheet, index : Int ) {

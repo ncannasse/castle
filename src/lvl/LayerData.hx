@@ -5,6 +5,9 @@ typedef LayerState = {
 	var current : Int;
 	var visible : Bool;
 	var lock : Bool;
+	var cw : Int;
+	var ch : Int;
+	var random : Bool;
 }
 
 enum LayerInnerData {
@@ -25,10 +28,15 @@ class LayerData {
 	public var props : LayerProps;
 	public var data : LayerInnerData;
 
+	public var imagesStride : Int = 0;
+
 	public var visible(default,set) : Bool = true;
 	public var dirty : Bool;
 
-	public var current(default,set) : Int = 0;
+	public var current(default, set) : Int = 0;
+	public var currentWidth : Int = 1;
+	public var currentHeight : Int = 1;
+	public var currentRandom : Bool;
 	public var comp : js.JQuery;
 
 	public var baseSheet : Sheet;
@@ -112,6 +120,7 @@ class LayerData {
 			default:
 			}
 		names = [];
+		imagesStride = Math.ceil(Math.sqrt(sheet.lines.length));
 		idToIndex = new Map();
 		indexToId = [];
 		for( index in 0...sheet.lines.length ) {
@@ -136,7 +145,14 @@ class LayerData {
 		if( state != null ) {
 			visible = state.visible;
 			floatCoord = hasFloatCoord && !state.lock;
-			if( state.current < (images != null ? images.length : names.length) ) current = state.current;
+			if( state.current < (images != null ? images.length : names.length) ) {
+				current = state.current;
+				if( (current%imagesStride) + state.cw <= imagesStride && Std.int(current/imagesStride) + state.ch <= Math.ceil((images != null ? images.length : names.length) / imagesStride) ) {
+					currentWidth = state.cw;
+					currentHeight = state.ch;
+				}
+				currentRandom = (currentWidth > 1 || currentHeight > 1) && state.random;
+			}
 		}
 	}
 
@@ -186,7 +202,7 @@ class LayerData {
 					data[i] = v + 1;
 				}
 			}
-			d.stride = w;
+			imagesStride = d.stride = w;
 			for( y in 0...h )
 				for( x in 0...w ) {
 					var i = i.sub(x * size, y * size, size, size);
@@ -206,6 +222,12 @@ class LayerData {
 
 	function set_current(v) {
 		current = v;
+		currentWidth = 1;
+		currentHeight = 1;
+
+		if( images != null && comp != null )
+			comp.find("div.img").html("").append(new js.JQuery(images[current].getCanvas()));
+
 		saveState();
 		return v;
 	}
@@ -215,6 +237,9 @@ class LayerData {
 			current : current,
 			visible : visible,
 			lock : hasFloatCoord && !floatCoord,
+			cw : currentWidth,
+			ch : currentHeight,
+			random : currentRandom,
 		};
 		js.Browser.getLocalStorage().setItem(level.sheetPath + ":" + name, haxe.Serializer.run(s));
 	}

@@ -140,6 +140,19 @@
 	</div>
 	</div>
 
+	<div id="paletteContent" style="display:none">
+		<div class="palette">
+			<div class="bar">
+				<div class="icon random" onclick="_.level.paletteOption('random')"></div>
+				<div class="icon paint" onclick="_.level.paletteOption('paint')"></div>
+			</div>
+			<div class="content">
+				<canvas class="select"></canvas>
+				<canvas class="view"></canvas>
+			</div>
+		</div>
+	</div>
+
 	<div id="levelContent" style="display:none">
 		<div class="level">
 			<div class="menu">
@@ -185,7 +198,7 @@
 			<div class="scroll">
 				<div class="scrollContent">
 					<div id="cursor"></div>
-					<canvas class="display"/>
+					<canvas class="display"></canvas>
 				</div>
 			</div>
 		</div>

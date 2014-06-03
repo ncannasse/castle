@@ -8,6 +8,7 @@ typedef LevelState = {
 	var zoomView : Float;
 	var scrollX : Int;
 	var scrollY : Int;
+	var paintMode : Bool;
 }
 
 class Level {
@@ -25,7 +26,7 @@ class Level {
 	var obj : Dynamic;
 	var content : js.JQuery;
 	var layers : Array<LayerData>;
-	var images : Array<{ index : Int, data : lvl.Image }>;
+	var backgroundImages : Array<{ index : Int, data : lvl.Image }>;
 	var props : LevelProps;
 
 	var currentLayer : LayerData;
@@ -34,6 +35,7 @@ class Level {
 	var zoomView = 1.;
 	var curPos : { x : Int, y : Int, xf : Float, yf : Float };
 	var mouseDown : Bool;
+	var delDown : Bool;
 	var needSave : Bool;
 	var waitCount : Int;
 
@@ -44,6 +46,10 @@ class Level {
 	var startPos : { x : Int, y : Int, xf : Float, yf : Float } = null;
 	var newLayer : Column;
 
+	var palette : js.JQuery;
+	var paletteSelect : lvl.Image;
+	var paintMode : Bool;
+
 	public function new( model : Model, sheet : Sheet, index : Int ) {
 		this.sheet = sheet;
 		this.sheetPath = model.getPath(sheet);
@@ -51,7 +57,7 @@ class Level {
 		this.obj = sheet.lines[index];
 		this.model = model;
 		layers = [];
-		images = [];
+		backgroundImages = [];
 		props = sheet.props.levelProps;
 		if( props.tileSize == null ) props.tileSize = 16;
 
@@ -125,10 +131,11 @@ class Level {
 				var path : String = model.getAbsPath(val);
 				switch( path.split(".").pop().toLowerCase() ) {
 				case "png", "jpeg", "jpg":
+					wait();
 					lvl.Image.load(path, function(i) {
-						images.push( { index : index, data : i } );
-						images.sort(function(i1, i2) return i1.index - i2.index);
-						draw();
+						backgroundImages.push( { index : index, data : i } );
+						backgroundImages.sort(function(i1, i2) return i1.index - i2.index);
+						waitDone();
 					});
 				case "tmx":
 					// TODO
@@ -173,6 +180,7 @@ class Level {
 					break;
 				}
 			zoomView = state.zoomView;
+			paintMode = state.paintMode;
 		}
 
 		setCursor(layer);
@@ -286,8 +294,6 @@ class Level {
 					var list = J("<div class='imglist'>");
 					for( i in 0...l.images.length )
 						list.append(J("<img>").attr("src", l.images[i].getCanvas().toDataURL()).click(function(_) {
-							isel.html("");
-							isel.append(J(l.images[i].getCanvas()));
 							l.current = i;
 							setCursor(l);
 						}));
@@ -366,9 +372,8 @@ class Level {
 		});
 
 		cursor = content.find("#cursor");
-		var curCanvas = js.Browser.document.createCanvasElement();
-		J(curCanvas).appendTo(cursor);
-		cursorImage = lvl.Image.fromCanvas(curCanvas);
+		cursorImage = new lvl.Image(0, 0);
+		cursor[0].appendChild(cursorImage.getCanvas());
 		cursor.hide();
 
 
@@ -556,48 +561,55 @@ class Level {
 		setCursor(currentLayer);
 	}
 
+	function paint(x,y) {
+		switch( currentLayer.data ) {
+		case Layer(data):
+			if( data[x + y * width] == currentLayer.current ) return;
+			function fillRec(x, y, k) {
+				if( data[x + y * width] != k ) return;
+				data[x + y * width] = currentLayer.current;
+				currentLayer.dirty = true;
+				if( x > 0 ) fillRec(x - 1, y, k);
+				if( y > 0 ) fillRec(x, y - 1, k);
+				if( x < width - 1 ) fillRec(x + 1, y, k);
+				if( y < height - 1 ) fillRec(x, y + 1, k);
+			}
+			fillRec(x, y, data[x + y * width]);
+			save();
+			draw();
+		case Tiles(_, data):
+			if( data[x + y * width] != 0 ) return;
+			var l = currentLayer;
+			var px = x, py = y;
+			function fillRec(x, y, k) {
+				if( data[x + y * width] != 0 ) return;
+				var dx = (x - px) % l.currentWidth; if( dx < 0 ) dx += l.currentWidth;
+				var dy = (y - py) % l.currentHeight; if( dy < 0 ) dy += l.currentHeight;
+				data[x + y * width] = l.current + (l.currentRandom ? Std.random(l.currentWidth) + Std.random(l.currentHeight) * l.imagesStride : dx + dy * l.imagesStride) + 1;
+				l.dirty = true;
+				if( x > 0 ) fillRec(x - 1, y, k);
+				if( y > 0 ) fillRec(x, y - 1, k);
+				if( x < width - 1 ) fillRec(x + 1, y, k);
+				if( y < height - 1 ) fillRec(x, y + 1, k);
+			}
+			fillRec(x, y, data[x + y * width]);
+			save();
+			draw();
+		default:
+		}
+	}
+
 	public function onKey( e : js.html.KeyboardEvent ) {
 		if( e.ctrlKey || curPos == null ) return;
 		switch( e.keyCode ) {
 		case "P".code:
-			var x = curPos.x;
-			var y = curPos.y;
-			switch( currentLayer.data ) {
-			case Layer(data):
-				if( data[x + y * width] == currentLayer.current ) return;
-				function fillRec(x, y, k) {
-					if( data[x + y * width] != k ) return;
-					data[x + y * width] = currentLayer.current;
-					currentLayer.dirty = true;
-					if( x > 0 ) fillRec(x - 1, y, k);
-					if( y > 0 ) fillRec(x, y - 1, k);
-					if( x < width - 1 ) fillRec(x + 1, y, k);
-					if( y < height - 1 ) fillRec(x, y + 1, k);
-				}
-				fillRec(x, y, data[x + y * width]);
-				save();
-				draw();
-			case Tiles(_, data):
-				if( data[x + y * width] != 0 ) return;
-				function fillRec(x, y, k) {
-					if( data[x + y * width] != 0 ) return;
-					data[x + y * width] = currentLayer.current + 1;
-					currentLayer.dirty = true;
-					if( x > 0 ) fillRec(x - 1, y, k);
-					if( y > 0 ) fillRec(x, y - 1, k);
-					if( x < width - 1 ) fillRec(x + 1, y, k);
-					if( y < height - 1 ) fillRec(x, y + 1, k);
-				}
-				fillRec(x, y, data[x + y * width]);
-				save();
-				draw();
-			default:
-			}
+			paint(curPos.x, curPos.y);
 		case K.NUMPAD_ADD:
 			updateZoom(true);
 		case K.NUMPAD_SUB:
 			updateZoom(false);
 		case K.DELETE:
+			delDown = true;
 			var p = pick();
 			if( p == null ) return;
 			switch( p.layer.data ) {
@@ -605,6 +617,7 @@ class Level {
 				if( data[p.index] == 0 ) return;
 				data[p.index] = 0;
 				p.layer.dirty = true;
+				cursor.css({ opacity : 0 }).fadeTo(100,1);
 				save();
 				draw();
 			case Objects(_, objs):
@@ -612,12 +625,22 @@ class Level {
 					save();
 					draw();
 				}
-			case Tiles(_,data):
-				if( data[p.index] == 0 ) return;
-				data[p.index] = 0;
-				p.layer.dirty = true;
-				save();
-				draw();
+			case Tiles(_, data):
+				var changed = false;
+				var l = currentLayer;
+				for( dy in 0...l.currentHeight )
+					for( dx in 0...l.currentWidth ) {
+						var i = p.index + dx + dy * width;
+						if( data[i] == 0 ) continue;
+						data[i] = 0;
+						changed = true;
+					}
+				if( changed ) {
+					p.layer.dirty = true;
+					cursor.css({ opacity : 0 }).fadeTo(100,1);
+					save();
+					draw();
+				}
 			}
 		case "E".code:
 			var p = pick();
@@ -630,22 +653,56 @@ class Level {
 		case K.ESC:
 			J(".popup").remove();
 			draw();
+		case K.TAB:
+			var i = (layers.indexOf(currentLayer) + (e.shiftKey ? layers.length-1 : 1) ) % layers.length;
+			setCursor(layers[i]);
+			e.preventDefault();
+		default:
+		}
+	}
+
+	public function onKeyUp( e : js.html.KeyboardEvent ) {
+		switch( e.keyCode ) {
+		case K.DELETE:
+			delDown = false;
+			if( needSave ) save();
 		default:
 		}
 	}
 
 	function set( x, y ) {
-		switch( currentLayer.data ) {
+		if( paintMode ) {
+			paint(x,y);
+			return;
+		}
+		var l = currentLayer;
+		switch( l.data ) {
 		case Layer(data):
-			if( data[x + y * width] == currentLayer.current ) return;
-			data[x + y * width] = currentLayer.current;
-			currentLayer.dirty = true;
+			if( data[x + y * width] == l.current ) return;
+			data[x + y * width] = l.current;
+			l.dirty = true;
 			save();
 			draw();
 		case Tiles(_, data):
-			if( data[x + y * width] == currentLayer.current+1 ) return;
-			data[x + y * width] = currentLayer.current + 1;
-			currentLayer.dirty = true;
+			var changed = false;
+			if( l.currentRandom ) {
+				var p = x + y * width;
+				var id = l.current + Std.random(l.currentWidth) + Std.random(l.currentHeight) * l.imagesStride + 1;
+				if( data[p] == id ) return;
+				data[p] = id;
+				changed = true;
+			} else {
+				for( dy in 0...l.currentHeight )
+					for( dx in 0...l.currentWidth ) {
+						var p = x + dx + (y + dy) * width;
+						var id = l.current + dx + dy * l.imagesStride + 1;
+						if( data[p] == id ) continue;
+						data[p] = id;
+						changed = true;
+					}
+			}
+			if( !changed ) return;
+			l.dirty = true;
 			save();
 			draw();
 		case Objects(_):
@@ -658,9 +715,9 @@ class Level {
 		ctx.fillRect(0, 0, width * tileSize, height * tileSize);
 		var curImage = 0;
 		for( index in 0...layers.length ) {
-			while( curImage < images.length && images[curImage].index == index ) {
+			while( curImage < backgroundImages.length && backgroundImages[curImage].index == index ) {
 				ctx.globalAlpha = 1;
-				ctx.drawImage(images[curImage].data.getCanvas(), 0, 0);
+				ctx.drawImage(backgroundImages[curImage].data.getCanvas(), 0, 0);
 				curImage++;
 			}
 			var l = layers[index];
@@ -729,7 +786,7 @@ class Level {
 	}
 
 	function save() {
-		if( mouseDown ) {
+		if( mouseDown || delDown ) {
 			needSave = true;
 			return;
 		}
@@ -746,6 +803,7 @@ class Level {
 			curLayer : currentLayer.name,
 			scrollX : sc.scrollLeft(),
 			scrollY : sc.scrollTop(),
+			paintMode : paintMode,
 		};
 		js.Browser.getLocalStorage().setItem(sheetPath, haxe.Serializer.run(state));
 	}
@@ -829,6 +887,21 @@ class Level {
 		});
 	}
 
+	@:keep function paletteOption(name) {
+		var l = currentLayer;
+		switch( name ) {
+		case "random":
+			l.currentRandom = !l.currentRandom;
+			palette.find(".icon.random").toggleClass("active", l.currentRandom);
+			l.saveState();
+			setCursor(l);
+		case "paint":
+			paintMode = !paintMode;
+			savePrefs();
+			palette.find(".icon.paint").toggleClass("active",paintMode);
+		}
+	}
+
 	function setCursor( l : LayerData ) {
 		content.find(".menu .item.selected").removeClass("selected");
 		l.comp.addClass("selected");
@@ -848,12 +921,88 @@ class Level {
 				content.find("[name=size]").closest(".item").hide();
 				content.find("[name=file]").closest(".item").hide();
 			}
+
+			if( palette != null ) {
+				palette.remove();
+				paletteSelect = null;
+			}
+			if( l.images != null ) {
+				palette = J(J("#paletteContent").html()).appendTo(content);
+				var i = lvl.Image.fromCanvas(cast palette.find("canvas.view")[0]);
+				i.setSize(l.imagesStride * (tileSize + 1), Math.ceil(l.images.length / l.imagesStride) * (tileSize + 1));
+				for( n in 0...l.images.length ) {
+					var x = (n % l.imagesStride) * (tileSize + 1);
+					var y = Std.int(n / l.imagesStride) * (tileSize + 1);
+					i.draw(l.images[n], x, y);
+				}
+				var jsel = palette.find("canvas.select");
+				var select = lvl.Image.fromCanvas(cast jsel[0]);
+				select.setSize(i.width, i.height);
+
+				palette.find(".icon.random").toggleClass("active",l.currentRandom);
+				palette.find(".icon.paint").toggleClass("active",paintMode);
+
+				var start = { x : l.current % l.imagesStride, y : Std.int(l.current / l.imagesStride), down : false };
+				jsel.mousedown(function(e) {
+					var o = jsel.offset();
+					var x = Std.int((e.pageX - o.left) / (tileSize + 1));
+					var y = Std.int((e.pageY - o.top) / (tileSize + 1));
+					if( e.shiftKey ) {
+						var x0 = x < start.x ? x : start.x;
+						var y0 = y < start.y ? y : start.y;
+						var x1 = x < start.x ? start.x : x;
+						var y1 = y < start.y ? start.y : y;
+						l.current = x0 + y0 * l.imagesStride;
+						l.currentWidth = x1 - x0 + 1;
+						l.currentHeight = y1 - y0 + 1;
+						l.saveState();
+						setCursor(l);
+					} else {
+						start.x = x;
+						start.y = y;
+						start.down = true;
+						l.current = x + y * l.imagesStride;
+						setCursor(l);
+					}
+				});
+				jsel.mousemove(function(e) {
+					if( !start.down ) return;
+					var o = jsel.offset();
+					var x = Std.int((e.pageX - o.left) / (tileSize + 1));
+					var y = Std.int((e.pageY - o.top) / (tileSize + 1));
+					var x0 = x < start.x ? x : start.x;
+					var y0 = y < start.y ? y : start.y;
+					var x1 = x < start.x ? start.x : x;
+					var y1 = y < start.y ? start.y : y;
+					l.current = x0 + y0 * l.imagesStride;
+					l.currentWidth = x1 - x0 + 1;
+					l.currentHeight = y1 - y0 + 1;
+					l.saveState();
+					setCursor(l);
+				});
+				jsel.mouseup(function(e) {
+					start.down = false;
+				});
+				paletteSelect = select;
+			}
 		}
+
+		if( paletteSelect != null ) {
+			paletteSelect.clear();
+			paletteSelect.fillRect( (l.current % l.imagesStride) * (tileSize + 1), Std.int(l.current / l.imagesStride) * (tileSize + 1), (tileSize + 1) * l.currentWidth - 1, (tileSize + 1) * l.currentHeight - 1, 0x805BA1FB);
+		}
+
 		var size = zoomView < 1 ? Std.int(tileSize * zoomView) : Math.ceil(tileSize * zoomView);
-		cursorImage.setSize(size,size);
+		var w = l.currentRandom ? 1 : l.currentWidth;
+		var h = l.currentRandom ? 1 : l.currentHeight;
+		cursorImage.setSize(size * w,size * h);
 		if( l.images != null ) {
 			cursorImage.clear();
-			cursorImage.copyFrom(l.images[l.current], zoomView < 1);
+			for( y in 0...h )
+				for( x in 0...w ) {
+					var i = l.images[l.current + x + y * l.imagesStride];
+					cursorImage.drawSub(i, 0, 0, i.width, i.height, x * size, y * size, size, size);
+				}
 			cursorImage.fill(0x605BA1FB);
 			cursor.css( { border : "none" } );
 		} else {

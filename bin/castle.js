@@ -158,7 +158,7 @@ var Level = function(model,sheet,index) {
 	this.obj = sheet.lines[index];
 	this.model = model;
 	this.layers = [];
-	this.images = [];
+	this.backgroundImages = [];
 	this.props = sheet.props.levelProps;
 	if(this.props.tileSize == null) this.props.tileSize = 16;
 	this.tileSize = this.props.tileSize;
@@ -265,15 +265,16 @@ var Level = function(model,sheet,index) {
 				var _g32 = path.split(".").pop().toLowerCase();
 				switch(_g32) {
 				case "png":case "jpeg":case "jpg":
+					this.wait();
 					lvl.Image.load(path,(function(index1) {
 						return function(i) {
-							_g.images.push({ index : index1[0], data : i});
-							_g.images.sort((function() {
+							_g.backgroundImages.push({ index : index1[0], data : i});
+							_g.backgroundImages.sort((function() {
 								return function(i1,i2) {
 									return i1.index - i2.index;
 								};
 							})());
-							_g.draw();
+							_g.waitDone();
 						};
 					})(index1));
 					break;
@@ -331,6 +332,7 @@ Level.prototype = {
 				}
 			}
 			this.zoomView = state.zoomView;
+			this.paintMode = state.paintMode;
 		}
 		this.setCursor(layer);
 		this.updateZoom();
@@ -474,14 +476,14 @@ Level.prototype = {
 			})(l));
 			new js.JQuery("<span>").text(l[0].name).appendTo(td[0]);
 			if(l[0].images != null) {
-				var isel = [new js.JQuery("<div class='img'>").appendTo(td[0])];
-				if(l[0].images.length > 0) isel[0].append((function($this) {
+				var isel = new js.JQuery("<div class='img'>").appendTo(td[0]);
+				if(l[0].images.length > 0) isel.append((function($this) {
 					var $r;
 					var html1 = l[0].images[l[0].current].getCanvas();
 					$r = new js.JQuery(html1);
 					return $r;
 				}(this)));
-				isel[0].click((function(isel,td,l) {
+				isel.click((function(td,l) {
 					return function(e) {
 						_g2.setCursor(l[0]);
 						var list = new js.JQuery("<div class='imglist'>");
@@ -489,19 +491,12 @@ Level.prototype = {
 						var _g3 = l[0].images.length;
 						while(_g4 < _g3) {
 							var i = [_g4++];
-							list.append(new js.JQuery("<img>").attr("src",l[0].images[i[0]].getCanvas().toDataURL()).click((function(i,isel,l) {
+							list.append(new js.JQuery("<img>").attr("src",l[0].images[i[0]].getCanvas().toDataURL()).click((function(i,l) {
 								return function(_1) {
-									isel[0].html("");
-									isel[0].append((function($this) {
-										var $r;
-										var html2 = l[0].images[i[0]].getCanvas();
-										$r = new js.JQuery(html2);
-										return $r;
-									}(this)));
 									l[0].set_current(i[0]);
 									_g2.setCursor(l[0]);
 								};
-							})(i,isel,l)));
+							})(i,l)));
 						}
 						td[0].append(list);
 						var remove = (function() {
@@ -509,16 +504,16 @@ Level.prototype = {
 								list.detach();
 								((function($this) {
 									var $r;
-									var html3 = window;
-									$r = new js.JQuery(html3);
+									var html2 = window;
+									$r = new js.JQuery(html2);
 									return $r;
 								}(this))).unbind("click");
 							};
 						})();
 						((function($this) {
 							var $r;
-							var html4 = window;
-							$r = new js.JQuery(html4);
+							var html3 = window;
+							$r = new js.JQuery(html3);
 							return $r;
 						}(this))).bind("click",(function() {
 							return function(_2) {
@@ -527,14 +522,14 @@ Level.prototype = {
 						})());
 						e.stopPropagation();
 					};
-				})(isel,td,l));
+				})(td,l));
 				continue;
 			}
 			var id = Level.UID++;
 			var t = ((function($this) {
 				var $r;
-				var html5 = "<input type=\"text\" id=\"_" + Level.UID++ + "\">";
-				$r = new js.JQuery(html5);
+				var html4 = "<input type=\"text\" id=\"_" + Level.UID++ + "\">";
+				$r = new js.JQuery(html4);
 				return $r;
 			}(this))).appendTo(td[0]);
 			t.spectrum({ color : this.toColor(l[0].colors[l[0].current]), clickoutFiresChange : true, showButtons : false, showPaletteOnly : true, showPalette : true, palette : (function($this) {
@@ -601,11 +596,8 @@ Level.prototype = {
 		scroll.bind("mousewheel",function(e2) {
 		});
 		this.cursor = this.content.find("#cursor");
-		var curCanvas;
-		var _this2 = window.document;
-		curCanvas = _this2.createElement("canvas");
-		new js.JQuery(curCanvas).appendTo(this.cursor);
-		this.cursorImage = lvl.Image.fromCanvas(curCanvas);
+		this.cursorImage = new lvl.Image(0,0);
+		this.cursor[0].appendChild(this.cursorImage.getCanvas());
 		this.cursor.hide();
 		scont.mouseleave(function(_6) {
 			_g2.curPos = null;
@@ -842,58 +834,66 @@ Level.prototype = {
 		this.updateCursorPos();
 		this.setCursor(this.currentLayer);
 	}
+	,paint: function(x,y) {
+		var _g1 = this;
+		{
+			var _g = this.currentLayer.data;
+			switch(_g[1]) {
+			case 0:
+				var data = _g[2];
+				if(data[x + y * this.width] == this.currentLayer.current) return;
+				var fillRec;
+				var fillRec1 = null;
+				fillRec1 = function(x1,y1,k) {
+					if(data[x1 + y1 * _g1.width] != k) return;
+					data[x1 + y1 * _g1.width] = _g1.currentLayer.current;
+					_g1.currentLayer.dirty = true;
+					if(x1 > 0) fillRec1(x1 - 1,y1,k);
+					if(y1 > 0) fillRec1(x1,y1 - 1,k);
+					if(x1 < _g1.width - 1) fillRec1(x1 + 1,y1,k);
+					if(y1 < _g1.height - 1) fillRec1(x1,y1 + 1,k);
+				};
+				fillRec = fillRec1;
+				fillRec(x,y,data[x + y * this.width]);
+				this.save();
+				this.draw();
+				break;
+			case 2:
+				var data1 = _g[3];
+				if(data1[x + y * this.width] != 0) return;
+				var l = this.currentLayer;
+				var px = x;
+				var py = y;
+				var fillRec2;
+				var fillRec3 = null;
+				fillRec3 = function(x2,y2,k1) {
+					if(data1[x2 + y2 * _g1.width] != 0) return;
+					var dx = (x2 - px) % l.currentWidth;
+					if(dx < 0) dx += l.currentWidth;
+					var dy = (y2 - py) % l.currentHeight;
+					if(dy < 0) dy += l.currentHeight;
+					data1[x2 + y2 * _g1.width] = l.current + (l.currentRandom?Std.random(l.currentWidth) + Std.random(l.currentHeight) * l.imagesStride:dx + dy * l.imagesStride) + 1;
+					l.dirty = true;
+					if(x2 > 0) fillRec3(x2 - 1,y2,k1);
+					if(y2 > 0) fillRec3(x2,y2 - 1,k1);
+					if(x2 < _g1.width - 1) fillRec3(x2 + 1,y2,k1);
+					if(y2 < _g1.height - 1) fillRec3(x2,y2 + 1,k1);
+				};
+				fillRec2 = fillRec3;
+				fillRec2(x,y,data1[x + y * this.width]);
+				this.save();
+				this.draw();
+				break;
+			default:
+			}
+		}
+	}
 	,onKey: function(e) {
-		var _g2 = this;
 		if(e.ctrlKey || this.curPos == null) return;
 		var _g = e.keyCode;
 		switch(_g) {
 		case 80:
-			var x = this.curPos.x;
-			var y = this.curPos.y;
-			{
-				var _g1 = this.currentLayer.data;
-				switch(_g1[1]) {
-				case 0:
-					var data = _g1[2];
-					if(data[x + y * this.width] == this.currentLayer.current) return;
-					var fillRec;
-					var fillRec1 = null;
-					fillRec1 = function(x1,y1,k) {
-						if(data[x1 + y1 * _g2.width] != k) return;
-						data[x1 + y1 * _g2.width] = _g2.currentLayer.current;
-						_g2.currentLayer.dirty = true;
-						if(x1 > 0) fillRec1(x1 - 1,y1,k);
-						if(y1 > 0) fillRec1(x1,y1 - 1,k);
-						if(x1 < _g2.width - 1) fillRec1(x1 + 1,y1,k);
-						if(y1 < _g2.height - 1) fillRec1(x1,y1 + 1,k);
-					};
-					fillRec = fillRec1;
-					fillRec(x,y,data[x + y * this.width]);
-					this.save();
-					this.draw();
-					break;
-				case 2:
-					var data1 = _g1[3];
-					if(data1[x + y * this.width] != 0) return;
-					var fillRec2;
-					var fillRec3 = null;
-					fillRec3 = function(x2,y2,k1) {
-						if(data1[x2 + y2 * _g2.width] != 0) return;
-						data1[x2 + y2 * _g2.width] = _g2.currentLayer.current + 1;
-						_g2.currentLayer.dirty = true;
-						if(x2 > 0) fillRec3(x2 - 1,y2,k1);
-						if(y2 > 0) fillRec3(x2,y2 - 1,k1);
-						if(x2 < _g2.width - 1) fillRec3(x2 + 1,y2,k1);
-						if(y2 < _g2.height - 1) fillRec3(x2,y2 + 1,k1);
-					};
-					fillRec2 = fillRec3;
-					fillRec2(x,y,data1[x + y * this.width]);
-					this.save();
-					this.draw();
-					break;
-				default:
-				}
-			}
+			this.paint(this.curPos.x,this.curPos.y);
 			break;
 		case 107:
 			this.updateZoom(true);
@@ -902,33 +902,52 @@ Level.prototype = {
 			this.updateZoom(false);
 			break;
 		case 46:
+			this.delDown = true;
 			var p = this.pick();
 			if(p == null) return;
 			{
-				var _g11 = p.layer.data;
-				switch(_g11[1]) {
+				var _g1 = p.layer.data;
+				switch(_g1[1]) {
 				case 0:
-					var data2 = _g11[2];
-					if(data2[p.index] == 0) return;
-					data2[p.index] = 0;
+					var data = _g1[2];
+					if(data[p.index] == 0) return;
+					data[p.index] = 0;
 					p.layer.dirty = true;
+					this.cursor.css({ opacity : 0}).fadeTo(100,1);
 					this.save();
 					this.draw();
 					break;
 				case 1:
-					var objs = _g11[3];
+					var objs = _g1[3];
 					if(HxOverrides.remove(objs,objs[p.index])) {
 						this.save();
 						this.draw();
 					}
 					break;
 				case 2:
-					var data3 = _g11[3];
-					if(data3[p.index] == 0) return;
-					data3[p.index] = 0;
-					p.layer.dirty = true;
-					this.save();
-					this.draw();
+					var data1 = _g1[3];
+					var changed = false;
+					var l = this.currentLayer;
+					var _g3 = 0;
+					var _g2 = l.currentHeight;
+					while(_g3 < _g2) {
+						var dy = _g3++;
+						var _g5 = 0;
+						var _g4 = l.currentWidth;
+						while(_g5 < _g4) {
+							var dx = _g5++;
+							var i = p.index + dx + dy * this.width;
+							if(data1[i] == 0) continue;
+							data1[i] = 0;
+							changed = true;
+						}
+					}
+					if(changed) {
+						p.layer.dirty = true;
+						this.cursor.css({ opacity : 0}).fadeTo(100,1);
+						this.save();
+						this.draw();
+					}
 					break;
 				}
 			}
@@ -936,12 +955,12 @@ Level.prototype = {
 		case 69:
 			var p1 = this.pick();
 			{
-				var _g12 = p1.layer.data;
-				switch(_g12[1]) {
+				var _g11 = p1.layer.data;
+				switch(_g11[1]) {
 				case 0:case 2:
 					break;
 				case 1:
-					var objs1 = _g12[3];
+					var objs1 = _g11[3];
 					new js.JQuery(".popup").remove();
 					this.editProps(p1.layer,p1.index);
 					break;
@@ -952,26 +971,70 @@ Level.prototype = {
 			new js.JQuery(".popup").remove();
 			this.draw();
 			break;
+		case 9:
+			var i1;
+			i1 = (HxOverrides.indexOf(this.layers,this.currentLayer,0) + (e.shiftKey?this.layers.length - 1:1)) % this.layers.length;
+			this.setCursor(this.layers[i1]);
+			e.preventDefault();
+			break;
+		default:
+		}
+	}
+	,onKeyUp: function(e) {
+		var _g = e.keyCode;
+		switch(_g) {
+		case 46:
+			this.delDown = false;
+			if(this.needSave) this.save();
+			break;
 		default:
 		}
 	}
 	,set: function(x,y) {
+		if(this.paintMode) {
+			this.paint(x,y);
+			return;
+		}
+		var l = this.currentLayer;
 		{
-			var _g = this.currentLayer.data;
+			var _g = l.data;
 			switch(_g[1]) {
 			case 0:
 				var data = _g[2];
-				if(data[x + y * this.width] == this.currentLayer.current) return;
-				data[x + y * this.width] = this.currentLayer.current;
-				this.currentLayer.dirty = true;
+				if(data[x + y * this.width] == l.current) return;
+				data[x + y * this.width] = l.current;
+				l.dirty = true;
 				this.save();
 				this.draw();
 				break;
 			case 2:
 				var data1 = _g[3];
-				if(data1[x + y * this.width] == this.currentLayer.current + 1) return;
-				data1[x + y * this.width] = this.currentLayer.current + 1;
-				this.currentLayer.dirty = true;
+				var changed = false;
+				if(l.currentRandom) {
+					var p = x + y * this.width;
+					var id = l.current + Std.random(l.currentWidth) + Std.random(l.currentHeight) * l.imagesStride + 1;
+					if(data1[p] == id) return;
+					data1[p] = id;
+					changed = true;
+				} else {
+					var _g2 = 0;
+					var _g1 = l.currentHeight;
+					while(_g2 < _g1) {
+						var dy = _g2++;
+						var _g4 = 0;
+						var _g3 = l.currentWidth;
+						while(_g4 < _g3) {
+							var dx = _g4++;
+							var p1 = x + dx + (y + dy) * this.width;
+							var id1 = l.current + dx + dy * l.imagesStride + 1;
+							if(data1[p1] == id1) continue;
+							data1[p1] = id1;
+							changed = true;
+						}
+					}
+				}
+				if(!changed) return;
+				l.dirty = true;
 				this.save();
 				this.draw();
 				break;
@@ -989,9 +1052,9 @@ Level.prototype = {
 		var _g = this.layers.length;
 		while(_g1 < _g) {
 			var index = _g1++;
-			while(curImage < this.images.length && this.images[curImage].index == index) {
+			while(curImage < this.backgroundImages.length && this.backgroundImages[curImage].index == index) {
 				this.ctx.globalAlpha = 1;
-				this.ctx.drawImage(this.images[curImage].data.getCanvas(),0,0);
+				this.ctx.drawImage(this.backgroundImages[curImage].data.getCanvas(),0,0);
 				curImage++;
 			}
 			var l = this.layers[index];
@@ -1092,7 +1155,7 @@ Level.prototype = {
 		this.displayCanvas.drawImage(canvas,0,0,canvas.width,canvas.height,0,0,this.displayCanvas.canvas.width,this.displayCanvas.canvas.height);
 	}
 	,save: function() {
-		if(this.mouseDown) {
+		if(this.mouseDown || this.delDown) {
 			this.needSave = true;
 			return;
 		}
@@ -1108,7 +1171,7 @@ Level.prototype = {
 	}
 	,savePrefs: function() {
 		var sc = this.content.find(".scroll");
-		var state = { zoomView : this.zoomView, curLayer : this.currentLayer.name, scrollX : sc.scrollLeft(), scrollY : sc.scrollTop()};
+		var state = { zoomView : this.zoomView, curLayer : this.currentLayer.name, scrollX : sc.scrollLeft(), scrollY : sc.scrollTop(), paintMode : this.paintMode};
 		js.Browser.getLocalStorage().setItem(this.sheetPath,haxe.Serializer.run(state));
 	}
 	,setLock: function(b) {
@@ -1206,7 +1269,24 @@ Level.prototype = {
 			}
 		});
 	}
+	,paletteOption: function(name) {
+		var l = this.currentLayer;
+		switch(name) {
+		case "random":
+			l.currentRandom = !l.currentRandom;
+			this.palette.find(".icon.random").toggleClass("active",l.currentRandom);
+			l.saveState();
+			this.setCursor(l);
+			break;
+		case "paint":
+			this.paintMode = !this.paintMode;
+			this.savePrefs();
+			this.palette.find(".icon.paint").toggleClass("active",this.paintMode);
+			break;
+		}
+	}
 	,setCursor: function(l) {
+		var _g = this;
 		this.content.find(".menu .item.selected").removeClass("selected");
 		l.comp.addClass("selected");
 		var old = this.currentLayer;
@@ -1218,10 +1298,10 @@ Level.prototype = {
 			this.content.find("[name=lock]").prop("checked",!l.floatCoord).closest(".item").css({ display : l.hasFloatCoord?"":"none"});
 			this.content.find("[name=color]").spectrum("set",this.toColor(l.props.color)).closest(".item").css({ display : l.idToIndex == null && !(function($this) {
 				var $r;
-				var _g = l.data;
+				var _g1 = l.data;
 				$r = (function($this) {
 					var $r;
-					switch(_g[1]) {
+					switch(_g1[1]) {
 					case 2:
 						$r = true;
 						break;
@@ -1233,10 +1313,10 @@ Level.prototype = {
 				return $r;
 			}(this))?"":"none"});
 			{
-				var _g1 = l.data;
-				switch(_g1[1]) {
+				var _g2 = l.data;
+				switch(_g2[1]) {
 				case 2:
-					var t = _g1[2];
+					var t = _g2[2];
 					this.content.find("[name=size]").val("" + t.size).closest(".item").show();
 					this.content.find("[name=file]").closest(".item").show();
 					break;
@@ -1245,13 +1325,109 @@ Level.prototype = {
 					this.content.find("[name=file]").closest(".item").hide();
 				}
 			}
+			if(this.palette != null) {
+				this.palette.remove();
+				this.paletteSelect = null;
+			}
+			if(l.images != null) {
+				this.palette = ((function($this) {
+					var $r;
+					var html = new js.JQuery("#paletteContent").html();
+					$r = new js.JQuery(html);
+					return $r;
+				}(this))).appendTo(this.content);
+				var i = lvl.Image.fromCanvas(this.palette.find("canvas.view")[0]);
+				i.setSize(l.imagesStride * (this.tileSize + 1),Math.ceil(l.images.length / l.imagesStride) * (this.tileSize + 1));
+				var _g11 = 0;
+				var _g3 = l.images.length;
+				while(_g11 < _g3) {
+					var n = _g11++;
+					var x = n % l.imagesStride * (this.tileSize + 1);
+					var y = (n / l.imagesStride | 0) * (this.tileSize + 1);
+					i.draw(l.images[n],x,y);
+				}
+				var jsel = this.palette.find("canvas.select");
+				var select = lvl.Image.fromCanvas(jsel[0]);
+				select.setSize(i.width,i.height);
+				this.palette.find(".icon.random").toggleClass("active",l.currentRandom);
+				this.palette.find(".icon.paint").toggleClass("active",this.paintMode);
+				var start_x = l.current % l.imagesStride;
+				var start_y = l.current / l.imagesStride | 0;
+				var start_down = false;
+				jsel.mousedown(function(e) {
+					var o = jsel.offset();
+					var x1 = (e.pageX - o.left) / (_g.tileSize + 1) | 0;
+					var y1 = (e.pageY - o.top) / (_g.tileSize + 1) | 0;
+					if(e.shiftKey) {
+						var x0;
+						if(x1 < start_x) x0 = x1; else x0 = start_x;
+						var y0;
+						if(y1 < start_y) y0 = y1; else y0 = start_y;
+						var x11;
+						if(x1 < start_x) x11 = start_x; else x11 = x1;
+						var y11;
+						if(y1 < start_y) y11 = start_y; else y11 = y1;
+						l.set_current(x0 + y0 * l.imagesStride);
+						l.currentWidth = x11 - x0 + 1;
+						l.currentHeight = y11 - y0 + 1;
+						l.saveState();
+						_g.setCursor(l);
+					} else {
+						start_x = x1;
+						start_y = y1;
+						start_down = true;
+						l.set_current(x1 + y1 * l.imagesStride);
+						_g.setCursor(l);
+					}
+				});
+				jsel.mousemove(function(e1) {
+					if(!start_down) return;
+					var o1 = jsel.offset();
+					var x2 = (e1.pageX - o1.left) / (_g.tileSize + 1) | 0;
+					var y2 = (e1.pageY - o1.top) / (_g.tileSize + 1) | 0;
+					var x01;
+					if(x2 < start_x) x01 = x2; else x01 = start_x;
+					var y01;
+					if(y2 < start_y) y01 = y2; else y01 = start_y;
+					var x12;
+					if(x2 < start_x) x12 = start_x; else x12 = x2;
+					var y12;
+					if(y2 < start_y) y12 = start_y; else y12 = y2;
+					l.set_current(x01 + y01 * l.imagesStride);
+					l.currentWidth = x12 - x01 + 1;
+					l.currentHeight = y12 - y01 + 1;
+					l.saveState();
+					_g.setCursor(l);
+				});
+				jsel.mouseup(function(e2) {
+					start_down = false;
+				});
+				this.paletteSelect = select;
+			}
+		}
+		if(this.paletteSelect != null) {
+			this.paletteSelect.clear();
+			this.paletteSelect.fillRect(l.current % l.imagesStride * (this.tileSize + 1),(l.current / l.imagesStride | 0) * (this.tileSize + 1),(this.tileSize + 1) * l.currentWidth - 1,(this.tileSize + 1) * l.currentHeight - 1,-2141478405);
 		}
 		var size;
 		if(this.zoomView < 1) size = this.tileSize * this.zoomView | 0; else size = Math.ceil(this.tileSize * this.zoomView);
-		this.cursorImage.setSize(size,size);
+		var w;
+		if(l.currentRandom) w = 1; else w = l.currentWidth;
+		var h;
+		if(l.currentRandom) h = 1; else h = l.currentHeight;
+		this.cursorImage.setSize(size * w,size * h);
 		if(l.images != null) {
 			this.cursorImage.clear();
-			this.cursorImage.copyFrom(l.images[l.current],this.zoomView < 1);
+			var _g4 = 0;
+			while(_g4 < h) {
+				var y3 = _g4++;
+				var _g12 = 0;
+				while(_g12 < w) {
+					var x3 = _g12++;
+					var i1 = l.images[l.current + x3 + y3 * l.imagesStride];
+					this.cursorImage.drawSub(i1,0,0,i1.width,i1.height,x3 * size,y3 * size,size,size);
+				}
+			}
 			this.cursorImage.fill(1616617979);
 			this.cursor.css({ border : "none"});
 		} else {
@@ -2988,6 +3164,7 @@ var Main = function() {
 	this.sheetCursors = new haxe.ds.StringMap();
 	this.window.window.addEventListener("keydown",$bind(this,this.onKey));
 	this.window.window.addEventListener("keypress",$bind(this,this.onKeyPress));
+	this.window.window.addEventListener("keyup",$bind(this,this.onKeyUp));
 	this.window.window.addEventListener("mousemove",$bind(this,this.onMouseMove));
 	new js.JQuery(".modal").keypress(function(e) {
 		e.stopPropagation();
@@ -3281,6 +3458,9 @@ Main.prototype = $extend(Model.prototype,{
 		default:
 		}
 		if(this.level != null) this.level.onKey(e);
+	}
+	,onKeyUp: function(e) {
+		if(this.level != null) this.level.onKeyUp(e);
 	}
 	,getLine: function(sheet,index) {
 		return ((function($this) {
@@ -5666,6 +5846,9 @@ Std.parseInt = function(x) {
 Std.parseFloat = function(x) {
 	return parseFloat(x);
 };
+Std.random = function(x) {
+	if(x <= 0) return 0; else return Math.floor(Math.random() * x);
+};
 var StringBuf = function() {
 	this.b = "";
 };
@@ -7569,14 +7752,22 @@ lvl.Image = function(w,h) {
 $hxClasses["lvl.Image"] = lvl.Image;
 lvl.Image.__name__ = ["lvl","Image"];
 lvl.Image.load = function(url,callb,onError) {
-	var i;
-	var _this = window.document;
-	i = _this.createElement("img");
-	i.onload = function(_) {
+	var i = lvl.Image.cache.get(url);
+	if(i != null) {
 		var im = new lvl.Image(i.width,i.height);
 		im.ctx.drawImage(i,0,0);
 		im.origin = i;
 		callb(im);
+		return;
+	}
+	var _this = window.document;
+	i = _this.createElement("img");
+	i.onload = function(_) {
+		lvl.Image.cache.set(url,i);
+		var im1 = new lvl.Image(i.width,i.height);
+		im1.ctx.drawImage(i,0,0);
+		im1.origin = i;
+		callb(im1);
 	};
 	i.onerror = function(_1) {
 		if(onError != null) {
@@ -7593,6 +7784,7 @@ lvl.Image.fromCanvas = function(c) {
 	var i = new lvl.Image(0,0);
 	i.width = c.width;
 	i.height = c.height;
+	i.canvas = i.origin = c;
 	i.ctx = c.getContext("2d");
 	return i;
 };
@@ -7612,6 +7804,11 @@ lvl.Image.prototype = {
 		this.ctx.fillRect(0,0,this.width,this.height);
 		this.origin = this.canvas;
 	}
+	,fillRect: function(x,y,w,h,color) {
+		this.ctx.fillStyle = this.getColor(color);
+		this.ctx.fillRect(x,y,w,h);
+		this.origin = this.canvas;
+	}
 	,sub: function(x,y,w,h) {
 		var i = new lvl.Image(w,h);
 		i.ctx.drawImage(this.origin,x,y,w,h,0,0,w,h);
@@ -7627,11 +7824,13 @@ lvl.Image.prototype = {
 		this.ctx.drawImage(i.origin,0,0,i.width,i.height,x,y,i.width,i.height);
 		this.origin = this.canvas;
 	}
-	,drawSub: function(i,srcX,srcY,srcW,srcH,x,y,dstW,dstH) {
+	,drawSub: function(i,srcX,srcY,srcW,srcH,x,y,dstW,dstH,smooth) {
+		if(smooth == null) smooth = false;
 		if(dstH == null) dstH = -1;
 		if(dstW == null) dstW = -1;
 		if(dstW < 0) dstW = srcW;
 		if(dstH < 0) dstH = srcH;
+		this.ctx.imageSmoothingEnabled = smooth;
 		this.ctx.drawImage(i.origin,srcX,srcY,srcW,srcH,x,y,dstW,dstH);
 		this.origin = this.canvas;
 	}
@@ -7647,6 +7846,9 @@ lvl.Image.prototype = {
 		if(width == this.width && height == this.height) return;
 		this.canvas.width = width;
 		this.canvas.height = height;
+		this.canvas.setAttribute("width",width + "px");
+		this.canvas.setAttribute("height",height + "px");
+		this.ctx = this.canvas.getContext("2d");
 		this.width = width;
 		this.height = height;
 		this.origin = this.canvas;
@@ -7675,8 +7877,11 @@ lvl.LayerInnerData.Layer = function(a) { var $x = ["Layer",0,a]; $x.__enum__ = l
 lvl.LayerInnerData.Objects = function(idCol,objs) { var $x = ["Objects",1,idCol,objs]; $x.__enum__ = lvl.LayerInnerData; return $x; };
 lvl.LayerInnerData.Tiles = function(t,data) { var $x = ["Tiles",2,t,data]; $x.__enum__ = lvl.LayerInnerData; return $x; };
 lvl.LayerData = function(level,name,p,target) {
+	this.currentHeight = 1;
+	this.currentWidth = 1;
 	this.current = 0;
 	this.visible = true;
+	this.imagesStride = 0;
 	this.level = level;
 	this.name = name;
 	this.props = p;
@@ -7782,6 +7987,7 @@ lvl.LayerData.prototype = {
 			}
 		}
 		this.names = [];
+		this.imagesStride = Math.ceil(Math.sqrt(sheet.lines.length));
 		this.idToIndex = new haxe.ds.StringMap();
 		this.indexToId = [];
 		var _g11 = 0;
@@ -7812,7 +8018,14 @@ lvl.LayerData.prototype = {
 		if(state != null) {
 			this.set_visible(state.visible);
 			this.floatCoord = this.hasFloatCoord && !state.lock;
-			if(state.current < (this.images != null?this.images.length:this.names.length)) this.set_current(state.current);
+			if(state.current < (this.images != null?this.images.length:this.names.length)) {
+				this.set_current(state.current);
+				if(this.current % this.imagesStride + state.cw <= this.imagesStride && (this.current / this.imagesStride | 0) + state.ch <= Math.ceil((this.images != null?this.images.length:this.names.length) / this.imagesStride)) {
+					this.currentWidth = state.cw;
+					this.currentHeight = state.ch;
+				}
+				this.currentRandom = (this.currentWidth > 1 || this.currentHeight > 1) && state.random;
+			}
 		}
 	}
 	,setLayerData: function(val) {
@@ -7853,7 +8066,7 @@ lvl.LayerData.prototype = {
 		this.data = lvl.LayerInnerData.Objects(id,val);
 	}
 	,setTilesData: function(val) {
-		var _g3 = this;
+		var _g1 = this;
 		var file;
 		if(val == null) file = null; else file = val.file;
 		var size;
@@ -7862,8 +8075,8 @@ lvl.LayerData.prototype = {
 		if(val == null) {
 			var _g = [];
 			var _g2 = 0;
-			var _g1 = this.level.width * this.level.height;
-			while(_g2 < _g1) {
+			var _g11 = this.level.width * this.level.height;
+			while(_g2 < _g11) {
 				var i = _g2++;
 				_g.push(0);
 			}
@@ -7886,8 +8099,8 @@ lvl.LayerData.prototype = {
 			var h = i2.height / size | 0;
 			var max = w * h;
 			var _g21 = 0;
-			var _g11 = data.length;
-			while(_g21 < _g11) {
+			var _g12 = data.length;
+			while(_g21 < _g12) {
 				var i3 = _g21++;
 				var v = data[i3] - 1;
 				if(v < 0) continue;
@@ -7898,19 +8111,19 @@ lvl.LayerData.prototype = {
 					data[i3] = v + 1;
 				}
 			}
-			d.stride = w;
-			var _g12 = 0;
-			while(_g12 < h) {
-				var y = _g12++;
-				var _g22 = 0;
-				while(_g22 < w) {
-					var x = _g22++;
+			_g1.imagesStride = d.stride = w;
+			var _g22 = 0;
+			while(_g22 < h) {
+				var y = _g22++;
+				var _g3 = 0;
+				while(_g3 < w) {
+					var x = _g3++;
 					var i4 = i2.sub(x * size,y * size,size,size);
-					_g3.images.push(i4);
+					_g1.images.push(i4);
 				}
 			}
-			_g3.loadState();
-			_g3.level.waitDone();
+			_g1.loadState();
+			_g1.level.waitDone();
 		});
 	}
 	,set_visible: function(v) {
@@ -7921,11 +8134,14 @@ lvl.LayerData.prototype = {
 	}
 	,set_current: function(v) {
 		this.current = v;
+		this.currentWidth = 1;
+		this.currentHeight = 1;
+		if(this.images != null && this.comp != null) this.comp.find("div.img").html("").append(new js.JQuery(this.images[this.current].getCanvas()));
 		this.saveState();
 		return v;
 	}
 	,saveState: function() {
-		var s = { current : this.current, visible : this.visible, lock : this.hasFloatCoord && !this.floatCoord};
+		var s = { current : this.current, visible : this.visible, lock : this.hasFloatCoord && !this.floatCoord, cw : this.currentWidth, ch : this.currentHeight, random : this.currentRandom};
 		js.Browser.getLocalStorage().setItem(this.level.sheetPath + ":" + this.name,haxe.Serializer.run(s));
 	}
 	,save: function() {
@@ -8226,5 +8442,6 @@ js.NodeC.FILE_WRITE = "w";
 js.NodeC.FILE_WRITE_APPEND = "a+";
 js.NodeC.FILE_READWRITE = "a";
 js.NodeC.FILE_READWRITE_APPEND = "a+";
+lvl.Image.cache = new haxe.ds.StringMap();
 Main.main();
 })();
