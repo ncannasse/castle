@@ -48,12 +48,14 @@ class Main extends Model {
 	var sheetCursors : Map<String, Cursor>;
 	var lastSave : Float;
 	var colProps : { sheet : String, ref : Column, index : Null<Int> };
+	var levels : Array<Level>;
 	var level : Level;
 
 	function new() {
 		super();
 		window = nodejs.webkit.Window.get();
 		initMenu();
+		levels = [];
 		mousePos = { x : 0, y : 0 };
 		sheetCursors = new Map();
 		window.window.addEventListener("keydown", onKey);
@@ -246,8 +248,12 @@ class Main extends Model {
 		case K.TAB:
 			if( e.ctrlKey ) {
 				var sheets = data.sheets.filter(function(s) return !s.props.hide);
-				var s = sheets[(Lambda.indexOf(sheets, viewSheet) + 1) % sheets.length];
-				if( s != null ) selectSheet(s);
+				var pos = (level == null ? Lambda.indexOf(sheets, viewSheet) : sheets.length + Lambda.indexOf(levels, level)) + 1;
+				var s = sheets[pos % (sheets.length + levels.length)];
+				if( s != null ) selectSheet(s) else {
+					var level = levels[pos - sheets.length];
+					if( level != null ) selectLevel(level);
+				}
 			} else {
 				moveCursor(e.shiftKey? -1:1, 0, false, false);
 			}
@@ -1549,8 +1555,17 @@ class Main extends Model {
 				var c = J("<input type='submit' value='Edit'>");
 				J("<td>").append(c).appendTo(l);
 				c.click(function() {
-					level = new Level(this, sheet, index);
-					J("#sheets li").removeClass("active");
+					var found = null;
+					for( l in levels )
+						if( l.sheet == sheet && l.index == index )
+							found = l;
+					if( found == null ) {
+						found = new Level(this, sheet, index);
+						levels.push(found);
+						selectLevel(found);
+						initContent(); // refresh tabs
+					} else
+						selectLevel(found);
 				});
 			}
 		}
@@ -1627,11 +1642,32 @@ class Main extends Model {
 			};
 			sheetCursors.set(s.name, cursor);
 		}
+		if( manual ) {
+			if( level != null ) level.dispose();
+			level = null;
+		}
 		prefs.curSheet = Lambda.indexOf(data.sheets, s);
 		J("#sheets li").removeClass("active").filter("#sheet_" + prefs.curSheet).addClass("active");
-		if( manual ) level = null;
 		refresh();
 	}
+
+	function selectLevel( l : Level ) {
+		if( level != null ) level.dispose();
+		level = l;
+		level.init();
+		J("#sheets li").removeClass("active").filter("#level_" + l.sheetPath.split(".").join("_") + "_" + l.index).addClass("active");
+	}
+
+
+	public function closeLevel( l : Level ) {
+		l.dispose();
+		var i = Lambda.indexOf(levels, l);
+		levels.remove(l);
+		if( level == l )
+			level = null;
+		initContent();
+	}
+
 
 	function newSheet() {
 		J("#newsheet").show();
@@ -2002,18 +2038,22 @@ class Main extends Model {
 		if( s == null ) s = data.sheets[0];
 		selectSheet(s, false);
 
-		if( level != null ) {
-			if( !smap.exists(level.sheetPath) )
-				level = null;
-			else {
-				var s = getSheet(level.sheetPath);
-				if( s.lines.length < level.index )
-					level = null;
-				else
-					level = new Level(this, s, level.index);
-			}
-			if( level != null ) J("#sheets li").removeClass("active");
+		var old = levels;
+		var lcur = null;
+		levels = [];
+		for( level in old ) {
+			if( !smap.exists(level.sheetPath) ) continue;
+			var s = getSheet(level.sheetPath);
+			if( s.lines.length < level.index )
+				continue;
+			var l = new Level(this, s, level.index);
+			if( level == this.level ) lcur = l;
+			levels.push(l);
+			var li = J("<li>");
+			li.text(level.getName()).attr("id", "level_" + l.sheetPath.split(".").join("_") + "_" + l.index).appendTo(sheets).click(selectLevel.bind(l));
 		}
+		if( lcur != null )
+			selectLevel(lcur);
 	}
 
 	function initMenu() {

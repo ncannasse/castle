@@ -22,8 +22,8 @@ class Level {
 	public var height : Int;
 	public var model : Model;
 	public var tileSize : Int;
+	public var sheet : Sheet;
 
-	var sheet : Sheet;
 	var obj : Dynamic;
 	var content : js.JQuery;
 	var layers : Array<LayerData>;
@@ -61,6 +61,24 @@ class Level {
 		this.index = index;
 		this.obj = sheet.lines[index];
 		this.model = model;
+	}
+
+	public function getName() {
+		var name = "#"+index;
+		for( c in sheet.columns ) {
+			var v : Dynamic = Reflect.field(obj, c.name);
+			switch( c.type ) {
+			case TString if( c.name == sheet.props.displayColumn && v != null && v != "" ):
+				return v;
+			case TId:
+				name = v;
+			default:
+			}
+		}
+		return name;
+	}
+
+	public function init() {
 		layers = [];
 		watchList = [];
 		watchTimer = new haxe.Timer(50);
@@ -68,7 +86,6 @@ class Level {
 		backgroundImages = [];
 		props = sheet.props.levelProps;
 		if( props.tileSize == null ) props.tileSize = 16;
-
 		tileSize = props.tileSize;
 
 		var lprops = new Map();
@@ -177,7 +194,13 @@ class Level {
 	}
 
 	public function dispose() {
+		if( content != null ) content.html("");
 		watchTimer.stop();
+		watchTimer = null;
+	}
+
+	public function isDisposed() {
+		return watchTimer == null;
 	}
 
 	public function watch( path : String, callb : Void -> Void ) {
@@ -206,6 +229,7 @@ class Level {
 	public function waitDone() {
 
 		if( --waitCount != 0 ) return;
+		if( isDisposed() ) return;
 
 		setup();
 		draw();
@@ -272,6 +296,14 @@ class Level {
 			}
 		}
 		return null;
+	}
+
+	@:keep function action(name) {
+		switch( name ) {
+		case "close":
+			cast(model, Main).closeLevel(this);
+
+		}
 	}
 
 	@:keep function addNewLayer( ?name ) {
@@ -645,6 +677,8 @@ class Level {
 	}
 
 	public function onKey( e : js.html.KeyboardEvent ) {
+		if( e.ctrlKey && e.keyCode == K.F4 )
+			action("close");
 		if( e.ctrlKey || curPos == null ) return;
 		switch( e.keyCode ) {
 		case "P".code:

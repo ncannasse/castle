@@ -152,172 +152,201 @@ var Level = function(model,sheet,index) {
 	this.startPos = null;
 	this.mousePos = { x : 0, y : 0};
 	this.zoomView = 1.;
-	var _g = this;
 	this.sheet = sheet;
 	this.sheetPath = model.getPath(sheet);
 	this.index = index;
 	this.obj = sheet.lines[index];
 	this.model = model;
-	this.layers = [];
-	this.watchList = [];
-	this.watchTimer = new haxe.Timer(50);
-	this.watchTimer.run = $bind(this,this.checkWatch);
-	this.backgroundImages = [];
-	this.props = sheet.props.levelProps;
-	if(this.props.tileSize == null) this.props.tileSize = 16;
-	this.tileSize = this.props.tileSize;
-	var lprops = new haxe.ds.StringMap();
-	if(this.props.layers == null) this.props.layers = [];
-	var _g1 = 0;
-	var _g11 = this.props.layers;
-	while(_g1 < _g11.length) {
-		var ld = _g11[_g1];
-		++_g1;
-		lprops.set(ld.l,ld);
-	}
-	var getProps = function(name) {
-		var p = lprops.get(name);
-		if(p == null) {
-			p = { l : name, p : { alpha : 1.}};
-			_g.props.layers.push(p);
-		}
-		lprops.remove(name);
-		return p.p;
-	};
-	this.waitCount = 1;
-	var title = "";
-	var _g2 = 0;
-	var _g12 = sheet.columns;
-	while(_g2 < _g12.length) {
-		var c = _g12[_g2];
-		++_g2;
-		var val = Reflect.field(this.obj,c.name);
-		var _g21 = c.name;
-		switch(_g21) {
-		case "width":
-			this.width = val;
-			break;
-		case "height":
-			this.height = val;
-			break;
-		default:
-		}
-		{
-			var _g22 = c.type;
-			switch(_g22[1]) {
-			case 0:
-				title = val;
-				break;
-			case 12:
-				var type = _g22[2];
-				var l = new lvl.LayerData(this,c.name,getProps(c.name),{ o : this.obj, f : c.name});
-				l.loadSheetData(model.smap.get(type).s);
-				l.setLayerData(val);
-				this.layers.push(l);
-				break;
-			case 8:
-				var sheet1 = model.smap.get(sheet.name + "@" + c.name).s;
-				var floatCoord = false;
-				if(model.hasColumn(sheet1,"x",[cdb.ColumnType.TInt]) && model.hasColumn(sheet1,"y",[cdb.ColumnType.TInt]) || (floatCoord = model.hasColumn(sheet1,"x",[cdb.ColumnType.TFloat]) && model.hasColumn(sheet1,"y",[cdb.ColumnType.TFloat]))) {
-					var sid = null;
-					var idCol = null;
-					var _g3 = 0;
-					var _g4 = sheet1.columns;
-					try {
-						while(_g3 < _g4.length) {
-							var cid = _g4[_g3];
-							++_g3;
-							{
-								var _g5 = cid.type;
-								switch(_g5[1]) {
-								case 6:
-									var rid = _g5[2];
-									sid = model.smap.get(rid).s;
-									idCol = cid.name;
-									throw "__break__";
-									break;
-								default:
-								}
-							}
-						}
-					} catch( e ) { if( e != "__break__" ) throw e; }
-					var l1 = new lvl.LayerData(this,c.name,getProps(c.name),{ o : this.obj, f : c.name});
-					l1.hasFloatCoord = l1.floatCoord = floatCoord;
-					l1.baseSheet = sheet1;
-					l1.loadSheetData(sid);
-					l1.setObjectsData(idCol,val);
-					l1.hasSize = model.hasColumn(sheet1,"width",[floatCoord?cdb.ColumnType.TFloat:cdb.ColumnType.TInt]) && model.hasColumn(sheet1,"height",[floatCoord?cdb.ColumnType.TFloat:cdb.ColumnType.TInt]);
-					this.layers.push(l1);
-				} else if(model.hasColumn(sheet1,"name",[cdb.ColumnType.TString]) && model.hasColumn(sheet1,"data",[cdb.ColumnType.TTileLayer])) {
-					var val1 = val;
-					var _g31 = 0;
-					while(_g31 < val1.length) {
-						var lobj = val1[_g31];
-						++_g31;
-						if(lobj.name == null) continue;
-						var l2 = new lvl.LayerData(this,lobj.name,getProps(lobj.name),{ o : lobj, f : "data"});
-						l2.setTilesData(lobj.data);
-						this.layers.push(l2);
-					}
-					this.newLayer = c;
-				}
-				break;
-			case 13:
-				if(val == null || c.name.toLowerCase().indexOf("layer") < 0) continue;
-				var index1 = [this.layers.length];
-				var path = model.getAbsPath(val);
-				var _g32 = path.split(".").pop().toLowerCase();
-				switch(_g32) {
-				case "png":case "jpeg":case "jpg":
-					this.wait();
-					lvl.Image.load(path,(function(index1) {
-						return function(i) {
-							_g.backgroundImages.push({ index : index1[0], data : i});
-							_g.backgroundImages.sort((function() {
-								return function(i1,i2) {
-									return i1.index - i2.index;
-								};
-							})());
-							_g.waitDone();
-						};
-					})(index1));
-					break;
-				case "tmx":
-					break;
-				default:
-				}
-				break;
-			case 15:
-				var l3 = new lvl.LayerData(this,c.name,getProps(c.name),{ o : this.obj, f : c.name});
-				l3.setTilesData(val);
-				this.layers.push(l3);
-				break;
-			default:
-			}
-		}
-	}
-	var $it0 = lprops.iterator();
-	while( $it0.hasNext() ) {
-		var c1 = $it0.next();
-		HxOverrides.remove(this.props.layers,c1);
-	}
-	if(sheet.props.displayColumn != null) {
-		var t = Reflect.field(this.obj,sheet.props.displayColumn);
-		if(t != null) title = t;
-	}
-	this.waitDone();
 };
 $hxClasses["Level"] = Level;
 Level.__name__ = ["Level"];
 Level.prototype = {
-	reload: function() {
+	getName: function() {
+		var name = "#" + this.index;
+		var _g = 0;
+		var _g1 = this.sheet.columns;
+		while(_g < _g1.length) {
+			var c = _g1[_g];
+			++_g;
+			var v = Reflect.field(this.obj,c.name);
+			var _g2 = c.type;
+			switch(_g2[1]) {
+			case 1:
+				if(c.name == this.sheet.props.displayColumn && v != null && v != "") return v; else {
+				}
+				break;
+			case 0:
+				name = v;
+				break;
+			default:
+			}
+		}
+		return name;
+	}
+	,init: function() {
+		var _g = this;
+		this.layers = [];
+		this.watchList = [];
+		this.watchTimer = new haxe.Timer(50);
+		this.watchTimer.run = $bind(this,this.checkWatch);
+		this.backgroundImages = [];
+		this.props = this.sheet.props.levelProps;
+		if(this.props.tileSize == null) this.props.tileSize = 16;
+		this.tileSize = this.props.tileSize;
+		var lprops = new haxe.ds.StringMap();
+		if(this.props.layers == null) this.props.layers = [];
+		var _g1 = 0;
+		var _g11 = this.props.layers;
+		while(_g1 < _g11.length) {
+			var ld = _g11[_g1];
+			++_g1;
+			lprops.set(ld.l,ld);
+		}
+		var getProps = function(name) {
+			var p = lprops.get(name);
+			if(p == null) {
+				p = { l : name, p : { alpha : 1.}};
+				_g.props.layers.push(p);
+			}
+			lprops.remove(name);
+			return p.p;
+		};
+		this.waitCount = 1;
+		var title = "";
+		var _g2 = 0;
+		var _g12 = this.sheet.columns;
+		while(_g2 < _g12.length) {
+			var c = _g12[_g2];
+			++_g2;
+			var val = Reflect.field(this.obj,c.name);
+			var _g21 = c.name;
+			switch(_g21) {
+			case "width":
+				this.width = val;
+				break;
+			case "height":
+				this.height = val;
+				break;
+			default:
+			}
+			{
+				var _g22 = c.type;
+				switch(_g22[1]) {
+				case 0:
+					title = val;
+					break;
+				case 12:
+					var type = _g22[2];
+					var l = new lvl.LayerData(this,c.name,getProps(c.name),{ o : this.obj, f : c.name});
+					l.loadSheetData(this.model.smap.get(type).s);
+					l.setLayerData(val);
+					this.layers.push(l);
+					break;
+				case 8:
+					var sheet = this.model.smap.get(this.sheet.name + "@" + c.name).s;
+					var floatCoord = false;
+					if(this.model.hasColumn(sheet,"x",[cdb.ColumnType.TInt]) && this.model.hasColumn(sheet,"y",[cdb.ColumnType.TInt]) || (floatCoord = this.model.hasColumn(sheet,"x",[cdb.ColumnType.TFloat]) && this.model.hasColumn(sheet,"y",[cdb.ColumnType.TFloat]))) {
+						var sid = null;
+						var idCol = null;
+						var _g3 = 0;
+						var _g4 = sheet.columns;
+						try {
+							while(_g3 < _g4.length) {
+								var cid = _g4[_g3];
+								++_g3;
+								{
+									var _g5 = cid.type;
+									switch(_g5[1]) {
+									case 6:
+										var rid = _g5[2];
+										sid = this.model.smap.get(rid).s;
+										idCol = cid.name;
+										throw "__break__";
+										break;
+									default:
+									}
+								}
+							}
+						} catch( e ) { if( e != "__break__" ) throw e; }
+						var l1 = new lvl.LayerData(this,c.name,getProps(c.name),{ o : this.obj, f : c.name});
+						l1.hasFloatCoord = l1.floatCoord = floatCoord;
+						l1.baseSheet = sheet;
+						l1.loadSheetData(sid);
+						l1.setObjectsData(idCol,val);
+						l1.hasSize = this.model.hasColumn(sheet,"width",[floatCoord?cdb.ColumnType.TFloat:cdb.ColumnType.TInt]) && this.model.hasColumn(sheet,"height",[floatCoord?cdb.ColumnType.TFloat:cdb.ColumnType.TInt]);
+						this.layers.push(l1);
+					} else if(this.model.hasColumn(sheet,"name",[cdb.ColumnType.TString]) && this.model.hasColumn(sheet,"data",[cdb.ColumnType.TTileLayer])) {
+						var val1 = val;
+						var _g31 = 0;
+						while(_g31 < val1.length) {
+							var lobj = val1[_g31];
+							++_g31;
+							if(lobj.name == null) continue;
+							var l2 = new lvl.LayerData(this,lobj.name,getProps(lobj.name),{ o : lobj, f : "data"});
+							l2.setTilesData(lobj.data);
+							this.layers.push(l2);
+						}
+						this.newLayer = c;
+					}
+					break;
+				case 13:
+					if(val == null || c.name.toLowerCase().indexOf("layer") < 0) continue;
+					var index = [this.layers.length];
+					var path = this.model.getAbsPath(val);
+					var _g32 = path.split(".").pop().toLowerCase();
+					switch(_g32) {
+					case "png":case "jpeg":case "jpg":
+						this.wait();
+						lvl.Image.load(path,(function(index) {
+							return function(i) {
+								_g.backgroundImages.push({ index : index[0], data : i});
+								_g.backgroundImages.sort((function() {
+									return function(i1,i2) {
+										return i1.index - i2.index;
+									};
+								})());
+								_g.waitDone();
+							};
+						})(index));
+						break;
+					case "tmx":
+						break;
+					default:
+					}
+					break;
+				case 15:
+					var l3 = new lvl.LayerData(this,c.name,getProps(c.name),{ o : this.obj, f : c.name});
+					l3.setTilesData(val);
+					this.layers.push(l3);
+					break;
+				default:
+				}
+			}
+		}
+		var $it0 = lprops.iterator();
+		while( $it0.hasNext() ) {
+			var c1 = $it0.next();
+			HxOverrides.remove(this.props.layers,c1);
+		}
+		if(this.sheet.props.displayColumn != null) {
+			var t = Reflect.field(this.obj,this.sheet.props.displayColumn);
+			if(t != null) title = t;
+		}
+		this.waitDone();
+	}
+	,reload: function() {
 		if(!this.reloading) {
 			this.reloading = true;
 			this.model.initContent();
 		}
 	}
 	,dispose: function() {
+		if(this.content != null) this.content.html("");
 		this.watchTimer.stop();
+		this.watchTimer = null;
+	}
+	,isDisposed: function() {
+		return this.watchTimer == null;
 	}
 	,watch: function(path,callb) {
 		path = this.model.getAbsPath(path);
@@ -348,6 +377,7 @@ Level.prototype = {
 	}
 	,waitDone: function() {
 		if(--this.waitCount != 0) return;
+		if(this.isDisposed()) return;
 		this.setup();
 		this.draw();
 		var layer = this.layers[0];
@@ -431,6 +461,13 @@ Level.prototype = {
 			}
 		}
 		return null;
+	}
+	,action: function(name) {
+		switch(name) {
+		case "close":
+			(js.Boot.__cast(this.model , Main)).closeLevel(this);
+			break;
+		}
 	}
 	,addNewLayer: function(name) {
 		if(this.newLayer == null) return;
@@ -937,6 +974,7 @@ Level.prototype = {
 		}
 	}
 	,onKey: function(e) {
+		if(e.ctrlKey && e.keyCode == 115) this.action("close");
 		if(e.ctrlKey || this.curPos == null) return;
 		var _g = e.keyCode;
 		switch(_g) {
@@ -3209,6 +3247,7 @@ var Main = function() {
 	Model.call(this);
 	this.window = nodejs.webkit.Window.get();
 	this.initMenu();
+	this.levels = [];
 	this.mousePos = { x : 0, y : 0};
 	this.sheetCursors = new haxe.ds.StringMap();
 	this.window.window.addEventListener("keydown",$bind(this,this.onKey));
@@ -3458,8 +3497,13 @@ Main.prototype = $extend(Model.prototype,{
 				var sheets = this.data.sheets.filter(function(s3) {
 					return !s3.props.hide;
 				});
-				var s4 = sheets[(Lambda.indexOf(sheets,this.viewSheet) + 1) % sheets.length];
-				if(s4 != null) this.selectSheet(s4);
+				var pos;
+				pos = (this.level == null?Lambda.indexOf(sheets,this.viewSheet):sheets.length + Lambda.indexOf(this.levels,this.level)) + 1;
+				var s4 = sheets[pos % (sheets.length + this.levels.length)];
+				if(s4 != null) this.selectSheet(s4); else {
+					var level = this.levels[pos - sheets.length];
+					if(level != null) this.selectLevel(level);
+				}
 			} else this.moveCursor(e.shiftKey?-1:1,0,false,false);
 			break;
 		case 27:
@@ -5105,8 +5149,20 @@ Main.prototype = $extend(Model.prototype,{
 				new js.JQuery("<td>").append(c2).appendTo(l2);
 				c2.click((function(index1) {
 					return function() {
-						_g4.level = new Level(_g4,sheet,index1[0]);
-						new js.JQuery("#sheets li").removeClass("active");
+						var found = null;
+						var _g51 = 0;
+						var _g61 = _g4.levels;
+						while(_g51 < _g61.length) {
+							var l3 = _g61[_g51];
+							++_g51;
+							if(l3.sheet == sheet && l3.index == index1[0]) found = l3;
+						}
+						if(found == null) {
+							found = new Level(_g4,sheet,index1[0]);
+							_g4.levels.push(found);
+							_g4.selectLevel(found);
+							_g4.initContent();
+						} else _g4.selectLevel(found);
 					};
 				})(index1));
 			}
@@ -5195,10 +5251,26 @@ Main.prototype = $extend(Model.prototype,{
 			this.cursor = { x : 0, y : 0, s : s};
 			this.sheetCursors.set(s.name,this.cursor);
 		}
+		if(manual) {
+			if(this.level != null) this.level.dispose();
+			this.level = null;
+		}
 		this.prefs.curSheet = Lambda.indexOf(this.data.sheets,s);
 		new js.JQuery("#sheets li").removeClass("active").filter("#sheet_" + this.prefs.curSheet).addClass("active");
-		if(manual) this.level = null;
 		this.refresh();
+	}
+	,selectLevel: function(l) {
+		if(this.level != null) this.level.dispose();
+		this.level = l;
+		this.level.init();
+		new js.JQuery("#sheets li").removeClass("active").filter("#level_" + l.sheetPath.split(".").join("_") + "_" + l.index).addClass("active");
+	}
+	,closeLevel: function(l) {
+		l.dispose();
+		var i = Lambda.indexOf(this.levels,l);
+		HxOverrides.remove(this.levels,l);
+		if(this.level == l) this.level = null;
+		this.initContent();
 	}
 	,newSheet: function() {
 		new js.JQuery("#newsheet").show();
@@ -5698,13 +5770,27 @@ Main.prototype = $extend(Model.prototype,{
 		var s4 = this.data.sheets[this.prefs.curSheet];
 		if(s4 == null) s4 = this.data.sheets[0];
 		this.selectSheet(s4,false);
-		if(this.level != null) {
-			if(!this.smap.exists(this.level.sheetPath)) this.level = null; else {
-				var s5 = this.smap.get(this.level.sheetPath).s;
-				if(s5.lines.length < this.level.index) this.level = null; else this.level = new Level(this,s5,this.level.index);
-			}
-			if(this.level != null) new js.JQuery("#sheets li").removeClass("active");
+		var old1 = this.levels;
+		var lcur = null;
+		this.levels = [];
+		var _g5 = 0;
+		while(_g5 < old1.length) {
+			var level = old1[_g5];
+			++_g5;
+			if(!this.smap.exists(level.sheetPath)) continue;
+			var s5 = this.smap.get(level.sheetPath).s;
+			if(s5.lines.length < level.index) continue;
+			var l = new Level(this,s5,level.index);
+			if(level == this.level) lcur = l;
+			this.levels.push(l);
+			var li2 = new js.JQuery("<li>");
+			li2.text(level.getName()).attr("id","level_" + l.sheetPath.split(".").join("_") + "_" + l.index).appendTo(sheets).click((function(f3,l1) {
+				return function() {
+					f3(l1);
+				};
+			})($bind(this,this.selectLevel),l));
 		}
+		if(lcur != null) this.selectLevel(lcur);
 	}
 	,initMenu: function() {
 		var _g = this;
