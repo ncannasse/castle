@@ -9,6 +9,7 @@ typedef LevelState = {
 	var scrollX : Int;
 	var scrollY : Int;
 	var paintMode : Bool;
+	var randomMode : Bool;
 }
 
 class Level {
@@ -49,6 +50,7 @@ class Level {
 	var palette : js.JQuery;
 	var paletteSelect : lvl.Image;
 	var paintMode : Bool;
+	var randomMode : Bool;
 
 	public function new( model : Model, sheet : Sheet, index : Int ) {
 		this.sheet = sheet;
@@ -181,6 +183,7 @@ class Level {
 				}
 			zoomView = state.zoomView;
 			paintMode = state.paintMode;
+			randomMode = state.randomMode;
 		}
 
 		setCursor(layer);
@@ -561,14 +564,15 @@ class Level {
 		setCursor(currentLayer);
 	}
 
-	function paint(x,y) {
-		switch( currentLayer.data ) {
+	function paint(x, y) {
+		var l = currentLayer;
+		switch( l.data ) {
 		case Layer(data):
-			if( data[x + y * width] == currentLayer.current ) return;
+			if( data[x + y * width] == l.current || l.blanks[l.current] ) return;
 			function fillRec(x, y, k) {
 				if( data[x + y * width] != k ) return;
-				data[x + y * width] = currentLayer.current;
-				currentLayer.dirty = true;
+				data[x + y * width] = l.current;
+				l.dirty = true;
 				if( x > 0 ) fillRec(x - 1, y, k);
 				if( y > 0 ) fillRec(x, y - 1, k);
 				if( x < width - 1 ) fillRec(x + 1, y, k);
@@ -579,13 +583,15 @@ class Level {
 			draw();
 		case Tiles(_, data):
 			if( data[x + y * width] != 0 ) return;
-			var l = currentLayer;
-			var px = x, py = y;
+			var px = x, py = y, zero = [];
 			function fillRec(x, y, k) {
 				if( data[x + y * width] != 0 ) return;
 				var dx = (x - px) % l.currentWidth; if( dx < 0 ) dx += l.currentWidth;
 				var dy = (y - py) % l.currentHeight; if( dy < 0 ) dy += l.currentHeight;
-				data[x + y * width] = l.current + (l.currentRandom ? Std.random(l.currentWidth) + Std.random(l.currentHeight) * l.imagesStride : dx + dy * l.imagesStride) + 1;
+				var t = l.current + (randomMode ? Std.random(l.currentWidth) + Std.random(l.currentHeight) * l.imagesStride : dx + dy * l.imagesStride);
+				if( l.blanks[t] )
+					zero.push(x + y * width);
+				data[x + y * width] = t + 1;
 				l.dirty = true;
 				if( x > 0 ) fillRec(x - 1, y, k);
 				if( y > 0 ) fillRec(x, y - 1, k);
@@ -593,6 +599,8 @@ class Level {
 				if( y < height - 1 ) fillRec(x, y + 1, k);
 			}
 			fillRec(x, y, data[x + y * width]);
+			for( z in zero )
+				data[z] = 0;
 			save();
 			draw();
 		default:
@@ -657,6 +665,7 @@ class Level {
 			var i = (layers.indexOf(currentLayer) + (e.shiftKey ? layers.length-1 : 1) ) % layers.length;
 			setCursor(layers[i]);
 			e.preventDefault();
+			e.stopPropagation();
 		default:
 		}
 	}
@@ -678,17 +687,17 @@ class Level {
 		var l = currentLayer;
 		switch( l.data ) {
 		case Layer(data):
-			if( data[x + y * width] == l.current ) return;
+			if( data[x + y * width] == l.current || l.blanks[l.current] ) return;
 			data[x + y * width] = l.current;
 			l.dirty = true;
 			save();
 			draw();
 		case Tiles(_, data):
 			var changed = false;
-			if( l.currentRandom ) {
+			if( randomMode ) {
 				var p = x + y * width;
 				var id = l.current + Std.random(l.currentWidth) + Std.random(l.currentHeight) * l.imagesStride + 1;
-				if( data[p] == id ) return;
+				if( data[p] == id || l.blanks[id - 1] ) return;
 				data[p] = id;
 				changed = true;
 			} else {
@@ -696,7 +705,7 @@ class Level {
 					for( dx in 0...l.currentWidth ) {
 						var p = x + dx + (y + dy) * width;
 						var id = l.current + dx + dy * l.imagesStride + 1;
-						if( data[p] == id ) continue;
+						if( data[p] == id || l.blanks[id - 1] ) continue;
 						data[p] = id;
 						changed = true;
 					}
@@ -804,6 +813,7 @@ class Level {
 			scrollX : sc.scrollLeft(),
 			scrollY : sc.scrollTop(),
 			paintMode : paintMode,
+			randomMode : randomMode,
 		};
 		js.Browser.getLocalStorage().setItem(sheetPath, haxe.Serializer.run(state));
 	}
@@ -891,9 +901,9 @@ class Level {
 		var l = currentLayer;
 		switch( name ) {
 		case "random":
-			l.currentRandom = !l.currentRandom;
-			palette.find(".icon.random").toggleClass("active", l.currentRandom);
-			l.saveState();
+			randomMode = !randomMode;
+			palette.find(".icon.random").toggleClass("active", randomMode);
+			savePrefs();
 			setCursor(l);
 		case "paint":
 			paintMode = !paintMode;
@@ -939,7 +949,7 @@ class Level {
 				var select = lvl.Image.fromCanvas(cast jsel[0]);
 				select.setSize(i.width, i.height);
 
-				palette.find(".icon.random").toggleClass("active",l.currentRandom);
+				palette.find(".icon.random").toggleClass("active",randomMode);
 				palette.find(".icon.paint").toggleClass("active",paintMode);
 
 				var start = { x : l.current % l.imagesStride, y : Std.int(l.current / l.imagesStride), down : false };
@@ -993,8 +1003,8 @@ class Level {
 		}
 
 		var size = zoomView < 1 ? Std.int(tileSize * zoomView) : Math.ceil(tileSize * zoomView);
-		var w = l.currentRandom ? 1 : l.currentWidth;
-		var h = l.currentRandom ? 1 : l.currentHeight;
+		var w = randomMode ? 1 : l.currentWidth;
+		var h = randomMode ? 1 : l.currentHeight;
 		cursorImage.setSize(size * w,size * h);
 		if( l.images != null ) {
 			cursorImage.clear();

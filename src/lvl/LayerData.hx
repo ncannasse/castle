@@ -7,7 +7,6 @@ typedef LayerState = {
 	var lock : Bool;
 	var cw : Int;
 	var ch : Int;
-	var random : Bool;
 }
 
 enum LayerInnerData {
@@ -25,6 +24,7 @@ class LayerData {
 	public var names : Array<String>;
 	public var colors : Array<Int>;
 	public var images : Array<Image>;
+	public var blanks : Array<Bool>;
 	public var props : LayerProps;
 	public var data : LayerInnerData;
 
@@ -36,7 +36,6 @@ class LayerData {
 	public var current(default, set) : Int = 0;
 	public var currentWidth : Int = 1;
 	public var currentHeight : Int = 1;
-	public var currentRandom : Bool;
 	public var comp : js.JQuery;
 
 	public var baseSheet : Sheet;
@@ -52,6 +51,7 @@ class LayerData {
 		this.level = level;
 		this.name = name;
 		props = p;
+		blanks = [];
 		targetObj = target;
 	}
 
@@ -111,6 +111,7 @@ class LayerData {
 						i2.drawSub(i, data.x * data.size, data.y * data.size, data.size, data.size, 0, 0, data.size, data.size);
 						i2.resize(size, size);
 						images[idx] = i2;
+						blanks[idx] = i2.isBlank();
 						level.waitDone();
 					});
 				}
@@ -150,8 +151,8 @@ class LayerData {
 				if( (current%imagesStride) + state.cw <= imagesStride && Std.int(current/imagesStride) + state.ch <= Math.ceil((images != null ? images.length : names.length) / imagesStride) ) {
 					currentWidth = state.cw;
 					currentHeight = state.ch;
+					saveState();
 				}
-				currentRandom = (currentWidth > 1 || currentHeight > 1) && state.random;
 			}
 		}
 	}
@@ -189,25 +190,26 @@ class LayerData {
 		Image.load(level.model.getAbsPath(file), function(i) {
 			var w = Std.int(i.width / size);
 			var h = Std.int(i.height / size);
+			for( y in 0...h )
+				for( x in 0...w ) {
+					var i = i.sub(x * size, y * size, size, size);
+					blanks[images.length] = i.isBlank();
+					images.push(i);
+				}
+
 			var max = w * h;
 			for( i in 0...data.length ) {
 				var v = data[i] - 1;
 				if( v < 0 ) continue;
 				var vx = v % stride;
 				var vy = Std.int(v / stride);
-				if( vx >= w || vy >= h )
+				v = vx + vy * w;
+				if( vx >= w || vy >= h || blanks[v] )
 					data[i] = 0;
-				else {
-					v = vx + vy * w;
+				else
 					data[i] = v + 1;
-				}
 			}
 			imagesStride = d.stride = w;
-			for( y in 0...h )
-				for( x in 0...w ) {
-					var i = i.sub(x * size, y * size, size, size);
-					images.push(i);
-				}
 			loadState();
 			level.waitDone();
 		});
@@ -239,7 +241,6 @@ class LayerData {
 			lock : hasFloatCoord && !floatCoord,
 			cw : currentWidth,
 			ch : currentHeight,
-			random : currentRandom,
 		};
 		js.Browser.getLocalStorage().setItem(level.sheetPath + ":" + name, haxe.Serializer.run(s));
 	}

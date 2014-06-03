@@ -333,6 +333,7 @@ Level.prototype = {
 			}
 			this.zoomView = state.zoomView;
 			this.paintMode = state.paintMode;
+			this.randomMode = state.randomMode;
 		}
 		this.setCursor(layer);
 		this.updateZoom();
@@ -836,18 +837,19 @@ Level.prototype = {
 	}
 	,paint: function(x,y) {
 		var _g1 = this;
+		var l = this.currentLayer;
 		{
-			var _g = this.currentLayer.data;
+			var _g = l.data;
 			switch(_g[1]) {
 			case 0:
 				var data = _g[2];
-				if(data[x + y * this.width] == this.currentLayer.current) return;
+				if(data[x + y * this.width] == l.current || l.blanks[l.current]) return;
 				var fillRec;
 				var fillRec1 = null;
 				fillRec1 = function(x1,y1,k) {
 					if(data[x1 + y1 * _g1.width] != k) return;
-					data[x1 + y1 * _g1.width] = _g1.currentLayer.current;
-					_g1.currentLayer.dirty = true;
+					data[x1 + y1 * _g1.width] = l.current;
+					l.dirty = true;
 					if(x1 > 0) fillRec1(x1 - 1,y1,k);
 					if(y1 > 0) fillRec1(x1,y1 - 1,k);
 					if(x1 < _g1.width - 1) fillRec1(x1 + 1,y1,k);
@@ -861,9 +863,9 @@ Level.prototype = {
 			case 2:
 				var data1 = _g[3];
 				if(data1[x + y * this.width] != 0) return;
-				var l = this.currentLayer;
 				var px = x;
 				var py = y;
+				var zero = [];
 				var fillRec2;
 				var fillRec3 = null;
 				fillRec3 = function(x2,y2,k1) {
@@ -872,7 +874,10 @@ Level.prototype = {
 					if(dx < 0) dx += l.currentWidth;
 					var dy = (y2 - py) % l.currentHeight;
 					if(dy < 0) dy += l.currentHeight;
-					data1[x2 + y2 * _g1.width] = l.current + (l.currentRandom?Std.random(l.currentWidth) + Std.random(l.currentHeight) * l.imagesStride:dx + dy * l.imagesStride) + 1;
+					var t;
+					t = l.current + (_g1.randomMode?Std.random(l.currentWidth) + Std.random(l.currentHeight) * l.imagesStride:dx + dy * l.imagesStride);
+					if(l.blanks[t]) zero.push(x2 + y2 * _g1.width);
+					data1[x2 + y2 * _g1.width] = t + 1;
 					l.dirty = true;
 					if(x2 > 0) fillRec3(x2 - 1,y2,k1);
 					if(y2 > 0) fillRec3(x2,y2 - 1,k1);
@@ -881,6 +886,12 @@ Level.prototype = {
 				};
 				fillRec2 = fillRec3;
 				fillRec2(x,y,data1[x + y * this.width]);
+				var _g11 = 0;
+				while(_g11 < zero.length) {
+					var z = zero[_g11];
+					++_g11;
+					data1[z] = 0;
+				}
 				this.save();
 				this.draw();
 				break;
@@ -976,6 +987,7 @@ Level.prototype = {
 			i1 = (HxOverrides.indexOf(this.layers,this.currentLayer,0) + (e.shiftKey?this.layers.length - 1:1)) % this.layers.length;
 			this.setCursor(this.layers[i1]);
 			e.preventDefault();
+			e.stopPropagation();
 			break;
 		default:
 		}
@@ -1001,7 +1013,7 @@ Level.prototype = {
 			switch(_g[1]) {
 			case 0:
 				var data = _g[2];
-				if(data[x + y * this.width] == l.current) return;
+				if(data[x + y * this.width] == l.current || l.blanks[l.current]) return;
 				data[x + y * this.width] = l.current;
 				l.dirty = true;
 				this.save();
@@ -1010,10 +1022,10 @@ Level.prototype = {
 			case 2:
 				var data1 = _g[3];
 				var changed = false;
-				if(l.currentRandom) {
+				if(this.randomMode) {
 					var p = x + y * this.width;
 					var id = l.current + Std.random(l.currentWidth) + Std.random(l.currentHeight) * l.imagesStride + 1;
-					if(data1[p] == id) return;
+					if(data1[p] == id || l.blanks[id - 1]) return;
 					data1[p] = id;
 					changed = true;
 				} else {
@@ -1027,7 +1039,7 @@ Level.prototype = {
 							var dx = _g4++;
 							var p1 = x + dx + (y + dy) * this.width;
 							var id1 = l.current + dx + dy * l.imagesStride + 1;
-							if(data1[p1] == id1) continue;
+							if(data1[p1] == id1 || l.blanks[id1 - 1]) continue;
 							data1[p1] = id1;
 							changed = true;
 						}
@@ -1171,7 +1183,7 @@ Level.prototype = {
 	}
 	,savePrefs: function() {
 		var sc = this.content.find(".scroll");
-		var state = { zoomView : this.zoomView, curLayer : this.currentLayer.name, scrollX : sc.scrollLeft(), scrollY : sc.scrollTop(), paintMode : this.paintMode};
+		var state = { zoomView : this.zoomView, curLayer : this.currentLayer.name, scrollX : sc.scrollLeft(), scrollY : sc.scrollTop(), paintMode : this.paintMode, randomMode : this.randomMode};
 		js.Browser.getLocalStorage().setItem(this.sheetPath,haxe.Serializer.run(state));
 	}
 	,setLock: function(b) {
@@ -1273,9 +1285,9 @@ Level.prototype = {
 		var l = this.currentLayer;
 		switch(name) {
 		case "random":
-			l.currentRandom = !l.currentRandom;
-			this.palette.find(".icon.random").toggleClass("active",l.currentRandom);
-			l.saveState();
+			this.randomMode = !this.randomMode;
+			this.palette.find(".icon.random").toggleClass("active",this.randomMode);
+			this.savePrefs();
 			this.setCursor(l);
 			break;
 		case "paint":
@@ -1349,7 +1361,7 @@ Level.prototype = {
 				var jsel = this.palette.find("canvas.select");
 				var select = lvl.Image.fromCanvas(jsel[0]);
 				select.setSize(i.width,i.height);
-				this.palette.find(".icon.random").toggleClass("active",l.currentRandom);
+				this.palette.find(".icon.random").toggleClass("active",this.randomMode);
 				this.palette.find(".icon.paint").toggleClass("active",this.paintMode);
 				var start_x = l.current % l.imagesStride;
 				var start_y = l.current / l.imagesStride | 0;
@@ -1412,9 +1424,9 @@ Level.prototype = {
 		var size;
 		if(this.zoomView < 1) size = this.tileSize * this.zoomView | 0; else size = Math.ceil(this.tileSize * this.zoomView);
 		var w;
-		if(l.currentRandom) w = 1; else w = l.currentWidth;
+		if(this.randomMode) w = 1; else w = l.currentWidth;
 		var h;
-		if(l.currentRandom) h = 1; else h = l.currentHeight;
+		if(this.randomMode) h = 1; else h = l.currentHeight;
 		this.cursorImage.setSize(size * w,size * h);
 		if(l.images != null) {
 			this.cursorImage.clear();
@@ -7842,6 +7854,16 @@ lvl.Image.prototype = {
 		this.ctx.drawImage(i.origin,0,0,i.width,i.height,0,0,this.width,this.height);
 		this.origin = this.canvas;
 	}
+	,isBlank: function() {
+		var i = this.ctx.getImageData(0,0,this.width,this.height);
+		var _g1 = 0;
+		var _g = this.width * this.height * 4;
+		while(_g1 < _g) {
+			var k = _g1++;
+			if(i.data[k] != 0) return false;
+		}
+		return true;
+	}
 	,setSize: function(width,height) {
 		if(width == this.width && height == this.height) return;
 		this.canvas.width = width;
@@ -7885,6 +7907,7 @@ lvl.LayerData = function(level,name,p,target) {
 	this.level = level;
 	this.name = name;
 	this.props = p;
+	this.blanks = [];
 	this.targetObj = target;
 };
 $hxClasses["lvl.LayerData"] = lvl.LayerData;
@@ -7975,6 +7998,7 @@ lvl.LayerData.prototype = {
 							i21.drawSub(i3,data[0].x * data[0].size,data[0].y * data[0].size,data[0].size,data[0].size,0,0,data[0].size,data[0].size);
 							i21.resize(size1[0],size1[0]);
 							_g5.images[idx1[0]] = i21;
+							_g5.blanks[idx1[0]] = i21.isBlank();
 							_g5.level.waitDone();
 						};
 					})(data,idx1,size1));
@@ -8023,8 +8047,8 @@ lvl.LayerData.prototype = {
 				if(this.current % this.imagesStride + state.cw <= this.imagesStride && (this.current / this.imagesStride | 0) + state.ch <= Math.ceil((this.images != null?this.images.length:this.names.length) / this.imagesStride)) {
 					this.currentWidth = state.cw;
 					this.currentHeight = state.ch;
+					this.saveState();
 				}
-				this.currentRandom = (this.currentWidth > 1 || this.currentHeight > 1) && state.random;
 			}
 		}
 	}
@@ -8066,7 +8090,7 @@ lvl.LayerData.prototype = {
 		this.data = lvl.LayerInnerData.Objects(id,val);
 	}
 	,setTilesData: function(val) {
-		var _g1 = this;
+		var _g3 = this;
 		var file;
 		if(val == null) file = null; else file = val.file;
 		var size;
@@ -8075,8 +8099,8 @@ lvl.LayerData.prototype = {
 		if(val == null) {
 			var _g = [];
 			var _g2 = 0;
-			var _g11 = this.level.width * this.level.height;
-			while(_g2 < _g11) {
+			var _g1 = this.level.width * this.level.height;
+			while(_g2 < _g1) {
 				var i = _g2++;
 				_g.push(0);
 			}
@@ -8097,33 +8121,32 @@ lvl.LayerData.prototype = {
 		lvl.Image.load(this.level.model.getAbsPath(file),function(i2) {
 			var w = i2.width / size | 0;
 			var h = i2.height / size | 0;
+			var _g11 = 0;
+			while(_g11 < h) {
+				var y = _g11++;
+				var _g21 = 0;
+				while(_g21 < w) {
+					var x = _g21++;
+					var i3 = i2.sub(x * size,y * size,size,size);
+					_g3.blanks[_g3.images.length] = i3.isBlank();
+					_g3.images.push(i3);
+				}
+			}
 			var max = w * h;
-			var _g21 = 0;
+			var _g22 = 0;
 			var _g12 = data.length;
-			while(_g21 < _g12) {
-				var i3 = _g21++;
-				var v = data[i3] - 1;
+			while(_g22 < _g12) {
+				var i4 = _g22++;
+				var v = data[i4] - 1;
 				if(v < 0) continue;
 				var vx = v % stride;
 				var vy = v / stride | 0;
-				if(vx >= w || vy >= h) data[i3] = 0; else {
-					v = vx + vy * w;
-					data[i3] = v + 1;
-				}
+				v = vx + vy * w;
+				if(vx >= w || vy >= h || _g3.blanks[v]) data[i4] = 0; else data[i4] = v + 1;
 			}
-			_g1.imagesStride = d.stride = w;
-			var _g22 = 0;
-			while(_g22 < h) {
-				var y = _g22++;
-				var _g3 = 0;
-				while(_g3 < w) {
-					var x = _g3++;
-					var i4 = i2.sub(x * size,y * size,size,size);
-					_g1.images.push(i4);
-				}
-			}
-			_g1.loadState();
-			_g1.level.waitDone();
+			_g3.imagesStride = d.stride = w;
+			_g3.loadState();
+			_g3.level.waitDone();
 		});
 	}
 	,set_visible: function(v) {
@@ -8141,7 +8164,7 @@ lvl.LayerData.prototype = {
 		return v;
 	}
 	,saveState: function() {
-		var s = { current : this.current, visible : this.visible, lock : this.hasFloatCoord && !this.floatCoord, cw : this.currentWidth, ch : this.currentHeight, random : this.currentRandom};
+		var s = { current : this.current, visible : this.visible, lock : this.hasFloatCoord && !this.floatCoord, cw : this.currentWidth, ch : this.currentHeight};
 		js.Browser.getLocalStorage().setItem(this.level.sheetPath + ":" + this.name,haxe.Serializer.run(s));
 	}
 	,save: function() {

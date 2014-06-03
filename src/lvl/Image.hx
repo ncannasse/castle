@@ -77,6 +77,13 @@ class Image {
 		origin = canvas;
 	}
 
+	public function isBlank() {
+		var i = ctx.getImageData(0, 0, width, height);
+		for( k in 0...width * height * 4 )
+			if( i.data[k] != 0 ) return false;
+		return true;
+	}
+
 	public function setSize( width, height ) {
 		if( width == this.width && height == this.height )
 			return;
