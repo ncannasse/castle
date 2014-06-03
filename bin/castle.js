@@ -148,6 +148,7 @@ Lambda.find = function(it,f) {
 	return null;
 };
 var Level = function(model,sheet,index) {
+	this.reloading = false;
 	this.startPos = null;
 	this.mousePos = { x : 0, y : 0};
 	this.zoomView = 1.;
@@ -158,6 +159,9 @@ var Level = function(model,sheet,index) {
 	this.obj = sheet.lines[index];
 	this.model = model;
 	this.layers = [];
+	this.watchList = [];
+	this.watchTimer = new haxe.Timer(50);
+	this.watchTimer.run = $bind(this,this.checkWatch);
 	this.backgroundImages = [];
 	this.props = sheet.props.levelProps;
 	if(this.props.tileSize == null) this.props.tileSize = 16;
@@ -306,7 +310,40 @@ var Level = function(model,sheet,index) {
 $hxClasses["Level"] = Level;
 Level.__name__ = ["Level"];
 Level.prototype = {
-	wait: function() {
+	reload: function() {
+		if(!this.reloading) {
+			this.reloading = true;
+			this.model.initContent();
+		}
+	}
+	,dispose: function() {
+		this.watchTimer.stop();
+	}
+	,watch: function(path,callb) {
+		path = this.model.getAbsPath(path);
+		this.watchList.push({ path : path, time : this.getFileTime(path), callb : callb});
+	}
+	,checkWatch: function() {
+		var _g = 0;
+		var _g1 = this.watchList;
+		while(_g < _g1.length) {
+			var w = _g1[_g];
+			++_g;
+			var f = this.getFileTime(w.path);
+			if(f != w.time && f != 0.) {
+				w.time = f;
+				w.callb();
+			}
+		}
+	}
+	,getFileTime: function(path) {
+		try {
+			return js.Node.require("fs").statSync(path).mtime.getTime() * 1.;
+		} catch( e ) {
+			return 0.;
+		}
+	}
+	,wait: function() {
 		this.waitCount++;
 	}
 	,waitDone: function() {
@@ -446,7 +483,7 @@ Level.prototype = {
 				}
 			}
 			this.save();
-			this.model.initContent();
+			this.reload();
 			break;
 		default:
 		}
@@ -1254,7 +1291,7 @@ Level.prototype = {
 				t.size = size;
 				this.currentLayer.dirty = true;
 				this.save();
-				this.model.initContent();
+				this.reload();
 				break;
 			default:
 			}
@@ -1274,7 +1311,7 @@ Level.prototype = {
 					t.file = path;
 					_g.currentLayer.dirty = true;
 					_g.save();
-					_g.model.initContent();
+					_g.reload();
 					break;
 				default:
 				}
@@ -7763,9 +7800,12 @@ lvl.Image = function(w,h) {
 };
 $hxClasses["lvl.Image"] = lvl.Image;
 lvl.Image.__name__ = ["lvl","Image"];
-lvl.Image.load = function(url,callb,onError) {
+lvl.Image.clearCache = function(url) {
+	lvl.Image.cache.remove(url);
+};
+lvl.Image.load = function(url,callb,onError,forceReload) {
 	var i = lvl.Image.cache.get(url);
-	if(i != null) {
+	if(i != null && !forceReload) {
 		var im = new lvl.Image(i.width,i.height);
 		im.ctx.drawImage(i,0,0);
 		im.origin = i;
@@ -8002,6 +8042,12 @@ lvl.LayerData.prototype = {
 							_g5.level.waitDone();
 						};
 					})(data,idx1,size1));
+					this.level.watch(data[0].file,(function(data) {
+						return function() {
+							lvl.Image.clearCache(_g5.level.model.getAbsPath(data[0].file));
+							_g5.level.reload();
+						};
+					})(data));
 				}
 				break;
 			case 0:
@@ -8147,6 +8193,12 @@ lvl.LayerData.prototype = {
 			_g3.imagesStride = d.stride = w;
 			_g3.loadState();
 			_g3.level.waitDone();
+		});
+		this.level.watch(file,function() {
+			lvl.Image.load(_g3.level.model.getAbsPath(file),function(_) {
+				_g3.level.reload();
+			},function() {
+			},true);
 		});
 	}
 	,set_visible: function(v) {

@@ -114,6 +114,7 @@ class LayerData {
 						blanks[idx] = i2.isBlank();
 						level.waitDone();
 					});
+					level.watch(data.file, function() { Image.clearCache(level.model.getAbsPath(data.file)); level.reload(); });
 				}
 
 			case TId:
@@ -213,6 +214,7 @@ class LayerData {
 			loadState();
 			level.waitDone();
 		});
+		level.watch(file, function() Image.load(level.model.getAbsPath(file),function(_) level.reload(), function() {}, true));
 	}
 
 	function set_visible(v) {

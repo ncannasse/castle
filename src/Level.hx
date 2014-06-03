@@ -52,6 +52,9 @@ class Level {
 	var paintMode : Bool;
 	var randomMode : Bool;
 
+	var watchList : Array<{ path : String, time : Float, callb : Void -> Void }>;
+	var watchTimer : haxe.Timer;
+
 	public function new( model : Model, sheet : Sheet, index : Int ) {
 		this.sheet = sheet;
 		this.sheetPath = model.getPath(sheet);
@@ -59,6 +62,9 @@ class Level {
 		this.obj = sheet.lines[index];
 		this.model = model;
 		layers = [];
+		watchList = [];
+		watchTimer = new haxe.Timer(50);
+		watchTimer.run = checkWatch;
 		backgroundImages = [];
 		props = sheet.props.levelProps;
 		if( props.tileSize == null ) props.tileSize = 16;
@@ -160,6 +166,37 @@ class Level {
 		}
 
 		waitDone();
+	}
+
+	var reloading = false;
+	public function reload() {
+		if( !reloading ) {
+			reloading = true;
+			model.initContent();
+		}
+	}
+
+	public function dispose() {
+		watchTimer.stop();
+	}
+
+	public function watch( path : String, callb : Void -> Void ) {
+		path = model.getAbsPath(path);
+		watchList.push( { path : path, time : getFileTime(path), callb : callb } );
+	}
+
+	function checkWatch() {
+		for( w in watchList ) {
+			var f = getFileTime(w.path);
+			if( f != w.time && f != 0. ) {
+				w.time = f;
+				w.callb();
+			}
+		}
+	}
+
+	function getFileTime(path) {
+		return try sys.FileSystem.stat(path).mtime.getTime()*1. catch( e : Dynamic ) 0.;
 	}
 
 	public function wait() {
@@ -272,7 +309,7 @@ class Level {
 				}
 			}
 			save();
-			model.initContent();
+			reload();
 		default:
 		}
 	}
@@ -878,7 +915,7 @@ class Level {
 			t.size = size;
 			currentLayer.dirty = true;
 			save();
-			model.initContent();
+			reload();
 		default:
 		}
 	}
@@ -891,7 +928,7 @@ class Level {
 				t.file = path;
 				currentLayer.dirty = true;
 				save();
-				model.initContent();
+				reload();
 			default:
 			}
 		});

@@ -117,9 +117,13 @@ class Image {
 
 	static var cache = new Map<String,js.html.ImageElement>();
 
-	public static function load( url : String, callb : Image -> Void, ?onError : Void -> Void ) {
+	public static function clearCache( url : String ) {
+		cache.remove(url);
+	}
+
+	public static function load( url : String, callb : Image -> Void, ?onError : Void -> Void, ?forceReload ) {
 		var i = cache.get(url);
-		if( i != null ) {
+		if( i != null && !forceReload ) {
 			var im = new Image(i.width, i.height);
 			im.ctx.drawImage(i, 0, 0);
 			im.origin = i;
