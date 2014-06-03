@@ -3,6 +3,10 @@ import js.JQuery.JQueryHelper.*;
 import Main.K;
 import lvl.LayerData;
 
+import nodejs.webkit.Menu;
+import nodejs.webkit.MenuItem;
+import nodejs.webkit.MenuItemType;
+
 typedef LevelState = {
 	var curLayer : String;
 	var zoomView : Float;
@@ -146,6 +150,7 @@ class Level {
 						if( lobj.name == null ) continue;
 						var l = new LayerData(this, lobj.name, getProps(lobj.name), { o : lobj, f : "data" });
 						l.setTilesData(lobj.data);
+						l.listColumnn = c;
 						layers.push(l);
 					}
 					newLayer = c;
@@ -302,13 +307,18 @@ class Level {
 		switch( name ) {
 		case "close":
 			cast(model, Main).closeLevel(this);
-
-		}
-	}
-
-	@:keep function addNewLayer( ?name ) {
-		if( newLayer == null ) return;
-		if( name == null ) {
+		case 'options':
+			var opt = content.find(".submenu.options");
+			var hide = opt.is(":visible");
+			content.find(".submenu").hide();
+			if( hide )
+				content.find(".submenu.layer").show();
+			else {
+				opt.show();
+				content.find("[name=tileSize]").val("" + tileSize);
+			}
+		case 'layer':
+			if( newLayer == null ) return;
 			var opt = content.find(".submenu.newlayer");
 			var hide = opt.is(":visible");
 			content.find(".submenu").hide();
@@ -318,8 +328,22 @@ class Level {
 				opt.show();
 				content.find("[name=newName]").val("");
 			}
-			return;
+		case 'file':
+			var m = cast(model, Main);
+			m.chooseFile(function(path) {
+				switch( currentLayer.data ) {
+				case Tiles(t, data):
+					t.file = path;
+					currentLayer.dirty = true;
+					save();
+					reload();
+				default:
+				}
+			});
 		}
+	}
+
+	@:keep function addNewLayer( name ) {
 		switch( newLayer.type ) {
 		case TList:
 			var s = model.getPseudoSheet(sheet, newLayer);
@@ -346,6 +370,39 @@ class Level {
 		}
 	}
 
+	function popupLayer( l : LayerData, mouseX : Int, mouseY : Int ) {
+		setCursor(l);
+
+		var n = new Menu();
+		var nclear = new MenuItem( { label : "Clear" } );
+		var ndel = new MenuItem( { label : "Delete" } );
+		for( m in [nclear, ndel] )
+			n.append(m);
+		nclear.click = function() {
+			switch( l.data ) {
+			case Tiles(_, data):
+				for( i in 0...data.length )
+					data[i] = 0;
+			case Objects(_, objs):
+				while( objs.length > 0 ) objs.pop();
+			case Layer(data):
+				for( i in 0...data.length )
+					data[i] = 0;
+			}
+			l.dirty = true;
+			save();
+			draw();
+		};
+		ndel.enabled = l.listColumnn != null;
+		ndel.click = function() {
+			var layers : Array<Dynamic> = Reflect.field(obj, l.listColumnn.name);
+			layers.remove(l.targetObj.o);
+			save();
+			reload();
+		};
+		n.popup(mouseX, mouseY);
+	}
+
 	function setup() {
 		var page = J("#content");
 		page.html("");
@@ -356,7 +413,15 @@ class Level {
 			var td = J("<div class='item layer'>").appendTo(menu);
 			l.comp = td;
 			if( !l.visible ) td.addClass("hidden");
-			td.click(function(_) setCursor(l));
+			td.mousedown(function(e) {
+				switch( e.which ) {
+				case 1:
+					setCursor(l);
+				case 3:
+					popupLayer(l, e.pageX, e.pageY);
+					e.preventDefault();
+				}
+			});
 			J("<span>").text(l.name).appendTo(td);
 			if( l.images != null ) {
 				var isel = J("<div class='img'>").appendTo(td);
@@ -522,6 +587,7 @@ class Level {
 				if( currentLayer.hasSize ) {
 					o.width = w;
 					o.height = h;
+					setCursor(currentLayer);
 				}
 				editProps(currentLayer, objs.length - 1);
 				objs.sort(function(o1, o2) {
@@ -545,7 +611,6 @@ class Level {
 		if( cx < width && cy < height ) {
 			cursor.show();
 			var fc = currentLayer.floatCoord;
-			var w = 1., h = 1.;
 			var border = 0;
 			var ccx = fc ? cxf : cx, ccy = fc ? cyf : cy;
 			if( currentLayer.hasSize && mouseDown ) {
@@ -557,8 +622,7 @@ class Level {
 				if( ph < 0.5 ) ph = fc ? 0.5 : 1;
 				ccx = px;
 				ccy = py;
-				w = pw;
-				h = ph;
+				cursorImage.setSize( Std.int(pw * tileSize * zoomView), Std.int(ph * tileSize * zoomView) );
 			}
 			if( currentLayer.images == null )
 				border = 1;
@@ -638,23 +702,40 @@ class Level {
 		switch( l.data ) {
 		case Layer(data):
 			if( data[x + y * width] == l.current || l.blanks[l.current] ) return;
-			function fillRec(x, y, k) {
-				if( data[x + y * width] != k ) return;
+			var k = data[x + y * width];
+			var todo = [x, y];
+			while( todo.length > 0 ) {
+				var y = todo.pop();
+				var x = todo.pop();
+				if( data[x + y * width] != k ) continue;
 				data[x + y * width] = l.current;
 				l.dirty = true;
-				if( x > 0 ) fillRec(x - 1, y, k);
-				if( y > 0 ) fillRec(x, y - 1, k);
-				if( x < width - 1 ) fillRec(x + 1, y, k);
-				if( y < height - 1 ) fillRec(x, y + 1, k);
+				if( x > 0 ) {
+					todo.push(x - 1);
+					todo.push(y);
+				}
+				if( y > 0 ) {
+					todo.push(x);
+					todo.push(y - 1);
+				}
+				if( x < width - 1 ) {
+					todo.push(x + 1);
+					todo.push(y);
+				}
+				if( y < height - 1 ) {
+					todo.push(x);
+					todo.push(y + 1);
+				}
 			}
-			fillRec(x, y, data[x + y * width]);
 			save();
 			draw();
 		case Tiles(_, data):
 			if( data[x + y * width] != 0 ) return;
-			var px = x, py = y, zero = [];
-			function fillRec(x, y, k) {
-				if( data[x + y * width] != 0 ) return;
+			var px = x, py = y, zero = [], todo = [x, y];
+			while( todo.length > 0 ) {
+				var y = todo.pop();
+				var x = todo.pop();
+				if( data[x + y * width] != 0 ) continue;
 				var dx = (x - px) % l.currentWidth; if( dx < 0 ) dx += l.currentWidth;
 				var dy = (y - py) % l.currentHeight; if( dy < 0 ) dy += l.currentHeight;
 				var t = l.current + (randomMode ? Std.random(l.currentWidth) + Std.random(l.currentHeight) * l.imagesStride : dx + dy * l.imagesStride);
@@ -662,12 +743,23 @@ class Level {
 					zero.push(x + y * width);
 				data[x + y * width] = t + 1;
 				l.dirty = true;
-				if( x > 0 ) fillRec(x - 1, y, k);
-				if( y > 0 ) fillRec(x, y - 1, k);
-				if( x < width - 1 ) fillRec(x + 1, y, k);
-				if( y < height - 1 ) fillRec(x, y + 1, k);
+				if( x > 0 ) {
+					todo.push(x - 1);
+					todo.push(y);
+				}
+				if( y > 0 ) {
+					todo.push(x);
+					todo.push(y - 1);
+				}
+				if( x < width - 1 ) {
+					todo.push(x + 1);
+					todo.push(y);
+				}
+				if( y < height - 1 ) {
+					todo.push(x);
+					todo.push(y + 1);
+				}
 			}
-			fillRec(x, y, data[x + y * width]);
 			for( z in zero )
 				data[z] = 0;
 			save();
@@ -679,14 +771,30 @@ class Level {
 	public function onKey( e : js.html.KeyboardEvent ) {
 		if( e.ctrlKey && e.keyCode == K.F4 )
 			action("close");
-		if( e.ctrlKey || curPos == null ) return;
+		if( e.ctrlKey ) return;
+
+
 		switch( e.keyCode ) {
-		case "P".code:
-			paint(curPos.x, curPos.y);
 		case K.NUMPAD_ADD:
 			updateZoom(true);
 		case K.NUMPAD_SUB:
 			updateZoom(false);
+		case K.ESC:
+			J(".popup").remove();
+			draw();
+		case K.TAB:
+			var i = (layers.indexOf(currentLayer) + (e.shiftKey ? layers.length-1 : 1) ) % layers.length;
+			setCursor(layers[i]);
+			e.preventDefault();
+			e.stopPropagation();
+		default:
+		}
+
+		if( curPos == null ) return;
+
+		switch( e.keyCode ) {
+		case "P".code:
+			paint(curPos.x, curPos.y);
 		case K.DELETE:
 			delDown = true;
 			var p = pick();
@@ -729,14 +837,6 @@ class Level {
 				J(".popup").remove();
 				editProps(p.layer, p.index);
 			}
-		case K.ESC:
-			J(".popup").remove();
-			draw();
-		case K.TAB:
-			var i = (layers.indexOf(currentLayer) + (e.shiftKey ? layers.length-1 : 1) ) % layers.length;
-			setCursor(layers[i]);
-			e.preventDefault();
-			e.stopPropagation();
 		default:
 		}
 	}
@@ -790,6 +890,7 @@ class Level {
 	}
 
 	public function draw() {
+		var t0 = haxe.Timer.stamp();
 		ctx.fillStyle = "black";
 		ctx.globalAlpha = 1;
 		ctx.fillRect(0, 0, width * tileSize, height * tileSize);
@@ -930,18 +1031,6 @@ class Level {
 		save();
 	}
 
-	@:keep function toggleOptions() {
-		var opt = content.find(".submenu.options");
-		var hide = opt.is(":visible");
-		content.find(".submenu").hide();
-		if( hide )
-			content.find(".submenu.layer").show();
-		else {
-			opt.show();
-			content.find("[name=tileSize]").val("" + tileSize);
-		}
-	}
-
 	@:keep function setSize(size) {
 		switch( currentLayer.data ) {
 		case Tiles(t, _):
@@ -952,20 +1041,6 @@ class Level {
 			reload();
 		default:
 		}
-	}
-
-	@:keep function selectFile() {
-		var m = cast(model, Main);
-		m.chooseFile(function(path) {
-			switch( currentLayer.data ) {
-			case Tiles(t, data):
-				t.file = path;
-				currentLayer.dirty = true;
-				save();
-				reload();
-			default:
-			}
-		});
 	}
 
 	@:keep function paletteOption(name) {
@@ -1070,6 +1145,26 @@ class Level {
 
 		if( paletteSelect != null ) {
 			paletteSelect.clear();
+			var used = [];
+			switch( l.data ) {
+			case Tiles(_, data):
+				for( k in data ) {
+					if( k == 0 ) continue;
+					used[k - 1] = true;
+				}
+			case Layer(data):
+				for( k in data )
+					used[k] = true;
+			case Objects(id, objs):
+				for( o in objs ) {
+					var id = l.idToIndex.get(Reflect.field(o, id));
+					if( id != null ) used[id] = true;
+				}
+			}
+			for( i in 0...l.images.length ) {
+				if( used[i] ) continue;
+				paletteSelect.fillRect( (i % l.imagesStride) * (tileSize + 1), Std.int(i / l.imagesStride) * (tileSize + 1), tileSize, tileSize, 0x80000000);
+			}
 			paletteSelect.fillRect( (l.current % l.imagesStride) * (tileSize + 1), Std.int(l.current / l.imagesStride) * (tileSize + 1), (tileSize + 1) * l.currentWidth - 1, (tileSize + 1) * l.currentHeight - 1, 0x805BA1FB);
 		}
 

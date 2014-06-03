@@ -157,9 +157,9 @@
 		<div class="level">
 			<div class="menu">
 				<div class="options">
-					<input type="submit" value="Options" onclick="_.level.toggleOptions()"/>
+					<input type="submit" value="Options" onclick="_.level.action('options')"/>
 					<input type="submit" value="X" onclick="_.level.action('close')"/>
-					<input name="newlayer" type="submit" value="New Layer" onclick="_.level.addNewLayer()"/>
+					<input name="newlayer" type="submit" value="New Layer" onclick="_.level.action('layer')"/>
 					<div class="cursorPosition"></div>
 				</div>
 			</div>
@@ -177,7 +177,7 @@
 					<label><input type="checkbox" name="lock" onchange="_.level.setLock(this.checked)"/> Lock Grid</label>
 				</div>
 				<div class="item">
-					<input type="submit" name="file" value="File..." onclick="_.level.selectFile()"/>
+					<input type="submit" name="file" value="File..." onclick="_.level.action('file')"/>
 				</div>
 				<div class="item">
 					<label>Size <input name="size" onchange="_.level.setSize(parseInt(this.value))"/>px</label>
@@ -186,14 +186,14 @@
 			<div class="submenu options">
 				<div class="item">
 					<label>Tile Size <input type="text" name="tileSize" onchange="_.level.setTileSize(parseInt(this.value))"/></label>
-					<input type="submit" value="Cancel" onclick="_.level.toggleOptions()"/>
+					<input type="submit" value="Cancel" onclick="_.level.action('options')"/>
 				</div>
 			</div>
 			<div class="submenu newlayer">
 				<div class="item">
 					<label>Name <input type="text" name="newName"/></label>
 					<input type="submit" value="Create" onclick="_.level.addNewLayer($(parentNode).find('[name=newName]').val())"/>
-					<input type="submit" value="Cancel" onclick="_.level.addNewLayer()"/>
+					<input type="submit" value="Cancel" onclick="_.level.action('layer')"/>
 				</div>
 			</div>
 			<div class="scroll">

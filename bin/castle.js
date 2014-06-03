@@ -284,6 +284,7 @@ Level.prototype = {
 							if(lobj.name == null) continue;
 							var l2 = new lvl.LayerData(this,lobj.name,getProps(lobj.name),{ o : lobj, f : "data"});
 							l2.setTilesData(lobj.data);
+							l2.listColumnn = c;
 							this.layers.push(l2);
 						}
 						this.newLayer = c;
@@ -463,24 +464,53 @@ Level.prototype = {
 		return null;
 	}
 	,action: function(name) {
+		var _g = this;
 		switch(name) {
 		case "close":
 			(js.Boot.__cast(this.model , Main)).closeLevel(this);
 			break;
-		}
-	}
-	,addNewLayer: function(name) {
-		if(this.newLayer == null) return;
-		if(name == null) {
-			var opt = this.content.find(".submenu.newlayer");
+		case "options":
+			var opt = this.content.find(".submenu.options");
 			var hide = opt["is"](":visible");
 			this.content.find(".submenu").hide();
 			if(hide) this.content.find(".submenu.layer").show(); else {
 				opt.show();
+				this.content.find("[name=tileSize]").val("" + this.tileSize);
+			}
+			break;
+		case "layer":
+			if(this.newLayer == null) return;
+			var opt1 = this.content.find(".submenu.newlayer");
+			var hide1 = opt1["is"](":visible");
+			this.content.find(".submenu").hide();
+			if(hide1) this.content.find(".submenu.layer").show(); else {
+				opt1.show();
 				this.content.find("[name=newName]").val("");
 			}
-			return;
+			break;
+		case "file":
+			var m;
+			m = js.Boot.__cast(this.model , Main);
+			m.chooseFile(function(path) {
+				{
+					var _g1 = _g.currentLayer.data;
+					switch(_g1[1]) {
+					case 2:
+						var data = _g1[3];
+						var t = _g1[2];
+						t.file = path;
+						_g.currentLayer.dirty = true;
+						_g.save();
+						_g.reload();
+						break;
+					default:
+					}
+				}
+			});
+			break;
 		}
+	}
+	,addNewLayer: function(name) {
 		var _g = this.newLayer.type;
 		switch(_g[1]) {
 		case 8:
@@ -525,8 +555,63 @@ Level.prototype = {
 		default:
 		}
 	}
+	,popupLayer: function(l,mouseX,mouseY) {
+		var _g = this;
+		this.setCursor(l);
+		var n = new nodejs.webkit.Menu();
+		var nclear = new nodejs.webkit.MenuItem({ label : "Clear"});
+		var ndel = new nodejs.webkit.MenuItem({ label : "Delete"});
+		var _g1 = 0;
+		var _g11 = [nclear,ndel];
+		while(_g1 < _g11.length) {
+			var m = _g11[_g1];
+			++_g1;
+			n.append(m);
+		}
+		nclear.click = function() {
+			{
+				var _g2 = l.data;
+				switch(_g2[1]) {
+				case 2:
+					var data = _g2[3];
+					var _g21 = 0;
+					var _g12 = data.length;
+					while(_g21 < _g12) {
+						var i = _g21++;
+						data[i] = 0;
+					}
+					break;
+				case 1:
+					var objs = _g2[3];
+					while(objs.length > 0) objs.pop();
+					break;
+				case 0:
+					var data1 = _g2[2];
+					var _g22 = 0;
+					var _g13 = data1.length;
+					while(_g22 < _g13) {
+						var i1 = _g22++;
+						data1[i1] = 0;
+					}
+					break;
+				}
+			}
+			l.dirty = true;
+			_g.save();
+			_g.draw();
+		};
+		ndel.enabled = l.listColumnn != null;
+		ndel.click = function() {
+			var layers = Reflect.field(_g.obj,l.listColumnn.name);
+			var x = l.targetObj.o;
+			HxOverrides.remove(layers,x);
+			_g.save();
+			_g.reload();
+		};
+		n.popup(mouseX,mouseY);
+	}
 	,setup: function() {
-		var _g2 = this;
+		var _g3 = this;
 		var page = new js.JQuery("#content");
 		page.html("");
 		this.content = ((function($this) {
@@ -544,9 +629,18 @@ Level.prototype = {
 			var td = [new js.JQuery("<div class='item layer'>").appendTo(menu)];
 			l[0].comp = td[0];
 			if(!l[0].visible) td[0].addClass("hidden");
-			td[0].click((function(l) {
-				return function(_) {
-					_g2.setCursor(l[0]);
+			td[0].mousedown((function(l) {
+				return function(e) {
+					var _g2 = e.which;
+					switch(_g2) {
+					case 1:
+						_g3.setCursor(l[0]);
+						break;
+					case 3:
+						_g3.popupLayer(l[0],e.pageX,e.pageY);
+						e.preventDefault();
+						break;
+					}
 				};
 			})(l));
 			new js.JQuery("<span>").text(l[0].name).appendTo(td[0]);
@@ -559,17 +653,17 @@ Level.prototype = {
 					return $r;
 				}(this)));
 				isel.click((function(td,l) {
-					return function(e) {
-						_g2.setCursor(l[0]);
+					return function(e1) {
+						_g3.setCursor(l[0]);
 						var list = new js.JQuery("<div class='imglist'>");
 						var _g4 = 0;
-						var _g3 = l[0].images.length;
-						while(_g4 < _g3) {
+						var _g21 = l[0].images.length;
+						while(_g4 < _g21) {
 							var i = [_g4++];
 							list.append(new js.JQuery("<img>").attr("src",l[0].images[i[0]].getCanvas().toDataURL()).click((function(i,l) {
-								return function(_1) {
+								return function(_) {
 									l[0].set_current(i[0]);
-									_g2.setCursor(l[0]);
+									_g3.setCursor(l[0]);
 								};
 							})(i,l)));
 						}
@@ -591,11 +685,11 @@ Level.prototype = {
 							$r = new js.JQuery(html3);
 							return $r;
 						}(this))).bind("click",(function() {
-							return function(_2) {
+							return function(_1) {
 								remove();
 							};
 						})());
-						e.stopPropagation();
+						e1.stopPropagation();
 					};
 				})(td,l));
 				continue;
@@ -609,36 +703,36 @@ Level.prototype = {
 			}(this))).appendTo(td[0]);
 			t.spectrum({ color : this.toColor(l[0].colors[l[0].current]), clickoutFiresChange : true, showButtons : false, showPaletteOnly : true, showPalette : true, palette : (function($this) {
 				var $r;
-				var _g21 = [];
+				var _g22 = [];
 				{
 					var _g31 = 0;
 					var _g41 = l[0].colors;
 					while(_g31 < _g41.length) {
 						var c = _g41[_g31];
 						++_g31;
-						_g21.push($this.toColor(c));
+						_g22.push($this.toColor(c));
 					}
 				}
-				$r = _g21;
+				$r = _g22;
 				return $r;
 			}(this)), show : (function(l) {
-				return function(_3) {
-					_g2.setCursor(l[0]);
+				return function(_2) {
+					_g3.setCursor(l[0]);
 				};
 			})(l), change : (function(l) {
-				return function(e1) {
-					var color = Std.parseInt("0x" + e1.toHex());
+				return function(e2) {
+					var color = Std.parseInt("0x" + e2.toHex());
 					var _g42 = 0;
 					var _g32 = l[0].colors.length;
 					while(_g42 < _g32) {
 						var i1 = _g42++;
 						if(l[0].colors[i1] == color) {
 							l[0].set_current(i1);
-							_g2.setCursor(l[0]);
+							_g3.setCursor(l[0]);
 							return;
 						}
 					}
-					_g2.setCursor(l[0]);
+					_g3.setCursor(l[0]);
 				};
 			})(l)});
 		}
@@ -654,85 +748,85 @@ Level.prototype = {
 		this.ctx = canvas.getContext("2d");
 		var scroll = this.content.find(".scroll");
 		var scont = this.content.find(".scrollContent");
-		scroll.scroll(function(_4) {
-			_g2.savePrefs();
+		scroll.scroll(function(_3) {
+			_g3.savePrefs();
 		});
 		this.content.find("[name=color]").spectrum({ clickoutFiresChange : true, showButtons : false, change : function(c1) {
-			_g2.currentLayer.props.color = Std.parseInt("0x" + c1.toHex());
-			_g2.draw();
-			_g2.save();
+			_g3.currentLayer.props.color = Std.parseInt("0x" + c1.toHex());
+			_g3.draw();
+			_g3.save();
 		}});
 		var win = nodejs.webkit.Window.get();
-		var onResize = function(_5) {
+		var onResize = function(_4) {
 			scroll.css("height",win.height - 240 + "px");
 		};
 		win.on("resize",onResize);
 		onResize(null);
-		scroll.bind("mousewheel",function(e2) {
+		scroll.bind("mousewheel",function(e3) {
 		});
 		this.cursor = this.content.find("#cursor");
 		this.cursorImage = new lvl.Image(0,0);
 		this.cursor[0].appendChild(this.cursorImage.getCanvas());
 		this.cursor.hide();
-		scont.mouseleave(function(_6) {
-			_g2.curPos = null;
-			_g2.cursor.hide();
+		scont.mouseleave(function(_5) {
+			_g3.curPos = null;
+			_g3.cursor.hide();
 			new js.JQuery(".cursorPosition").text("");
 		});
-		scont.mousemove(function(e3) {
-			_g2.mousePos.x = e3.pageX;
-			_g2.mousePos.y = e3.pageY;
-			_g2.updateCursorPos();
+		scont.mousemove(function(e4) {
+			_g3.mousePos.x = e4.pageX;
+			_g3.mousePos.y = e4.pageY;
+			_g3.updateCursorPos();
 		});
-		var onMouseUp = function(_7) {
-			_g2.mouseDown = false;
-			if(_g2.needSave) _g2.save();
+		var onMouseUp = function(_6) {
+			_g3.mouseDown = false;
+			if(_g3.needSave) _g3.save();
 		};
-		scroll.mousedown(function(e4) {
-			var _g5 = e4.which;
+		scroll.mousedown(function(e5) {
+			var _g5 = e5.which;
 			switch(_g5) {
 			case 1:
-				_g2.mouseDown = true;
-				if(_g2.curPos != null) {
-					_g2.set(_g2.curPos.x,_g2.curPos.y);
-					_g2.startPos = Reflect.copy(_g2.curPos);
+				_g3.mouseDown = true;
+				if(_g3.curPos != null) {
+					_g3.set(_g3.curPos.x,_g3.curPos.y);
+					_g3.startPos = Reflect.copy(_g3.curPos);
 				}
 				break;
 			case 3:
-				var p = _g2.pick();
+				var p = _g3.pick();
 				if(p != null) {
 					p.layer.set_current(p.k);
-					_g2.setCursor(p.layer);
+					_g3.setCursor(p.layer);
 				}
 				break;
 			}
 		});
 		scroll.mouseleave(onMouseUp);
-		scroll.mouseup(function(e5) {
-			onMouseUp(e5);
-			if(_g2.curPos == null) {
-				_g2.startPos = null;
+		scroll.mouseup(function(e6) {
+			onMouseUp(e6);
+			if(_g3.curPos == null) {
+				_g3.startPos = null;
 				return;
 			}
 			{
-				var _g6 = _g2.currentLayer.data;
+				var _g6 = _g3.currentLayer.data;
 				switch(_g6[1]) {
 				case 1:
 					var objs = _g6[3];
 					var idCol = _g6[2];
-					var fc = _g2.currentLayer.floatCoord;
+					var fc = _g3.currentLayer.floatCoord;
 					var px;
-					if(fc) px = _g2.curPos.xf; else px = _g2.curPos.x;
+					if(fc) px = _g3.curPos.xf; else px = _g3.curPos.x;
 					var py;
-					if(fc) py = _g2.curPos.yf; else py = _g2.curPos.y;
+					if(fc) py = _g3.curPos.yf; else py = _g3.curPos.y;
 					var w = 0.;
 					var h = 0.;
-					if(_g2.currentLayer.hasSize) {
-						if(_g2.startPos == null) return;
+					if(_g3.currentLayer.hasSize) {
+						if(_g3.startPos == null) return;
 						var sx;
-						if(fc) sx = _g2.startPos.xf; else sx = _g2.startPos.x;
+						if(fc) sx = _g3.startPos.xf; else sx = _g3.startPos.x;
 						var sy;
-						if(fc) sy = _g2.startPos.yf; else sy = _g2.startPos.y;
+						if(fc) sy = _g3.startPos.yf; else sy = _g3.startPos.y;
 						w = px - sx;
 						h = py - sy;
 						px = sx;
@@ -740,44 +834,45 @@ Level.prototype = {
 						if(w < 0.5) if(fc) w = 0.5; else w = 1;
 						if(h < 0.5) if(fc) h = 0.5; else h = 1;
 					}
-					var _g33 = 0;
+					var _g23 = 0;
 					var _g11 = objs.length;
-					while(_g33 < _g11) {
-						var i2 = _g33++;
+					while(_g23 < _g11) {
+						var i2 = _g23++;
 						var o = objs[i2];
 						if(o.x == px && o.y == py) {
-							_g2.editProps(_g2.currentLayer,i2);
+							_g3.editProps(_g3.currentLayer,i2);
 							return;
 						}
 					}
 					var o1 = { x : px, y : py};
 					objs.push(o1);
-					if(idCol != null) o1[idCol] = _g2.currentLayer.indexToId[_g2.currentLayer.current];
+					if(idCol != null) o1[idCol] = _g3.currentLayer.indexToId[_g3.currentLayer.current];
 					var _g12 = 0;
-					var _g34 = _g2.currentLayer.baseSheet.columns;
-					while(_g12 < _g34.length) {
-						var c2 = _g34[_g12];
+					var _g24 = _g3.currentLayer.baseSheet.columns;
+					while(_g12 < _g24.length) {
+						var c2 = _g24[_g12];
 						++_g12;
 						if(c2.opt || c2.name == "x" || c2.name == "y" || c2.name == idCol) continue;
-						var v = _g2.model.getDefault(c2);
+						var v = _g3.model.getDefault(c2);
 						if(v != null) o1[c2.name] = v;
 					}
-					if(_g2.currentLayer.hasSize) {
+					if(_g3.currentLayer.hasSize) {
 						o1.width = w;
 						o1.height = h;
+						_g3.setCursor(_g3.currentLayer);
 					}
-					_g2.editProps(_g2.currentLayer,objs.length - 1);
+					_g3.editProps(_g3.currentLayer,objs.length - 1);
 					objs.sort(function(o11,o2) {
 						var r = Reflect.compare(o11.y,o2.y);
 						if(r == 0) return Reflect.compare(o11.x,o2.x); else return r;
 					});
-					_g2.draw();
-					_g2.save();
+					_g3.draw();
+					_g3.save();
 					break;
 				default:
 				}
 			}
-			_g2.startPos = null;
+			_g3.startPos = null;
 		});
 	}
 	,updateCursorPos: function() {
@@ -789,8 +884,6 @@ Level.prototype = {
 		if(cx < this.width && cy < this.height) {
 			this.cursor.show();
 			var fc = this.currentLayer.floatCoord;
-			var w = 1.;
-			var h = 1.;
 			var border = 0;
 			var ccx;
 			if(fc) ccx = cxf; else ccx = cx;
@@ -809,8 +902,7 @@ Level.prototype = {
 				if(ph < 0.5) if(fc) ph = 0.5; else ph = 1;
 				ccx = px;
 				ccy = py;
-				w = pw;
-				h = ph;
+				this.cursorImage.setSize(pw * this.tileSize * this.zoomView | 0,ph * this.tileSize * this.zoomView | 0);
 			}
 			if(this.currentLayer.images == null) border = 1;
 			this.cursor.css({ marginLeft : (ccx * this.tileSize * this.zoomView - border | 0) + "px", marginTop : (ccy * this.tileSize * this.zoomView - border | 0) + "px"});
@@ -910,7 +1002,6 @@ Level.prototype = {
 		this.setCursor(this.currentLayer);
 	}
 	,paint: function(x,y) {
-		var _g1 = this;
 		var l = this.currentLayer;
 		{
 			var _g = l.data;
@@ -918,19 +1009,31 @@ Level.prototype = {
 			case 0:
 				var data = _g[2];
 				if(data[x + y * this.width] == l.current || l.blanks[l.current]) return;
-				var fillRec;
-				var fillRec1 = null;
-				fillRec1 = function(x1,y1,k) {
-					if(data[x1 + y1 * _g1.width] != k) return;
-					data[x1 + y1 * _g1.width] = l.current;
+				var k = data[x + y * this.width];
+				var todo = [x,y];
+				while(todo.length > 0) {
+					var y1 = todo.pop();
+					var x1 = todo.pop();
+					if(data[x1 + y1 * this.width] != k) continue;
+					data[x1 + y1 * this.width] = l.current;
 					l.dirty = true;
-					if(x1 > 0) fillRec1(x1 - 1,y1,k);
-					if(y1 > 0) fillRec1(x1,y1 - 1,k);
-					if(x1 < _g1.width - 1) fillRec1(x1 + 1,y1,k);
-					if(y1 < _g1.height - 1) fillRec1(x1,y1 + 1,k);
-				};
-				fillRec = fillRec1;
-				fillRec(x,y,data[x + y * this.width]);
+					if(x1 > 0) {
+						todo.push(x1 - 1);
+						todo.push(y1);
+					}
+					if(y1 > 0) {
+						todo.push(x1);
+						todo.push(y1 - 1);
+					}
+					if(x1 < this.width - 1) {
+						todo.push(x1 + 1);
+						todo.push(y1);
+					}
+					if(y1 < this.height - 1) {
+						todo.push(x1);
+						todo.push(y1 + 1);
+					}
+				}
 				this.save();
 				this.draw();
 				break;
@@ -940,30 +1043,41 @@ Level.prototype = {
 				var px = x;
 				var py = y;
 				var zero = [];
-				var fillRec2;
-				var fillRec3 = null;
-				fillRec3 = function(x2,y2,k1) {
-					if(data1[x2 + y2 * _g1.width] != 0) return;
+				var todo1 = [x,y];
+				while(todo1.length > 0) {
+					var y2 = todo1.pop();
+					var x2 = todo1.pop();
+					if(data1[x2 + y2 * this.width] != 0) continue;
 					var dx = (x2 - px) % l.currentWidth;
 					if(dx < 0) dx += l.currentWidth;
 					var dy = (y2 - py) % l.currentHeight;
 					if(dy < 0) dy += l.currentHeight;
 					var t;
-					t = l.current + (_g1.randomMode?Std.random(l.currentWidth) + Std.random(l.currentHeight) * l.imagesStride:dx + dy * l.imagesStride);
-					if(l.blanks[t]) zero.push(x2 + y2 * _g1.width);
-					data1[x2 + y2 * _g1.width] = t + 1;
+					t = l.current + (this.randomMode?Std.random(l.currentWidth) + Std.random(l.currentHeight) * l.imagesStride:dx + dy * l.imagesStride);
+					if(l.blanks[t]) zero.push(x2 + y2 * this.width);
+					data1[x2 + y2 * this.width] = t + 1;
 					l.dirty = true;
-					if(x2 > 0) fillRec3(x2 - 1,y2,k1);
-					if(y2 > 0) fillRec3(x2,y2 - 1,k1);
-					if(x2 < _g1.width - 1) fillRec3(x2 + 1,y2,k1);
-					if(y2 < _g1.height - 1) fillRec3(x2,y2 + 1,k1);
-				};
-				fillRec2 = fillRec3;
-				fillRec2(x,y,data1[x + y * this.width]);
-				var _g11 = 0;
-				while(_g11 < zero.length) {
-					var z = zero[_g11];
-					++_g11;
+					if(x2 > 0) {
+						todo1.push(x2 - 1);
+						todo1.push(y2);
+					}
+					if(y2 > 0) {
+						todo1.push(x2);
+						todo1.push(y2 - 1);
+					}
+					if(x2 < this.width - 1) {
+						todo1.push(x2 + 1);
+						todo1.push(y2);
+					}
+					if(y2 < this.height - 1) {
+						todo1.push(x2);
+						todo1.push(y2 + 1);
+					}
+				}
+				var _g1 = 0;
+				while(_g1 < zero.length) {
+					var z = zero[_g1];
+					++_g1;
 					data1[z] = 0;
 				}
 				this.save();
@@ -975,27 +1089,43 @@ Level.prototype = {
 	}
 	,onKey: function(e) {
 		if(e.ctrlKey && e.keyCode == 115) this.action("close");
-		if(e.ctrlKey || this.curPos == null) return;
+		if(e.ctrlKey) return;
 		var _g = e.keyCode;
 		switch(_g) {
-		case 80:
-			this.paint(this.curPos.x,this.curPos.y);
-			break;
 		case 107:
 			this.updateZoom(true);
 			break;
 		case 109:
 			this.updateZoom(false);
 			break;
+		case 27:
+			new js.JQuery(".popup").remove();
+			this.draw();
+			break;
+		case 9:
+			var i;
+			i = (HxOverrides.indexOf(this.layers,this.currentLayer,0) + (e.shiftKey?this.layers.length - 1:1)) % this.layers.length;
+			this.setCursor(this.layers[i]);
+			e.preventDefault();
+			e.stopPropagation();
+			break;
+		default:
+		}
+		if(this.curPos == null) return;
+		var _g1 = e.keyCode;
+		switch(_g1) {
+		case 80:
+			this.paint(this.curPos.x,this.curPos.y);
+			break;
 		case 46:
 			this.delDown = true;
 			var p = this.pick();
 			if(p == null) return;
 			{
-				var _g1 = p.layer.data;
-				switch(_g1[1]) {
+				var _g11 = p.layer.data;
+				switch(_g11[1]) {
 				case 0:
-					var data = _g1[2];
+					var data = _g11[2];
 					if(data[p.index] == 0) return;
 					data[p.index] = 0;
 					p.layer.dirty = true;
@@ -1004,14 +1134,14 @@ Level.prototype = {
 					this.draw();
 					break;
 				case 1:
-					var objs = _g1[3];
+					var objs = _g11[3];
 					if(HxOverrides.remove(objs,objs[p.index])) {
 						this.save();
 						this.draw();
 					}
 					break;
 				case 2:
-					var data1 = _g1[3];
+					var data1 = _g11[3];
 					var changed = false;
 					var l = this.currentLayer;
 					var _g3 = 0;
@@ -1022,9 +1152,9 @@ Level.prototype = {
 						var _g4 = l.currentWidth;
 						while(_g5 < _g4) {
 							var dx = _g5++;
-							var i = p.index + dx + dy * this.width;
-							if(data1[i] == 0) continue;
-							data1[i] = 0;
+							var i1 = p.index + dx + dy * this.width;
+							if(data1[i1] == 0) continue;
+							data1[i1] = 0;
 							changed = true;
 						}
 					}
@@ -1041,28 +1171,17 @@ Level.prototype = {
 		case 69:
 			var p1 = this.pick();
 			{
-				var _g11 = p1.layer.data;
-				switch(_g11[1]) {
+				var _g12 = p1.layer.data;
+				switch(_g12[1]) {
 				case 0:case 2:
 					break;
 				case 1:
-					var objs1 = _g11[3];
+					var objs1 = _g12[3];
 					new js.JQuery(".popup").remove();
 					this.editProps(p1.layer,p1.index);
 					break;
 				}
 			}
-			break;
-		case 27:
-			new js.JQuery(".popup").remove();
-			this.draw();
-			break;
-		case 9:
-			var i1;
-			i1 = (HxOverrides.indexOf(this.layers,this.currentLayer,0) + (e.shiftKey?this.layers.length - 1:1)) % this.layers.length;
-			this.setCursor(this.layers[i1]);
-			e.preventDefault();
-			e.stopPropagation();
 			break;
 		default:
 		}
@@ -1131,6 +1250,7 @@ Level.prototype = {
 		}
 	}
 	,draw: function() {
+		var t0 = haxe.Timer.stamp();
 		this.ctx.fillStyle = "black";
 		this.ctx.globalAlpha = 1;
 		this.ctx.fillRect(0,0,this.width * this.tileSize,this.height * this.tileSize);
@@ -1310,15 +1430,6 @@ Level.prototype = {
 		this.draw();
 		this.save();
 	}
-	,toggleOptions: function() {
-		var opt = this.content.find(".submenu.options");
-		var hide = opt["is"](":visible");
-		this.content.find(".submenu").hide();
-		if(hide) this.content.find(".submenu.layer").show(); else {
-			opt.show();
-			this.content.find("[name=tileSize]").val("" + this.tileSize);
-		}
-	}
 	,setSize: function(size) {
 		{
 			var _g = this.currentLayer.data;
@@ -1334,27 +1445,6 @@ Level.prototype = {
 			default:
 			}
 		}
-	}
-	,selectFile: function() {
-		var _g = this;
-		var m;
-		m = js.Boot.__cast(this.model , Main);
-		m.chooseFile(function(path) {
-			{
-				var _g1 = _g.currentLayer.data;
-				switch(_g1[1]) {
-				case 2:
-					var data = _g1[3];
-					var t = _g1[2];
-					t.file = path;
-					_g.currentLayer.dirty = true;
-					_g.save();
-					_g.reload();
-					break;
-				default:
-				}
-			}
-		});
 	}
 	,paletteOption: function(name) {
 		var l = this.currentLayer;
@@ -1494,6 +1584,51 @@ Level.prototype = {
 		}
 		if(this.paletteSelect != null) {
 			this.paletteSelect.clear();
+			var used = [];
+			{
+				var _g4 = l.data;
+				switch(_g4[1]) {
+				case 2:
+					var data = _g4[3];
+					var _g12 = 0;
+					while(_g12 < data.length) {
+						var k = data[_g12];
+						++_g12;
+						if(k == 0) continue;
+						used[k - 1] = true;
+					}
+					break;
+				case 0:
+					var data1 = _g4[2];
+					var _g13 = 0;
+					while(_g13 < data1.length) {
+						var k1 = data1[_g13];
+						++_g13;
+						used[k1] = true;
+					}
+					break;
+				case 1:
+					var objs = _g4[3];
+					var id = _g4[2];
+					var _g14 = 0;
+					while(_g14 < objs.length) {
+						var o2 = objs[_g14];
+						++_g14;
+						var id1;
+						var key = Reflect.field(o2,id);
+						id1 = l.idToIndex.get(key);
+						if(id1 != null) used[id1] = true;
+					}
+					break;
+				}
+			}
+			var _g15 = 0;
+			var _g5 = l.images.length;
+			while(_g15 < _g5) {
+				var i1 = _g15++;
+				if(used[i1]) continue;
+				this.paletteSelect.fillRect(i1 % l.imagesStride * (this.tileSize + 1),(i1 / l.imagesStride | 0) * (this.tileSize + 1),this.tileSize,this.tileSize,-2147483648);
+			}
 			this.paletteSelect.fillRect(l.current % l.imagesStride * (this.tileSize + 1),(l.current / l.imagesStride | 0) * (this.tileSize + 1),(this.tileSize + 1) * l.currentWidth - 1,(this.tileSize + 1) * l.currentHeight - 1,-2141478405);
 		}
 		var size;
@@ -1505,14 +1640,14 @@ Level.prototype = {
 		this.cursorImage.setSize(size * w,size * h);
 		if(l.images != null) {
 			this.cursorImage.clear();
-			var _g4 = 0;
-			while(_g4 < h) {
-				var y3 = _g4++;
-				var _g12 = 0;
-				while(_g12 < w) {
-					var x3 = _g12++;
-					var i1 = l.images[l.current + x3 + y3 * l.imagesStride];
-					this.cursorImage.drawSub(i1,0,0,i1.width,i1.height,x3 * size,y3 * size,size,size);
+			var _g6 = 0;
+			while(_g6 < h) {
+				var y3 = _g6++;
+				var _g16 = 0;
+				while(_g16 < w) {
+					var x3 = _g16++;
+					var i2 = l.images[l.current + x3 + y3 * l.imagesStride];
+					this.cursorImage.drawSub(i2,0,0,i2.width,i2.height,x3 * size,y3 * size,size,size);
 				}
 			}
 			this.cursorImage.fill(1616617979);
@@ -6788,6 +6923,9 @@ haxe.Timer.delay = function(f,time_ms) {
 	};
 	return t;
 };
+haxe.Timer.stamp = function() {
+	return new Date().getTime() / 1000;
+};
 haxe.Timer.prototype = {
 	stop: function() {
 		if(this.id == null) return;
@@ -7875,6 +8013,8 @@ js.Selection.prototype = {
 };
 var lvl = {};
 lvl.Image = function(w,h) {
+	this.originY = 0;
+	this.originX = 0;
 	this.width = w;
 	this.height = h;
 	var _this = window.document;
@@ -7935,32 +8075,39 @@ lvl.Image.prototype = {
 	}
 	,clear: function() {
 		this.ctx.clearRect(0,0,this.width,this.height);
+		this.invalidate();
+	}
+	,invalidate: function() {
 		this.origin = this.canvas;
+		this.originX = this.originY = 0;
 	}
 	,fill: function(color) {
 		this.ctx.fillStyle = this.getColor(color);
 		this.ctx.fillRect(0,0,this.width,this.height);
-		this.origin = this.canvas;
+		this.invalidate();
 	}
 	,fillRect: function(x,y,w,h,color) {
 		this.ctx.fillStyle = this.getColor(color);
 		this.ctx.fillRect(x,y,w,h);
-		this.origin = this.canvas;
+		this.invalidate();
 	}
 	,sub: function(x,y,w,h) {
 		var i = new lvl.Image(w,h);
 		i.ctx.drawImage(this.origin,x,y,w,h,0,0,w,h);
+		i.origin = this.origin;
+		i.originX = this.originX + x;
+		i.originY = this.originY + y;
 		return i;
 	}
 	,text: function(text,x,y,color) {
 		if(color == null) color = -1;
 		this.ctx.fillStyle = this.getColor(color);
 		this.ctx.fillText(text,x,y);
-		this.origin = this.canvas;
+		this.invalidate();
 	}
 	,draw: function(i,x,y) {
-		this.ctx.drawImage(i.origin,0,0,i.width,i.height,x,y,i.width,i.height);
-		this.origin = this.canvas;
+		this.ctx.drawImage(i.origin,i.originX,i.originY,i.width,i.height,x,y,i.width,i.height);
+		this.invalidate();
 	}
 	,drawSub: function(i,srcX,srcY,srcW,srcH,x,y,dstW,dstH,smooth) {
 		if(smooth == null) smooth = false;
@@ -7969,16 +8116,16 @@ lvl.Image.prototype = {
 		if(dstW < 0) dstW = srcW;
 		if(dstH < 0) dstH = srcH;
 		this.ctx.imageSmoothingEnabled = smooth;
-		this.ctx.drawImage(i.origin,srcX,srcY,srcW,srcH,x,y,dstW,dstH);
-		this.origin = this.canvas;
+		this.ctx.drawImage(i.origin,srcX + i.originX,srcY + i.originY,srcW,srcH,x,y,dstW,dstH);
+		this.invalidate();
 	}
 	,copyFrom: function(i,smooth) {
 		if(smooth == null) smooth = false;
 		this.ctx.fillStyle = "rgba(0,0,0,0)";
 		this.ctx.fillRect(0,0,this.width,this.height);
 		this.ctx.imageSmoothingEnabled = smooth;
-		this.ctx.drawImage(i.origin,0,0,i.width,i.height,0,0,this.width,this.height);
-		this.origin = this.canvas;
+		this.ctx.drawImage(i.origin,i.originX,i.originY,i.width,i.height,0,0,this.width,this.height);
+		this.invalidate();
 	}
 	,isBlank: function() {
 		var i = this.ctx.getImageData(0,0,this.width,this.height);
@@ -7999,7 +8146,7 @@ lvl.Image.prototype = {
 		this.ctx = this.canvas.getContext("2d");
 		this.width = width;
 		this.height = height;
-		this.origin = this.canvas;
+		this.invalidate();
 	}
 	,resize: function(width,height,smooth) {
 		if(width == this.width && height == this.height) return;
@@ -8014,9 +8161,9 @@ lvl.Image.prototype = {
 		ctx2.drawImage(this.canvas,0,0,this.width,this.height,0,0,width,height);
 		this.ctx = ctx2;
 		this.canvas = c;
-		this.origin = c;
 		this.width = width;
 		this.height = height;
+		this.invalidate();
 	}
 	,__class__: lvl.Image
 };
@@ -8046,6 +8193,7 @@ lvl.LayerData.prototype = {
 			if(this.props.color == null) this.props.color = 16711680;
 			this.colors = [this.props.color];
 			this.names = [this.name];
+			this.loadState();
 			return;
 		}
 		var idCol = null;

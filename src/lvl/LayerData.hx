@@ -46,6 +46,7 @@ class LayerData {
 	public var hasSize : Bool;
 
 	public var targetObj : { o : Dynamic, f : String };
+	public var listColumnn : Column;
 
 	public function new(level, name, p, target) {
 		this.level = level;
@@ -61,6 +62,7 @@ class LayerData {
 			if( props.color == null ) props.color = 0xFF0000;
 			colors = [props.color];
 			names = [name];
+			loadState();
 			return;
 		}
 		var idCol = null;

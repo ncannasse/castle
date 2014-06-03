@@ -8,6 +8,8 @@ class Image {
 	// origin can be either the canvas element or the original IMG if not modified
 	// this speed up things a lot since drawing canvas to canvas is very slow on Chrome
 	var origin : Dynamic;
+	var originX : Int = 0;
+	var originY : Int = 0;
 
 	public function new(w, h) {
 		this.width = w;
@@ -29,52 +31,60 @@ class Image {
 
 	public function clear() {
 		ctx.clearRect(0, 0, width, height);
+		invalidate();
+	}
+
+	function invalidate() {
 		origin = canvas;
+		originX = originY = 0;
 	}
 
 	public function fill( color : Int ) {
 		ctx.fillStyle = getColor(color);
 		ctx.fillRect(0, 0, width, height);
-		origin = canvas;
+		invalidate();
 	}
 
 	public function fillRect( x : Int, y : Int, w : Int, h : Int, color : Int ) {
 		ctx.fillStyle = getColor(color);
 		ctx.fillRect(x, y, w, h);
-		origin = canvas;
+		invalidate();
 	}
 
 	public function sub( x : Int, y : Int, w : Int, h : Int ) {
 		var i = new Image(w, h);
 		i.ctx.drawImage(origin, x, y, w, h, 0, 0, w, h);
+		i.origin = origin;
+		i.originX = originX + x;
+		i.originY = originY + y;
 		return i;
 	}
 
 	public function text( text : String, x : Int, y : Int, color : Int = 0xFFFFFFFF ) {
 		ctx.fillStyle = getColor(color);
 		ctx.fillText(text, x, y);
-		origin = canvas;
+		invalidate();
 	}
 
 	public function draw( i : Image, x : Int, y : Int ) {
-		ctx.drawImage(i.origin, 0, 0, i.width, i.height, x, y, i.width, i.height);
-		origin = canvas;
+		ctx.drawImage(i.origin, i.originX, i.originY, i.width, i.height, x, y, i.width, i.height);
+		invalidate();
 	}
 
 	public function drawSub( i : Image, srcX : Int, srcY : Int, srcW : Int, srcH : Int, x : Int, y : Int, dstW : Int = -1, dstH : Int = -1, smooth = false ) {
 		if( dstW < 0 ) dstW = srcW;
 		if( dstH < 0 ) dstH = srcH;
 		ctx.imageSmoothingEnabled = smooth;
-		ctx.drawImage(i.origin, srcX, srcY, srcW, srcH, x, y, dstW, dstH);
-		origin = canvas;
+		ctx.drawImage(i.origin, srcX + i.originX, srcY + i.originY, srcW, srcH, x, y, dstW, dstH);
+		invalidate();
 	}
 
 	public function copyFrom( i : Image, smooth = false ) {
 		ctx.fillStyle = "rgba(0,0,0,0)";
 		ctx.fillRect(0, 0, width, height);
 		ctx.imageSmoothingEnabled = smooth;
-		ctx.drawImage(i.origin, 0, 0, i.width, i.height, 0, 0, width, height);
-		origin = canvas;
+		ctx.drawImage(i.origin, i.originX, i.originY, i.width, i.height, 0, 0, width, height);
+		invalidate();
 	}
 
 	public function isBlank() {
@@ -94,7 +104,7 @@ class Image {
 		ctx = canvas.getContext2d();
 		this.width = width;
 		this.height = height;
-		origin = canvas;
+		invalidate();
 	}
 
 	public function resize( width : Int, height : Int, ?smooth : Bool ) {
@@ -110,9 +120,9 @@ class Image {
 		ctx2.drawImage(canvas, 0, 0, this.width, this.height, 0, 0, width, height);
 		ctx = ctx2;
 		canvas = c;
-		origin = c;
 		this.width = width;
 		this.height = height;
+		invalidate();
 	}
 
 	static var cache = new Map<String,js.html.ImageElement>();
