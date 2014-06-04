@@ -673,7 +673,6 @@ class Level {
 			if( f ) zoomView *= 1.2 else zoomView /= 1.2;
 		}
 		savePrefs();
-		trace(Std.int(width * tileSize * zoomView));
 		view.setSize(Std.int(width * tileSize * zoomView), Std.int(height * tileSize * zoomView));
 		view.zoom = zoomView;
 		draw();

@@ -973,7 +973,6 @@ Level.prototype = {
 			if(f) this.zoomView *= 1.2; else this.zoomView /= 1.2;
 		}
 		this.savePrefs();
-		console.log(this.width * this.tileSize * this.zoomView | 0);
 		this.view.setSize(this.width * this.tileSize * this.zoomView | 0,this.height * this.tileSize * this.zoomView | 0);
 		this.view.set_zoom(this.zoomView);
 		this.draw();
@@ -8347,7 +8346,7 @@ lvl.Image3D.prototype = $extend(lvl.Image.prototype,{
 		this.setViewport();
 	}
 	,setViewport: function() {
-		this.gl.viewport(0,0,this.width,this.height);
+		this.gl.viewport(0,0,this.width > 4096?4096:this.width,this.height > 4096?4096:this.height);
 		this.scaleX = this.zoom / this.width * 2;
 		this.scaleY = this.zoom / this.height * -2;
 	}

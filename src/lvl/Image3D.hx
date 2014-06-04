@@ -244,7 +244,7 @@ class Image3D extends Image {
 	}
 
 	function setViewport() {
-		gl.viewport(0, 0, width, height);
+		gl.viewport(0, 0, width > 4096 ? 4096 : width, height > 4096 ? 4096 : height);
 		scaleX = (zoom / width) * 2;
 		scaleY = (zoom / height) * -2;
 	}
