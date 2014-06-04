@@ -876,7 +876,6 @@ class Level {
 	}
 
 	public function draw() {
-		var t0 = haxe.Timer.stamp();
 		view.fill(0xFFE0E0E0);
 		for( index in 0...layers.length ) {
 			var l = layers[index];

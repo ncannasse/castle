@@ -1232,7 +1232,6 @@ Level.prototype = {
 		}
 	}
 	,draw: function() {
-		var t0 = haxe.Timer.stamp();
 		this.view.fill(-2039584);
 		var _g1 = 0;
 		var _g = this.layers.length;
@@ -6894,9 +6893,6 @@ haxe.Timer.delay = function(f,time_ms) {
 		f();
 	};
 	return t;
-};
-haxe.Timer.stamp = function() {
-	return new Date().getTime() / 1000;
 };
 haxe.Timer.prototype = {
 	stop: function() {
