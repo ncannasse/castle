@@ -401,10 +401,12 @@ class Level {
 		page.html("");
 		content = J(J("#levelContent").html()).appendTo(page);
 
-		var menu = content.find(".menu");
-		for( l in layers ) {
-			var td = J("<div class='item layer'>").appendTo(menu);
+		var mlayers = content.find(".layers");
+		for( index in 0...layers.length ) {
+			var l = layers[index];
+			var td = J("<li class='item layer'>").appendTo(mlayers);
 			l.comp = td;
+			td.data("index", index);
 			if( !l.visible ) td.addClass("hidden");
 			td.mousedown(function(e) {
 				switch( e.which ) {
@@ -461,6 +463,38 @@ class Level {
 				},
 			});
 		}
+
+		(untyped mlayers.sortable)( {
+			vertical : false,
+			onDrop : function(item, container, _super) {
+				_super(item, container);
+				var indexes = [];
+				for( i in mlayers.find("li") )
+					indexes.push(i.data("index"));
+				layers = [for( i in 0...layers.length ) layers[indexes[i]]];
+				for( i in 0...layers.length )
+					layers[i].comp.data("index", i);
+				draw();
+
+				// update layer list
+				var groups = new Map();
+				for( l in layers ) {
+					if( l.listColumnn == null ) continue;
+					var g = groups.get(l.listColumnn.name);
+					if( g == null ) {
+						g = [];
+						groups.set(l.listColumnn.name, g);
+					}
+					g.push(l);
+				}
+				for( g in groups.keys() ) {
+					var layers = groups.get(g);
+					var objs = [for( l in layers ) l.targetObj.o];
+					Reflect.setField(obj, g, objs);
+				}
+				save();
+			}
+		});
 
 		content.find('[name=newlayer]').css({ display : newLayer != null ? 'block' : 'none' });
 

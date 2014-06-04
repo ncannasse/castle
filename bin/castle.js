@@ -604,14 +604,15 @@ Level.prototype = {
 			$r = new js.JQuery(html);
 			return $r;
 		}(this))).appendTo(page);
-		var menu = this.content.find(".menu");
-		var _g = 0;
-		var _g1 = this.layers;
-		while(_g < _g1.length) {
-			var l = [_g1[_g]];
-			++_g;
-			var td = [new js.JQuery("<div class='item layer'>").appendTo(menu)];
+		var mlayers = this.content.find(".layers");
+		var _g1 = 0;
+		var _g = this.layers.length;
+		while(_g1 < _g) {
+			var index = _g1++;
+			var l = [this.layers[index]];
+			var td = [new js.JQuery("<li class='item layer'>").appendTo(mlayers)];
 			l[0].comp = td[0];
+			td[0].data("index",index);
 			if(!l[0].visible) td[0].addClass("hidden");
 			td[0].mousedown((function(l) {
 				return function(e) {
@@ -720,6 +721,65 @@ Level.prototype = {
 				};
 			})(l)});
 		}
+		mlayers.sortable({ vertical : false, onDrop : function(item,container,_super) {
+			_super(item,container);
+			var indexes = [];
+			var $it0 = (function($this) {
+				var $r;
+				var _this = mlayers.find("li");
+				$r = (_this.iterator)();
+				return $r;
+			}(this));
+			while( $it0.hasNext() ) {
+				var i2 = $it0.next();
+				indexes.push(i2.data("index"));
+			}
+			var _g5 = [];
+			var _g23 = 0;
+			var _g11 = _g3.layers.length;
+			while(_g23 < _g11) {
+				var i3 = _g23++;
+				_g5.push(_g3.layers[indexes[i3]]);
+			}
+			_g3.layers = _g5;
+			var _g24 = 0;
+			var _g12 = _g3.layers.length;
+			while(_g24 < _g12) {
+				var i4 = _g24++;
+				_g3.layers[i4].comp.data("index",i4);
+			}
+			_g3.draw();
+			var groups = new haxe.ds.StringMap();
+			var _g13 = 0;
+			var _g25 = _g3.layers;
+			while(_g13 < _g25.length) {
+				var l1 = _g25[_g13];
+				++_g13;
+				if(l1.listColumnn == null) continue;
+				var g = groups.get(l1.listColumnn.name);
+				if(g == null) {
+					g = [];
+					groups.set(l1.listColumnn.name,g);
+				}
+				g.push(l1);
+			}
+			var $it1 = groups.keys();
+			while( $it1.hasNext() ) {
+				var g1 = $it1.next();
+				var layers = groups.get(g1);
+				var objs;
+				var _g14 = [];
+				var _g26 = 0;
+				while(_g26 < layers.length) {
+					var l2 = layers[_g26];
+					++_g26;
+					_g14.push(l2.targetObj.o);
+				}
+				objs = _g14;
+				_g3.obj[g1] = objs;
+			}
+			_g3.save();
+		}});
 		this.content.find("[name=newlayer]").css({ display : this.newLayer != null?"block":"none"});
 		var scroll = this.content.find(".scroll");
 		var scont = this.content.find(".scrollContent");
@@ -755,8 +815,8 @@ Level.prototype = {
 			if(_g3.needSave) _g3.save();
 		};
 		scroll.mousedown(function(e4) {
-			var _g5 = e4.which;
-			switch(_g5) {
+			var _g6 = e4.which;
+			switch(_g6) {
 			case 1:
 				_g3.mouseDown = true;
 				if(_g3.curPos != null) {
@@ -781,11 +841,11 @@ Level.prototype = {
 				return;
 			}
 			{
-				var _g6 = _g3.currentLayer.data;
-				switch(_g6[1]) {
+				var _g7 = _g3.currentLayer.data;
+				switch(_g7[1]) {
 				case 1:
-					var objs = _g6[3];
-					var idCol = _g6[2];
+					var objs1 = _g7[3];
+					var idCol = _g7[2];
 					var fc = _g3.currentLayer.floatCoord;
 					var px;
 					if(fc) px = _g3.curPos.xf; else px = _g3.curPos.x;
@@ -806,24 +866,24 @@ Level.prototype = {
 						if(w < 0.5) if(fc) w = 0.5; else w = 1;
 						if(h < 0.5) if(fc) h = 0.5; else h = 1;
 					}
-					var _g23 = 0;
-					var _g11 = objs.length;
-					while(_g23 < _g11) {
-						var i2 = _g23++;
-						var o = objs[i2];
+					var _g27 = 0;
+					var _g15 = objs1.length;
+					while(_g27 < _g15) {
+						var i5 = _g27++;
+						var o = objs1[i5];
 						if(o.x == px && o.y == py) {
-							_g3.editProps(_g3.currentLayer,i2);
+							_g3.editProps(_g3.currentLayer,i5);
 							return;
 						}
 					}
 					var o1 = { x : px, y : py};
-					objs.push(o1);
+					objs1.push(o1);
 					if(idCol != null) o1[idCol] = _g3.currentLayer.indexToId[_g3.currentLayer.current];
-					var _g12 = 0;
-					var _g24 = _g3.currentLayer.baseSheet.columns;
-					while(_g12 < _g24.length) {
-						var c2 = _g24[_g12];
-						++_g12;
+					var _g16 = 0;
+					var _g28 = _g3.currentLayer.baseSheet.columns;
+					while(_g16 < _g28.length) {
+						var c2 = _g28[_g16];
+						++_g16;
 						if(c2.opt || c2.name == "x" || c2.name == "y" || c2.name == idCol) continue;
 						var v = _g3.model.getDefault(c2);
 						if(v != null) o1[c2.name] = v;
@@ -833,8 +893,8 @@ Level.prototype = {
 						o1.height = h;
 						_g3.setCursor(_g3.currentLayer);
 					}
-					_g3.editProps(_g3.currentLayer,objs.length - 1);
-					objs.sort(function(o11,o2) {
+					_g3.editProps(_g3.currentLayer,objs1.length - 1);
+					objs1.sort(function(o11,o2) {
 						var r = Reflect.compare(o11.y,o2.y);
 						if(r == 0) return Reflect.compare(o11.x,o2.x); else return r;
 					});

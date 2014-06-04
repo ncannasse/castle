@@ -466,6 +466,19 @@ div#menu {
 			float : right;
 		}
 
+		ul.layers {
+			display : inline-block;
+			li {
+				display : inline-block;
+			}
+			li.placeholder {
+				height : 60px;
+				width : 20px;
+				padding : 10px;
+				background-color: #DDD;
+			}
+		}
+
 		.item.hidden {
 			opacity : 0.5;
 		}

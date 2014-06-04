@@ -428,6 +428,22 @@ div#menu ul.sheets li.active {
 #content .level .menu .options {
 	float : right;
 }
+#content .level .menu ul.layers {
+	display : inline-block;
+	zoom : 1;
+	*display : inline;
+}
+#content .level .menu ul.layers li {
+	display : inline-block;
+	zoom : 1;
+	*display : inline;
+}
+#content .level .menu ul.layers li.placeholder {
+	height : 60px;
+	width : 20px;
+	padding : 10px;
+	background-color : #DDD;
+}
 #content .level .menu .item.hidden {
 	opacity : 0.5;
 	filter : alpha(opacity=50);
