@@ -22,6 +22,7 @@ class K {
 	public static inline var DOWN = 40;
 	public static inline var ESC = 27;
 	public static inline var TAB = 9;
+	public static inline var SPACE = 32;
 	public static inline var ENTER = 13;
 	public static inline var F2 = 113;
 	public static inline var F3 = 114;
@@ -141,7 +142,7 @@ class Main extends Model {
 
 	function onKey( e : js.html.KeyboardEvent ) {
 		switch( e.keyCode ) {
-		case K.INSERT:
+		case K.INSERT if( level == null ):
 			if( cursor.s != null )
 				newLine(cursor.s, cursor.y);
 		case K.DELETE if( level == null ):
@@ -2056,7 +2057,9 @@ class Main extends Model {
 			if( level == this.level ) lcur = l;
 			levels.push(l);
 			var li = J("<li>");
-			li.text(level.getName()).attr("id", "level_" + l.sheetPath.split(".").join("_") + "_" + l.index).appendTo(sheets).click(selectLevel.bind(l));
+			var name = level.getName();
+			if( name == "" ) name = "???";
+			li.text(name).attr("id", "level_" + l.sheetPath.split(".").join("_") + "_" + l.index).appendTo(sheets).click(selectLevel.bind(l));
 		}
 		if( lcur != null )
 			selectLevel(lcur);

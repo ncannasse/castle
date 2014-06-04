@@ -424,6 +424,7 @@ div#menu ul.sheets li.active {
 }
 #content .level .menu {
 	background-color : #EEE;
+	min-height : 60px;
 }
 #content .level .menu .options {
 	float : right;

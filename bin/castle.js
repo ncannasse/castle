@@ -1,5 +1,5 @@
 (function () { "use strict";
-var $hxClasses = {};
+var $hxClasses = {},$estr = function() { return js.Boot.__string_rec(this,''); };
 function $extend(from, fields) {
 	function Inherit() {} Inherit.prototype = from; var proto = new Inherit();
 	for (var name in fields) proto[name] = fields[name];
@@ -529,6 +529,8 @@ Level.prototype = {
 					break;
 				}
 			}
+			this.currentLayer = { name : name};
+			this.savePrefs();
 			this.save();
 			this.reload();
 			break;
@@ -833,8 +835,7 @@ Level.prototype = {
 				break;
 			}
 		});
-		scroll.mouseleave(onMouseUp);
-		scroll.mouseup(function(e5) {
+		this.content.mouseup(function(e5) {
 			onMouseUp(e5);
 			if(_g3.curPos == null) {
 				_g3.startPos = null;
@@ -1126,6 +1127,7 @@ Level.prototype = {
 		}
 	}
 	,onKey: function(e) {
+		var _g1 = this;
 		if(e.ctrlKey && e.keyCode == 115) this.action("close");
 		if(e.ctrlKey) return;
 		var _g = e.keyCode;
@@ -1151,11 +1153,41 @@ Level.prototype = {
 			e.preventDefault();
 			e.stopPropagation();
 			break;
+		case 32:
+			if(this.spaceDown) return;
+			this.spaceDown = true;
+			var canvas;
+			var html = this.view.getCanvas();
+			canvas = new js.JQuery(html);
+			canvas.css({ cursor : "move"});
+			this.cursor.hide();
+			var s = canvas.closest(".scroll");
+			var curX = null;
+			var curY = null;
+			canvas.on("mousemove",function(e1) {
+				var tx = e1.pageX;
+				var ty = e1.pageY;
+				if(curX == null) {
+					curX = tx;
+					curY = ty;
+				}
+				var dx = tx - curX;
+				var dy = ty - curY;
+				s.scrollLeft(s.scrollLeft() - dx);
+				s.scrollTop(s.scrollTop() - dy);
+				curX += dx;
+				curY += dy;
+				_g1.mousePos.x = e1.pageX;
+				_g1.mousePos.y = e1.pageY;
+				e1.stopPropagation();
+			});
+			e.preventDefault();
+			break;
 		default:
 		}
 		if(this.curPos == null) return;
-		var _g1 = e.keyCode;
-		switch(_g1) {
+		var _g2 = e.keyCode;
+		switch(_g2) {
 		case 80:
 			this.paint(this.curPos.x,this.curPos.y);
 			break;
@@ -1187,14 +1219,14 @@ Level.prototype = {
 					var changed = false;
 					var l = this.currentLayer;
 					var _g3 = 0;
-					var _g2 = l.currentHeight;
-					while(_g3 < _g2) {
-						var dy = _g3++;
+					var _g21 = l.currentHeight;
+					while(_g3 < _g21) {
+						var dy1 = _g3++;
 						var _g5 = 0;
 						var _g4 = l.currentWidth;
 						while(_g5 < _g4) {
-							var dx = _g5++;
-							var i1 = p.index + dx + dy * this.width;
+							var dx1 = _g5++;
+							var i1 = p.index + dx1 + dy1 * this.width;
 							if(data1[i1] == 0) continue;
 							data1[i1] = 0;
 							changed = true;
@@ -1234,6 +1266,15 @@ Level.prototype = {
 		case 46:
 			this.delDown = false;
 			if(this.needSave) this.save();
+			break;
+		case 32:
+			this.spaceDown = false;
+			var canvas;
+			var html = this.view.getCanvas();
+			canvas = new js.JQuery(html);
+			canvas.unbind("mousemove");
+			canvas.css({ cursor : ""});
+			this.updateCursorPos();
 			break;
 		default:
 		}
@@ -1405,7 +1446,7 @@ Level.prototype = {
 	}
 	,savePrefs: function() {
 		var sc = this.content.find(".scroll");
-		var state = { zoomView : this.zoomView, curLayer : this.currentLayer.name, scrollX : sc.scrollLeft(), scrollY : sc.scrollTop(), paintMode : this.paintMode, randomMode : this.randomMode};
+		var state = { zoomView : this.zoomView, curLayer : this.currentLayer == null?null:this.currentLayer.name, scrollX : sc.scrollLeft(), scrollY : sc.scrollTop(), paintMode : this.paintMode, randomMode : this.randomMode};
 		js.Browser.getLocalStorage().setItem(this.sheetPath,haxe.Serializer.run(state));
 	}
 	,scroll: function(dx,dy) {
@@ -1569,6 +1610,10 @@ Level.prototype = {
 	}
 	,setCursor: function(l) {
 		var _g = this;
+		if(l == null) {
+			this.cursor.hide();
+			return;
+		}
 		this.content.find(".menu .item.selected").removeClass("selected");
 		l.comp.addClass("selected");
 		var old = this.currentLayer;
@@ -3579,7 +3624,10 @@ Main.prototype = $extend(Model.prototype,{
 		var _g = e.keyCode;
 		switch(_g) {
 		case 45:
-			if(this.cursor.s != null) this.newLine(this.cursor.s,this.cursor.y);
+			if(this.level == null) {
+				if(this.cursor.s != null) this.newLine(this.cursor.s,this.cursor.y);
+			} else {
+			}
 			break;
 		case 46:
 			if(this.level == null) {
@@ -6028,7 +6076,9 @@ Main.prototype = $extend(Model.prototype,{
 			if(level == this.level) lcur = l;
 			this.levels.push(l);
 			var li2 = new js.JQuery("<li>");
-			li2.text(level.getName()).attr("id","level_" + l.sheetPath.split(".").join("_") + "_" + l.index).appendTo(sheets).click((function(f3,l1) {
+			var name1 = level.getName();
+			if(name1 == "") name1 = "???";
+			li2.text(name1).attr("id","level_" + l.sheetPath.split(".").join("_") + "_" + l.index).appendTo(sheets).click((function(f3,l1) {
 				return function() {
 					f3(l1);
 				};
@@ -6306,20 +6356,27 @@ Sys.time = function() {
 };
 var ValueType = $hxClasses["ValueType"] = { __ename__ : ["ValueType"], __constructs__ : ["TNull","TInt","TFloat","TBool","TObject","TFunction","TClass","TEnum","TUnknown"] };
 ValueType.TNull = ["TNull",0];
+ValueType.TNull.toString = $estr;
 ValueType.TNull.__enum__ = ValueType;
 ValueType.TInt = ["TInt",1];
+ValueType.TInt.toString = $estr;
 ValueType.TInt.__enum__ = ValueType;
 ValueType.TFloat = ["TFloat",2];
+ValueType.TFloat.toString = $estr;
 ValueType.TFloat.__enum__ = ValueType;
 ValueType.TBool = ["TBool",3];
+ValueType.TBool.toString = $estr;
 ValueType.TBool.__enum__ = ValueType;
 ValueType.TObject = ["TObject",4];
+ValueType.TObject.toString = $estr;
 ValueType.TObject.__enum__ = ValueType;
 ValueType.TFunction = ["TFunction",5];
+ValueType.TFunction.toString = $estr;
 ValueType.TFunction.__enum__ = ValueType;
-ValueType.TClass = function(c) { var $x = ["TClass",6,c]; $x.__enum__ = ValueType; return $x; };
-ValueType.TEnum = function(e) { var $x = ["TEnum",7,e]; $x.__enum__ = ValueType; return $x; };
+ValueType.TClass = function(c) { var $x = ["TClass",6,c]; $x.__enum__ = ValueType; $x.toString = $estr; return $x; };
+ValueType.TEnum = function(e) { var $x = ["TEnum",7,e]; $x.__enum__ = ValueType; $x.toString = $estr; return $x; };
 ValueType.TUnknown = ["TUnknown",8];
+ValueType.TUnknown.toString = $estr;
 ValueType.TUnknown.__enum__ = ValueType;
 var Type = function() { };
 $hxClasses["Type"] = Type;
@@ -6407,31 +6464,42 @@ Type.enumEq = function(a,b) {
 var cdb = {};
 cdb.ColumnType = $hxClasses["cdb.ColumnType"] = { __ename__ : ["cdb","ColumnType"], __constructs__ : ["TId","TString","TBool","TInt","TFloat","TEnum","TRef","TImage","TList","TCustom","TFlags","TColor","TLayer","TFile","TTilePos","TTileLayer"] };
 cdb.ColumnType.TId = ["TId",0];
+cdb.ColumnType.TId.toString = $estr;
 cdb.ColumnType.TId.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TString = ["TString",1];
+cdb.ColumnType.TString.toString = $estr;
 cdb.ColumnType.TString.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TBool = ["TBool",2];
+cdb.ColumnType.TBool.toString = $estr;
 cdb.ColumnType.TBool.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TInt = ["TInt",3];
+cdb.ColumnType.TInt.toString = $estr;
 cdb.ColumnType.TInt.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TFloat = ["TFloat",4];
+cdb.ColumnType.TFloat.toString = $estr;
 cdb.ColumnType.TFloat.__enum__ = cdb.ColumnType;
-cdb.ColumnType.TEnum = function(values) { var $x = ["TEnum",5,values]; $x.__enum__ = cdb.ColumnType; return $x; };
-cdb.ColumnType.TRef = function(sheet) { var $x = ["TRef",6,sheet]; $x.__enum__ = cdb.ColumnType; return $x; };
+cdb.ColumnType.TEnum = function(values) { var $x = ["TEnum",5,values]; $x.__enum__ = cdb.ColumnType; $x.toString = $estr; return $x; };
+cdb.ColumnType.TRef = function(sheet) { var $x = ["TRef",6,sheet]; $x.__enum__ = cdb.ColumnType; $x.toString = $estr; return $x; };
 cdb.ColumnType.TImage = ["TImage",7];
+cdb.ColumnType.TImage.toString = $estr;
 cdb.ColumnType.TImage.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TList = ["TList",8];
+cdb.ColumnType.TList.toString = $estr;
 cdb.ColumnType.TList.__enum__ = cdb.ColumnType;
-cdb.ColumnType.TCustom = function(name) { var $x = ["TCustom",9,name]; $x.__enum__ = cdb.ColumnType; return $x; };
-cdb.ColumnType.TFlags = function(values) { var $x = ["TFlags",10,values]; $x.__enum__ = cdb.ColumnType; return $x; };
+cdb.ColumnType.TCustom = function(name) { var $x = ["TCustom",9,name]; $x.__enum__ = cdb.ColumnType; $x.toString = $estr; return $x; };
+cdb.ColumnType.TFlags = function(values) { var $x = ["TFlags",10,values]; $x.__enum__ = cdb.ColumnType; $x.toString = $estr; return $x; };
 cdb.ColumnType.TColor = ["TColor",11];
+cdb.ColumnType.TColor.toString = $estr;
 cdb.ColumnType.TColor.__enum__ = cdb.ColumnType;
-cdb.ColumnType.TLayer = function(type) { var $x = ["TLayer",12,type]; $x.__enum__ = cdb.ColumnType; return $x; };
+cdb.ColumnType.TLayer = function(type) { var $x = ["TLayer",12,type]; $x.__enum__ = cdb.ColumnType; $x.toString = $estr; return $x; };
 cdb.ColumnType.TFile = ["TFile",13];
+cdb.ColumnType.TFile.toString = $estr;
 cdb.ColumnType.TFile.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TTilePos = ["TTilePos",14];
+cdb.ColumnType.TTilePos.toString = $estr;
 cdb.ColumnType.TTilePos.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TTileLayer = ["TTileLayer",15];
+cdb.ColumnType.TTileLayer.toString = $estr;
 cdb.ColumnType.TTileLayer.__enum__ = cdb.ColumnType;
 cdb.Parser = function() { };
 $hxClasses["cdb.Parser"] = cdb.Parser;
@@ -7848,12 +7916,15 @@ haxe.io.Eof.prototype = {
 };
 haxe.io.Error = $hxClasses["haxe.io.Error"] = { __ename__ : ["haxe","io","Error"], __constructs__ : ["Blocked","Overflow","OutsideBounds","Custom"] };
 haxe.io.Error.Blocked = ["Blocked",0];
+haxe.io.Error.Blocked.toString = $estr;
 haxe.io.Error.Blocked.__enum__ = haxe.io.Error;
 haxe.io.Error.Overflow = ["Overflow",1];
+haxe.io.Error.Overflow.toString = $estr;
 haxe.io.Error.Overflow.__enum__ = haxe.io.Error;
 haxe.io.Error.OutsideBounds = ["OutsideBounds",2];
+haxe.io.Error.OutsideBounds.toString = $estr;
 haxe.io.Error.OutsideBounds.__enum__ = haxe.io.Error;
-haxe.io.Error.Custom = function(e) { var $x = ["Custom",3,e]; $x.__enum__ = haxe.io.Error; return $x; };
+haxe.io.Error.Custom = function(e) { var $x = ["Custom",3,e]; $x.__enum__ = haxe.io.Error; $x.toString = $estr; return $x; };
 haxe.io.Path = function(path) {
 	switch(path) {
 	case ".":case "..":
@@ -8506,9 +8577,9 @@ lvl.Image3D.prototype = $extend(lvl.Image.prototype,{
 	,__class__: lvl.Image3D
 });
 lvl.LayerInnerData = $hxClasses["lvl.LayerInnerData"] = { __ename__ : ["lvl","LayerInnerData"], __constructs__ : ["Layer","Objects","Tiles"] };
-lvl.LayerInnerData.Layer = function(a) { var $x = ["Layer",0,a]; $x.__enum__ = lvl.LayerInnerData; return $x; };
-lvl.LayerInnerData.Objects = function(idCol,objs) { var $x = ["Objects",1,idCol,objs]; $x.__enum__ = lvl.LayerInnerData; return $x; };
-lvl.LayerInnerData.Tiles = function(t,data) { var $x = ["Tiles",2,t,data]; $x.__enum__ = lvl.LayerInnerData; return $x; };
+lvl.LayerInnerData.Layer = function(a) { var $x = ["Layer",0,a]; $x.__enum__ = lvl.LayerInnerData; $x.toString = $estr; return $x; };
+lvl.LayerInnerData.Objects = function(idCol,objs) { var $x = ["Objects",1,idCol,objs]; $x.__enum__ = lvl.LayerInnerData; $x.toString = $estr; return $x; };
+lvl.LayerInnerData.Tiles = function(t,data) { var $x = ["Tiles",2,t,data]; $x.__enum__ = lvl.LayerInnerData; $x.toString = $estr; return $x; };
 lvl.LayerData = function(level,name,p,target) {
 	this.currentHeight = 1;
 	this.currentWidth = 1;
@@ -9033,6 +9104,7 @@ K.RIGHT = 39;
 K.DOWN = 40;
 K.ESC = 27;
 K.TAB = 9;
+K.SPACE = 32;
 K.ENTER = 13;
 K.F2 = 113;
 K.F3 = 114;

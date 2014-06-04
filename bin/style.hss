@@ -461,6 +461,7 @@ div#menu {
 	.menu {
 
 		background-color : #EEE;
+		min-height : 60px;
 
 		.options {
 			float : right;

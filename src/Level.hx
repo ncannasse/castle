@@ -53,6 +53,7 @@ class Level {
 	var paletteSelect : lvl.Image;
 	var paintMode : Bool;
 	var randomMode : Bool;
+	var spaceDown : Bool;
 
 	var watchList : Array<{ path : String, time : Float, callb : Void -> Void }>;
 	var watchTimer : haxe.Timer;
@@ -351,6 +352,8 @@ class Level {
 					break;
 				}
 			}
+			currentLayer = cast { name : name };
+			savePrefs();
 			save();
 			reload();
 		default:
@@ -560,8 +563,7 @@ class Level {
 				}
 			}
 		});
-		scroll.mouseleave(onMouseUp);
-		scroll.mouseup(function(e) {
+		content.mouseup(function(e) {
 			onMouseUp(e);
 			if( curPos == null ) {
 				startPos = null;
@@ -807,6 +809,32 @@ class Level {
 			setCursor(layers[i]);
 			e.preventDefault();
 			e.stopPropagation();
+		case K.SPACE:
+			if( spaceDown ) return;
+			spaceDown = true;
+			var canvas = J(view.getCanvas());
+			canvas.css( { cursor : "move" } );
+			cursor.hide();
+			var s = canvas.closest(".scroll");
+			var curX = null, curY = null;
+			canvas.on("mousemove", function(e) {
+				var tx = e.pageX;
+				var ty = e.pageY;
+				if( curX == null ) {
+					curX = tx;
+					curY = ty;
+				}
+				var dx = tx - curX;
+				var dy = ty - curY;
+				s.scrollLeft(s.scrollLeft() - dx);
+				s.scrollTop(s.scrollTop() - dy);
+				curX += dx;
+				curY += dy;
+				mousePos.x = e.pageX;
+				mousePos.y = e.pageY;
+				e.stopPropagation();
+			});
+			e.preventDefault();
 		default:
 		}
 
@@ -866,6 +894,12 @@ class Level {
 		case K.DELETE:
 			delDown = false;
 			if( needSave ) save();
+		case K.SPACE:
+			spaceDown = false;
+			var canvas = J(view.getCanvas());
+			canvas.unbind("mousemove");
+			canvas.css( { cursor : "" } );
+			updateCursorPos();
 		default:
 		}
 	}
@@ -983,7 +1017,7 @@ class Level {
 		var sc = content.find(".scroll");
 		var state : LevelState = {
 			zoomView : zoomView,
-			curLayer : currentLayer.name,
+			curLayer : currentLayer == null ? null : currentLayer.name,
 			scrollX : sc.scrollLeft(),
 			scrollY : sc.scrollTop(),
 			paintMode : paintMode,
@@ -1093,6 +1127,12 @@ class Level {
 	}
 
 	function setCursor( l : LayerData ) {
+
+		if( l == null ) {
+			cursor.hide();
+			return;
+		}
+
 		content.find(".menu .item.selected").removeClass("selected");
 		l.comp.addClass("selected");
 		var old = currentLayer;
