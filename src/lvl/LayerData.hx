@@ -108,9 +108,7 @@ class LayerData {
 					}
 					level.wait();
 					Image.load(level.model.getAbsPath(data.file), function(i) {
-						var i2 = new Image(data.size, data.size);
-						i2.fill(0xFFEEEEEE);
-						i2.drawSub(i, data.x * data.size, data.y * data.size, data.size, data.size, 0, 0, data.size, data.size);
+						var i2 = i.sub(data.x * data.size, data.y * data.size, data.size, data.size);
 						i2.resize(size, size);
 						images[idx] = i2;
 						blanks[idx] = i2.isBlank();

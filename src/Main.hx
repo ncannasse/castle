@@ -28,6 +28,7 @@ class K {
 	public static inline var F4 = 115;
 	public static inline var NUMPAD_ADD = 107;
 	public static inline var NUMPAD_SUB = 109;
+	public static inline var NUMPAD_DIV = 111;
 }
 
 class Main extends Model {
@@ -54,6 +55,7 @@ class Main extends Model {
 	function new() {
 		super();
 		window = nodejs.webkit.Window.get();
+		window.on("resize", onResize);
 		initMenu();
 		levels = [];
 		mousePos = { x : 0, y : 0 };
@@ -71,6 +73,10 @@ class Main extends Model {
 		load(true);
 		var t = new haxe.Timer(1000);
 		t.run = checkTime;
+	}
+
+	function onResize(_) {
+		if( level != null ) level.onResize();
 	}
 
 	function onMouseMove( e : js.html.MouseEvent ) {

@@ -189,7 +189,6 @@ Level.prototype = {
 		this.watchList = [];
 		this.watchTimer = new haxe.Timer(50);
 		this.watchTimer.run = $bind(this,this.checkWatch);
-		this.backgroundImages = [];
 		this.props = this.sheet.props.levelProps;
 		if(this.props.tileSize == null) this.props.tileSize = 16;
 		this.tileSize = this.props.tileSize;
@@ -290,31 +289,6 @@ Level.prototype = {
 						this.newLayer = c;
 					}
 					break;
-				case 13:
-					if(val == null || c.name.toLowerCase().indexOf("layer") < 0) continue;
-					var index = [this.layers.length];
-					var path = this.model.getAbsPath(val);
-					var _g32 = path.split(".").pop().toLowerCase();
-					switch(_g32) {
-					case "png":case "jpeg":case "jpg":
-						this.wait();
-						lvl.Image.load(path,(function(index) {
-							return function(i) {
-								_g.backgroundImages.push({ index : index[0], data : i});
-								_g.backgroundImages.sort((function() {
-									return function(i1,i2) {
-										return i1.index - i2.index;
-									};
-								})());
-								_g.waitDone();
-							};
-						})(index));
-						break;
-					case "tmx":
-						break;
-					default:
-					}
-					break;
 				case 15:
 					var l3 = new lvl.LayerData(this,c.name,getProps(c.name),{ o : this.obj, f : c.name});
 					l3.setTilesData(val);
@@ -343,6 +317,12 @@ Level.prototype = {
 	}
 	,dispose: function() {
 		if(this.content != null) this.content.html("");
+		if(this.view != null) {
+			this.view.dispose();
+			var ca = this.view.getCanvas();
+			ca.parentNode.removeChild(ca);
+			this.view = null;
+		}
 		this.watchTimer.stop();
 		this.watchTimer = null;
 	}
@@ -610,6 +590,10 @@ Level.prototype = {
 		};
 		n.popup(mouseX,mouseY);
 	}
+	,onResize: function() {
+		var win = nodejs.webkit.Window.get();
+		this.content.find(".scroll").css("height",win.height - 240 + "px");
+	}
 	,setup: function() {
 		var _g3 = this;
 		var page = new js.JQuery("#content");
@@ -737,17 +721,12 @@ Level.prototype = {
 			})(l)});
 		}
 		this.content.find("[name=newlayer]").css({ display : this.newLayer != null?"block":"none"});
-		var _this;
-		_this = js.Boot.__cast(this.content.find("canvas.display")[0] , HTMLCanvasElement);
-		this.displayCanvas = _this.getContext("2d");
-		var canvas;
-		var _this1 = window.document;
-		canvas = _this1.createElement("canvas");
-		this.displayCanvas.canvas.width = canvas.width = this.width * this.tileSize;
-		this.displayCanvas.canvas.height = canvas.height = this.height * this.tileSize;
-		this.ctx = canvas.getContext("2d");
 		var scroll = this.content.find(".scroll");
 		var scont = this.content.find(".scrollContent");
+		this.view = lvl.Image3D.getInstance();
+		var ca = this.view.getCanvas();
+		ca.className = "display";
+		scont.append(ca);
 		scroll.scroll(function(_3) {
 			_g3.savePrefs();
 		});
@@ -756,34 +735,27 @@ Level.prototype = {
 			_g3.draw();
 			_g3.save();
 		}});
-		var win = nodejs.webkit.Window.get();
-		var onResize = function(_4) {
-			scroll.css("height",win.height - 240 + "px");
-		};
-		win.on("resize",onResize);
-		onResize(null);
-		scroll.bind("mousewheel",function(e3) {
-		});
+		this.onResize();
 		this.cursor = this.content.find("#cursor");
 		this.cursorImage = new lvl.Image(0,0);
 		this.cursor[0].appendChild(this.cursorImage.getCanvas());
 		this.cursor.hide();
-		scont.mouseleave(function(_5) {
+		scont.mouseleave(function(_4) {
 			_g3.curPos = null;
 			_g3.cursor.hide();
 			new js.JQuery(".cursorPosition").text("");
 		});
-		scont.mousemove(function(e4) {
-			_g3.mousePos.x = e4.pageX;
-			_g3.mousePos.y = e4.pageY;
+		scont.mousemove(function(e3) {
+			_g3.mousePos.x = e3.pageX;
+			_g3.mousePos.y = e3.pageY;
 			_g3.updateCursorPos();
 		});
-		var onMouseUp = function(_6) {
+		var onMouseUp = function(_5) {
 			_g3.mouseDown = false;
 			if(_g3.needSave) _g3.save();
 		};
-		scroll.mousedown(function(e5) {
-			var _g5 = e5.which;
+		scroll.mousedown(function(e4) {
+			var _g5 = e4.which;
 			switch(_g5) {
 			case 1:
 				_g3.mouseDown = true;
@@ -802,8 +774,8 @@ Level.prototype = {
 			}
 		});
 		scroll.mouseleave(onMouseUp);
-		scroll.mouseup(function(e6) {
-			onMouseUp(e6);
+		scroll.mouseup(function(e5) {
+			onMouseUp(e5);
 			if(_g3.curPos == null) {
 				_g3.startPos = null;
 				return;
@@ -876,7 +848,13 @@ Level.prototype = {
 		});
 	}
 	,updateCursorPos: function() {
-		var off = new js.JQuery(this.displayCanvas.canvas).parent().offset();
+		if(this.currentLayer == null) return;
+		var off = ((function($this) {
+			var $r;
+			var html = $this.view.getCanvas();
+			$r = new js.JQuery(html);
+			return $r;
+		}(this))).parent().offset();
 		var cxf = ((this.mousePos.x - off.left) / this.zoomView | 0) / this.tileSize;
 		var cyf = ((this.mousePos.y - off.top) / this.zoomView | 0) / this.tileSize;
 		var cx = cxf | 0;
@@ -995,9 +973,10 @@ Level.prototype = {
 			if(f) this.zoomView *= 1.2; else this.zoomView /= 1.2;
 		}
 		this.savePrefs();
-		this.displayCanvas.canvas.width = this.width * this.tileSize * this.zoomView | 0;
-		this.displayCanvas.canvas.height = this.height * this.tileSize * this.zoomView | 0;
-		this.copy();
+		console.log(this.width * this.tileSize * this.zoomView | 0);
+		this.view.setSize(this.width * this.tileSize * this.zoomView | 0,this.height * this.tileSize * this.zoomView | 0);
+		this.view.set_zoom(this.zoomView);
+		this.draw();
 		this.updateCursorPos();
 		this.setCursor(this.currentLayer);
 	}
@@ -1097,6 +1076,10 @@ Level.prototype = {
 			break;
 		case 109:
 			this.updateZoom(false);
+			break;
+		case 111:
+			this.zoomView = 1;
+			this.updateZoom();
 			break;
 		case 27:
 			new js.JQuery(".popup").remove();
@@ -1251,21 +1234,13 @@ Level.prototype = {
 	}
 	,draw: function() {
 		var t0 = haxe.Timer.stamp();
-		this.ctx.fillStyle = "black";
-		this.ctx.globalAlpha = 1;
-		this.ctx.fillRect(0,0,this.width * this.tileSize,this.height * this.tileSize);
-		var curImage = 0;
+		this.view.fill(-2039584);
 		var _g1 = 0;
 		var _g = this.layers.length;
 		while(_g1 < _g) {
 			var index = _g1++;
-			while(curImage < this.backgroundImages.length && this.backgroundImages[curImage].index == index) {
-				this.ctx.globalAlpha = 1;
-				this.ctx.drawImage(this.backgroundImages[curImage].data.getCanvas(),0,0);
-				curImage++;
-			}
 			var l = this.layers[index];
-			this.ctx.globalAlpha = l.props.alpha;
+			this.view.set_alpha(l.props.alpha);
 			if(!l.visible) continue;
 			{
 				var _g2 = l.data;
@@ -1284,11 +1259,10 @@ Level.prototype = {
 							var k = data[x + y * this.width];
 							if(k == 0 && !first) continue;
 							if(l.images != null) {
-								this.ctx.drawImage(l.images[k].getCanvas(),x * this.tileSize,y * this.tileSize);
+								this.view.draw(l.images[k],x * this.tileSize,y * this.tileSize);
 								continue;
 							}
-							this.ctx.fillStyle = this.toColor(l.colors[k]);
-							this.ctx.fillRect(x * this.tileSize,y * this.tileSize,this.tileSize,this.tileSize);
+							this.view.fillRect(x * this.tileSize,y * this.tileSize,this.tileSize,this.tileSize,l.colors[k] | -16777216);
 						}
 					}
 					break;
@@ -1305,7 +1279,7 @@ Level.prototype = {
 							var x1 = _g61++;
 							var k1 = data1[x1 + y1 * this.width] - 1;
 							if(k1 < 0) continue;
-							this.ctx.drawImage(l.images[k1].getCanvas(),x1 * this.tileSize,y1 * this.tileSize,this.tileSize,this.tileSize);
+							this.view.draw(l.images[k1],x1 * this.tileSize,y1 * this.tileSize);
 						}
 					}
 					break;
@@ -1313,7 +1287,7 @@ Level.prototype = {
 					var objs = _g2[3];
 					var idCol = _g2[2];
 					if(idCol == null) {
-						this.ctx.fillStyle = this.toColor(l.props.color);
+						var col = l.props.color | -16777216;
 						var _g32 = 0;
 						while(_g32 < objs.length) {
 							var o = objs[_g32];
@@ -1322,7 +1296,7 @@ Level.prototype = {
 							if(l.hasSize) w = o.width * this.tileSize; else w = this.tileSize;
 							var h;
 							if(l.hasSize) h = o.height * this.tileSize; else h = this.tileSize;
-							this.ctx.fillRect(o.x * this.tileSize,o.y * this.tileSize,w,h);
+							this.view.fillRect(o.x * this.tileSize | 0,o.y * this.tileSize | 0,w | 0,h | 0,col);
 						}
 					} else {
 						var _g33 = 0;
@@ -1332,34 +1306,29 @@ Level.prototype = {
 							var id = Reflect.field(o1,idCol);
 							var k2 = l.idToIndex.get(id);
 							if(k2 == null) {
-								this.ctx.fillStyle = "red";
-								this.ctx.fillRect(o1.x * this.tileSize,o1.y * this.tileSize,this.tileSize,this.tileSize);
-								this.ctx.fillStyle = "white";
-								this.ctx.fillText(id == null || id == ""?"???":id,o1.x * this.tileSize,(o1.y + 0.5) * this.tileSize + 4);
+								var w1;
+								if(l.hasSize) w1 = o1.width * this.tileSize; else w1 = this.tileSize;
+								var h1;
+								if(l.hasSize) h1 = o1.height * this.tileSize; else h1 = this.tileSize;
+								this.view.fillRect(o1.x * this.tileSize | 0,o1.y * this.tileSize | 0,w1 | 0,h1 | 0,-65281);
 								continue;
 							}
 							if(l.images != null) {
-								this.ctx.drawImage(l.images[k2].getCanvas(),o1.x * this.tileSize,o1.y * this.tileSize);
+								this.view.draw(l.images[k2],o1.x * this.tileSize | 0,o1.y * this.tileSize | 0);
 								continue;
 							}
-							this.ctx.fillStyle = this.toColor(l.colors[k2]);
-							var w1;
-							if(l.hasSize) w1 = o1.width * this.tileSize; else w1 = this.tileSize;
-							var h1;
-							if(l.hasSize) h1 = o1.height * this.tileSize; else h1 = this.tileSize;
-							this.ctx.fillRect(o1.x * this.tileSize,o1.y * this.tileSize,w1,h1);
+							var w2;
+							if(l.hasSize) w2 = o1.width * this.tileSize; else w2 = this.tileSize;
+							var h2;
+							if(l.hasSize) h2 = o1.height * this.tileSize; else h2 = this.tileSize;
+							this.view.fillRect(o1.x * this.tileSize | 0,o1.y * this.tileSize | 0,w2 | 0,h2 | 0,l.colors[k2] | -16777216);
 						}
 					}
 					break;
 				}
 			}
 		}
-		this.copy();
-	}
-	,copy: function() {
-		var canvas = this.ctx.canvas;
-		this.displayCanvas.imageSmoothingEnabled = this.zoomView < 1;
-		this.displayCanvas.drawImage(canvas,0,0,canvas.width,canvas.height,0,0,this.displayCanvas.canvas.width,this.displayCanvas.canvas.height);
+		this.view.flush();
 	}
 	,save: function() {
 		if(this.mouseDown || this.delDown) {
@@ -3381,6 +3350,7 @@ Model.prototype = {
 var Main = function() {
 	Model.call(this);
 	this.window = nodejs.webkit.Window.get();
+	this.window.on("resize",$bind(this,this.onResize));
 	this.initMenu();
 	this.levels = [];
 	this.mousePos = { x : 0, y : 0};
@@ -3407,7 +3377,10 @@ Main.main = function() {
 };
 Main.__super__ = Model;
 Main.prototype = $extend(Model.prototype,{
-	onMouseMove: function(e) {
+	onResize: function(_) {
+		if(this.level != null) this.level.onResize();
+	}
+	,onMouseMove: function(e) {
 		this.mousePos.x = e.clientX;
 		this.mousePos.y = e.clientY;
 	}
@@ -8011,6 +7984,22 @@ js.Selection.prototype = {
 	}
 	,__class__: js.Selection
 };
+js.html = {};
+js.html._CanvasElement = {};
+js.html._CanvasElement.CanvasUtil = function() { };
+$hxClasses["js.html._CanvasElement.CanvasUtil"] = js.html._CanvasElement.CanvasUtil;
+js.html._CanvasElement.CanvasUtil.__name__ = ["js","html","_CanvasElement","CanvasUtil"];
+js.html._CanvasElement.CanvasUtil.getContextWebGL = function(canvas,attribs) {
+	var _g = 0;
+	var _g1 = ["webgl","experimental-webgl"];
+	while(_g < _g1.length) {
+		var name = _g1[_g];
+		++_g;
+		var ctx = canvas.getContext(name,attribs);
+		if(ctx != null) return ctx;
+	}
+	return null;
+};
 var lvl = {};
 lvl.Image = function(w,h) {
 	this.originY = 0;
@@ -8022,7 +8011,7 @@ lvl.Image = function(w,h) {
 	this.origin = this.canvas;
 	this.canvas.width = w;
 	this.canvas.height = h;
-	this.ctx = this.canvas.getContext("2d");
+	this.init();
 };
 $hxClasses["lvl.Image"] = lvl.Image;
 lvl.Image.__name__ = ["lvl","Image"];
@@ -8041,7 +8030,8 @@ lvl.Image.load = function(url,callb,onError,forceReload) {
 	var _this = window.document;
 	i = _this.createElement("img");
 	i.onload = function(_) {
-		lvl.Image.cache.set(url,i);
+		var i2 = lvl.Image.cache.get(url);
+		if(i2 == null || forceReload) lvl.Image.cache.set(url,i); else i = i2;
 		var im1 = new lvl.Image(i.width,i.height);
 		im1.ctx.drawImage(i,0,0);
 		im1.origin = i;
@@ -8063,11 +8053,14 @@ lvl.Image.fromCanvas = function(c) {
 	i.width = c.width;
 	i.height = c.height;
 	i.canvas = i.origin = c;
-	i.ctx = c.getContext("2d");
+	i.init();
 	return i;
 };
 lvl.Image.prototype = {
-	getColor: function(color) {
+	init: function() {
+		this.ctx = this.canvas.getContext("2d");
+	}
+	,getColor: function(color) {
 		if(color >>> 24 == 255) return "#" + StringTools.hex(color & 16777215,6); else return "rgba(" + (color >> 16 & 255) + "," + (color >> 8 & 255) + "," + (color & 255) + "," + (color >>> 24) / 255 + ")";
 	}
 	,getCanvas: function() {
@@ -8078,8 +8071,10 @@ lvl.Image.prototype = {
 		this.invalidate();
 	}
 	,invalidate: function() {
+		if(this.origin == this.canvas) return;
 		this.origin = this.canvas;
 		this.originX = this.originY = 0;
+		this.origin.texture = null;
 	}
 	,fill: function(color) {
 		this.ctx.fillStyle = this.getColor(color);
@@ -8143,9 +8138,9 @@ lvl.Image.prototype = {
 		this.canvas.height = height;
 		this.canvas.setAttribute("width",width + "px");
 		this.canvas.setAttribute("height",height + "px");
-		this.ctx = this.canvas.getContext("2d");
 		this.width = width;
 		this.height = height;
+		this.init();
 		this.invalidate();
 	}
 	,resize: function(width,height,smooth) {
@@ -8167,6 +8162,216 @@ lvl.Image.prototype = {
 	}
 	,__class__: lvl.Image
 };
+lvl.Image3D = function(w,h) {
+	this.zoom = 1;
+	this.alpha = 1;
+	lvl.Image.call(this,w,h);
+	this.colorCache = new haxe.ds.IntMap();
+	this.curDraw = new Float32Array(16 * Math.ceil(10922.666666666666));
+	this.curIndex = new Uint16Array(65536);
+};
+$hxClasses["lvl.Image3D"] = lvl.Image3D;
+lvl.Image3D.__name__ = ["lvl","Image3D"];
+lvl.Image3D.getInstance = function() {
+	if(lvl.Image3D.inst == null) lvl.Image3D.inst = new lvl.Image3D(0,0);
+	return lvl.Image3D.inst;
+};
+lvl.Image3D.fromCanvas = function(c) {
+	var i = new lvl.Image3D(0,0);
+	i.width = c.width;
+	i.height = c.height;
+	i.canvas = i.origin = c;
+	i.init();
+	return i;
+};
+lvl.Image3D.__super__ = lvl.Image;
+lvl.Image3D.prototype = $extend(lvl.Image.prototype,{
+	init: function() {
+		this.dispose();
+		this.gl = this.canvas.gl;
+		if(this.gl != null) {
+			this.setViewport();
+			return;
+		}
+		this.gl = js.html._CanvasElement.CanvasUtil.getContextWebGL(this.canvas,{ alpha : false, antialias : false});
+		this.canvas.gl = this.gl;
+		this.gl.disable(2884);
+		this.gl.disable(2929);
+		var vertex = this.gl.createShader(35633);
+		this.gl.shaderSource(vertex,"\r\n\t\t\tvarying vec2 tuv;\r\n\t\t\tattribute vec2 pos;\r\n\t\t\tattribute vec2 uv;\r\n\t\t\tvoid main() {\r\n\t\t\t\ttuv = uv;\r\n\t\t\t\tgl_Position = vec4(pos + vec2(-1.,1.), 0, 1);\r\n\t\t\t}\r\n\t\t");
+		this.gl.compileShader(vertex);
+		if(this.gl.getShaderParameter(vertex,35713) != 1) throw this.gl.getShaderInfoLog(vertex);
+		var frag = this.gl.createShader(35632);
+		this.gl.shaderSource(frag,"\r\n\t\t\tvarying mediump vec2 tuv;\r\n\t\t\tuniform sampler2D texture;\r\n\t\t\tuniform lowp float alpha;\r\n\t\t\tvoid main() {\r\n\t\t\t\tlowp vec4 color = texture2D(texture, tuv);\r\n\t\t\t\tcolor.a *= alpha;\r\n\t\t\t\tgl_FragColor = color;\r\n\t\t\t}\r\n\t\t");
+		this.gl.compileShader(frag);
+		if(this.gl.getShaderParameter(frag,35713) != 1) throw this.gl.getShaderInfoLog(frag);
+		var p = this.gl.createProgram();
+		this.gl.attachShader(p,vertex);
+		this.gl.attachShader(p,frag);
+		this.gl.linkProgram(p);
+		if(this.gl.getProgramParameter(p,35714) != 1) throw this.gl.getProgramInfoLog(p);
+		this.gl.useProgram(p);
+		this.gl.enableVertexAttribArray(0);
+		this.gl.enableVertexAttribArray(1);
+		this.gl.enable(3042);
+		this.gl.blendFunc(770,771);
+		this.uniTex = this.gl.getUniformLocation(p,"texture");
+		this.uniAlpha = this.gl.getUniformLocation(p,"alpha");
+		this.attribPos = this.gl.getAttribLocation(p,"pos");
+		this.attribUV = this.gl.getAttribLocation(p,"uv");
+		this.setViewport();
+	}
+	,dispose: function() {
+		if(this.texturesObjects != null) {
+			var _g = 0;
+			var _g1 = this.texturesObjects;
+			while(_g < _g1.length) {
+				var o = _g1[_g];
+				++_g;
+				this.gl.deleteTexture(o.texture);
+				o.texture = null;
+			}
+		}
+		this.texturesObjects = [];
+	}
+	,set_alpha: function(v) {
+		this.endDraw();
+		return this.alpha = v;
+	}
+	,beginDraw: function(t) {
+		if(t != this.curTexture) {
+			this.endDraw();
+			this.curTexture = t;
+			this.drawPos = 0;
+			this.indexPos = 0;
+		}
+	}
+	,getColorImage: function(color) {
+		var i = this.colorCache.get(color);
+		if(i != null) return i;
+		i = new lvl.Image(1,1);
+		i.fill(color);
+		this.colorCache.set(color,i);
+		return i;
+	}
+	,getTexture: function(i) {
+		var t = i.origin.texture;
+		if(t != null) return t;
+		t = this.gl.createTexture();
+		i.origin.texture = t;
+		t.origin = i.origin;
+		this.gl.bindTexture(3553,t);
+		this.gl.texParameteri(3553,10240,9728);
+		this.gl.texParameteri(3553,10241,9728);
+		this.gl.texParameteri(3553,10242,33071);
+		this.gl.texParameteri(3553,10243,33071);
+		this.gl.texImage2D(3553,0,6408,6408,5121,i.origin);
+		this.gl.bindTexture(3553,null);
+		this.texturesObjects.push(i.origin);
+		t.width = i.origin.width;
+		t.height = i.origin.height;
+		return t;
+	}
+	,draw: function(i,x,y) {
+		var _g = this;
+		this.beginDraw(this.getTexture(i));
+		var x1 = x;
+		var y1 = y;
+		var w = i.width;
+		var h = i.height;
+		var pos = this.drawPos >> 2;
+		var t = x1 * _g.scaleX;
+		var rt = (t * _g.width | 0) / _g.width;
+		this.curDraw[this.drawPos++] = rt;
+		var t1 = y1 * _g.scaleY;
+		var rt1 = (t1 * _g.height | 0) / _g.height;
+		this.curDraw[this.drawPos++] = rt1;
+		this.curDraw[this.drawPos++] = (i.originX + 0.001) / _g.curTexture.width;
+		this.curDraw[this.drawPos++] = i.originY / _g.curTexture.height;
+		var t2 = (x1 + w) * _g.scaleX;
+		var rt2 = (t2 * _g.width | 0) / _g.width;
+		this.curDraw[this.drawPos++] = rt2;
+		var t3 = y1 * _g.scaleY;
+		var rt3 = (t3 * _g.height | 0) / _g.height;
+		this.curDraw[this.drawPos++] = rt3;
+		this.curDraw[this.drawPos++] = (i.originX + i.width) / _g.curTexture.width;
+		this.curDraw[this.drawPos++] = i.originY / _g.curTexture.height;
+		var t4 = x1 * _g.scaleX;
+		var rt4 = (t4 * _g.width | 0) / _g.width;
+		this.curDraw[this.drawPos++] = rt4;
+		var t5 = (y1 + h) * _g.scaleY;
+		var rt5 = (t5 * _g.height | 0) / _g.height;
+		this.curDraw[this.drawPos++] = rt5;
+		this.curDraw[this.drawPos++] = (i.originX + 0.001) / _g.curTexture.width;
+		this.curDraw[this.drawPos++] = (i.originY + i.height + -0.01) / _g.curTexture.height;
+		var t6 = (x1 + w) * _g.scaleX;
+		var rt6 = (t6 * _g.width | 0) / _g.width;
+		this.curDraw[this.drawPos++] = rt6;
+		var t7 = (y1 + h) * _g.scaleY;
+		var rt7 = (t7 * _g.height | 0) / _g.height;
+		this.curDraw[this.drawPos++] = rt7;
+		this.curDraw[this.drawPos++] = (i.originX + i.width) / _g.curTexture.width;
+		this.curDraw[this.drawPos++] = (i.originY + i.height + -0.01) / _g.curTexture.height;
+		this.curIndex[this.indexPos++] = pos;
+		this.curIndex[this.indexPos++] = pos + 1;
+		this.curIndex[this.indexPos++] = pos + 2;
+		this.curIndex[this.indexPos++] = pos + 1;
+		this.curIndex[this.indexPos++] = pos + 3;
+		this.curIndex[this.indexPos++] = pos + 2;
+		if(this.indexPos > 65500) this.endDraw();
+	}
+	,endDraw: function() {
+		if(this.curTexture == null || this.indexPos == 0) return;
+		var index = this.gl.createBuffer();
+		var vertex = this.gl.createBuffer();
+		this.gl.bindBuffer(34962,vertex);
+		this.gl.bufferData(34962,this.curDraw.subarray(0,this.drawPos),35044);
+		this.gl.bindBuffer(34963,index);
+		this.gl.bufferData(34963,this.curIndex.subarray(0,this.indexPos),35044);
+		this.gl.vertexAttribPointer(this.attribPos,2,5126,false,16,0);
+		this.gl.vertexAttribPointer(this.attribUV,2,5126,false,16,8);
+		this.gl.activeTexture(33984);
+		this.gl.uniform1i(this.uniTex,0);
+		this.gl.uniform1f(this.uniAlpha,this.alpha);
+		this.gl.bindTexture(3553,this.curTexture);
+		this.gl.drawElements(4,this.indexPos,5123,0);
+		this.gl.bindBuffer(34963,null);
+		this.gl.bindBuffer(34962,null);
+		this.gl.deleteBuffer(index);
+		this.gl.deleteBuffer(vertex);
+		this.indexPos = 0;
+		this.drawPos = 0;
+	}
+	,setSize: function(w,h) {
+		lvl.Image.prototype.setSize.call(this,w,h);
+		this.setViewport();
+	}
+	,setViewport: function() {
+		this.gl.viewport(0,0,this.width,this.height);
+		this.scaleX = this.zoom / this.width * 2;
+		this.scaleY = this.zoom / this.height * -2;
+	}
+	,fill: function(color) {
+		this.gl.clearColor((color >> 16 & 255) / 255,(color >> 8 & 255) / 255,(color & 255) / 255,(color >>> 24) / 255);
+		this.gl.clear(16384);
+	}
+	,fillRect: function(x,y,w,h,color) {
+		var i = this.getColorImage(color);
+		i.width = w;
+		i.height = h;
+		this.draw(i,x,y);
+	}
+	,flush: function() {
+		this.endDraw();
+		this.gl.finish();
+	}
+	,set_zoom: function(z) {
+		this.zoom = z;
+		this.setViewport();
+		return z;
+	}
+	,__class__: lvl.Image3D
+});
 lvl.LayerInnerData = $hxClasses["lvl.LayerInnerData"] = { __ename__ : ["lvl","LayerInnerData"], __constructs__ : ["Layer","Objects","Tiles"] };
 lvl.LayerInnerData.Layer = function(a) { var $x = ["Layer",0,a]; $x.__enum__ = lvl.LayerInnerData; return $x; };
 lvl.LayerInnerData.Objects = function(idCol,objs) { var $x = ["Objects",1,idCol,objs]; $x.__enum__ = lvl.LayerInnerData; return $x; };
@@ -8267,9 +8472,7 @@ lvl.LayerData.prototype = {
 					this.level.wait();
 					lvl.Image.load(this.level.model.getAbsPath(data[0].file),(function(data,idx1,size1) {
 						return function(i3) {
-							var i21 = new lvl.Image(data[0].size,data[0].size);
-							i21.fill(-1118482);
-							i21.drawSub(i3,data[0].x * data[0].size,data[0].y * data[0].size,data[0].size,data[0].size,0,0,data[0].size,data[0].size);
+							var i21 = i3.sub(data[0].x * data[0].size,data[0].y * data[0].size,data[0].size,data[0].size);
 							i21.resize(size1[0],size1[0]);
 							_g5.images[idx1[0]] = i21;
 							_g5.blanks[idx1[0]] = i21.isBlank();
@@ -8703,6 +8906,7 @@ K.F3 = 114;
 K.F4 = 115;
 K.NUMPAD_ADD = 107;
 K.NUMPAD_SUB = 109;
+K.NUMPAD_DIV = 111;
 Main.UID = 0;
 haxe.Serializer.USE_CACHE = false;
 haxe.Serializer.USE_ENUM_INDEX = false;

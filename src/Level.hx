@@ -31,7 +31,6 @@ class Level {
 	var obj : Dynamic;
 	var content : js.JQuery;
 	var layers : Array<LayerData>;
-	var backgroundImages : Array<{ index : Int, data : lvl.Image }>;
 	var props : LevelProps;
 
 	var currentLayer : LayerData;
@@ -44,8 +43,7 @@ class Level {
 	var needSave : Bool;
 	var waitCount : Int;
 
-	var ctx : js.html.CanvasRenderingContext2D;
-	var displayCanvas : js.html.CanvasRenderingContext2D;
+	var view : lvl.Image3D;
 
 	var mousePos = { x : 0, y : 0 };
 	var startPos : { x : Int, y : Int, xf : Float, yf : Float } = null;
@@ -87,7 +85,6 @@ class Level {
 		watchList = [];
 		watchTimer = new haxe.Timer(50);
 		watchTimer.run = checkWatch;
-		backgroundImages = [];
 		props = sheet.props.levelProps;
 		if( props.tileSize == null ) props.tileSize = 16;
 		tileSize = props.tileSize;
@@ -155,22 +152,6 @@ class Level {
 					}
 					newLayer = c;
 				}
-			case TFile:
-				if( val == null || c.name.toLowerCase().indexOf("layer") < 0 ) continue;
-				var index = layers.length;
-				var path : String = model.getAbsPath(val);
-				switch( path.split(".").pop().toLowerCase() ) {
-				case "png", "jpeg", "jpg":
-					wait();
-					lvl.Image.load(path, function(i) {
-						backgroundImages.push( { index : index, data : i } );
-						backgroundImages.sort(function(i1, i2) return i1.index - i2.index);
-						waitDone();
-					});
-				case "tmx":
-					// TODO
-				default:
-				}
 			case TTileLayer:
 				var l = new LayerData(this, c.name, getProps(c.name), { o : obj, f : c.name });
 				l.setTilesData(val);
@@ -200,6 +181,12 @@ class Level {
 
 	public function dispose() {
 		if( content != null ) content.html("");
+		if( view != null ) {
+			view.dispose();
+			var ca = view.getCanvas();
+			ca.parentNode.removeChild(ca);
+			view = null;
+		}
 		watchTimer.stop();
 		watchTimer = null;
 	}
@@ -403,6 +390,12 @@ class Level {
 		n.popup(mouseX, mouseY);
 	}
 
+
+	public function onResize() {
+		var win = nodejs.webkit.Window.get();
+		content.find(".scroll").css("height", (win.height - 240) + "px");
+	}
+
 	function setup() {
 		var page = J("#content");
 		page.html("");
@@ -472,15 +465,14 @@ class Level {
 		content.find('[name=newlayer]').css({ display : newLayer != null ? 'block' : 'none' });
 
 
-		displayCanvas = cast(content.find("canvas.display")[0], js.html.CanvasElement).getContext2d();
-
-		var canvas = js.Browser.document.createCanvasElement();
-		displayCanvas.canvas.width = canvas.width = width * tileSize;
-		displayCanvas.canvas.height = canvas.height = height * tileSize;
-		ctx = canvas.getContext2d();
 
 		var scroll = content.find(".scroll");
 		var scont = content.find(".scrollContent");
+
+		view = lvl.Image3D.getInstance();
+		var ca = view.getCanvas();
+		ca.className = "display";
+		scont.append(ca);
 
 		scroll.scroll(function(_) {
 			savePrefs();
@@ -496,17 +488,7 @@ class Level {
 			},
 		});
 
-		var win = nodejs.webkit.Window.get();
-		function onResize(_) {
-			scroll.css("height", (win.height - 240) + "px");
-		}
-		win.on("resize", onResize);
-		onResize(null);
-
-
-		scroll.bind('mousewheel', function(e) {
-			//updateZoom(untyped e.originalEvent.wheelDelta > 0);
-		});
+		onResize();
 
 		cursor = content.find("#cursor");
 		cursorImage = new lvl.Image(0, 0);
@@ -603,7 +585,8 @@ class Level {
 	}
 
 	function updateCursorPos() {
-		var off = J(displayCanvas.canvas).parent().offset();
+		if( currentLayer == null ) return;
+		var off = J(view.getCanvas()).parent().offset();
 		var cxf = Std.int((mousePos.x - off.left) / zoomView) / tileSize;
 		var cyf = Std.int((mousePos.y - off.top) / zoomView) / tileSize;
 		var cx = Std.int(cxf);
@@ -690,9 +673,10 @@ class Level {
 			if( f ) zoomView *= 1.2 else zoomView /= 1.2;
 		}
 		savePrefs();
-		displayCanvas.canvas.width = Std.int(width * tileSize * zoomView);
-		displayCanvas.canvas.height = Std.int(height * tileSize * zoomView);
-		copy();
+		trace(Std.int(width * tileSize * zoomView));
+		view.setSize(Std.int(width * tileSize * zoomView), Std.int(height * tileSize * zoomView));
+		view.zoom = zoomView;
+		draw();
 		updateCursorPos();
 		setCursor(currentLayer);
 	}
@@ -779,6 +763,9 @@ class Level {
 			updateZoom(true);
 		case K.NUMPAD_SUB:
 			updateZoom(false);
+		case K.NUMPAD_DIV:
+			zoomView = 1;
+			updateZoom();
 		case K.ESC:
 			J(".popup").remove();
 			draw();
@@ -891,18 +878,10 @@ class Level {
 
 	public function draw() {
 		var t0 = haxe.Timer.stamp();
-		ctx.fillStyle = "black";
-		ctx.globalAlpha = 1;
-		ctx.fillRect(0, 0, width * tileSize, height * tileSize);
-		var curImage = 0;
+		view.fill(0xFFE0E0E0);
 		for( index in 0...layers.length ) {
-			while( curImage < backgroundImages.length && backgroundImages[curImage].index == index ) {
-				ctx.globalAlpha = 1;
-				ctx.drawImage(backgroundImages[curImage].data.getCanvas(), 0, 0);
-				curImage++;
-			}
 			var l = layers[index];
-			ctx.globalAlpha = l.props.alpha;
+			view.alpha = l.props.alpha;
 			if( !l.visible )
 				continue;
 			switch( l.data ) {
@@ -913,57 +892,48 @@ class Level {
 						var k = data[x + y * width];
 						if( k == 0 && !first ) continue;
 						if( l.images != null ) {
-							ctx.drawImage(l.images[k].getCanvas(), x * tileSize, y * tileSize);
+							view.draw(l.images[k], x * tileSize, y * tileSize);
 							continue;
 						}
-						ctx.fillStyle = toColor(l.colors[k]);
-						ctx.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
+						view.fillRect(x * tileSize, y * tileSize, tileSize, tileSize, l.colors[k] | 0xFF000000);
 					}
 			case Tiles(t, data):
 				for( y in 0...height )
 					for( x in 0...width ) {
 						var k = data[x + y * width] - 1;
 						if( k < 0 ) continue;
-						ctx.drawImage(l.images[k].getCanvas(), x * tileSize, y * tileSize, tileSize, tileSize);
+						view.draw(l.images[k], x * tileSize, y * tileSize);
 					}
 			case Objects(idCol, objs):
 				if( idCol == null ) {
-					ctx.fillStyle = toColor(l.props.color);
+					var col = l.props.color | 0xFF000000;
 					for( o in objs ) {
 						var w = l.hasSize ? o.width * tileSize : tileSize;
 						var h = l.hasSize ? o.height * tileSize : tileSize;
-						ctx.fillRect(o.x * tileSize, o.y * tileSize, w, h);
+						view.fillRect(Std.int(o.x * tileSize), Std.int(o.y * tileSize), Std.int(w), Std.int(h), col);
 					}
 				} else {
 					for( o in objs ) {
 						var id : String = Reflect.field(o, idCol);
 						var k = l.idToIndex.get(id);
 						if( k == null ) {
-							ctx.fillStyle = "red";
-							ctx.fillRect(o.x * tileSize, o.y * tileSize, tileSize, tileSize);
-							ctx.fillStyle = "white";
-							ctx.fillText( id == null || id == "" ? "???" : id, o.x * tileSize, (o.y + 0.5) * tileSize + 4);
+							var w = l.hasSize ? o.width * tileSize : tileSize;
+							var h = l.hasSize ? o.height * tileSize : tileSize;
+							view.fillRect(Std.int(o.x * tileSize), Std.int(o.y * tileSize), Std.int(w), Std.int(h), 0xFFFF00FF);
 							continue;
 						}
 						if( l.images != null ) {
-							ctx.drawImage(l.images[k].getCanvas(), o.x * tileSize, o.y * tileSize);
+							view.draw(l.images[k], Std.int(o.x * tileSize), Std.int(o.y * tileSize));
 							continue;
 						}
-						ctx.fillStyle = toColor(l.colors[k]);
 						var w = l.hasSize ? o.width * tileSize : tileSize;
 						var h = l.hasSize ? o.height * tileSize : tileSize;
-						ctx.fillRect(o.x * tileSize, o.y * tileSize, w, h);
+						view.fillRect(Std.int(o.x * tileSize), Std.int(o.y * tileSize), Std.int(w), Std.int(h), l.colors[k] | 0xFF000000);
 					}
 				}
 			}
 		}
-		copy();
-	}
-
-	function copy() {
-		var canvas = ctx.canvas;
-		displayCanvas.imageSmoothingEnabled = zoomView < 1;
-		displayCanvas.drawImage(canvas, 0, 0, canvas.width, canvas.height, 0, 0, displayCanvas.canvas.width, displayCanvas.canvas.height);
+		view.flush();
 	}
 
 	function save() {

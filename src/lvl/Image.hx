@@ -18,6 +18,10 @@ class Image {
 		origin = canvas;
 		canvas.width = w;
 		canvas.height = h;
+		init();
+	}
+
+	function init() {
 		ctx = canvas.getContext2d();
 	}
 
@@ -35,8 +39,10 @@ class Image {
 	}
 
 	function invalidate() {
+		if( origin == canvas ) return;
 		origin = canvas;
 		originX = originY = 0;
+		origin.texture = null;
 	}
 
 	public function fill( color : Int ) {
@@ -101,9 +107,9 @@ class Image {
 		canvas.height = height;
 		canvas.setAttribute("width", width + "px");
 		canvas.setAttribute("height", height + "px");
-		ctx = canvas.getContext2d();
 		this.width = width;
 		this.height = height;
+		init();
 		invalidate();
 	}
 
@@ -142,7 +148,11 @@ class Image {
 		}
 		i = js.Browser.document.createImageElement();
 		i.onload = function(_) {
-			cache.set(url, i);
+			var i2 = cache.get(url);
+			if( i2 == null || forceReload )
+				cache.set(url, i);
+			else
+				i = i2;
 			var im = new Image(i.width, i.height);
 			im.ctx.drawImage(i, 0, 0);
 			im.origin = i;
@@ -165,7 +175,7 @@ class Image {
 		i.width = c.width;
 		i.height = c.height;
 		i.canvas = i.origin = c;
-		i.ctx = c.getContext2d();
+		i.init();
 		return i;
 	}
 }
