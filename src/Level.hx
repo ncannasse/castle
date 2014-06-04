@@ -958,6 +958,36 @@ class Level {
 		js.Browser.getLocalStorage().setItem(sheetPath, haxe.Serializer.run(state));
 	}
 
+	@:keep function scroll( dx : Int, dy : Int ) {
+		for( l in layers ) {
+			l.dirty = true;
+			switch( l.data ) {
+			case Tiles(_, data), Layer(data):
+				var ndata = [];
+				for( y in 0...height )
+					for( x in 0...width ) {
+						var tx = x - dx;
+						var ty = y - dy;
+						var k;
+						if( tx < 0 || ty < 0 || tx >= width || ty >= height )
+							k = 0;
+						else
+							k = data[tx + ty * width];
+						ndata.push(k);
+					}
+				for( i in 0...width * height )
+					data[i] = ndata[i];
+			case Objects(_, objs):
+				for( o in objs ) {
+					o.x += dx;
+					o.y += dy;
+				}
+			}
+		}
+		draw();
+		save();
+	}
+
 	@:keep function setLock(b:Bool) {
 		currentLayer.floatCoord = currentLayer.hasFloatCoord && !b;
 		currentLayer.saveState();

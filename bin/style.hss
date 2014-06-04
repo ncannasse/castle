@@ -550,7 +550,7 @@ div#menu {
 			width : auto;
 		}
 		input[type=text] {
-			width : 80px;
+			width : 40px;
 		}
 	}
 

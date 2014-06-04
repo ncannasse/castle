@@ -1348,6 +1348,82 @@ Level.prototype = {
 		var state = { zoomView : this.zoomView, curLayer : this.currentLayer.name, scrollX : sc.scrollLeft(), scrollY : sc.scrollTop(), paintMode : this.paintMode, randomMode : this.randomMode};
 		js.Browser.getLocalStorage().setItem(this.sheetPath,haxe.Serializer.run(state));
 	}
+	,scroll: function(dx,dy) {
+		var _g = 0;
+		var _g1 = this.layers;
+		while(_g < _g1.length) {
+			var l = _g1[_g];
+			++_g;
+			l.dirty = true;
+			{
+				var _g2 = l.data;
+				switch(_g2[1]) {
+				case 2:
+					var data = _g2[3];
+					var ndata = [];
+					var _g4 = 0;
+					var _g3 = this.height;
+					while(_g4 < _g3) {
+						var y = _g4++;
+						var _g6 = 0;
+						var _g5 = this.width;
+						while(_g6 < _g5) {
+							var x = _g6++;
+							var tx = x - dx;
+							var ty = y - dy;
+							var k;
+							if(tx < 0 || ty < 0 || tx >= this.width || ty >= this.height) k = 0; else k = data[tx + ty * this.width];
+							ndata.push(k);
+						}
+					}
+					var _g41 = 0;
+					var _g31 = this.width * this.height;
+					while(_g41 < _g31) {
+						var i = _g41++;
+						data[i] = ndata[i];
+					}
+					break;
+				case 0:
+					var data = _g2[2];
+					var ndata = [];
+					var _g4 = 0;
+					var _g3 = this.height;
+					while(_g4 < _g3) {
+						var y = _g4++;
+						var _g6 = 0;
+						var _g5 = this.width;
+						while(_g6 < _g5) {
+							var x = _g6++;
+							var tx = x - dx;
+							var ty = y - dy;
+							var k;
+							if(tx < 0 || ty < 0 || tx >= this.width || ty >= this.height) k = 0; else k = data[tx + ty * this.width];
+							ndata.push(k);
+						}
+					}
+					var _g41 = 0;
+					var _g31 = this.width * this.height;
+					while(_g41 < _g31) {
+						var i = _g41++;
+						data[i] = ndata[i];
+					}
+					break;
+				case 1:
+					var objs = _g2[3];
+					var _g32 = 0;
+					while(_g32 < objs.length) {
+						var o = objs[_g32];
+						++_g32;
+						o.x += dx;
+						o.y += dy;
+					}
+					break;
+				}
+			}
+		}
+		this.draw();
+		this.save();
+	}
 	,setLock: function(b) {
 		this.currentLayer.floatCoord = this.currentLayer.hasFloatCoord && !b;
 		this.currentLayer.saveState();

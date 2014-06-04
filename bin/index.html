@@ -185,6 +185,13 @@
 			<div class="submenu options">
 				<div class="item">
 					<label>Tile Size <input type="text" name="tileSize" onchange="_.level.setTileSize(parseInt(this.value))"/></label>
+				</div>
+				<div class="item">
+					<label>X <input type="text" class="small" name="sx"/></label>
+					<label>Y <input type="text" class="small" name="sy"/></label>
+					<input type="submit" value="Scroll" onclick="_.level.scroll(parseInt($(parentNode).find('[name=sx]').val()),parseInt($(parentNode).find('[name=sy]').val()))"/>
+				</div>
+				<div class="item">
 					<input type="submit" value="Cancel" onclick="_.level.action('options')"/>
 				</div>
 			</div>
