@@ -978,9 +978,11 @@ class Level {
 				for( i in 0...width * height )
 					data[i] = ndata[i];
 			case Objects(_, objs):
-				for( o in objs ) {
+				for( o in objs.copy() ) {
 					o.x += dx;
 					o.y += dy;
+					if( o.x < 0 || o.y < 0 || o.x >= width || o.y >= height )
+						objs.remove(o);
 				}
 			}
 		}

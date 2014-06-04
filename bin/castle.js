@@ -1411,11 +1411,13 @@ Level.prototype = {
 				case 1:
 					var objs = _g2[3];
 					var _g32 = 0;
-					while(_g32 < objs.length) {
-						var o = objs[_g32];
+					var _g42 = objs.slice();
+					while(_g32 < _g42.length) {
+						var o = _g42[_g32];
 						++_g32;
 						o.x += dx;
 						o.y += dy;
+						if(o.x < 0 || o.y < 0 || o.x >= this.width || o.y >= this.height) HxOverrides.remove(objs,o);
 					}
 					break;
 				}
