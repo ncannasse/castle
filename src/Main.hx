@@ -1259,6 +1259,14 @@ class Main extends Model {
 	}
 
 	public function chooseFile( callb : String -> Void, ?cancel : Void -> Void ) {
+
+		if( prefs.curFile == null ) {
+			js.Lib.alert("Please save CDB file first");
+			if( cancel != null ) cancel();
+			return;
+		}
+
+
 		var fs = J("#fileSelect");
 		if( fs.attr("nwworkingdir") == null )
 			fs.attr("nwworkingdir", new haxe.io.Path(prefs.curFile).dir);
@@ -2133,6 +2141,10 @@ class Main extends Model {
 		window.show();
 		if( prefs.windowPos.max ) window.maximize();
 		window.on('close', function() {
+			if( prefs.curFile == null && data.sheets.length > 0 ) {
+				if( !js.Browser.window.confirm("Do you want to exit without saving your changes?") )
+					return;
+			}
 			if( !prefs.windowPos.max )
 				prefs.windowPos = {
 					x : window.x,
