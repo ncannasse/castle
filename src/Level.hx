@@ -301,15 +301,11 @@ class Level {
 				return { k : k, layer : l, index : idx };
 			case TileInstances(_, insts):
 				var objs = l.getTileObjects();
-				for( i in insts ) {
+				for( idx in 0...insts.length ) {
+					var i = insts[idx];
 					var o = objs.get(i.o);
-					if( o == null ) {
-						if( curPos.x == i.x && curPos.y == i.y )
-							return { k : i.o, layer : l, index : i.x + i.y * width };
-					} else {
-						if( curPos.x >= i.x && curPos.y >= i.y && curPos.x < i.x + o.w && curPos.y < i.y + o.h && !l.blanks[i.o + (curPos.x - i.x) + (curPos.y - i.y) * l.imagesStride] )
-							return { k : i.o, layer : l, index : i.x + i.y * width };
-					}
+					if( curPos.xf >= i.x && curPos.yf >= i.y && curPos.xf < i.x + (o == null ? 1 : o.w) && curPos.yf < i.y + (o == null ? 1 : o.h) )
+						return { k : i.o, layer : l, index : idx };
 				}
 			}
 		}
@@ -391,7 +387,9 @@ class Level {
 		var n = new Menu();
 		var nclear = new MenuItem( { label : "Clear" } );
 		var ndel = new MenuItem( { label : "Delete" } );
-		for( m in [nclear, ndel] )
+		var nshow = new MenuItem( { label : "Show Only" } );
+		var nshowAll = new MenuItem( { label : "Show All" } );
+		for( m in [nshow, nshowAll, nclear, ndel] )
 			n.append(m);
 		nclear.click = function() {
 			switch( l.data ) {
@@ -416,6 +414,16 @@ class Level {
 			layers.remove(l.targetObj.o);
 			save();
 			reload();
+		};
+		nshow.click = function() {
+			for( l2 in layers )
+				l2.visible = l == l2;
+			draw();
+		};
+		nshowAll.click = function() {
+			for( l2 in layers )
+				l2.visible = true;
+			draw();
 		};
 		n.popup(mouseX, mouseY);
 	}
@@ -586,6 +594,17 @@ class Level {
 				var p = pick();
 				if( p != null ) {
 					p.layer.current = p.k;
+					switch( p.layer.data ) {
+					case TileInstances(_, insts):
+						var i = insts[p.index];
+						var obj = p.layer.getTileObjects().get(i.o);
+						if( obj != null ) {
+							p.layer.currentWidth = obj.w;
+							p.layer.currentHeight = obj.h;
+							p.layer.saveState();
+						}
+					default:
+					}
 					setCursor(p.layer);
 				}
 			}
@@ -817,7 +836,7 @@ class Level {
 	public function onKey( e : js.html.KeyboardEvent ) {
 		if( e.ctrlKey && e.keyCode == K.F4 )
 			action("close");
-		if( e.ctrlKey ) return;
+		if( e.ctrlKey || J(":focus").length > 0 ) return;
 
 		J(".popup").remove();
 
@@ -906,14 +925,12 @@ class Level {
 					draw();
 				}
 			case TileInstances(_, insts):
-				for( i in insts )
-					if( i.x + i.y * width == p.index ) {
-						insts.remove(i);
-						p.layer.dirty = true;
-						save();
-						draw();
-						return;
-					}
+				if( insts.remove(insts[p.index]) ) {
+					p.layer.dirty = true;
+					save();
+					draw();
+					return;
+				}
 			}
 		case "E".code:
 			var p = pick();
@@ -980,12 +997,15 @@ class Level {
 		case TileInstances(_, insts):
 			var objs = l.getTileObjects();
 			var putObj = objs.get(l.current);
-			var dx = putObj == null ? 0 : (putObj.w >> 1);
-			var dy = putObj == null ? 1 : putObj.h;
+			var dx = putObj == null ? 0.5 : (putObj.w * 0.5);
+			var dy = putObj == null ? 0.5 : putObj.h - 0.5;
+			var x = l.floatCoord ? curPos.xf : curPos.x, y = l.floatCoord ? curPos.yf : curPos.y;
 			for( i in insts ) {
 				var o = objs.get(i.o);
-				if( i.x + (o == null ? 0 : o.w >> 1) == x + dx && i.y + (o == null ? 1 : o.h) == y + dy ) {
-					if( i.o == l.current ) return;
+				var ox = i.x + (o == null ? 0.5 : o.w * 0.5);
+				var oy = i.y + (o == null ? 0.5 : o.h - 0.5);
+				if( x + dx >= ox - 0.5 && y + dy >= oy - 0.5 && x + dx < ox + 0.5 && y + dy < oy + 0.5 ) {
+					if( i.o == l.current && i.x == x && i.y == y ) return;
 					insts.remove(i);
 				}
 			}
@@ -997,9 +1017,13 @@ class Level {
 						insts.push( { x : x+dx, y : y+dy, o : l.current + dx + dy * l.imagesStride } );
 			inline function getY(i) {
 				var o = objs.get(i.o);
-				return i.y + (o == null ? 1 : o.h);
+				return Std.int( (i.y + (o == null ? 1 : o.h)) * tileSize);
 			}
-			insts.sort(function(i1, i2) return getY(i1) - getY(i2));
+			inline function getX(i) {
+				var o = objs.get(i.o);
+				return Std.int( (i.x + (o == null ? 0.5 : o.w * 0.5)) * tileSize );
+			}
+			insts.sort(function(i1, i2) { var dy = getY(i1) - getY(i2); return dy == 0 ? getX(i1) - getX(i2) : dy; });
 			l.dirty = true;
 			save();
 			draw();
@@ -1048,15 +1072,15 @@ class Level {
 			case TileInstances(_, insts):
 				var objs = l.getTileObjects();
 				for( i in insts ) {
-					var x = i.x, y = i.y;
+					var x = Std.int(i.x * tileSize), y = Std.int(i.y * tileSize);
 					var obj = objs.get(i.o);
 					if( obj == null ) {
-						view.draw(l.images[i.o], x * tileSize, y * tileSize);
-						view.fillRect(x * tileSize, y * tileSize, tileSize, tileSize, 0x80FF0000);
+						view.draw(l.images[i.o], x, y);
+						view.fillRect(x, y, tileSize, tileSize, 0x80FF0000);
 					} else {
 						for( dy in 0...obj.h )
 							for( dx in 0...obj.w )
-								view.draw(l.images[i.o + dx + dy * l.imagesStride], (x + dx) * tileSize, (y + dy) * tileSize);
+								view.draw(l.images[i.o + dx + dy * l.imagesStride], x + dx * tileSize, y + dy * tileSize);
 					}
 				}
 			case Objects(idCol, objs):
@@ -1240,18 +1264,35 @@ class Level {
 						}
 					}
 				objs.sort(function(o1,o2) return o1.b - o2.b);
-				var out = [0xFFFF];
-				for( o in objs ) {
-					out.push(o.x);
-					out.push(o.y);
-					out.push(o.id);
-				}
-				l.data = Tiles(td, out);
+				l.data = TileInstances(td, [for( o in objs ) { x : o.x, y : o.y, o : o.id }]);
 				l.dirty = true;
 			default:
+				throw "assert";
 			}
 		case [Objects, (Ground | Tiles)]:
-			throw "TODO";
+			switch( l.data ) {
+			case TileInstances(td,insts):
+				var objs = l.getTileObjects();
+				var data = [for( i in 0...width * height ) 0];
+				for( i in insts ) {
+					var x = Std.int(i.x), y = Std.int(i.y);
+					var obj = objs.get(i.o);
+					if( obj == null ) {
+						data[x + y * width] = i.o + 1;
+					} else {
+						for( dy in 0...obj.h )
+							for( dx in 0...obj.w ) {
+								var x = x + dx, y = y + dy;
+								if( x < width && y < height )
+									data[x + y * width] = i.o + dx + dy * l.imagesStride + 1;
+							}
+					}
+				}
+				l.data = Tiles(td, data);
+				l.dirty = true;
+			default:
+				throw "assert";
+			}
 		default:
 			js.Lib.alert("Cannot convert from "+old+" to "+mode);
 			return;
@@ -1349,9 +1390,9 @@ class Level {
 			content.find("[name=visible]").prop("checked", l.visible);
 			content.find("[name=lock]").prop("checked", !l.floatCoord).closest(".item").css( { display : l.hasFloatCoord ? "" : "none" } );
 			content.find("[name=mode]").val(""+(l.props.mode != null ? l.props.mode : LayerMode.Tiles));
-			(untyped content.find("[name=color]")).spectrum("set", toColor(l.props.color)).closest(".item").css( { display : l.idToIndex == null && !l.data.match(Tiles(_)) ? "" : "none" } );
+			(untyped content.find("[name=color]")).spectrum("set", toColor(l.props.color)).closest(".item").css( { display : l.idToIndex == null && !l.data.match(Tiles(_) | TileInstances(_)) ? "" : "none" } );
 			switch( l.data ) {
-			case Tiles(t,_):
+			case Tiles(t,_), TileInstances(t,_):
 				content.find("[name=size]").val("" + t.size).closest(".item").show();
 				content.find("[name=file]").closest(".item").show();
 			default:

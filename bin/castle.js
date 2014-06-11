@@ -452,14 +452,13 @@ Level.prototype = {
 				case 3:
 					var insts = _g[3];
 					var objs1 = l.getTileObjects();
-					var _g11 = 0;
-					while(_g11 < insts.length) {
-						var i2 = insts[_g11];
-						++_g11;
+					var _g21 = 0;
+					var _g11 = insts.length;
+					while(_g21 < _g11) {
+						var idx2 = _g21++;
+						var i2 = insts[idx2];
 						var o1 = objs1.get(i2.o);
-						if(o1 == null) {
-							if(this.curPos.x == i2.x && this.curPos.y == i2.y) return { k : i2.o, layer : l, index : i2.x + i2.y * this.width};
-						} else if(this.curPos.x >= i2.x && this.curPos.y >= i2.y && this.curPos.x < i2.x + o1.w && this.curPos.y < i2.y + o1.h && !l.blanks[i2.o + (this.curPos.x - i2.x) + (this.curPos.y - i2.y) * l.imagesStride]) return { k : i2.o, layer : l, index : i2.x + i2.y * this.width};
+						if(this.curPos.xf >= i2.x && this.curPos.yf >= i2.y && this.curPos.xf < i2.x + (o1 == null?1:o1.w) && this.curPos.yf < i2.y + (o1 == null?1:o1.h)) return { k : i2.o, layer : l, index : idx2};
 					}
 					break;
 				}
@@ -567,8 +566,10 @@ Level.prototype = {
 		var n = new nodejs.webkit.Menu();
 		var nclear = new nodejs.webkit.MenuItem({ label : "Clear"});
 		var ndel = new nodejs.webkit.MenuItem({ label : "Delete"});
+		var nshow = new nodejs.webkit.MenuItem({ label : "Show Only"});
+		var nshowAll = new nodejs.webkit.MenuItem({ label : "Show All"});
 		var _g1 = 0;
-		var _g11 = [nclear,ndel];
+		var _g11 = [nshow,nshowAll,nclear,ndel];
 		while(_g1 < _g11.length) {
 			var m = _g11[_g1];
 			++_g1;
@@ -617,6 +618,26 @@ Level.prototype = {
 			HxOverrides.remove(layers,x);
 			_g.save();
 			_g.reload();
+		};
+		nshow.click = function() {
+			var _g14 = 0;
+			var _g23 = _g.layers;
+			while(_g14 < _g23.length) {
+				var l2 = _g23[_g14];
+				++_g14;
+				l2.set_visible(l == l2);
+			}
+			_g.draw();
+		};
+		nshowAll.click = function() {
+			var _g15 = 0;
+			var _g24 = _g.layers;
+			while(_g15 < _g24.length) {
+				var l21 = _g24[_g15];
+				++_g15;
+				l21.set_visible(true);
+			}
+			_g.draw();
 		};
 		n.popup(mouseX,mouseY);
 	}
@@ -858,6 +879,24 @@ Level.prototype = {
 				var p = _g3.pick();
 				if(p != null) {
 					p.layer.set_current(p.k);
+					{
+						var _g15 = p.layer.data;
+						switch(_g15[1]) {
+						case 3:
+							var insts = _g15[3];
+							var i5 = insts[p.index];
+							var obj;
+							var this1 = p.layer.getTileObjects();
+							obj = this1.get(i5.o);
+							if(obj != null) {
+								p.layer.currentWidth = obj.w;
+								p.layer.currentHeight = obj.h;
+								p.layer.saveState();
+							}
+							break;
+						default:
+						}
+					}
 					_g3.setCursor(p.layer);
 				}
 				break;
@@ -896,23 +935,23 @@ Level.prototype = {
 						if(h < 0.5) if(fc) h = 0.5; else h = 1;
 					}
 					var _g27 = 0;
-					var _g15 = objs1.length;
-					while(_g27 < _g15) {
-						var i5 = _g27++;
-						var o = objs1[i5];
+					var _g16 = objs1.length;
+					while(_g27 < _g16) {
+						var i6 = _g27++;
+						var o = objs1[i6];
 						if(o.x == px && o.y == py) {
-							_g3.editProps(_g3.currentLayer,i5);
+							_g3.editProps(_g3.currentLayer,i6);
 							return;
 						}
 					}
 					var o1 = { x : px, y : py};
 					objs1.push(o1);
 					if(idCol != null) o1[idCol] = _g3.currentLayer.indexToId[_g3.currentLayer.current];
-					var _g16 = 0;
+					var _g17 = 0;
 					var _g28 = _g3.currentLayer.baseSheet.columns;
-					while(_g16 < _g28.length) {
-						var c2 = _g28[_g16];
-						++_g16;
+					while(_g17 < _g28.length) {
+						var c2 = _g28[_g17];
+						++_g17;
 						if(c2.opt || c2.name == "x" || c2.name == "y" || c2.name == idCol) continue;
 						var v = _g3.model.getDefault(c2);
 						if(v != null) o1[c2.name] = v;
@@ -1070,7 +1109,6 @@ Level.prototype = {
 	}
 	,paint: function(x,y) {
 		var l = this.currentLayer;
-		if(l.props.mode == "objects") return;
 		{
 			var _g = l.data;
 			switch(_g[1]) {
@@ -1158,7 +1196,7 @@ Level.prototype = {
 	,onKey: function(e) {
 		var _g1 = this;
 		if(e.ctrlKey && e.keyCode == 115) this.action("close");
-		if(e.ctrlKey) return;
+		if(e.ctrlKey || new js.JQuery(":focus").length > 0) return;
 		new js.JQuery(".popup").remove();
 		var _g = e.keyCode;
 		switch(_g) {
@@ -1273,17 +1311,11 @@ Level.prototype = {
 					break;
 				case 3:
 					var insts = _g11[3];
-					var _g22 = 0;
-					while(_g22 < insts.length) {
-						var i2 = insts[_g22];
-						++_g22;
-						if(i2.x + i2.y * this.width == p.index) {
-							HxOverrides.remove(insts,i2);
-							p.layer.dirty = true;
-							this.save();
-							this.draw();
-							return;
-						}
+					if(HxOverrides.remove(insts,insts[p.index])) {
+						p.layer.dirty = true;
+						this.save();
+						this.draw();
+						return;
 					}
 					break;
 				}
@@ -1327,6 +1359,7 @@ Level.prototype = {
 		}
 	}
 	,set: function(x,y) {
+		var _g1 = this;
 		if(this.paintMode) {
 			this.paint(x,y);
 			return;
@@ -1354,8 +1387,8 @@ Level.prototype = {
 					changed = true;
 				} else {
 					var _g2 = 0;
-					var _g1 = l.currentHeight;
-					while(_g2 < _g1) {
+					var _g11 = l.currentHeight;
+					while(_g2 < _g11) {
 						var dy = _g2++;
 						var _g4 = 0;
 						var _g3 = l.currentWidth;
@@ -1379,44 +1412,64 @@ Level.prototype = {
 				var objs = l.getTileObjects();
 				var putObj = objs.get(l.current);
 				var dx1;
-				if(putObj == null) dx1 = 0; else dx1 = putObj.w >> 1;
+				if(putObj == null) dx1 = 0.5; else dx1 = putObj.w * 0.5;
 				var dy1;
-				if(putObj == null) dy1 = 1; else dy1 = putObj.h;
-				var _g11 = 0;
-				while(_g11 < insts.length) {
-					var i = insts[_g11];
-					++_g11;
+				if(putObj == null) dy1 = 0.5; else dy1 = putObj.h - 0.5;
+				var x1;
+				if(l.floatCoord) x1 = this.curPos.xf; else x1 = this.curPos.x;
+				var y1;
+				if(l.floatCoord) y1 = this.curPos.yf; else y1 = this.curPos.y;
+				var _g12 = 0;
+				while(_g12 < insts.length) {
+					var i = insts[_g12];
+					++_g12;
 					var o = objs.get(i.o);
-					if(i.x + (o == null?0:o.w >> 1) == x + dx1 && i.y + (o == null?1:o.h) == y + dy1) {
-						if(i.o == l.current) return;
+					var ox;
+					ox = i.x + (o == null?0.5:o.w * 0.5);
+					var oy;
+					oy = i.y + (o == null?0.5:o.h - 0.5);
+					if(x1 + dx1 >= ox - 0.5 && y1 + dy1 >= oy - 0.5 && x1 + dx1 < ox + 0.5 && y1 + dy1 < oy + 0.5) {
+						if(i.o == l.current && i.x == x1 && i.y == y1) return;
 						HxOverrides.remove(insts,i);
 					}
 				}
-				if(putObj != null) insts.push({ x : x, y : y, o : l.current}); else {
+				if(putObj != null) insts.push({ x : x1, y : y1, o : l.current}); else {
 					var _g21 = 0;
-					var _g12 = l.currentHeight;
-					while(_g21 < _g12) {
+					var _g13 = l.currentHeight;
+					while(_g21 < _g13) {
 						var dy2 = _g21++;
 						var _g41 = 0;
 						var _g31 = l.currentWidth;
 						while(_g41 < _g31) {
 							var dx2 = _g41++;
-							insts.push({ x : x + dx2, y : y + dy2, o : l.current + dx2 + dy2 * l.imagesStride});
+							insts.push({ x : x1 + dx2, y : y1 + dy2, o : l.current + dx2 + dy2 * l.imagesStride});
 						}
 					}
 				}
 				insts.sort(function(i1,i2) {
-					return (function($this) {
+					var dy3;
+					dy3 = (function($this) {
 						var $r;
 						var o1 = objs.get(i1.o);
-						$r = i1.y + (o1 == null?1:o1.h);
+						$r = (i1.y + (o1 == null?1:o1.h)) * _g1.tileSize | 0;
 						return $r;
 					}(this)) - (function($this) {
 						var $r;
 						var o2 = objs.get(i2.o);
-						$r = i2.y + (o2 == null?1:o2.h);
+						$r = (i2.y + (o2 == null?1:o2.h)) * _g1.tileSize | 0;
 						return $r;
 					}(this));
+					if(dy3 == 0) return (function($this) {
+						var $r;
+						var o3 = objs.get(i1.o);
+						$r = (i1.x + (o3 == null?0.5:o3.w * 0.5)) * _g1.tileSize | 0;
+						return $r;
+					}(this)) - (function($this) {
+						var $r;
+						var o4 = objs.get(i2.o);
+						$r = (i2.x + (o4 == null?0.5:o4.w * 0.5)) * _g1.tileSize | 0;
+						return $r;
+					}(this)); else return dy3;
 				});
 				l.dirty = true;
 				this.save();
@@ -1496,12 +1549,12 @@ Level.prototype = {
 					while(_g32 < insts.length) {
 						var i = insts[_g32];
 						++_g32;
-						var x3 = i.x;
-						var y3 = i.y;
+						var x3 = i.x * this.tileSize | 0;
+						var y3 = i.y * this.tileSize | 0;
 						var obj = objs.get(i.o);
 						if(obj == null) {
-							this.view.draw(l.images[i.o],x3 * this.tileSize,y3 * this.tileSize);
-							this.view.fillRect(x3 * this.tileSize,y3 * this.tileSize,this.tileSize,this.tileSize,-2130771968);
+							this.view.draw(l.images[i.o],x3,y3);
+							this.view.fillRect(x3,y3,this.tileSize,this.tileSize,-2130771968);
 						} else {
 							var _g52 = 0;
 							var _g42 = obj.h;
@@ -1511,7 +1564,7 @@ Level.prototype = {
 								var _g62 = obj.w;
 								while(_g7 < _g62) {
 									var dx = _g7++;
-									this.view.draw(l.images[i.o + dx + dy * l.imagesStride],(x3 + dx) * this.tileSize,(y3 + dy) * this.tileSize);
+									this.view.draw(l.images[i.o + dx + dy * l.imagesStride],x3 + dx * this.tileSize,y3 + dy * this.tileSize);
 								}
 							}
 						}
@@ -1800,19 +1853,24 @@ Level.prototype = {
 						objs.sort(function(o1,o2) {
 							return o1.b - o2.b;
 						});
-						var out = [65535];
-						var _g12 = 0;
-						while(_g12 < objs.length) {
-							var o3 = objs[_g12];
-							++_g12;
-							out.push(o3.x);
-							out.push(o3.y);
-							out.push(o3.id);
-						}
-						l.data = lvl.LayerInnerData.Tiles(td,out);
+						l.data = lvl.LayerInnerData.TileInstances(td,(function($this) {
+							var $r;
+							var _g12 = [];
+							{
+								var _g22 = 0;
+								while(_g22 < objs.length) {
+									var o3 = objs[_g22];
+									++_g22;
+									_g12.push({ x : o3.x, y : o3.y, o : o3.id});
+								}
+							}
+							$r = _g12;
+							return $r;
+						}(this)));
 						l.dirty = true;
 						break;
 					default:
+						throw "assert";
 					}
 				}
 				break;
@@ -1821,10 +1879,55 @@ Level.prototype = {
 		case "objects":
 			switch(mode) {
 			case "ground":case "tiles":
-				throw "TODO";
+				{
+					var _g9 = l.data;
+					switch(_g9[1]) {
+					case 3:
+						var insts = _g9[3];
+						var td1 = _g9[2];
+						var objs1 = l.getTileObjects();
+						var data1;
+						var _g13 = [];
+						var _g31 = 0;
+						var _g23 = this.width * this.height;
+						while(_g31 < _g23) {
+							var i = _g31++;
+							_g13.push(0);
+						}
+						data1 = _g13;
+						var _g24 = 0;
+						while(_g24 < insts.length) {
+							var i1 = insts[_g24];
+							++_g24;
+							var x1 = i1.x | 0;
+							var y1 = i1.y | 0;
+							var obj = objs1.get(i1.o);
+							if(obj == null) data1[x1 + y1 * this.width] = i1.o + 1; else {
+								var _g41 = 0;
+								var _g32 = obj.h;
+								while(_g41 < _g32) {
+									var dy2 = _g41++;
+									var _g62 = 0;
+									var _g52 = obj.w;
+									while(_g62 < _g52) {
+										var dx2 = _g62++;
+										var x2 = x1 + dx2;
+										var y2 = y1 + dy2;
+										if(x2 < this.width && y2 < this.height) data1[x2 + y2 * this.width] = i1.o + dx2 + dy2 * l.imagesStride + 1;
+									}
+								}
+							}
+						}
+						l.data = lvl.LayerInnerData.Tiles(td1,data1);
+						l.dirty = true;
+						break;
+					default:
+						throw "assert";
+					}
+				}
 				break;
 			default:
-				js.Lib.alert("Cannot convert from " + Std.string(old) + " to " + Std.string(mode));
+				js.Lib.alert("Cannot convert from " + old + " to " + mode);
 				return;
 			}
 			break;
@@ -1895,7 +1998,7 @@ Level.prototype = {
 		case "border_out":
 			var s4 = l.getTileProp();
 			if(s4 != null) {
-				if("" + val != "true") Reflect.deleteField(s4.opts,"borderOut"); else s4.opts.borderOut = true;
+				if(val != "true") Reflect.deleteField(s4.opts,"borderOut"); else s4.opts.borderOut = true;
 			}
 			break;
 		}
@@ -1917,14 +2020,14 @@ Level.prototype = {
 			this.content.find("[name=alpha]").val(Std.string(l.props.alpha * 100 | 0));
 			this.content.find("[name=visible]").prop("checked",l.visible);
 			this.content.find("[name=lock]").prop("checked",!l.floatCoord).closest(".item").css({ display : l.hasFloatCoord?"":"none"});
-			this.content.find("[name=mode]").val("" + Std.string(l.props.mode != null?l.props.mode:"tiles"));
+			this.content.find("[name=mode]").val("" + (l.props.mode != null?l.props.mode:"tiles"));
 			this.content.find("[name=color]").spectrum("set",this.toColor(l.props.color)).closest(".item").css({ display : l.idToIndex == null && !(function($this) {
 				var $r;
 				var _g1 = l.data;
 				$r = (function($this) {
 					var $r;
 					switch(_g1[1]) {
-					case 2:
+					case 2:case 3:
 						$r = true;
 						break;
 					default:
@@ -1938,6 +2041,11 @@ Level.prototype = {
 				var _g2 = l.data;
 				switch(_g2[1]) {
 				case 2:
+					var t = _g2[2];
+					this.content.find("[name=size]").val("" + t.size).closest(".item").show();
+					this.content.find("[name=file]").closest(".item").show();
+					break;
+				case 3:
 					var t = _g2[2];
 					this.content.find("[name=size]").val("" + t.size).closest(".item").show();
 					this.content.find("[name=file]").closest(".item").show();
@@ -4450,34 +4558,36 @@ Main.prototype = $extend(Model.prototype,{
 				var remapTileLayer = function(v) {
 					if(v == null) return null;
 					var odat = cdb._Types.TileLayerData_Impl_.decode(v.data);
-					var pos = 0;
 					var ndat = [];
-					var _g1 = 0;
-					while(_g1 < newH) {
-						var y = _g1++;
-						if(y >= oldH) {
-							var _g2 = 0;
-							while(_g2 < newW) {
-								var x = _g2++;
-								ndat.push(0);
-							}
-						} else if(newW <= oldW) {
-							var _g21 = 0;
-							while(_g21 < newW) {
-								var x1 = _g21++;
-								ndat.push(odat[pos++]);
-							}
-							pos += oldW - newW;
-						} else {
-							var _g22 = 0;
-							while(_g22 < oldW) {
-								var x2 = _g22++;
-								ndat.push(odat[pos++]);
-							}
-							var _g23 = oldW;
-							while(_g23 < newW) {
-								var x3 = _g23++;
-								ndat.push(0);
+					if(odat[0] == 65535) ndat = odat; else {
+						var pos = 0;
+						var _g1 = 0;
+						while(_g1 < newH) {
+							var y = _g1++;
+							if(y >= oldH) {
+								var _g2 = 0;
+								while(_g2 < newW) {
+									var x = _g2++;
+									ndat.push(0);
+								}
+							} else if(newW <= oldW) {
+								var _g21 = 0;
+								while(_g21 < newW) {
+									var x1 = _g21++;
+									ndat.push(odat[pos++]);
+								}
+								pos += oldW - newW;
+							} else {
+								var _g22 = 0;
+								while(_g22 < oldW) {
+									var x2 = _g22++;
+									ndat.push(odat[pos++]);
+								}
+								var _g23 = oldW;
+								while(_g23 < newW) {
+									var x3 = _g23++;
+									ndat.push(0);
+								}
 							}
 						}
 					}
@@ -9522,16 +9632,17 @@ lvl.LayerData.prototype = {
 				var p = 1;
 				if(data[0] != 65535) throw "assert";
 				while(p < data.length) {
-					var x1 = data[p++];
-					var y1 = data[p++];
+					var x1 = data[p++] / _g3.level.tileSize;
+					var y1 = data[p++] / _g3.level.tileSize;
 					var v1 = data[p++];
 					var vx1 = v1 % stride;
 					var vy1 = v1 / stride | 0;
 					v1 = vx1 + vy1 * w;
-					if(vx1 >= w || vy1 >= h || _g3.blanks[v1]) continue;
+					if(vx1 >= w || vy1 >= h || _g3.blanks[v1] || x1 >= _g3.level.width || y1 >= _g3.level.height) continue;
 					insts.push({ x : x1, y : y1, o : v1});
 				}
 				_g3.data = lvl.LayerInnerData.TileInstances(d,insts);
+				_g3.hasFloatCoord = _g3.floatCoord = true;
 				break;
 			}
 			_g3.imagesStride = d.stride = w;
@@ -9616,8 +9727,8 @@ lvl.LayerData.prototype = {
 				while(_g12 < insts.length) {
 					var i = insts[_g12];
 					++_g12;
-					b2.writeUInt16(i.x);
-					b2.writeUInt16(i.y);
+					b2.writeUInt16(i.x * this.level.tileSize | 0);
+					b2.writeUInt16(i.y * this.level.tileSize | 0);
 					b2.writeUInt16(i.o);
 				}
 				if(t1.file == null) return null; else return { file : t1.file, size : t1.size, stride : t1.stride, data : haxe.crypto.Base64.encode(b2.getBytes())};

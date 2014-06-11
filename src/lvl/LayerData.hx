@@ -15,7 +15,7 @@ enum LayerInnerData {
 	Layer( a : Array<Int> );
 	Objects( idCol : String, objs : Array<{ x : Float, y : Float, ?width : Float, ?height : Float }> );
 	Tiles( t : TileInfos, data : Array<Int> );
-	TileInstances( t : TileInfos, insts : Array<{ x : Int,y : Int,o:Int }> );
+	TileInstances( t : TileInfos, insts : Array<{ x : Float, y : Float, o : Int }> );
 }
 
 
@@ -240,17 +240,18 @@ class LayerData {
 				var p = 1;
 				if( data[0] != 0xFFFF ) throw "assert";
 				while( p < data.length ) {
-					var x = data[p++];
-					var y = data[p++];
+					var x = data[p++]/level.tileSize;
+					var y = data[p++]/level.tileSize;
 					var v = data[p++];
 					var vx = v % stride;
 					var vy = Std.int(v / stride);
 					v = vx + vy * w;
-					if( vx >= w || vy >= h || blanks[v] )
+					if( vx >= w || vy >= h || blanks[v] || x >= level.width || y >= level.height )
 						continue;
 					insts.push({ x : x, y : y, o : v });
 				}
 				this.data = TileInstances(d, insts);
+				hasFloatCoord = floatCoord = true;
 			}
 			imagesStride = d.stride = w;
 			tileProps = level.getTileProps(file);
@@ -320,8 +321,8 @@ class LayerData {
 			var b = new haxe.io.BytesOutput();
 			b.writeUInt16(0xFFFF);
 			for( i in insts ) {
-				b.writeUInt16(i.x);
-				b.writeUInt16(i.y);
+				b.writeUInt16(Std.int(i.x * level.tileSize));
+				b.writeUInt16(Std.int(i.y * level.tileSize));
 				b.writeUInt16(i.o);
 			}
 			return t.file == null ? null : { file : t.file, size : t.size, stride : t.stride, data : haxe.crypto.Base64.encode(b.getBytes()) };

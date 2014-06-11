@@ -455,21 +455,27 @@ class Main extends Model {
 				if( v == null ) return null;
 
 				var odat = v.data.decode();
-				var pos = 0;
 				var ndat = [];
-				for( y in 0...newH ) {
-					if( y >= oldH ) {
-						for( x in 0...newW )
-							ndat.push(0);
-					} else if( newW <= oldW ) {
-						for( x in 0...newW )
-							ndat.push(odat[pos++]);
-						pos += oldW - newW;
-					} else {
-						for( x in 0...oldW )
-							ndat.push(odat[pos++]);
-						for( x in oldW...newW )
-							ndat.push(0);
+
+				// object layer
+				if( odat[0] == 0xFFFF )
+					ndat = odat;
+				else {
+					var pos = 0;
+					for( y in 0...newH ) {
+						if( y >= oldH ) {
+							for( x in 0...newW )
+								ndat.push(0);
+						} else if( newW <= oldW ) {
+							for( x in 0...newW )
+								ndat.push(odat[pos++]);
+							pos += oldW - newW;
+						} else {
+							for( x in 0...oldW )
+								ndat.push(odat[pos++]);
+							for( x in oldW...newW )
+								ndat.push(0);
+						}
 					}
 				}
 				return { file : v.file, size : v.size, stride : v.stride, data : cdb.Types.TileLayerData.encode(ndat) };
