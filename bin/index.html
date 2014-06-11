@@ -145,6 +145,38 @@
 			<div class="bar">
 				<div class="icon random" onclick="_.level.paletteOption('random')"></div>
 				<div class="icon paint" onclick="_.level.paletteOption('paint')"></div>
+				<div class="mode">
+					<select name="mode" onchange="_.level.paletteOption('mode',this.value)">
+						<option value="tile">tile</option>
+						<option value="ground">ground</option>
+						<option value="border">border</option>
+						<option value="object">object</option>
+					</select>
+					<label class="opt name">
+						Name:
+						<input type="text" name="name" onchange="_.level.paletteOption('name',this.value)"/>
+					</label>
+					<label class="opt priority">
+						Priority:
+						<select name="priority" onchange="_.level.paletteOption('priority',this.value)">
+							<option value="0">0</option>
+							<option value="1">1</option>
+							<option value="2">2</option>
+							<option value="3">3</option>
+							<option value="4">4</option>
+							<option value="5">5</option>
+							<option value="6">6</option>
+						</select>
+					</label>
+					<label class="opt border">
+						<select name="border" onchange="_.level.paletteOption('border', this.value)">
+						</select>
+					</label>
+					<label class="opt border_out">
+						<input type="checkbox" name="border_out" onchange="_.level.paletteOption('border_out', ''+this.checked)"/>
+						Out
+					</label>
+				</div>
 			</div>
 			<div class="content">
 				<canvas class="select"></canvas>
@@ -173,6 +205,15 @@
 					<input type="range" name="alpha" min="0" max="100" onchange="_.level.setAlpha(this.value)"/> Alpha
 				</div>
 				<div class="item">
+					<label>Mode:
+						<select name="mode" onchange="_.level.setLayerMode(this.value)">
+							<option value="tiles">Tiles</option>
+							<option value="ground">Ground</option>
+							<option value="objects">Objects</option>
+						</select>
+					</label>
+				</div>
+				<div class="item">
 					<input name="color"/> Color
 				</div>
 				<div class="item">
@@ -182,7 +223,7 @@
 					<input type="submit" name="file" value="File..." onclick="_.level.action('file')"/>
 				</div>
 				<div class="item">
-					<label>Size <input name="size" onchange="_.level.setSize(parseInt(this.value))"/>px</label>
+					<label>Size <input type="text" name="size" onchange="_.level.setSize(parseInt(this.value))"/>px</label>
 				</div>
 			</div>
 			<div class="submenu options">

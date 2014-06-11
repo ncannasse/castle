@@ -449,6 +449,44 @@ div#menu {
 			.paint {
 				background : url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAB3RJTUUH3gYDCgYFUrJbbgAAABd0RVh0U29mdHdhcmUAR0xEUE5HIHZlciAzLjRxhaThAAAACHRwTkdHTEQzAAAAAEqAKR8AAAAEZ0FNQQAAsY8L/GEFAAAABmJLR0QAagALAE638FflAAAAc0lEQVR4nJWSUQ7AIAhDvf+l2T7mIvBaNhNijPZJtSsiVq17xC7aT2dJ7Na/AF+6kIBnHq1I/3tMINVBA5yQZNOJK4AgsvXavoK0f3cWEFDFBDFiDTDvkTVkgSAUsBcwQSjeDeAg55nyYzqJLsIySHTDVBd+rl+9TJZX8wAAAABJRU5ErkJggg==');
 			}
+			.mode {
+				vertical-align : top;
+				display : inline-block;
+				line-height : 16px;
+				label, select, input {
+					font-size : 10px;
+				}
+				select, input {
+					border : 1px solid #888;
+					background-color : #DDD;
+					height : 18px;
+				}
+				input[type=text] {
+					width : 60px;
+				}
+				input[type=checkbox] {
+					margin : 0px;
+					height : 14px;
+					vertical-align : -3px;
+				}
+				select:focus, input:focus {
+					background-color : white;
+				}
+				.opt {
+					display : none;
+				}
+			}
+
+			.mode.m_ground {
+				.opt.name, .opt.priority {
+					display : inline-block;
+				}
+			}
+			.mode.m_border {
+				.opt.border, .opt.border_out {
+					display : inline-block;
+				}
+			}
 		}
 		.content {
 			padding : 10px;
@@ -550,6 +588,13 @@ div#menu {
 			}
 			.sp_replacer {
 				vertical-align : 2px;
+			}
+			input[type=text], select {
+				background-color : #DDD;
+				border : 1px solid #888;
+			}
+			input[type=text]:focus, select:focus {
+				background-color : white;
 			}
 		}
 	}

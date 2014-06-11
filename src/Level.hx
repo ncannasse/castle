@@ -51,8 +51,8 @@ class Level {
 
 	var palette : js.JQuery;
 	var paletteSelect : lvl.Image;
-	var paintMode : Bool;
-	var randomMode : Bool;
+	var paintMode : Bool = false;
+	var randomMode : Bool = false;
 	var spaceDown : Bool;
 
 	var watchList : Array<{ path : String, time : Float, callb : Void -> Void }>;
@@ -172,6 +172,19 @@ class Level {
 		waitDone();
 	}
 
+	public function getTileProps(file) {
+		if( props.tileSets == null )
+			props.tileSets = {};
+		var p : TileProps = Reflect.field(props.tileSets,file);
+		if( p == null ) {
+			p = {
+				sets : [],
+			};
+			Reflect.setField(props.tileSets, file, p);
+		}
+		return p;
+	}
+
 	var reloading = false;
 	public function reload() {
 		if( !reloading ) {
@@ -286,6 +299,18 @@ class Level {
 				var k = data[idx] - 1;
 				if( k < 0 ) continue;
 				return { k : k, layer : l, index : idx };
+			case TileInstances(_, insts):
+				var objs = l.getTileObjects();
+				for( i in insts ) {
+					var o = objs.get(i.o);
+					if( o == null ) {
+						if( curPos.x == i.x && curPos.y == i.y )
+							return { k : i.o, layer : l, index : i.x + i.y * width };
+					} else {
+						if( curPos.x >= i.x && curPos.y >= i.y && curPos.x < i.x + o.w && curPos.y < i.y + o.h && !l.blanks[i.o + (curPos.x - i.x) + (curPos.y - i.y) * l.imagesStride] )
+							return { k : i.o, layer : l, index : i.x + i.y * width };
+					}
+				}
 			}
 		}
 		return null;
@@ -378,6 +403,8 @@ class Level {
 			case Layer(data):
 				for( i in 0...data.length )
 					data[i] = 0;
+			case TileInstances(_, insts):
+				while( insts.length > 0 ) insts.pop();
 			}
 			l.dirty = true;
 			save();
@@ -477,7 +504,6 @@ class Level {
 				layers = [for( i in 0...layers.length ) layers[indexes[i]]];
 				for( i in 0...layers.length )
 					layers[i].comp.data("index", i);
-				draw();
 
 				// update layer list
 				var groups = new Map();
@@ -496,6 +522,7 @@ class Level {
 					Reflect.setField(obj, g, objs);
 				}
 				save();
+				draw();
 			}
 		});
 
@@ -520,8 +547,8 @@ class Level {
 			showButtons : false,
 			change : function(c) {
 				currentLayer.props.color = Std.parseInt("0x" + c.toHex());
-				draw();
 				save();
+				draw();
 			},
 		});
 
@@ -612,8 +639,8 @@ class Level {
 					var r = Reflect.compare(o1.y, o2.y);
 					return if( r == 0 ) Reflect.compare(o1.x, o2.x) else r;
 				});
-				draw();
 				save();
+				draw();
 			default:
 			}
 			startPos = null;
@@ -671,8 +698,8 @@ class Level {
 		var popup = J("<div>").addClass("popup").prependTo(content.find(".scrollContent"));
 		J(js.Browser.window).bind("mousedown", function(_) {
 			popup.remove();
-			draw();
 			J(js.Browser.window).unbind("mousedown");
+			if( view != null ) draw();
 		});
 		popup.mousedown(function(e) e.stopPropagation());
 		popup.mouseup(function(e) e.stopPropagation());
@@ -792,6 +819,7 @@ class Level {
 			action("close");
 		if( e.ctrlKey ) return;
 
+		J(".popup").remove();
 
 		switch( e.keyCode ) {
 		case K.NUMPAD_ADD:
@@ -802,7 +830,6 @@ class Level {
 			zoomView = 1;
 			updateZoom();
 		case K.ESC:
-			J(".popup").remove();
 			draw();
 		case K.TAB:
 			var i = (layers.indexOf(currentLayer) + (e.shiftKey ? layers.length-1 : 1) ) % layers.length;
@@ -810,6 +837,7 @@ class Level {
 			e.preventDefault();
 			e.stopPropagation();
 		case K.SPACE:
+			e.preventDefault();
 			if( spaceDown ) return;
 			spaceDown = true;
 			var canvas = J(view.getCanvas());
@@ -834,7 +862,8 @@ class Level {
 				mousePos.y = e.pageY;
 				e.stopPropagation();
 			});
-			e.preventDefault();
+		case "O".code:
+			if( palette != null ) paletteOption("mode", "object");
 		default:
 		}
 
@@ -876,11 +905,20 @@ class Level {
 					save();
 					draw();
 				}
+			case TileInstances(_, insts):
+				for( i in insts )
+					if( i.x + i.y * width == p.index ) {
+						insts.remove(i);
+						p.layer.dirty = true;
+						save();
+						draw();
+						return;
+					}
 			}
 		case "E".code:
 			var p = pick();
 			switch( p.layer.data ) {
-			case Layer(_), Tiles(_):
+			case Layer(_), Tiles(_), TileInstances(_):
 			case Objects(_,objs):
 				J(".popup").remove();
 				editProps(p.layer, p.index);
@@ -939,6 +977,32 @@ class Level {
 			l.dirty = true;
 			save();
 			draw();
+		case TileInstances(_, insts):
+			var objs = l.getTileObjects();
+			var putObj = objs.get(l.current);
+			var dx = putObj == null ? 0 : (putObj.w >> 1);
+			var dy = putObj == null ? 1 : putObj.h;
+			for( i in insts ) {
+				var o = objs.get(i.o);
+				if( i.x + (o == null ? 0 : o.w >> 1) == x + dx && i.y + (o == null ? 1 : o.h) == y + dy ) {
+					if( i.o == l.current ) return;
+					insts.remove(i);
+				}
+			}
+			if( putObj != null )
+				insts.push( { x : x, y : y, o : l.current } );
+			else
+				for( dy in 0...l.currentHeight )
+					for( dx in 0...l.currentWidth )
+						insts.push( { x : x+dx, y : y+dy, o : l.current + dx + dy * l.imagesStride } );
+			inline function getY(i) {
+				var o = objs.get(i.o);
+				return i.y + (o == null ? 1 : o.h);
+			}
+			insts.sort(function(i1, i2) return getY(i1) - getY(i2));
+			l.dirty = true;
+			save();
+			draw();
 		case Objects(_):
 		}
 	}
@@ -970,6 +1034,31 @@ class Level {
 						if( k < 0 ) continue;
 						view.draw(l.images[k], x * tileSize, y * tileSize);
 					}
+				if( l.props.mode == Ground ) {
+					var b = new cdb.TileBuilder(l.tileProps, l.imagesStride, l.images.length);
+					var a = b.buildGrounds(data, width);
+					var p = 0, max = a.length;
+					while( p < max ) {
+						var x = a[p++];
+						var y = a[p++];
+						var id = a[p++];
+						view.draw(l.images[id], x * tileSize, y * tileSize);
+					}
+				}
+			case TileInstances(_, insts):
+				var objs = l.getTileObjects();
+				for( i in insts ) {
+					var x = i.x, y = i.y;
+					var obj = objs.get(i.o);
+					if( obj == null ) {
+						view.draw(l.images[i.o], x * tileSize, y * tileSize);
+						view.fillRect(x * tileSize, y * tileSize, tileSize, tileSize, 0x80FF0000);
+					} else {
+						for( dy in 0...obj.h )
+							for( dx in 0...obj.w )
+								view.draw(l.images[i.o + dx + dy * l.imagesStride], (x + dx) * tileSize, (y + dy) * tileSize);
+					}
+				}
 			case Objects(idCol, objs):
 				if( idCol == null ) {
 					var col = l.props.color | 0xFF000000;
@@ -1052,10 +1141,17 @@ class Level {
 					if( o.x < 0 || o.y < 0 || o.x >= width || o.y >= height )
 						objs.remove(o);
 				}
+			case TileInstances(_, insts):
+				for( i in insts.copy() ) {
+					i.x += dx;
+					i.y += dy;
+					if( i.x < 0 || i.y < 0 || i.x >= width || i.y >= height )
+						insts.remove(i);
+				}
 			}
 		}
-		draw();
 		save();
+		draw();
 	}
 
 	@:keep function setLock(b:Bool) {
@@ -1095,8 +1191,75 @@ class Level {
 		canvas.attr("width", (width * tileSize) + "px");
 		canvas.attr("height", (height * tileSize) + "px");
 		setCursor(currentLayer);
-		draw();
 		save();
+		draw();
+	}
+
+	@:keep function setLayerMode( mode : LayerMode ) {
+		var l = currentLayer;
+		if( l.tileProps == null ) {
+			js.Lib.alert("Choose file first");
+			return;
+		}
+		var old = l.props.mode;
+		if( old == null ) old = Tiles;
+		switch( [old, mode] ) {
+		case [(Ground | Tiles), (Tiles | Ground)]:
+			// nothing
+		case [(Ground | Tiles), Objects]:
+			switch( l.data ) {
+			case Tiles(td, data):
+				var oids = new Map();
+				for( p in l.tileProps.sets )
+					if( p.t == Object )
+						oids.set(p.x + p.y * l.imagesStride, p);
+				var objs = [];
+				var p = -1;
+				for( y in 0...height )
+					for( x in 0...width ) {
+						var d = data[++p] - 1;
+						if( d < 0 ) continue;
+						var o = oids.get(d);
+						if( o != null ) {
+							for( dy in 0...o.h ) {
+								for( dx in 0...o.w )
+									if( data[p + dx + dy * width] != d + dx + dy * l.imagesStride + 1 ) {
+										o = null;
+										break;
+									}
+								if( o == null ) break;
+							}
+						}
+						if( o == null )
+							objs.push({ x : x, y : y, b : y, id : d });
+						else {
+							for( dy in 0...o.h )
+								for( dx in 0...o.w )
+									data[p + dx + dy * width] = 0;
+							objs.push( { x : x, y : y, b : y + o.w - 1, id : d } );
+						}
+					}
+				objs.sort(function(o1,o2) return o1.b - o2.b);
+				var out = [0xFFFF];
+				for( o in objs ) {
+					out.push(o.x);
+					out.push(o.y);
+					out.push(o.id);
+				}
+				l.data = Tiles(td, out);
+				l.dirty = true;
+			default:
+			}
+		case [Objects, (Ground | Tiles)]:
+			throw "TODO";
+		default:
+			js.Lib.alert("Cannot convert from "+old+" to "+mode);
+			return;
+		}
+		l.props.mode = mode;
+		if( mode == Tiles ) Reflect.deleteField(currentLayer.props, "mode");
+		save();
+		draw();
 	}
 
 	@:keep function setSize(size) {
@@ -1111,7 +1274,7 @@ class Level {
 		}
 	}
 
-	@:keep function paletteOption(name) {
+	@:keep function paletteOption(name,?val:String) {
 		var l = currentLayer;
 		switch( name ) {
 		case "random":
@@ -1119,11 +1282,54 @@ class Level {
 			palette.find(".icon.random").toggleClass("active", randomMode);
 			savePrefs();
 			setCursor(l);
+			return;
 		case "paint":
 			paintMode = !paintMode;
 			savePrefs();
-			palette.find(".icon.paint").toggleClass("active",paintMode);
+			palette.find(".icon.paint").toggleClass("active", paintMode);
+			return;
+		case "mode":
+			var s = l.getTileProp();
+			var m = TileMode.ofString(val);
+			if( s == null ) {
+				if( m == Tile ) return;
+				s = { x : l.current % l.imagesStride, y : Std.int(l.current / l.imagesStride), w : l.currentWidth, h : l.currentHeight, t : m, opts : {} };
+				l.tileProps.sets.push(s);
+			} else if( m == Tile ) {
+				l.tileProps.sets.remove(s);
+			} else {
+				if( s.t == m ) return;
+				s.t = m;
+				s.opts = { };
+			}
+			setCursor(l);
+		case "name":
+			var s = l.getTileProp();
+			if( s != null )
+				s.opts.name = val;
+		case "priority":
+			var s = l.getTileProp();
+			if( s != null )
+				s.opts.priority = Std.parseInt(val);
+		case "border":
+			var s = l.getTileProp();
+			if( s != null ) {
+				if( val == "null" )
+					Reflect.deleteField(s.opts,"border");
+				else
+					s.opts.border = val;
+			}
+		case "border_out":
+			var s = l.getTileProp();
+			if( s != null ) {
+				if( val != "true" )
+					Reflect.deleteField(s.opts,"borderOut");
+				else
+					s.opts.borderOut = true;
+			}
 		}
+		save();
+		draw();
 	}
 
 	function setCursor( l : LayerData ) {
@@ -1141,7 +1347,8 @@ class Level {
 			savePrefs();
 			content.find("[name=alpha]").val(Std.string(Std.int(l.props.alpha * 100)));
 			content.find("[name=visible]").prop("checked", l.visible);
-			content.find("[name=lock]").prop("checked", !l.floatCoord).closest(".item").css({ display : l.hasFloatCoord ? "" : "none" });
+			content.find("[name=lock]").prop("checked", !l.floatCoord).closest(".item").css( { display : l.hasFloatCoord ? "" : "none" } );
+			content.find("[name=mode]").val(""+(l.props.mode != null ? l.props.mode : LayerMode.Tiles));
 			(untyped content.find("[name=color]")).spectrum("set", toColor(l.props.color)).closest(".item").css( { display : l.idToIndex == null && !l.data.match(Tiles(_)) ? "" : "none" } );
 			switch( l.data ) {
 			case Tiles(t,_):
@@ -1188,6 +1395,16 @@ class Level {
 						l.saveState();
 						setCursor(l);
 					} else {
+						if( l.tileProps != null )
+							for( p in l.tileProps.sets )
+								if( x >= p.x && y >= p.y && x < p.x + p.w && y < p.y + p.h && p.t == Object ) {
+									l.current = p.x + p.y * l.imagesStride;
+									l.currentWidth = p.w;
+									l.currentHeight = p.h;
+									l.saveState();
+									setCursor(l);
+									return;
+								}
 						start.x = x;
 						start.y = y;
 						start.down = true;
@@ -1234,12 +1451,75 @@ class Level {
 					var id = l.idToIndex.get(Reflect.field(o, id));
 					if( id != null ) used[id] = true;
 				}
+			case TileInstances(_, insts):
+				var objs = l.getTileObjects();
+				for( i in insts ) {
+					var t = objs.get(i.o);
+					if( t == null ) {
+						used[i.o] = true;
+						continue;
+					}
+					for( dy in 0...t.h )
+						for( dx in 0...t.w )
+							used[i.o + dx + dy * l.imagesStride] = true;
+				}
 			}
 			for( i in 0...l.images.length ) {
 				if( used[i] ) continue;
 				paletteSelect.fillRect( (i % l.imagesStride) * (tileSize + 1), Std.int(i / l.imagesStride) * (tileSize + 1), tileSize, tileSize, 0x80000000);
 			}
 			paletteSelect.fillRect( (l.current % l.imagesStride) * (tileSize + 1), Std.int(l.current / l.imagesStride) * (tileSize + 1), (tileSize + 1) * l.currentWidth - 1, (tileSize + 1) * l.currentHeight - 1, 0x805BA1FB);
+
+			var m = palette.find(".mode");
+			if( l.tileProps == null ) {
+				m.hide();
+			} else {
+
+				var grounds = [];
+
+				for( s in l.tileProps.sets ) {
+					var color = switch( s.t ) {
+					case Tile: 0;
+					case Ground:
+						if( s.opts.name != null && s.opts.name != "" ) {
+							grounds.remove(s.opts.name);
+							grounds.push(s.opts.name);
+						}
+						0x00FF00;
+					case Border: 0x00FFFF;
+					case Object: 0xFF0000;
+					}
+					color |= 0xFF000000;
+					var px = s.x * (tileSize + 1);
+					var py = s.y * (tileSize + 1);
+					var w = s.w * (tileSize + 1) - 1;
+					var h = s.h * (tileSize + 1) - 1;
+					paletteSelect.fillRect(px, py, w, 1, color);
+					paletteSelect.fillRect(px, py + h - 1, w, 1, color);
+					paletteSelect.fillRect(px, py, 1, h, color);
+					paletteSelect.fillRect(px + w - 1, py, 1, h, color);
+				}
+
+				var tobj = l.getTileProp();
+				if( tobj == null )
+					tobj = { x : 0, y : 0, w : 0, h : 0, t : Tile, opts : { } };
+
+				var tkind = tobj.t.toString();
+				m.find("[name=mode]").val(tkind);
+				m.attr("class", "").addClass("mode").addClass("m_" + tkind);
+				switch( tobj.t ) {
+				case Tile:
+				case Ground:
+					m.find("[name=name]").val(tobj.opts.name == null ? "" : tobj.opts.name);
+					m.find("[name=priority]").val("" + (tobj.opts.priority == null ? 0 : tobj.opts.priority));
+				case Object:
+				case Border:
+					var opts = "<option value='null'>any</option>" + [for( g in grounds ) '<option value="$g">$g</option>'].join("");
+					m.find("[name=border]").html(opts).val(Std.string(tobj.opts.border));
+					m.find("[name=border_out]").prop("checked", tobj.opts.borderOut);
+				}
+				m.show();
+			}
 		}
 
 		var size = zoomView < 1 ? Std.int(tileSize * zoomView) : Math.ceil(tileSize * zoomView);

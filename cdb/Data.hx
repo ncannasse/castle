@@ -37,14 +37,49 @@ typedef Column = {
 	@:optional var display : DisplayType;
 }
 
+@:enum abstract LayerMode(String) {
+	var Tiles = "tiles";
+	var Ground = "ground";
+	var Objects = "objects";
+}
+
 typedef LayerProps = {
 	var alpha : Float;
+	@:optional var mode : LayerMode;
 	@:optional var color : Int;
+}
+
+@:enum abstract TileMode(String) {
+	var Tile = "tile";
+	var Ground = "ground";
+	var Border = "border";
+	var Object = "object";
+	function new(s) {
+		this = s;
+	}
+	public static function ofString( s : String ) {
+		return new TileMode(s);
+	}
+	public function toString() {
+		return this;
+	}
+}
+
+typedef TileModeOptions = {
+	?name : String,
+	?priority : Int,
+	?border : Null<String>,
+	?borderOut : Bool,
+};
+
+typedef TileProps = {
+	var sets : Array<{ x : Int, y : Int, w : Int, h : Int, t : TileMode, opts : TileModeOptions }>;
 }
 
 typedef LevelProps = {
 	@:optional var tileSize : Int;
 	@:optional var layers : Array<{ l : String, p : LayerProps }>;
+	@:optional var tileSets : Dynamic<TileProps>;
 }
 
 typedef SheetProps = {

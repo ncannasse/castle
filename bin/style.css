@@ -416,6 +416,45 @@ div#menu ul.sheets li.active {
 #content .level .palette .bar .paint {
 	background : url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAB3RJTUUH3gYDCgYFUrJbbgAAABd0RVh0U29mdHdhcmUAR0xEUE5HIHZlciAzLjRxhaThAAAACHRwTkdHTEQzAAAAAEqAKR8AAAAEZ0FNQQAAsY8L/GEFAAAABmJLR0QAagALAE638FflAAAAc0lEQVR4nJWSUQ7AIAhDvf+l2T7mIvBaNhNijPZJtSsiVq17xC7aT2dJ7Na/AF+6kIBnHq1I/3tMINVBA5yQZNOJK4AgsvXavoK0f3cWEFDFBDFiDTDvkTVkgSAUsBcwQSjeDeAg55nyYzqJLsIySHTDVBd+rl+9TJZX8wAAAABJRU5ErkJggg==");
 }
+#content .level .palette .bar .mode {
+	vertical-align : top;
+	display : inline-block;
+	zoom : 1;
+	*display : inline;
+	line-height : 16px;
+}
+#content .level .palette .bar .mode label, #content .level .palette .bar .mode select, #content .level .palette .bar .mode input {
+	font-size : 10px;
+}
+#content .level .palette .bar .mode select, #content .level .palette .bar .mode input {
+	border : 1px solid #888;
+	background-color : #DDD;
+	height : 18px;
+}
+#content .level .palette .bar .mode input[type=text] {
+	width : 60px;
+}
+#content .level .palette .bar .mode input[type=checkbox] {
+	margin : 0px;
+	height : 14px;
+	vertical-align : -3px;
+}
+#content .level .palette .bar .mode select:focus, #content .level .palette .bar .mode input:focus {
+	background-color : white;
+}
+#content .level .palette .bar .mode .opt {
+	display : none;
+}
+#content .level .palette .bar .mode.m_ground .opt.name, #content .level .palette .bar .mode.m_ground .opt.priority {
+	display : inline-block;
+	zoom : 1;
+	*display : inline;
+}
+#content .level .palette .bar .mode.m_border .opt.border, #content .level .palette .bar .mode.m_border .opt.border_out {
+	display : inline-block;
+	zoom : 1;
+	*display : inline;
+}
 #content .level .palette .content {
 	padding : 10px;
 }
@@ -520,6 +559,13 @@ div#menu ul.sheets li.active {
 }
 #content .level .submenu .item .sp_replacer {
 	vertical-align : 2px;
+}
+#content .level .submenu .item input[type=text], #content .level .submenu .item select {
+	background-color : #DDD;
+	border : 1px solid #888;
+}
+#content .level .submenu .item input[type=text]:focus, #content .level .submenu .item select:focus {
+	background-color : white;
 }
 #content .level .submenu.newlayer {
 	display : none;

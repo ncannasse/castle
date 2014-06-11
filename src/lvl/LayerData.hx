@@ -9,10 +9,13 @@ typedef LayerState = {
 	var ch : Int;
 }
 
+typedef TileInfos = { file : String, stride : Int, size : Int };
+
 enum LayerInnerData {
 	Layer( a : Array<Int> );
 	Objects( idCol : String, objs : Array<{ x : Float, y : Float, ?width : Float, ?height : Float }> );
-	Tiles( t : { file : String, stride : Int, size : Int }, data : Array<Int> );
+	Tiles( t : TileInfos, data : Array<Int> );
+	TileInstances( t : TileInfos, insts : Array<{ x : Int,y : Int,o:Int }> );
 }
 
 
@@ -47,6 +50,7 @@ class LayerData {
 
 	public var targetObj : { o : Dynamic, f : String };
 	public var listColumnn : Column;
+	public var tileProps : TileProps;
 
 	public function new(level, name, p, target) {
 		this.level = level;
@@ -169,6 +173,23 @@ class LayerData {
 		if( sheet.lines.length > 256 ) throw "Too many lines";
 	}
 
+	public function getTileProp() {
+		if( tileProps == null ) return null;
+		for( s in tileProps.sets )
+			if( s.x + s.y * imagesStride == current )
+				return s;
+		return null;
+	}
+
+	public function getTileObjects() {
+		var objs = new Map();
+		if( tileProps == null ) return objs;
+		for( o in tileProps.sets )
+			if( o.t == Object )
+				objs.set(o.x + o.y * imagesStride, o);
+		return objs;
+	}
+
 	public function setObjectsData( id, val ) {
 		data = Objects(id, val);
 	}
@@ -182,9 +203,11 @@ class LayerData {
 		images = [];
 		this.data = Tiles(d, data);
 		if( file == null ) {
+			if( props.mode != Tiles && props.mode != null ) Reflect.deleteField(props, "mode");
 			var i = new Image(16, 16);
 			i.fill(0xFFFF00FF);
 			images.push(i);
+			loadState();
 			return;
 		}
 		level.wait();
@@ -198,21 +221,43 @@ class LayerData {
 					images.push(i);
 				}
 
-			var max = w * h;
-			for( i in 0...data.length ) {
-				var v = data[i] - 1;
-				if( v < 0 ) continue;
-				var vx = v % stride;
-				var vy = Std.int(v / stride);
-				v = vx + vy * w;
-				if( vx >= w || vy >= h || blanks[v] )
-					data[i] = 0;
-				else
-					data[i] = v + 1;
+			switch( props.mode ) {
+			case null, Tiles, Ground:
+				var max = w * h;
+				for( i in 0...data.length ) {
+					var v = data[i] - 1;
+					if( v < 0 ) continue;
+					var vx = v % stride;
+					var vy = Std.int(v / stride);
+					v = vx + vy * w;
+					if( vx >= w || vy >= h || blanks[v] )
+						data[i] = 0;
+					else
+						data[i] = v + 1;
+				}
+			case Objects:
+				var insts = [];
+				var p = 1;
+				if( data[0] != 0xFFFF ) throw "assert";
+				while( p < data.length ) {
+					var x = data[p++];
+					var y = data[p++];
+					var v = data[p++];
+					var vx = v % stride;
+					var vy = Std.int(v / stride);
+					v = vx + vy * w;
+					if( vx >= w || vy >= h || blanks[v] )
+						continue;
+					insts.push({ x : x, y : y, o : v });
+				}
+				this.data = TileInstances(d, insts);
 			}
 			imagesStride = d.stride = w;
+			tileProps = level.getTileProps(file);
 			loadState();
 			level.waitDone();
+		}, function() {
+			throw "Could not load " + file;
 		});
 		level.watch(file, function() Image.load(level.model.getAbsPath(file),function(_) level.reload(), function() {}, true));
 	}
@@ -268,10 +313,17 @@ class LayerData {
 			return objs;
 		case Tiles(t, data):
 			var b = new haxe.io.BytesOutput();
-			var r = 0;
-			for( y in 0...level.width )
-				for( x in 0...level.height )
-					b.writeUInt16(data[r++]);
+			for( r in 0...data.length )
+				b.writeUInt16(data[r]);
+			return t.file == null ? null : { file : t.file, size : t.size, stride : t.stride, data : haxe.crypto.Base64.encode(b.getBytes()) };
+		case TileInstances(t, insts):
+			var b = new haxe.io.BytesOutput();
+			b.writeUInt16(0xFFFF);
+			for( i in insts ) {
+				b.writeUInt16(i.x);
+				b.writeUInt16(i.y);
+				b.writeUInt16(i.o);
+			}
 			return t.file == null ? null : { file : t.file, size : t.size, stride : t.stride, data : haxe.crypto.Base64.encode(b.getBytes()) };
 		}
 	}

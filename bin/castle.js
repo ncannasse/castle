@@ -1,5 +1,5 @@
 (function () { "use strict";
-var $hxClasses = {},$estr = function() { return js.Boot.__string_rec(this,''); };
+var $hxClasses = {};
 function $extend(from, fields) {
 	function Inherit() {} Inherit.prototype = from; var proto = new Inherit();
 	for (var name in fields) proto[name] = fields[name];
@@ -149,6 +149,8 @@ Lambda.find = function(it,f) {
 };
 var Level = function(model,sheet,index) {
 	this.reloading = false;
+	this.randomMode = false;
+	this.paintMode = false;
 	this.startPos = null;
 	this.mousePos = { x : 0, y : 0};
 	this.zoomView = 1.;
@@ -309,6 +311,15 @@ Level.prototype = {
 		}
 		this.waitDone();
 	}
+	,getTileProps: function(file) {
+		if(this.props.tileSets == null) this.props.tileSets = { };
+		var p = Reflect.field(this.props.tileSets,file);
+		if(p == null) {
+			p = { sets : []};
+			this.props.tileSets[file] = p;
+		}
+		return p;
+	}
 	,reload: function() {
 		if(!this.reloading) {
 			this.reloading = true;
@@ -438,6 +449,19 @@ Level.prototype = {
 					var k2 = data1[idx1] - 1;
 					if(k2 < 0) continue;
 					return { k : k2, layer : l, index : idx1};
+				case 3:
+					var insts = _g[3];
+					var objs1 = l.getTileObjects();
+					var _g11 = 0;
+					while(_g11 < insts.length) {
+						var i2 = insts[_g11];
+						++_g11;
+						var o1 = objs1.get(i2.o);
+						if(o1 == null) {
+							if(this.curPos.x == i2.x && this.curPos.y == i2.y) return { k : i2.o, layer : l, index : i2.x + i2.y * this.width};
+						} else if(this.curPos.x >= i2.x && this.curPos.y >= i2.y && this.curPos.x < i2.x + o1.w && this.curPos.y < i2.y + o1.h && !l.blanks[i2.o + (this.curPos.x - i2.x) + (this.curPos.y - i2.y) * l.imagesStride]) return { k : i2.o, layer : l, index : i2.x + i2.y * this.width};
+					}
+					break;
 				}
 			}
 		}
@@ -575,6 +599,10 @@ Level.prototype = {
 						var i1 = _g22++;
 						data1[i1] = 0;
 					}
+					break;
+				case 3:
+					var insts = _g2[3];
+					while(insts.length > 0) insts.pop();
 					break;
 				}
 			}
@@ -750,7 +778,6 @@ Level.prototype = {
 				var i4 = _g24++;
 				_g3.layers[i4].comp.data("index",i4);
 			}
-			_g3.draw();
 			var groups = new haxe.ds.StringMap();
 			var _g13 = 0;
 			var _g25 = _g3.layers;
@@ -781,6 +808,7 @@ Level.prototype = {
 				_g3.obj[g1] = objs;
 			}
 			_g3.save();
+			_g3.draw();
 		}});
 		this.content.find("[name=newlayer]").css({ display : this.newLayer != null?"block":"none"});
 		var scroll = this.content.find(".scroll");
@@ -794,8 +822,8 @@ Level.prototype = {
 		});
 		this.content.find("[name=color]").spectrum({ clickoutFiresChange : true, showButtons : false, change : function(c1) {
 			_g3.currentLayer.props.color = Std.parseInt("0x" + c1.toHex());
-			_g3.draw();
 			_g3.save();
+			_g3.draw();
 		}});
 		this.onResize();
 		this.cursor = this.content.find("#cursor");
@@ -899,8 +927,8 @@ Level.prototype = {
 						var r = Reflect.compare(o11.y,o2.y);
 						if(r == 0) return Reflect.compare(o11.x,o2.x); else return r;
 					});
-					_g3.draw();
 					_g3.save();
+					_g3.draw();
 					break;
 				default:
 				}
@@ -986,13 +1014,13 @@ Level.prototype = {
 			return $r;
 		}(this))).bind("mousedown",function(_) {
 			popup.remove();
-			_g.draw();
 			((function($this) {
 				var $r;
 				var html1 = window;
 				$r = new js.JQuery(html1);
 				return $r;
 			}(this))).unbind("mousedown");
+			if(_g.view != null) _g.draw();
 		});
 		popup.mousedown(function(e) {
 			e.stopPropagation();
@@ -1042,6 +1070,7 @@ Level.prototype = {
 	}
 	,paint: function(x,y) {
 		var l = this.currentLayer;
+		if(l.props.mode == "objects") return;
 		{
 			var _g = l.data;
 			switch(_g[1]) {
@@ -1130,6 +1159,7 @@ Level.prototype = {
 		var _g1 = this;
 		if(e.ctrlKey && e.keyCode == 115) this.action("close");
 		if(e.ctrlKey) return;
+		new js.JQuery(".popup").remove();
 		var _g = e.keyCode;
 		switch(_g) {
 		case 107:
@@ -1143,7 +1173,6 @@ Level.prototype = {
 			this.updateZoom();
 			break;
 		case 27:
-			new js.JQuery(".popup").remove();
 			this.draw();
 			break;
 		case 9:
@@ -1154,6 +1183,7 @@ Level.prototype = {
 			e.stopPropagation();
 			break;
 		case 32:
+			e.preventDefault();
 			if(this.spaceDown) return;
 			this.spaceDown = true;
 			var canvas;
@@ -1181,7 +1211,9 @@ Level.prototype = {
 				_g1.mousePos.y = e1.pageY;
 				e1.stopPropagation();
 			});
-			e.preventDefault();
+			break;
+		case 79:
+			if(this.palette != null) this.paletteOption("mode","object");
 			break;
 		default:
 		}
@@ -1239,6 +1271,21 @@ Level.prototype = {
 						this.draw();
 					}
 					break;
+				case 3:
+					var insts = _g11[3];
+					var _g22 = 0;
+					while(_g22 < insts.length) {
+						var i2 = insts[_g22];
+						++_g22;
+						if(i2.x + i2.y * this.width == p.index) {
+							HxOverrides.remove(insts,i2);
+							p.layer.dirty = true;
+							this.save();
+							this.draw();
+							return;
+						}
+					}
+					break;
 				}
 			}
 			break;
@@ -1247,7 +1294,7 @@ Level.prototype = {
 			{
 				var _g12 = p1.layer.data;
 				switch(_g12[1]) {
-				case 0:case 2:
+				case 0:case 2:case 3:
 					break;
 				case 1:
 					var objs1 = _g12[3];
@@ -1327,6 +1374,54 @@ Level.prototype = {
 				this.save();
 				this.draw();
 				break;
+			case 3:
+				var insts = _g[3];
+				var objs = l.getTileObjects();
+				var putObj = objs.get(l.current);
+				var dx1;
+				if(putObj == null) dx1 = 0; else dx1 = putObj.w >> 1;
+				var dy1;
+				if(putObj == null) dy1 = 1; else dy1 = putObj.h;
+				var _g11 = 0;
+				while(_g11 < insts.length) {
+					var i = insts[_g11];
+					++_g11;
+					var o = objs.get(i.o);
+					if(i.x + (o == null?0:o.w >> 1) == x + dx1 && i.y + (o == null?1:o.h) == y + dy1) {
+						if(i.o == l.current) return;
+						HxOverrides.remove(insts,i);
+					}
+				}
+				if(putObj != null) insts.push({ x : x, y : y, o : l.current}); else {
+					var _g21 = 0;
+					var _g12 = l.currentHeight;
+					while(_g21 < _g12) {
+						var dy2 = _g21++;
+						var _g41 = 0;
+						var _g31 = l.currentWidth;
+						while(_g41 < _g31) {
+							var dx2 = _g41++;
+							insts.push({ x : x + dx2, y : y + dy2, o : l.current + dx2 + dy2 * l.imagesStride});
+						}
+					}
+				}
+				insts.sort(function(i1,i2) {
+					return (function($this) {
+						var $r;
+						var o1 = objs.get(i1.o);
+						$r = i1.y + (o1 == null?1:o1.h);
+						return $r;
+					}(this)) - (function($this) {
+						var $r;
+						var o2 = objs.get(i2.o);
+						$r = i2.y + (o2 == null?1:o2.h);
+						return $r;
+					}(this));
+				});
+				l.dirty = true;
+				this.save();
+				this.draw();
+				break;
 			case 1:
 				break;
 			}
@@ -1381,16 +1476,56 @@ Level.prototype = {
 							this.view.draw(l.images[k1],x1 * this.tileSize,y1 * this.tileSize);
 						}
 					}
+					if(l.props.mode == "ground") {
+						var b = new cdb.TileBuilder(l.tileProps,l.imagesStride,l.images.length);
+						var a = b.buildGrounds(data1,this.width);
+						var p = 0;
+						var max = a.length;
+						while(p < max) {
+							var x2 = a[p++];
+							var y2 = a[p++];
+							var id = a[p++];
+							this.view.draw(l.images[id],x2 * this.tileSize,y2 * this.tileSize);
+						}
+					}
+					break;
+				case 3:
+					var insts = _g2[3];
+					var objs = l.getTileObjects();
+					var _g32 = 0;
+					while(_g32 < insts.length) {
+						var i = insts[_g32];
+						++_g32;
+						var x3 = i.x;
+						var y3 = i.y;
+						var obj = objs.get(i.o);
+						if(obj == null) {
+							this.view.draw(l.images[i.o],x3 * this.tileSize,y3 * this.tileSize);
+							this.view.fillRect(x3 * this.tileSize,y3 * this.tileSize,this.tileSize,this.tileSize,-2130771968);
+						} else {
+							var _g52 = 0;
+							var _g42 = obj.h;
+							while(_g52 < _g42) {
+								var dy = _g52++;
+								var _g7 = 0;
+								var _g62 = obj.w;
+								while(_g7 < _g62) {
+									var dx = _g7++;
+									this.view.draw(l.images[i.o + dx + dy * l.imagesStride],(x3 + dx) * this.tileSize,(y3 + dy) * this.tileSize);
+								}
+							}
+						}
+					}
 					break;
 				case 1:
-					var objs = _g2[3];
+					var objs1 = _g2[3];
 					var idCol = _g2[2];
 					if(idCol == null) {
 						var col = l.props.color | -16777216;
-						var _g32 = 0;
-						while(_g32 < objs.length) {
-							var o = objs[_g32];
-							++_g32;
+						var _g33 = 0;
+						while(_g33 < objs1.length) {
+							var o = objs1[_g33];
+							++_g33;
 							var w;
 							if(l.hasSize) w = o.width * this.tileSize; else w = this.tileSize;
 							var h;
@@ -1398,12 +1533,12 @@ Level.prototype = {
 							this.view.fillRect(o.x * this.tileSize | 0,o.y * this.tileSize | 0,w | 0,h | 0,col);
 						}
 					} else {
-						var _g33 = 0;
-						while(_g33 < objs.length) {
-							var o1 = objs[_g33];
-							++_g33;
-							var id = Reflect.field(o1,idCol);
-							var k2 = l.idToIndex.get(id);
+						var _g34 = 0;
+						while(_g34 < objs1.length) {
+							var o1 = objs1[_g34];
+							++_g34;
+							var id1 = Reflect.field(o1,idCol);
+							var k2 = l.idToIndex.get(id1);
 							if(k2 == null) {
 								var w1;
 								if(l.hasSize) w1 = o1.width * this.tileSize; else w1 = this.tileSize;
@@ -1521,11 +1656,23 @@ Level.prototype = {
 						if(o.x < 0 || o.y < 0 || o.x >= this.width || o.y >= this.height) HxOverrides.remove(objs,o);
 					}
 					break;
+				case 3:
+					var insts = _g2[3];
+					var _g33 = 0;
+					var _g43 = insts.slice();
+					while(_g33 < _g43.length) {
+						var i1 = _g43[_g33];
+						++_g33;
+						i1.x += dx;
+						i1.y += dy;
+						if(i1.x < 0 || i1.y < 0 || i1.x >= this.width || i1.y >= this.height) HxOverrides.remove(insts,i1);
+					}
+					break;
 				}
 			}
 		}
-		this.draw();
 		this.save();
+		this.draw();
 	}
 	,setLock: function(b) {
 		this.currentLayer.floatCoord = this.currentLayer.hasFloatCoord && !b;
@@ -1573,8 +1720,119 @@ Level.prototype = {
 		canvas.attr("width",this.width * this.tileSize + "px");
 		canvas.attr("height",this.height * this.tileSize + "px");
 		this.setCursor(this.currentLayer);
-		this.draw();
 		this.save();
+		this.draw();
+	}
+	,setLayerMode: function(mode) {
+		var l = this.currentLayer;
+		if(l.tileProps == null) {
+			js.Lib.alert("Choose file first");
+			return;
+		}
+		var old = l.props.mode;
+		if(old == null) old = "tiles";
+		switch(old) {
+		case "ground":case "tiles":
+			switch(mode) {
+			case "tiles":case "ground":
+				break;
+			case "objects":
+				{
+					var _g = l.data;
+					switch(_g[1]) {
+					case 2:
+						var data = _g[3];
+						var td = _g[2];
+						var oids = new haxe.ds.IntMap();
+						var _g1 = 0;
+						var _g2 = l.tileProps.sets;
+						while(_g1 < _g2.length) {
+							var p = _g2[_g1];
+							++_g1;
+							if(p.t == "object") oids.set(p.x + p.y * l.imagesStride,p);
+						}
+						var objs = [];
+						var p1 = -1;
+						var _g21 = 0;
+						var _g11 = this.height;
+						while(_g21 < _g11) {
+							var y = _g21++;
+							var _g4 = 0;
+							var _g3 = this.width;
+							while(_g4 < _g3) {
+								var x = _g4++;
+								var d = data[++p1] - 1;
+								if(d < 0) continue;
+								var o = oids.get(d);
+								if(o != null) {
+									var _g6 = 0;
+									var _g5 = o.h;
+									while(_g6 < _g5) {
+										var dy = _g6++;
+										var _g8 = 0;
+										var _g7 = o.w;
+										while(_g8 < _g7) {
+											var dx = _g8++;
+											if(data[p1 + dx + dy * this.width] != d + dx + dy * l.imagesStride + 1) {
+												o = null;
+												break;
+											}
+										}
+										if(o == null) break;
+									}
+								}
+								if(o == null) objs.push({ x : x, y : y, b : y, id : d}); else {
+									var _g61 = 0;
+									var _g51 = o.h;
+									while(_g61 < _g51) {
+										var dy1 = _g61++;
+										var _g81 = 0;
+										var _g71 = o.w;
+										while(_g81 < _g71) {
+											var dx1 = _g81++;
+											data[p1 + dx1 + dy1 * this.width] = 0;
+										}
+									}
+									objs.push({ x : x, y : y, b : y + o.w - 1, id : d});
+								}
+							}
+						}
+						objs.sort(function(o1,o2) {
+							return o1.b - o2.b;
+						});
+						var out = [65535];
+						var _g12 = 0;
+						while(_g12 < objs.length) {
+							var o3 = objs[_g12];
+							++_g12;
+							out.push(o3.x);
+							out.push(o3.y);
+							out.push(o3.id);
+						}
+						l.data = lvl.LayerInnerData.Tiles(td,out);
+						l.dirty = true;
+						break;
+					default:
+					}
+				}
+				break;
+			}
+			break;
+		case "objects":
+			switch(mode) {
+			case "ground":case "tiles":
+				throw "TODO";
+				break;
+			default:
+				js.Lib.alert("Cannot convert from " + Std.string(old) + " to " + Std.string(mode));
+				return;
+			}
+			break;
+		}
+		l.props.mode = mode;
+		if(mode == "tiles") Reflect.deleteField(this.currentLayer.props,"mode");
+		this.save();
+		this.draw();
 	}
 	,setSize: function(size) {
 		{
@@ -1592,7 +1850,7 @@ Level.prototype = {
 			}
 		}
 	}
-	,paletteOption: function(name) {
+	,paletteOption: function(name,val) {
 		var l = this.currentLayer;
 		switch(name) {
 		case "random":
@@ -1600,13 +1858,49 @@ Level.prototype = {
 			this.palette.find(".icon.random").toggleClass("active",this.randomMode);
 			this.savePrefs();
 			this.setCursor(l);
-			break;
+			return;
 		case "paint":
 			this.paintMode = !this.paintMode;
 			this.savePrefs();
 			this.palette.find(".icon.paint").toggleClass("active",this.paintMode);
+			return;
+		case "mode":
+			var s = l.getTileProp();
+			var m = cdb._Data.TileMode_Impl_.ofString(val);
+			if(s == null) {
+				if(m == "tile") return;
+				s = { x : l.current % l.imagesStride, y : l.current / l.imagesStride | 0, w : l.currentWidth, h : l.currentHeight, t : m, opts : { }};
+				l.tileProps.sets.push(s);
+			} else if(m == "tile") HxOverrides.remove(l.tileProps.sets,s); else {
+				if(s.t == m) return;
+				s.t = m;
+				s.opts = { };
+			}
+			this.setCursor(l);
+			break;
+		case "name":
+			var s1 = l.getTileProp();
+			if(s1 != null) s1.opts.name = val;
+			break;
+		case "priority":
+			var s2 = l.getTileProp();
+			if(s2 != null) s2.opts.priority = Std.parseInt(val);
+			break;
+		case "border":
+			var s3 = l.getTileProp();
+			if(s3 != null) {
+				if(val == "null") Reflect.deleteField(s3.opts,"border"); else s3.opts.border = val;
+			}
+			break;
+		case "border_out":
+			var s4 = l.getTileProp();
+			if(s4 != null) {
+				if("" + val != "true") Reflect.deleteField(s4.opts,"borderOut"); else s4.opts.borderOut = true;
+			}
 			break;
 		}
+		this.save();
+		this.draw();
 	}
 	,setCursor: function(l) {
 		var _g = this;
@@ -1623,6 +1917,7 @@ Level.prototype = {
 			this.content.find("[name=alpha]").val(Std.string(l.props.alpha * 100 | 0));
 			this.content.find("[name=visible]").prop("checked",l.visible);
 			this.content.find("[name=lock]").prop("checked",!l.floatCoord).closest(".item").css({ display : l.hasFloatCoord?"":"none"});
+			this.content.find("[name=mode]").val("" + Std.string(l.props.mode != null?l.props.mode:"tiles"));
 			this.content.find("[name=color]").spectrum("set",this.toColor(l.props.color)).closest(".item").css({ display : l.idToIndex == null && !(function($this) {
 				var $r;
 				var _g1 = l.data;
@@ -1700,6 +1995,22 @@ Level.prototype = {
 						l.saveState();
 						_g.setCursor(l);
 					} else {
+						if(l.tileProps != null) {
+							var _g12 = 0;
+							var _g21 = l.tileProps.sets;
+							while(_g12 < _g21.length) {
+								var p = _g21[_g12];
+								++_g12;
+								if(x1 >= p.x && y1 >= p.y && x1 < p.x + p.w && y1 < p.y + p.h && p.t == "object") {
+									l.set_current(p.x + p.y * l.imagesStride);
+									l.currentWidth = p.w;
+									l.currentHeight = p.h;
+									l.saveState();
+									_g.setCursor(l);
+									return;
+								}
+							}
+						}
 						start_x = x1;
 						start_y = y1;
 						start_down = true;
@@ -1740,64 +2051,163 @@ Level.prototype = {
 				switch(_g4[1]) {
 				case 2:
 					var data = _g4[3];
-					var _g12 = 0;
-					while(_g12 < data.length) {
-						var k = data[_g12];
-						++_g12;
+					var _g13 = 0;
+					while(_g13 < data.length) {
+						var k = data[_g13];
+						++_g13;
 						if(k == 0) continue;
 						used[k - 1] = true;
 					}
 					break;
 				case 0:
 					var data1 = _g4[2];
-					var _g13 = 0;
-					while(_g13 < data1.length) {
-						var k1 = data1[_g13];
-						++_g13;
+					var _g14 = 0;
+					while(_g14 < data1.length) {
+						var k1 = data1[_g14];
+						++_g14;
 						used[k1] = true;
 					}
 					break;
 				case 1:
 					var objs = _g4[3];
 					var id = _g4[2];
-					var _g14 = 0;
-					while(_g14 < objs.length) {
-						var o2 = objs[_g14];
-						++_g14;
+					var _g15 = 0;
+					while(_g15 < objs.length) {
+						var o2 = objs[_g15];
+						++_g15;
 						var id1;
 						var key = Reflect.field(o2,id);
 						id1 = l.idToIndex.get(key);
 						if(id1 != null) used[id1] = true;
 					}
 					break;
+				case 3:
+					var insts = _g4[3];
+					var objs1 = l.getTileObjects();
+					var _g16 = 0;
+					while(_g16 < insts.length) {
+						var i1 = insts[_g16];
+						++_g16;
+						var t1 = objs1.get(i1.o);
+						if(t1 == null) {
+							used[i1.o] = true;
+							continue;
+						}
+						var _g31 = 0;
+						var _g22 = t1.h;
+						while(_g31 < _g22) {
+							var dy = _g31++;
+							var _g5 = 0;
+							var _g41 = t1.w;
+							while(_g5 < _g41) {
+								var dx = _g5++;
+								used[i1.o + dx + dy * l.imagesStride] = true;
+							}
+						}
+					}
+					break;
 				}
 			}
-			var _g15 = 0;
-			var _g5 = l.images.length;
-			while(_g15 < _g5) {
-				var i1 = _g15++;
-				if(used[i1]) continue;
-				this.paletteSelect.fillRect(i1 % l.imagesStride * (this.tileSize + 1),(i1 / l.imagesStride | 0) * (this.tileSize + 1),this.tileSize,this.tileSize,-2147483648);
+			var _g17 = 0;
+			var _g6 = l.images.length;
+			while(_g17 < _g6) {
+				var i2 = _g17++;
+				if(used[i2]) continue;
+				this.paletteSelect.fillRect(i2 % l.imagesStride * (this.tileSize + 1),(i2 / l.imagesStride | 0) * (this.tileSize + 1),this.tileSize,this.tileSize,-2147483648);
 			}
 			this.paletteSelect.fillRect(l.current % l.imagesStride * (this.tileSize + 1),(l.current / l.imagesStride | 0) * (this.tileSize + 1),(this.tileSize + 1) * l.currentWidth - 1,(this.tileSize + 1) * l.currentHeight - 1,-2141478405);
+			var m = this.palette.find(".mode");
+			if(l.tileProps == null) m.hide(); else {
+				var grounds = [];
+				var _g7 = 0;
+				var _g18 = l.tileProps.sets;
+				while(_g7 < _g18.length) {
+					var s = _g18[_g7];
+					++_g7;
+					var color;
+					var _g23 = s.t;
+					switch(_g23) {
+					case "tile":
+						color = 0;
+						break;
+					case "ground":
+						if(s.opts.name != null && s.opts.name != "") {
+							HxOverrides.remove(grounds,s.opts.name);
+							grounds.push(s.opts.name);
+						}
+						color = 65280;
+						break;
+					case "border":
+						color = 65535;
+						break;
+					case "object":
+						color = 16711680;
+						break;
+					}
+					color |= -16777216;
+					var px = s.x * (this.tileSize + 1);
+					var py = s.y * (this.tileSize + 1);
+					var w = s.w * (this.tileSize + 1) - 1;
+					var h = s.h * (this.tileSize + 1) - 1;
+					this.paletteSelect.fillRect(px,py,w,1,color);
+					this.paletteSelect.fillRect(px,py + h - 1,w,1,color);
+					this.paletteSelect.fillRect(px,py,1,h,color);
+					this.paletteSelect.fillRect(px + w - 1,py,1,h,color);
+				}
+				var tobj = l.getTileProp();
+				if(tobj == null) tobj = { x : 0, y : 0, w : 0, h : 0, t : "tile", opts : { }};
+				var tkind = cdb._Data.TileMode_Impl_.toString(tobj.t);
+				m.find("[name=mode]").val(tkind);
+				m.attr("class","").addClass("mode").addClass("m_" + tkind);
+				var _g8 = tobj.t;
+				switch(_g8) {
+				case "tile":
+					break;
+				case "ground":
+					m.find("[name=name]").val(tobj.opts.name == null?"":tobj.opts.name);
+					m.find("[name=priority]").val("" + (tobj.opts.priority == null?0:tobj.opts.priority));
+					break;
+				case "object":
+					break;
+				case "border":
+					var opts = "<option value='null'>any</option>" + ((function($this) {
+						var $r;
+						var _g19 = [];
+						{
+							var _g24 = 0;
+							while(_g24 < grounds.length) {
+								var g = grounds[_g24];
+								++_g24;
+								_g19.push("<option value=\"" + g + "\">" + g + "</option>");
+							}
+						}
+						$r = _g19;
+						return $r;
+					}(this))).join("");
+					m.find("[name=border]").html(opts).val(Std.string(tobj.opts.border));
+					m.find("[name=border_out]").prop("checked",tobj.opts.borderOut);
+					break;
+				}
+				m.show();
+			}
 		}
 		var size;
 		if(this.zoomView < 1) size = this.tileSize * this.zoomView | 0; else size = Math.ceil(this.tileSize * this.zoomView);
-		var w;
-		if(this.randomMode) w = 1; else w = l.currentWidth;
-		var h;
-		if(this.randomMode) h = 1; else h = l.currentHeight;
-		this.cursorImage.setSize(size * w,size * h);
+		var w1;
+		if(this.randomMode) w1 = 1; else w1 = l.currentWidth;
+		var h1;
+		if(this.randomMode) h1 = 1; else h1 = l.currentHeight;
+		this.cursorImage.setSize(size * w1,size * h1);
 		if(l.images != null) {
 			this.cursorImage.clear();
-			var _g6 = 0;
-			while(_g6 < h) {
-				var y3 = _g6++;
-				var _g16 = 0;
-				while(_g16 < w) {
-					var x3 = _g16++;
-					var i2 = l.images[l.current + x3 + y3 * l.imagesStride];
-					this.cursorImage.drawSub(i2,0,0,i2.width,i2.height,x3 * size,y3 * size,size,size);
+			var _g9 = 0;
+			while(_g9 < h1) {
+				var y3 = _g9++;
+				var _g110 = 0;
+				while(_g110 < w1) {
+					var x3 = _g110++;
+					var i3 = l.images[l.current + x3 + y3 * l.imagesStride];
+					this.cursorImage.drawSub(i3,0,0,i3.width,i3.height,x3 * size,y3 * size,size,size);
 				}
 			}
 			this.cursorImage.fill(1616617979);
@@ -5050,6 +5460,11 @@ Main.prototype = $extend(Model.prototype,{
 	}
 	,chooseFile: function(callb,cancel) {
 		var _g = this;
+		if(this.prefs.curFile == null) {
+			js.Lib.alert("Please save CDB file first");
+			if(cancel != null) cancel();
+			return;
+		}
 		var fs = new js.JQuery("#fileSelect");
 		if(fs.attr("nwworkingdir") == null) fs.attr("nwworkingdir",new haxe.io.Path(this.prefs.curFile).dir);
 		fs.change(function(_) {
@@ -6159,6 +6574,9 @@ Main.prototype = $extend(Model.prototype,{
 		this.window.show();
 		if(this.prefs.windowPos.max) this.window.maximize();
 		this.window.on("close",function() {
+			if(_g.prefs.curFile == null && _g.data.sheets.length > 0) {
+				if(!window.confirm("Do you want to exit without saving your changes?")) return;
+			}
 			if(!_g.prefs.windowPos.max) _g.prefs.windowPos = { x : _g.window.x, y : _g.window.y, w : _g.window.width, h : _g.window.height, max : false};
 			_g.savePrefs();
 			_g.window.close(true);
@@ -6356,27 +6774,20 @@ Sys.time = function() {
 };
 var ValueType = $hxClasses["ValueType"] = { __ename__ : ["ValueType"], __constructs__ : ["TNull","TInt","TFloat","TBool","TObject","TFunction","TClass","TEnum","TUnknown"] };
 ValueType.TNull = ["TNull",0];
-ValueType.TNull.toString = $estr;
 ValueType.TNull.__enum__ = ValueType;
 ValueType.TInt = ["TInt",1];
-ValueType.TInt.toString = $estr;
 ValueType.TInt.__enum__ = ValueType;
 ValueType.TFloat = ["TFloat",2];
-ValueType.TFloat.toString = $estr;
 ValueType.TFloat.__enum__ = ValueType;
 ValueType.TBool = ["TBool",3];
-ValueType.TBool.toString = $estr;
 ValueType.TBool.__enum__ = ValueType;
 ValueType.TObject = ["TObject",4];
-ValueType.TObject.toString = $estr;
 ValueType.TObject.__enum__ = ValueType;
 ValueType.TFunction = ["TFunction",5];
-ValueType.TFunction.toString = $estr;
 ValueType.TFunction.__enum__ = ValueType;
-ValueType.TClass = function(c) { var $x = ["TClass",6,c]; $x.__enum__ = ValueType; $x.toString = $estr; return $x; };
-ValueType.TEnum = function(e) { var $x = ["TEnum",7,e]; $x.__enum__ = ValueType; $x.toString = $estr; return $x; };
+ValueType.TClass = function(c) { var $x = ["TClass",6,c]; $x.__enum__ = ValueType; return $x; };
+ValueType.TEnum = function(e) { var $x = ["TEnum",7,e]; $x.__enum__ = ValueType; return $x; };
 ValueType.TUnknown = ["TUnknown",8];
-ValueType.TUnknown.toString = $estr;
 ValueType.TUnknown.__enum__ = ValueType;
 var Type = function() { };
 $hxClasses["Type"] = Type;
@@ -6464,43 +6875,45 @@ Type.enumEq = function(a,b) {
 var cdb = {};
 cdb.ColumnType = $hxClasses["cdb.ColumnType"] = { __ename__ : ["cdb","ColumnType"], __constructs__ : ["TId","TString","TBool","TInt","TFloat","TEnum","TRef","TImage","TList","TCustom","TFlags","TColor","TLayer","TFile","TTilePos","TTileLayer"] };
 cdb.ColumnType.TId = ["TId",0];
-cdb.ColumnType.TId.toString = $estr;
 cdb.ColumnType.TId.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TString = ["TString",1];
-cdb.ColumnType.TString.toString = $estr;
 cdb.ColumnType.TString.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TBool = ["TBool",2];
-cdb.ColumnType.TBool.toString = $estr;
 cdb.ColumnType.TBool.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TInt = ["TInt",3];
-cdb.ColumnType.TInt.toString = $estr;
 cdb.ColumnType.TInt.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TFloat = ["TFloat",4];
-cdb.ColumnType.TFloat.toString = $estr;
 cdb.ColumnType.TFloat.__enum__ = cdb.ColumnType;
-cdb.ColumnType.TEnum = function(values) { var $x = ["TEnum",5,values]; $x.__enum__ = cdb.ColumnType; $x.toString = $estr; return $x; };
-cdb.ColumnType.TRef = function(sheet) { var $x = ["TRef",6,sheet]; $x.__enum__ = cdb.ColumnType; $x.toString = $estr; return $x; };
+cdb.ColumnType.TEnum = function(values) { var $x = ["TEnum",5,values]; $x.__enum__ = cdb.ColumnType; return $x; };
+cdb.ColumnType.TRef = function(sheet) { var $x = ["TRef",6,sheet]; $x.__enum__ = cdb.ColumnType; return $x; };
 cdb.ColumnType.TImage = ["TImage",7];
-cdb.ColumnType.TImage.toString = $estr;
 cdb.ColumnType.TImage.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TList = ["TList",8];
-cdb.ColumnType.TList.toString = $estr;
 cdb.ColumnType.TList.__enum__ = cdb.ColumnType;
-cdb.ColumnType.TCustom = function(name) { var $x = ["TCustom",9,name]; $x.__enum__ = cdb.ColumnType; $x.toString = $estr; return $x; };
-cdb.ColumnType.TFlags = function(values) { var $x = ["TFlags",10,values]; $x.__enum__ = cdb.ColumnType; $x.toString = $estr; return $x; };
+cdb.ColumnType.TCustom = function(name) { var $x = ["TCustom",9,name]; $x.__enum__ = cdb.ColumnType; return $x; };
+cdb.ColumnType.TFlags = function(values) { var $x = ["TFlags",10,values]; $x.__enum__ = cdb.ColumnType; return $x; };
 cdb.ColumnType.TColor = ["TColor",11];
-cdb.ColumnType.TColor.toString = $estr;
 cdb.ColumnType.TColor.__enum__ = cdb.ColumnType;
-cdb.ColumnType.TLayer = function(type) { var $x = ["TLayer",12,type]; $x.__enum__ = cdb.ColumnType; $x.toString = $estr; return $x; };
+cdb.ColumnType.TLayer = function(type) { var $x = ["TLayer",12,type]; $x.__enum__ = cdb.ColumnType; return $x; };
 cdb.ColumnType.TFile = ["TFile",13];
-cdb.ColumnType.TFile.toString = $estr;
 cdb.ColumnType.TFile.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TTilePos = ["TTilePos",14];
-cdb.ColumnType.TTilePos.toString = $estr;
 cdb.ColumnType.TTilePos.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TTileLayer = ["TTileLayer",15];
-cdb.ColumnType.TTileLayer.toString = $estr;
 cdb.ColumnType.TTileLayer.__enum__ = cdb.ColumnType;
+cdb._Data = {};
+cdb._Data.TileMode_Impl_ = function() { };
+$hxClasses["cdb._Data.TileMode_Impl_"] = cdb._Data.TileMode_Impl_;
+cdb._Data.TileMode_Impl_.__name__ = ["cdb","_Data","TileMode_Impl_"];
+cdb._Data.TileMode_Impl_._new = function(s) {
+	return s;
+};
+cdb._Data.TileMode_Impl_.ofString = function(s) {
+	return cdb._Data.TileMode_Impl_._new(s);
+};
+cdb._Data.TileMode_Impl_.toString = function(this1) {
+	return this1;
+};
 cdb.Parser = function() { };
 $hxClasses["cdb.Parser"] = cdb.Parser;
 cdb.Parser.__name__ = ["cdb","Parser"];
@@ -6620,6 +7033,239 @@ cdb.Parser.parse = function(content) {
 		}
 	}
 	return data;
+};
+cdb.TileBuilder = function(t,stride,total) {
+	this.borders = new Array();
+	this.groundIds = new haxe.ds.StringMap();
+	this.grounds = [];
+	var _g1 = 0;
+	var _g = total + 1;
+	while(_g1 < _g) {
+		var i = _g1++;
+		this.grounds[i] = 0;
+	}
+	this.grounds[0] = -1;
+	this.borders = [];
+	var _g2 = 0;
+	var _g11 = t.sets;
+	while(_g2 < _g11.length) {
+		var s = _g11[_g2];
+		++_g2;
+		var _g21 = s.t;
+		switch(_g21) {
+		case "tile":
+			break;
+		case "ground":
+			var gid = s.opts.priority;
+			if(gid == null) gid = 0;
+			gid++;
+			var bl;
+			var _g3 = [];
+			var _g4 = 0;
+			while(_g4 < 16) {
+				var i1 = _g4++;
+				_g3.push([]);
+			}
+			bl = _g3;
+			this.borders[gid] = bl;
+			var _g5 = 0;
+			var _g41 = s.w;
+			while(_g5 < _g41) {
+				var dx = _g5++;
+				var _g7 = 0;
+				var _g6 = s.h;
+				while(_g7 < _g6) {
+					var dy = _g7++;
+					var tid = s.x + dx + (s.y + dy) * stride + 1;
+					bl[15].push(tid - 1);
+					this.grounds[tid] = gid;
+				}
+			}
+			this.groundIds.set(s.opts.name,gid);
+			break;
+		case "object":
+			break;
+		case "border":
+			break;
+		}
+	}
+	var _g8 = 0;
+	var _g12 = t.sets;
+	while(_g8 < _g12.length) {
+		var s1 = _g12[_g8];
+		++_g8;
+		if(s1.t == "border") {
+			var gid1 = this.groundIds.get(s1.opts.border);
+			if(gid1 == null) continue;
+			var bt = this.borders[gid1];
+			if(bt == null) continue;
+			var _g31 = 0;
+			var _g22 = s1.w;
+			while(_g31 < _g22) {
+				var dx1 = _g31++;
+				var _g51 = 0;
+				var _g42 = s1.h;
+				while(_g51 < _g42) {
+					var dy1 = _g51++;
+					var k;
+					if(s1.opts.borderOut) {
+						if(dx1 == 0 && dy1 == 0) k = 14; else if(dx1 == s1.w - 1 && dy1 == 0) k = 13; else if(dx1 == 0 && dy1 == s1.h - 1) k = 11; else if(dx1 == s1.w - 1 && dy1 == s1.h - 1) k = 7; else continue;
+					} else if(dy1 == 0) if(dx1 == 0) k = 1; else if(dx1 == s1.w - 1) k = 2; else k = 3; else if(dy1 == s1.h - 1) if(dx1 == 0) k = 4; else if(dx1 == s1.w - 1) k = 8; else k = 12; else if(dx1 == 0) k = 5; else if(dx1 == s1.w - 1) k = 10; else continue;
+					bt[k].push(s1.x + dx1 + (s1.y + dy1) * stride);
+				}
+			}
+		}
+	}
+};
+$hxClasses["cdb.TileBuilder"] = cdb.TileBuilder;
+cdb.TileBuilder.__name__ = ["cdb","TileBuilder"];
+cdb.TileBuilder.prototype = {
+	random: function(n) {
+		n *= -862048943;
+		n = n << 15 | n >>> 17;
+		n *= 461845907;
+		var h = 5381;
+		h ^= n;
+		h = h << 13 | h >>> 19;
+		h = h * 5 + -430675100;
+		h ^= h >> 16;
+		h *= -2048144789;
+		h ^= h >> 13;
+		h *= -1028477387;
+		h ^= h >> 16;
+		return h;
+	}
+	,buildGrounds: function(input,width) {
+		var height = input.length / width | 0;
+		var p = -1;
+		var out = [];
+		var _g = 0;
+		while(_g < height) {
+			var y = _g++;
+			var _g1 = 0;
+			while(_g1 < width) {
+				var x = _g1++;
+				var v = input[++p];
+				var g = this.grounds[v];
+				var gl;
+				if(x == 0) gl = g; else gl = this.grounds[input[p - 1]];
+				var gr;
+				if(x == width - 1) gr = g; else gr = this.grounds[input[p + 1]];
+				var gt;
+				if(y == 0) gt = g; else gt = this.grounds[input[p - width]];
+				var gd;
+				if(y == height - 1) gd = g; else gd = this.grounds[input[p + width]];
+				var gtl;
+				if(x == 0 || y == 0) gtl = g; else gtl = this.grounds[input[p - 1 - width]];
+				var gtr;
+				if(x == width - 1 || y == 0) gtr = g; else gtr = this.grounds[input[p + 1 - width]];
+				var gbl;
+				if(x == 0 || y == height - 1) gbl = g; else gbl = this.grounds[input[p - 1 + width]];
+				var gbr;
+				if(x == width - 1 || y == height - 1) gbr = g; else gbr = this.grounds[input[p + 1 + width]];
+				var max;
+				var a;
+				var a1;
+				if(gr > gl) a1 = gr; else a1 = gl;
+				var b;
+				if(gt > gd) b = gt; else b = gd;
+				if(a1 > b) a = a1; else a = b;
+				var b1;
+				var a2;
+				if(gtr > gtl) a2 = gtr; else a2 = gtl;
+				var b2;
+				if(gbr > gbl) b2 = gbr; else b2 = gbl;
+				if(a2 > b2) b1 = a2; else b1 = b2;
+				if(a > b1) max = a; else max = b1;
+				var min;
+				var a3;
+				var a4;
+				var a5 = gr;
+				var b3 = gl;
+				if(a5 <= g) a5 = 1000;
+				if(b3 <= g) b3 = 1000;
+				if(a5 > b3) a4 = b3; else a4 = a5;
+				var b4;
+				var a6 = gt;
+				var b5 = gd;
+				if(a6 <= g) a6 = 1000;
+				if(b5 <= g) b5 = 1000;
+				if(a6 > b5) b4 = b5; else b4 = a6;
+				if(a4 <= g) a4 = 1000;
+				if(b4 <= g) b4 = 1000;
+				if(a4 > b4) a3 = b4; else a3 = a4;
+				var b6;
+				var a7;
+				var a8 = gtr;
+				var b7 = gtl;
+				if(a8 <= g) a8 = 1000;
+				if(b7 <= g) b7 = 1000;
+				if(a8 > b7) a7 = b7; else a7 = a8;
+				var b8;
+				var a9 = gbr;
+				var b9 = gbl;
+				if(a9 <= g) a9 = 1000;
+				if(b9 <= g) b9 = 1000;
+				if(a9 > b9) b8 = b9; else b8 = a9;
+				if(a7 <= g) a7 = 1000;
+				if(b8 <= g) b8 = 1000;
+				if(a7 > b8) b6 = b8; else b6 = a7;
+				if(a3 <= g) a3 = 1000;
+				if(b6 <= g) b6 = 1000;
+				if(a3 > b6) min = b6; else min = a3;
+				var _g2 = min - 1;
+				while(_g2 < max) {
+					var g1 = _g2++;
+					var bits = 0;
+					if(g1 < gl) bits |= 10;
+					if(g1 < gr) bits |= 5;
+					if(g1 < gt) bits |= 12;
+					if(g1 < gd) bits |= 3;
+					if(g1 < gtl) bits |= 8;
+					if(g1 < gtr) bits |= 4;
+					if(g1 < gbl) bits |= 2;
+					if(g1 < gbr) bits |= 1;
+					if(bits == 0) continue;
+					var bb = this.borders[g1 + 1];
+					if(bb == null) continue;
+					var a10 = bb[bits];
+					if(a10.length == 0) {
+						switch(bits) {
+						case 7:case 11:case 13:case 14:
+							a10 = bb[15];
+							break;
+						case 6:
+							a10 = bb[2];
+							if(a10.length > 0) {
+								out.push(x);
+								out.push(y);
+								out.push(a10.length == 1?a10[0]:a10[this.random(x + y * width) % a10.length]);
+							}
+							a10 = bb[4];
+							break;
+						case 9:
+							a10 = bb[1];
+							if(a10.length > 0) {
+								out.push(x);
+								out.push(y);
+								out.push(a10.length == 1?a10[0]:a10[this.random(x + y * width) % a10.length]);
+							}
+							a10 = bb[8];
+							break;
+						default:
+							continue;
+						}
+						if(a10.length == 0) continue;
+					}
+					out.push(x);
+					out.push(y);
+					out.push(a10.length == 1?a10[0]:a10[this.random(x + y * width) % a10.length]);
+				}
+			}
+		}
+		return out;
+	}
+	,__class__: cdb.TileBuilder
 };
 cdb._Types = {};
 cdb._Types.ArrayIterator = function(a) {
@@ -7916,15 +8562,12 @@ haxe.io.Eof.prototype = {
 };
 haxe.io.Error = $hxClasses["haxe.io.Error"] = { __ename__ : ["haxe","io","Error"], __constructs__ : ["Blocked","Overflow","OutsideBounds","Custom"] };
 haxe.io.Error.Blocked = ["Blocked",0];
-haxe.io.Error.Blocked.toString = $estr;
 haxe.io.Error.Blocked.__enum__ = haxe.io.Error;
 haxe.io.Error.Overflow = ["Overflow",1];
-haxe.io.Error.Overflow.toString = $estr;
 haxe.io.Error.Overflow.__enum__ = haxe.io.Error;
 haxe.io.Error.OutsideBounds = ["OutsideBounds",2];
-haxe.io.Error.OutsideBounds.toString = $estr;
 haxe.io.Error.OutsideBounds.__enum__ = haxe.io.Error;
-haxe.io.Error.Custom = function(e) { var $x = ["Custom",3,e]; $x.__enum__ = haxe.io.Error; $x.toString = $estr; return $x; };
+haxe.io.Error.Custom = function(e) { var $x = ["Custom",3,e]; $x.__enum__ = haxe.io.Error; return $x; };
 haxe.io.Path = function(path) {
 	switch(path) {
 	case ".":case "..":
@@ -8576,10 +9219,11 @@ lvl.Image3D.prototype = $extend(lvl.Image.prototype,{
 	}
 	,__class__: lvl.Image3D
 });
-lvl.LayerInnerData = $hxClasses["lvl.LayerInnerData"] = { __ename__ : ["lvl","LayerInnerData"], __constructs__ : ["Layer","Objects","Tiles"] };
-lvl.LayerInnerData.Layer = function(a) { var $x = ["Layer",0,a]; $x.__enum__ = lvl.LayerInnerData; $x.toString = $estr; return $x; };
-lvl.LayerInnerData.Objects = function(idCol,objs) { var $x = ["Objects",1,idCol,objs]; $x.__enum__ = lvl.LayerInnerData; $x.toString = $estr; return $x; };
-lvl.LayerInnerData.Tiles = function(t,data) { var $x = ["Tiles",2,t,data]; $x.__enum__ = lvl.LayerInnerData; $x.toString = $estr; return $x; };
+lvl.LayerInnerData = $hxClasses["lvl.LayerInnerData"] = { __ename__ : ["lvl","LayerInnerData"], __constructs__ : ["Layer","Objects","Tiles","TileInstances"] };
+lvl.LayerInnerData.Layer = function(a) { var $x = ["Layer",0,a]; $x.__enum__ = lvl.LayerInnerData; return $x; };
+lvl.LayerInnerData.Objects = function(idCol,objs) { var $x = ["Objects",1,idCol,objs]; $x.__enum__ = lvl.LayerInnerData; return $x; };
+lvl.LayerInnerData.Tiles = function(t,data) { var $x = ["Tiles",2,t,data]; $x.__enum__ = lvl.LayerInnerData; return $x; };
+lvl.LayerInnerData.TileInstances = function(t,insts) { var $x = ["TileInstances",3,t,insts]; $x.__enum__ = lvl.LayerInnerData; return $x; };
 lvl.LayerData = function(level,name,p,target) {
 	this.currentHeight = 1;
 	this.currentWidth = 1;
@@ -8773,6 +9417,29 @@ lvl.LayerData.prototype = {
 		}
 		if(this.sheet.lines.length > 256) throw "Too many lines";
 	}
+	,getTileProp: function() {
+		if(this.tileProps == null) return null;
+		var _g = 0;
+		var _g1 = this.tileProps.sets;
+		while(_g < _g1.length) {
+			var s = _g1[_g];
+			++_g;
+			if(s.x + s.y * this.imagesStride == this.current) return s;
+		}
+		return null;
+	}
+	,getTileObjects: function() {
+		var objs = new haxe.ds.IntMap();
+		if(this.tileProps == null) return objs;
+		var _g = 0;
+		var _g1 = this.tileProps.sets;
+		while(_g < _g1.length) {
+			var o = _g1[_g];
+			++_g;
+			if(o.t == "object") objs.set(o.x + o.y * this.imagesStride,o);
+		}
+		return objs;
+	}
 	,setObjectsData: function(id,val) {
 		this.data = lvl.LayerInnerData.Objects(id,val);
 	}
@@ -8799,9 +9466,11 @@ lvl.LayerData.prototype = {
 		this.images = [];
 		this.data = lvl.LayerInnerData.Tiles(d,data);
 		if(file == null) {
+			if(this.props.mode != "tiles" && this.props.mode != null) Reflect.deleteField(this.props,"mode");
 			var i1 = new lvl.Image(16,16);
 			i1.fill(-65281);
 			this.images.push(i1);
+			this.loadState();
 			return;
 		}
 		this.level.wait();
@@ -8819,21 +9488,58 @@ lvl.LayerData.prototype = {
 					_g3.images.push(i3);
 				}
 			}
-			var max = w * h;
-			var _g22 = 0;
-			var _g12 = data.length;
-			while(_g22 < _g12) {
-				var i4 = _g22++;
-				var v = data[i4] - 1;
-				if(v < 0) continue;
-				var vx = v % stride;
-				var vy = v / stride | 0;
-				v = vx + vy * w;
-				if(vx >= w || vy >= h || _g3.blanks[v]) data[i4] = 0; else data[i4] = v + 1;
+			var _g12 = _g3.props.mode;
+			if(_g12 == null) {
+				var max = w * h;
+				var _g4 = 0;
+				var _g22 = data.length;
+				while(_g4 < _g22) {
+					var i4 = _g4++;
+					var v = data[i4] - 1;
+					if(v < 0) continue;
+					var vx = v % stride;
+					var vy = v / stride | 0;
+					v = vx + vy * w;
+					if(vx >= w || vy >= h || _g3.blanks[v]) data[i4] = 0; else data[i4] = v + 1;
+				}
+			} else switch(_g12) {
+			case "tiles":case "ground":
+				var max = w * h;
+				var _g4 = 0;
+				var _g22 = data.length;
+				while(_g4 < _g22) {
+					var i4 = _g4++;
+					var v = data[i4] - 1;
+					if(v < 0) continue;
+					var vx = v % stride;
+					var vy = v / stride | 0;
+					v = vx + vy * w;
+					if(vx >= w || vy >= h || _g3.blanks[v]) data[i4] = 0; else data[i4] = v + 1;
+				}
+				break;
+			case "objects":
+				var insts = [];
+				var p = 1;
+				if(data[0] != 65535) throw "assert";
+				while(p < data.length) {
+					var x1 = data[p++];
+					var y1 = data[p++];
+					var v1 = data[p++];
+					var vx1 = v1 % stride;
+					var vy1 = v1 / stride | 0;
+					v1 = vx1 + vy1 * w;
+					if(vx1 >= w || vy1 >= h || _g3.blanks[v1]) continue;
+					insts.push({ x : x1, y : y1, o : v1});
+				}
+				_g3.data = lvl.LayerInnerData.TileInstances(d,insts);
+				break;
 			}
 			_g3.imagesStride = d.stride = w;
+			_g3.tileProps = _g3.level.getTileProps(file);
 			_g3.loadState();
 			_g3.level.waitDone();
+		},function() {
+			throw "Could not load " + file;
 		});
 		this.level.watch(file,function() {
 			lvl.Image.load(_g3.level.model.getAbsPath(file),function(_) {
@@ -8893,19 +9599,28 @@ lvl.LayerData.prototype = {
 				var data1 = _g[3];
 				var t = _g[2];
 				var b1 = new haxe.io.BytesOutput();
-				var r = 0;
 				var _g21 = 0;
-				var _g11 = this.level.width;
+				var _g11 = data1.length;
 				while(_g21 < _g11) {
-					var y1 = _g21++;
-					var _g41 = 0;
-					var _g31 = this.level.height;
-					while(_g41 < _g31) {
-						var x1 = _g41++;
-						b1.writeUInt16(data1[r++]);
-					}
+					var r = _g21++;
+					b1.writeUInt16(data1[r]);
 				}
 				if(t.file == null) return null; else return { file : t.file, size : t.size, stride : t.stride, data : haxe.crypto.Base64.encode(b1.getBytes())};
+				break;
+			case 3:
+				var insts = _g[3];
+				var t1 = _g[2];
+				var b2 = new haxe.io.BytesOutput();
+				b2.writeUInt16(65535);
+				var _g12 = 0;
+				while(_g12 < insts.length) {
+					var i = insts[_g12];
+					++_g12;
+					b2.writeUInt16(i.x);
+					b2.writeUInt16(i.y);
+					b2.writeUInt16(i.o);
+				}
+				if(t1.file == null) return null; else return { file : t1.file, size : t1.size, stride : t1.stride, data : haxe.crypto.Base64.encode(b2.getBytes())};
 				break;
 			}
 		}
@@ -9113,6 +9828,10 @@ K.NUMPAD_ADD = 107;
 K.NUMPAD_SUB = 109;
 K.NUMPAD_DIV = 111;
 Main.UID = 0;
+cdb._Data.TileMode_Impl_.Tile = "tile";
+cdb._Data.TileMode_Impl_.Ground = "ground";
+cdb._Data.TileMode_Impl_.Border = "border";
+cdb._Data.TileMode_Impl_.Object = "object";
 haxe.Serializer.USE_CACHE = false;
 haxe.Serializer.USE_ENUM_INDEX = false;
 haxe.Serializer.BASE64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789%:";
