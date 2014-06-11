@@ -14,6 +14,7 @@ typedef LevelState = {
 	var scrollY : Int;
 	var paintMode : Bool;
 	var randomMode : Bool;
+	var tagMode : Null<String>;
 }
 
 class Level {
@@ -53,6 +54,7 @@ class Level {
 	var paletteSelect : lvl.Image;
 	var paintMode : Bool = false;
 	var randomMode : Bool = false;
+	var tagMode : Null<String> = null;
 	var spaceDown : Bool;
 
 	var watchList : Array<{ path : String, time : Float, callb : Void -> Void }>;
@@ -172,15 +174,32 @@ class Level {
 		waitDone();
 	}
 
-	public function getTileProps(file) {
+	public function getTileProps(file,stride) {
 		if( props.tileSets == null )
 			props.tileSets = {};
 		var p : TileProps = Reflect.field(props.tileSets,file);
 		if( p == null ) {
 			p = {
+				stride : stride,
 				sets : [],
+				tags : [],
 			};
 			Reflect.setField(props.tileSets, file, p);
+		} else {
+			if( p.sets == null ) p.sets = [];
+			if( p.tags == null ) p.tags = [];
+			if( p.stride == null ) p.stride = stride else if( p.stride != stride ) {
+				for( t in p.tags ) {
+					var out = [];
+					for( y in 0...Math.ceil(t.flags.length / p.stride) )
+						for( x in 0...p.stride ) {
+							if( t.flags[x + y * p.stride] )
+								out[x + y * stride] = true;
+						}
+					t.flags = out;
+				}
+				p.stride = stride;
+			}
 		}
 		return p;
 	}
@@ -251,6 +270,7 @@ class Level {
 			zoomView = state.zoomView;
 			paintMode = state.paintMode;
 			randomMode = state.randomMode;
+			tagMode = state.tagMode;
 		}
 
 		setCursor(layer);
@@ -1135,6 +1155,7 @@ class Level {
 			scrollY : sc.scrollTop(),
 			paintMode : paintMode,
 			randomMode : randomMode,
+			tagMode : tagMode,
 		};
 		js.Browser.getLocalStorage().setItem(sheetPath, haxe.Serializer.run(state));
 	}
@@ -1322,17 +1343,20 @@ class Level {
 		}
 	}
 
-	@:keep function paletteOption(name,?val:String) {
+	@:keep function paletteOption(name, ?val:String) {
 		var l = currentLayer;
+		if( val != null ) val = StringTools.trim(val);
 		switch( name ) {
 		case "random":
 			randomMode = !randomMode;
+			if( l.data.match(TileInstances(_)) ) randomMode = false;
 			palette.find(".icon.random").toggleClass("active", randomMode);
 			savePrefs();
 			setCursor(l);
 			return;
 		case "paint":
 			paintMode = !paintMode;
+			if( l.data.match(TileInstances(_)) ) paintMode = false;
 			savePrefs();
 			palette.find(".icon.paint").toggleClass("active", paintMode);
 			return;
@@ -1375,6 +1399,33 @@ class Level {
 				else
 					s.opts.borderOut = true;
 			}
+		case "tag":
+			tagMode = (tagMode == null ? (l.tileProps.tags.length == 0 ? "" : l.tileProps.tags[0].name) : null);
+			palette.find(".icon.tag").toggleClass("active", tagMode != null);
+			savePrefs();
+			setCursor(l);
+		case "addTag":
+			if( val == "" ) return;
+			for( t in l.tileProps.tags )
+				if( t.name == val )
+					return;
+			l.tileProps.tags.push( { name : val, flags : [] } );
+			tagMode = val;
+			savePrefs();
+			setCursor(l);
+		case "delTag":
+			for( t in l.tileProps.tags )
+				if( t.name == tagMode ) {
+					l.tileProps.tags.remove(t);
+					var t = l.tileProps.tags[0];
+					tagMode = t == null ? "" : t.name;
+					savePrefs();
+				}
+			setCursor(l);
+		case "selectTag":
+			tagMode = val;
+			savePrefs();
+			setCursor(l);
 		}
 		save();
 		draw();
@@ -1407,6 +1458,12 @@ class Level {
 				content.find("[name=file]").closest(".item").hide();
 			}
 
+			if( l.data.match(TileInstances(_)) ) {
+				randomMode = false;
+				paintMode = false;
+				savePrefs();
+			}
+
 			if( palette != null ) {
 				palette.remove();
 				paletteSelect = null;
@@ -1425,13 +1482,25 @@ class Level {
 				select.setSize(i.width, i.height);
 
 				palette.find(".icon.random").toggleClass("active",randomMode);
-				palette.find(".icon.paint").toggleClass("active",paintMode);
+				palette.find(".icon.paint").toggleClass("active", paintMode);
+				palette.find(".icon.tag").toggleClass("active", tagMode != null);
 
 				var start = { x : l.current % l.imagesStride, y : Std.int(l.current / l.imagesStride), down : false };
 				jsel.mousedown(function(e) {
 					var o = jsel.offset();
 					var x = Std.int((e.pageX - o.left) / (tileSize + 1));
 					var y = Std.int((e.pageY - o.top) / (tileSize + 1));
+
+					if( tagMode != null ) {
+						var t = Lambda.find(l.tileProps.tags, function(t) return t.name == tagMode);
+						if( t != null ) {
+							t.flags[x + y * l.imagesStride] = !t.flags[x + y * l.imagesStride];
+							setCursor(l);
+							save();
+						}
+						return;
+					}
+
 					if( e.shiftKey ) {
 						var x0 = x < start.x ? x : start.x;
 						var y0 = y < start.y ? y : start.y;
@@ -1512,15 +1581,32 @@ class Level {
 							used[i.o + dx + dy * l.imagesStride] = true;
 				}
 			}
-			for( i in 0...l.images.length ) {
-				if( used[i] ) continue;
-				paletteSelect.fillRect( (i % l.imagesStride) * (tileSize + 1), Std.int(i / l.imagesStride) * (tileSize + 1), tileSize, tileSize, 0x80000000);
+
+			if( tagMode == null ) {
+				for( i in 0...l.images.length ) {
+					if( used[i] ) continue;
+					paletteSelect.fillRect( (i % l.imagesStride) * (tileSize + 1), Std.int(i / l.imagesStride) * (tileSize + 1), tileSize, tileSize, 0x80000000);
+				}
+				paletteSelect.fillRect( (l.current % l.imagesStride) * (tileSize + 1), Std.int(l.current / l.imagesStride) * (tileSize + 1), (tileSize + 1) * l.currentWidth - 1, (tileSize + 1) * l.currentHeight - 1, 0x805BA1FB);
 			}
-			paletteSelect.fillRect( (l.current % l.imagesStride) * (tileSize + 1), Std.int(l.current / l.imagesStride) * (tileSize + 1), (tileSize + 1) * l.currentWidth - 1, (tileSize + 1) * l.currentHeight - 1, 0x805BA1FB);
 
 			var m = palette.find(".mode");
+			var t = palette.find(".tagMode").hide();
 			if( l.tileProps == null ) {
 				m.hide();
+			} else if( tagMode != null ) {
+				t.find("[name=tags]").html([for( t in l.tileProps.tags ) '<option value="${t.name}">${t.name}</option>'].join("")).val(tagMode);
+				m.hide();
+				t.show();
+
+				var t = Lambda.find(l.tileProps.tags, function(t) return t.name == tagMode);
+				if( t != null ) {
+					for( y in 0...height )
+						for( x in 0...width )
+							if( t.flags[x + y * l.imagesStride] )
+								paletteSelect.fillRect(x * (tileSize+1), y * (tileSize+1), tileSize + 1, tileSize + 1, 0x80FB5BA1);
+				}
+
 			} else {
 
 				var grounds = [];

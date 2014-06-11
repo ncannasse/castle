@@ -143,20 +143,30 @@
 	<div id="paletteContent" style="display:none">
 		<div class="palette">
 			<div class="bar">
-				<div class="icon random" onclick="_.level.paletteOption('random')"></div>
-				<div class="icon paint" onclick="_.level.paletteOption('paint')"></div>
+				<div class="icon random" onclick="_.level.paletteOption('random')" title="Random mode"></div>
+				<div class="icon paint" onclick="_.level.paletteOption('paint')" title="Paint mode"></div>
+				<div class="icon tag" onclick="_.level.paletteOption('tag')" title="Tag tiles mode"></div>
+				<div class="tagMode">
+					<select name="tags" onchange="_.level.paletteOption('selectTag',this.value)" title="Choose tag to modify">
+					</select>
+					<label title="Create new tag">
+						<input type="text" name="tagName"/>
+						<input type="submit" value="Add" onclick="{ var t = $(this).parent().find('[name=tagName]'); _.level.paletteOption('addTag',t.val()); t.val(''); }"/>
+					</label>
+					<input type="submit" value="Del" onclick="_.level.paletteOption('delTag')"/>
+				</div>
 				<div class="mode">
-					<select name="mode" onchange="_.level.paletteOption('mode',this.value)">
+					<select name="mode" onchange="_.level.paletteOption('mode',this.value)" title="Change tile mode">
 						<option value="tile">tile</option>
 						<option value="ground">ground</option>
 						<option value="border">border</option>
 						<option value="object">object</option>
 					</select>
-					<label class="opt name">
+					<label class="opt name" title="Name for this ground">
 						Name:
 						<input type="text" name="name" onchange="_.level.paletteOption('name',this.value)"/>
 					</label>
-					<label class="opt priority">
+					<label class="opt priority" title="Priority for this ground (higher is above)">
 						Priority:
 						<select name="priority" onchange="_.level.paletteOption('priority',this.value)">
 							<option value="0">0</option>
@@ -168,11 +178,11 @@
 							<option value="6">6</option>
 						</select>
 					</label>
-					<label class="opt border">
+					<label class="opt border" title="Choose ground for this border">
 						<select name="border" onchange="_.level.paletteOption('border', this.value)">
 						</select>
 					</label>
-					<label class="opt border_out">
+					<label class="opt border_out" title="Check if it's an outside border">
 						<input type="checkbox" name="border_out" onchange="_.level.paletteOption('border_out', ''+this.checked)"/>
 						Out
 					</label>

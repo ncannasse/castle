@@ -254,7 +254,7 @@ class LayerData {
 				hasFloatCoord = floatCoord = true;
 			}
 			imagesStride = d.stride = w;
-			tileProps = level.getTileProps(file);
+			tileProps = level.getTileProps(file, imagesStride);
 			loadState();
 			level.waitDone();
 		}, function() {
