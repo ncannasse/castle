@@ -1246,11 +1246,16 @@ class Level {
 						var o = oids.get(d);
 						if( o != null ) {
 							for( dy in 0...o.h ) {
-								for( dx in 0...o.w )
-									if( data[p + dx + dy * width] != d + dx + dy * l.imagesStride + 1 ) {
+								for( dx in 0...o.w ) {
+									var tp = p + dx + dy * width;
+									if( x + dx >= width || y + dy >= height ) continue;
+									var id = d + dx + dy * l.imagesStride;
+									if( data[tp] != id + 1 ) {
+										if( data[tp] == 0 && l.blanks[id] ) continue;
 										o = null;
 										break;
 									}
+								}
 								if( o == null ) break;
 							}
 						}
@@ -1258,8 +1263,10 @@ class Level {
 							objs.push({ x : x, y : y, b : y, id : d });
 						else {
 							for( dy in 0...o.h )
-								for( dx in 0...o.w )
+								for( dx in 0...o.w ) {
+									if( x + dx >= width || y + dy >= height ) continue;
 									data[p + dx + dy * width] = 0;
+								}
 							objs.push( { x : x, y : y, b : y + o.w - 1, id : d } );
 						}
 					}
@@ -1300,7 +1307,7 @@ class Level {
 		l.props.mode = mode;
 		if( mode == Tiles ) Reflect.deleteField(currentLayer.props, "mode");
 		save();
-		draw();
+		reload();
 	}
 
 	@:keep function setSize(size) {

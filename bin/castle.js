@@ -1826,7 +1826,11 @@ Level.prototype = {
 										var _g7 = o.w;
 										while(_g8 < _g7) {
 											var dx = _g8++;
-											if(data[p1 + dx + dy * this.width] != d + dx + dy * l.imagesStride + 1) {
+											var tp = p1 + dx + dy * this.width;
+											if(x + dx >= this.width || y + dy >= this.height) continue;
+											var id = d + dx + dy * l.imagesStride;
+											if(data[tp] != id + 1) {
+												if(data[tp] == 0 && l.blanks[id]) continue;
 												o = null;
 												break;
 											}
@@ -1843,6 +1847,7 @@ Level.prototype = {
 										var _g71 = o.w;
 										while(_g81 < _g71) {
 											var dx1 = _g81++;
+											if(x + dx1 >= this.width || y + dy1 >= this.height) continue;
 											data[p1 + dx1 + dy1 * this.width] = 0;
 										}
 									}
@@ -1935,7 +1940,7 @@ Level.prototype = {
 		l.props.mode = mode;
 		if(mode == "tiles") Reflect.deleteField(this.currentLayer.props,"mode");
 		this.save();
-		this.draw();
+		this.reload();
 	}
 	,setSize: function(size) {
 		{
