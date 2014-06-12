@@ -43,18 +43,19 @@
 				<option value="string">Text</option>
 				<option value="bool">Boolean</option>
 				<option value="int">Integer</option>
-				<option value="float">Float Value</option>
+				<option value="float">Float</option>
 				<option value="enum">Enumeration</option>
 				<option value="flags">Flags</option>
 				<option value="ref">Reference</option>
-				<option value="image">Image</option>
 				<option value="list">List</option>
-				<option value="custom">Custom</option>
 				<option value="color">Color</option>
-				<option value="layer">Layer</option>
 				<option value="file">File</option>
+				<option value="image">Image</option>
 				<option value="tilepos">Tile</option>
+				<option value="dynamic">Dynamic</option>
+				<option value="layer">Data Layer</option>
 				<option value="tilelayer">Tile Layer</option>
+				<option value="custom">Custom Type</option>
 				</select>
 			</p>
 			<div id="col_options">
@@ -178,13 +179,23 @@
 							<option value="6">6</option>
 						</select>
 					</label>
-					<label class="opt border" title="Choose ground for this border">
-						<select name="border" onchange="_.level.paletteOption('border', this.value)">
+					<label class="opt border_in" title="Choose inside ground for this border">
+						In
+						<select name="border_in" onchange="_.level.paletteOption('border_in', this.value)">
 						</select>
 					</label>
-					<label class="opt border_out" title="Check if it's an outside border">
-						<input type="checkbox" name="border_out" onchange="_.level.paletteOption('border_out', ''+this.checked)"/>
+					<label class="opt border_out" title="Choose outside ground for this border">
 						Out
+						<select name="border_out" onchange="_.level.paletteOption('border_out', this.value)">
+						</select>
+					</label>
+					<label class="opt border_mode">
+						Mode
+						<select name="border_mode" onchange="_.level.paletteOption('border_mode', this.value)">
+							<option value="null">Corners</option>
+							<option value="corner">Lower Corners</option>
+							<option value="diag">Diagonals</option>
+						</select>
 					</label>
 				</div>
 			</div>

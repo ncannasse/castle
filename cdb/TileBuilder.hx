@@ -3,71 +3,143 @@ import cdb.Data;
 
 class TileBuilder {
 
-	var grounds : Array<Int>;
-	var groundIds = new Map<String, Int>();
+	var groundMap : Array<Int>;
+	var groundIds = new Map<String, { id : Int, fill : Array<Int> }>();
 	var borders = new Array<Array<Array<Int>>>();
 
 	public function new( t : TileProps, stride : Int, total : Int ) {
-		grounds = [];
+		groundMap = [];
 		for( i in 0...total+1 )
-			grounds[i] = 0;
-		grounds[0] = -1;
+			groundMap[i] = 0;
+		groundMap[0] = 0;
 		borders = [];
+
+		// get all grounds
+		var tmp = new Map();
 		for( s in t.sets )
 			switch( s.t ) {
-			case Tile:
-				// nothing
-			case Ground:
-				var gid = s.opts.priority;
-				if( gid == null ) gid = 0;
-				gid++;
-				var bl = [for( i in 0...16 ) []];
-				borders[gid] = bl;
+			case Ground if( s.opts.name != "" && s.opts.name != null ):
+				var g = tmp.get(s.opts.name);
+				if( g == null ) {
+					g = [];
+					tmp.set(s.opts.name, g);
+				}
+				g.push(s);
+			default:
+			}
+
+		// sort by priority
+		var allGrounds = Lambda.array(tmp);
+		inline function ifNull<T>(v:Null<T>, def:T) return v == null ? def : v;
+		allGrounds.sort(function(g1, g2) {
+			var dp = ifNull(g1[0].opts.priority,0) - ifNull(g2[0].opts.priority,0);
+			return dp != 0 ? dp : Reflect.compare(g1[0].opts.name, g2[0].opts.name);
+		});
+
+		// allocate group id
+		var gid = 0;
+		for( g in allGrounds ) {
+			var p = ifNull(g[0].opts.priority, 0);
+			if( p > 0 ) gid++;
+			var fill = [];
+			for( s in g )
 				for( dx in 0...s.w )
 					for( dy in 0...s.h ) {
-						var tid = s.x + dx + (s.y + dy) * stride + 1;
-						bl[15].push(tid - 1);
-						grounds[tid] = gid;
+						var tid = s.x + dx + (s.y + dy) * stride;
+						fill.push(tid);
+						groundMap[tid + 1] = gid;
 					}
-				groundIds.set(s.opts.name, gid);
-			case Object:
-			case Border:
-			}
+			groundIds.set(g[0].opts.name, { id : gid, fill : fill });
+		}
+		var maxGid = gid + 1;
+
+		// save borders combos
+		var allBorders = [];
 		for( s in t.sets )
-			if( s.t == Border ) {
-				var gid = groundIds.get(s.opts.border);
-				if( gid == null ) continue;
-				var bt = borders[gid];
-				if( bt == null ) continue;
-				for( dx in 0...s.w )
-					for( dy in 0...s.h ) {
-						var k;
-						if( s.opts.borderOut ) {
-							if( dx == 0 && dy == 0 )
-								k = 14;
-							else if( dx == s.w - 1 && dy == 0 )
-								k = 13;
-							else if( dx == 0 && dy == s.h - 1 )
-								k = 11;
-							else if( dx == s.w - 1 && dy == s.h - 1 )
-								k = 7;
-							else
-								continue;
-						} else {
-							if( dy == 0 )
-								k = dx == 0 ? 1 : dx == s.w - 1 ? 2 : 3;
-							else if( dy == s.h - 1 )
-								k = dx == 0 ? 4 : dx == s.w - 1 ? 8 : 12;
-							else if( dx == 0 )
-								k = 5;
-							else if( dx == s.w - 1 )
-								k = 10;
-							else
-								continue;
-						}
-						bt[k].push(s.x + dx + (s.y + dy) * stride);
-					}
+			if( s.t == Border )
+				allBorders.push(s);
+		inline function bweight(b) {
+			var k = 0;
+			if( b.opts.borderIn != null ) k += 1;
+			if( b.opts.borderOut != null ) k += 2;
+			if( b.opts.borderMode != null ) k += 4;
+			return k;
+		}
+		allBorders.sort(function(b1, b2) {
+			return bweight(b1) - bweight(b2);
+		});
+		for( b in allBorders ) {
+			var gid = groundIds.get(b.opts.borderIn);
+			var tid = groundIds.get(b.opts.borderOut);
+			if( gid == null && tid == null ) continue;
+			var gids, tids;
+			if( gid != null )
+				gids = [gid.id];
+			else {
+				switch( b.opts.borderIn ) {
+				case null: gids = [for( g in tid.id + 1...maxGid ) g];
+				case "lower": gids = [for( g in 0...tid.id ) g];
+				default: continue;
+				}
 			}
+			if( tid != null )
+				tids = [tid.id];
+			else {
+				switch( b.opts.borderOut ) {
+				case null: tids = [for( g in 0...gid.id ) g];
+				case "upper": tids = [for( g in gid.id + 1...maxGid ) g];
+				default: continue;
+				}
+			}
+			switch( b.opts.borderMode ) {
+			case "corner":
+				// swap
+				var tmp = gids;
+				gids = tids;
+				tids = tmp;
+			default:
+			}
+			for( g in gids )
+				for( t in tids ) {
+					var bt = borders[g + t * 256];
+					if( bt == null ) {
+						bt = [for( i in 0...16 ) []];
+						if( gid != null ) bt[8] = gid.fill;
+						borders[g + t * 256] = bt;
+					}
+					for( dx in 0...b.w )
+						for( dy in 0...b.h ) {
+							var k;
+							switch( b.opts.borderMode ) {
+							case null:
+								if( dy == 0 )
+									k = dx == 0 ? 0 : dx == b.w - 1 ? 2 : 1;
+								else if( dy == b.h - 1 )
+									k = dx == 0 ? 5 : dx == b.w - 1 ? 7 : 6;
+								else if( dx == 0 )
+									k = 3;
+								else if( dx == b.w - 1 )
+									k = 4;
+								else
+									continue;
+							case "corner":
+								if( dx == 0 && dy == 0 )
+									k = 9;
+								else if( dx == b.w - 1 && dy == 0 )
+									k = 10;
+								else if( dx == 0 && dy == b.h - 1 )
+									k = 11;
+								else if( dx == b.w - 1 && dy == b.h - 1 )
+									k = 12;
+								else
+									continue;
+							default:
+								continue;
+							}
+							bt[k].push(b.x + dx + (b.y + dy) * stride);
+						}
+				}
+		}
 	}
 
 	function random( n : Int ) {
@@ -96,81 +168,71 @@ class TileBuilder {
 		for( y in 0...height )
 			for( x in 0...width ) {
 				var v = input[++p];
-				var g = grounds[v];
-				var gl = x == 0 ? g : grounds[input[p - 1]];
-				var gr = x == width - 1 ? g : grounds[input[p + 1]];
-				var gt = y == 0 ? g : grounds[input[p - width]];
-				var gd = y == height - 1 ? g : grounds[input[p + width]];
+				var g = groundMap[v];
+				var gl = x == 0 ? g : groundMap[input[p - 1]];
+				var gr = x == width - 1 ? g : groundMap[input[p + 1]];
+				var gt = y == 0 ? g : groundMap[input[p - width]];
+				var gb = y == height - 1 ? g : groundMap[input[p + width]];
 
-				var gtl = x == 0 || y == 0 ? g : grounds[input[p - 1 - width]];
-				var gtr = x == width - 1 || y == 0 ? g : grounds[input[p + 1 - width]];
-				var gbl = x == 0 || y == height-1 ? g : grounds[input[p - 1 + width]];
-				var gbr = x == width - 1 || y == height - 1 ? g : grounds[input[p + 1 + width]];
+				var gtl = x == 0 || y == 0 ? g : groundMap[input[p - 1 - width]];
+				var gtr = x == width - 1 || y == 0 ? g : groundMap[input[p + 1 - width]];
+				var gbl = x == 0 || y == height-1 ? g : groundMap[input[p - 1 + width]];
+				var gbr = x == width - 1 || y == height - 1 ? g : groundMap[input[p + 1 + width]];
 
 				inline function max(a, b) return a > b ? a : b;
-				inline function min(a, b) {
-					if( a <= g ) a = 1000;
-					if( b <= g ) b = 1000;
-					return a > b ? b : a;
-				}
-				var max = max(max(max(gr, gl), max(gt, gd)), max(max(gtr, gtl), max(gbr, gbl)));
-				var min = min(min(min(gr, gl), min(gt, gd)), min(min(gtr, gtl), min(gbr, gbl)));
+				inline function min(a, b) return a > b ? b : a;
+				var max = max(max(max(gr, gl), max(gt, gb)), max(max(gtr, gtl), max(gbr, gbl)));
+				var min = min(min(min(gr, gl), min(gt, gb)), min(min(gtr, gtl), min(gbr, gbl)));
 
-				for( g in min-1...max ) {
-					var bits = 0;
-					if( g < gl )
-						bits |= 8 | 2;
-					if( g < gr )
-						bits |= 4 | 1;
-					if( g < gt )
-						bits |= 8 | 4;
-					if( g < gd )
-						bits |= 2 | 1;
-					if( g < gtl )
-						bits |= 8;
-					if( g < gtr )
-						bits |= 4;
-					if( g < gbl )
-						bits |= 2;
-					if( g < gbr )
-						bits |= 1;
-					if( bits == 0 )
-						continue;
-					var bb = borders[g+1];
+				for( t in min...max + 1 ) {
+					var bb = borders[t + g * 256];
+
 					if( bb == null ) continue;
-					var a = bb[bits];
-					if( a.length == 0 ) {
-						switch( bits ) {
-						case 7, 11, 13, 14:
-							// fallback for out corners
-							a = bb[15];
-						case 6:
-							// fallback for diagonal
-							a = bb[2];
-							if( a.length > 0 ) {
+
+					var bits = 0;
+					if( t == gtl )
+						bits |= 1;
+					if( t == gt )
+						bits |= 2;
+					if( t == gtr )
+						bits |= 4;
+					if( t == gl )
+						bits |= 8;
+					if( t == gr )
+						bits |= 16;
+					if( t == gbl )
+						bits |= 32;
+					if( t == gb )
+						bits |= 64;
+					if( t == gbr )
+						bits |= 128;
+
+					inline function check( b, clear, k ) {
+						if( bits & b == b ) {
+							var a = bb[k];
+							if( a.length != 0 ) {
+								bits &= ~(clear|b);
 								out.push(x);
 								out.push(y);
 								out.push(a.length == 1 ? a[0] : a[random(x + y * width) % a.length]);
 							}
-							a = bb[4];
-						case 9:
-							// fallback for diagonal
-							a = bb[1];
-							if( a.length > 0 ) {
-								out.push(x);
-								out.push(y);
-								out.push(a.length == 1 ? a[0] : a[random(x + y * width) % a.length]);
-							}
-							a = bb[8];
-						default:
-							continue;
 						}
-						if( a.length == 0 )
-							continue;
 					}
-					out.push(x);
-					out.push(y);
-					out.push(a.length == 1 ? a[0] : a[random(x + y * width) % a.length]);
+
+					check(2 | 8, 1 | 4 | 32, 9);
+					check(2 | 16, 1 | 4 | 128, 10);
+					check(8 | 64, 1 | 32 | 128, 11);
+					check(16 | 64, 4 | 32 | 128, 12);
+
+					check(2, 1 | 4, 6);
+					check(8, 1 | 32, 4);
+					check(16, 4 | 128, 3);
+					check(64, 32 | 128, 1);
+
+					check(1, 1, 7);
+					check(4, 4, 5);
+					check(32, 32, 2);
+					check(128, 128, 0);
 				}
 			}
 		return out;

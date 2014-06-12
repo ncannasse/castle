@@ -365,7 +365,7 @@ class Main extends Model {
 
 		var res = J("<tr>").addClass("list");
 		J("<td>").appendTo(res);
-		var cell = J("<td>").attr("colspan", "" + (sheet.columns.length + (sheet.props.levelProps != null ? 1 : 0))).appendTo(res);
+		var cell = J("<td>").attr("colspan", "" + (sheet.columns.length + (sheet.props.isLevel ? 1 : 0))).appendTo(res);
 		var div = J("<div>").appendTo(cell);
 		div.hide();
 		var content = J("<table>").appendTo(div);
@@ -439,7 +439,7 @@ class Main extends Model {
 			makeSheet(sheet);
 		case TImage:
 			saveImages();
-		case TInt if( sheet.props.levelProps != null && c.name == "width" || c.name == "height" ):
+		case TInt if( sheet.props.isLevel && (c.name == "width" || c.name == "height") ):
 			var obj = sheet.lines[index];
 			var newW : Int = Reflect.field(obj, "width");
 			var newH : Int = Reflect.field(obj, "height");
@@ -668,6 +668,10 @@ class Main extends Model {
 				'<span class="error">' + v.file + '</span>';
 			else
 				'#DATA';
+		case TDynamic:
+			var str = Std.string(v).split("\n").join(" ").split("\t").join("");
+			if( str.length > 50 ) str = str.substr(0, 47) + "...";
+			str;
 		}
 	}
 
@@ -935,15 +939,15 @@ class Main extends Model {
 		nren.click = function() {
 			li.dblclick();
 		};
-		if( s.props.levelProps != null || (hasColumn(s, "width", [TInt]) && hasColumn(s, "height", [TInt])) ) {
+		if( s.props.isLevel || (hasColumn(s, "width", [TInt]) && hasColumn(s, "height", [TInt]) && hasColumn(s,"props",[TDynamic])) ) {
 			var nlevel = new MenuItem( { label : "Level", type : MenuItemType.checkbox } );
-			nlevel.checked = s.props.levelProps != null;
+			nlevel.checked = s.props.isLevel;
 			n.append(nlevel);
 			nlevel.click = function() {
-				if( s.props.levelProps != null )
-					Reflect.deleteField(s.props, "levelProps");
+				if( s.props.isLevel )
+					Reflect.deleteField(s.props, "isLevel");
 				else
-					s.props.levelProps = {};
+					s.props.isLevel = true;
 				save();
 				refresh();
 			};
@@ -970,7 +974,7 @@ class Main extends Model {
 			setErrorMessage();
 		}
 		switch( c.type ) {
-		case TInt, TFloat, TString, TId, TCustom(_):
+		case TInt, TFloat, TString, TId, TCustom(_), TDynamic:
 			v.empty();
 			var i = J("<input>");
 			v.addClass("edit");
@@ -978,7 +982,9 @@ class Main extends Model {
 			if( val != null )
 				switch( c.type ) {
 				case TCustom(t):
-					i.val(typeValToString(tmap.get(t),val));
+					i.val(typeValToString(tmap.get(t), val));
+				case TDynamic:
+					i.val(haxe.Json.stringify(val));
 				default:
 					i.val(""+val);
 				}
@@ -1021,6 +1027,8 @@ class Main extends Model {
 						r_ident.match(nv) ? nv : null;
 					case TCustom(t):
 						try parseTypeVal(tmap.get(t), nv) catch( e : Dynamic ) null;
+					case TDynamic:
+						try haxe.Json.parse(nv) catch( e : Dynamic ) null;
 					default:
 						nv;
 					}
@@ -1210,7 +1218,7 @@ class Main extends Model {
 		case TTileLayer:
 			// nothing
 		case TList, TColor, TLayer(_), TFile, TTilePos:
-			throw "assert";
+			throw "assert2";
 		}
 	}
 
@@ -1352,7 +1360,7 @@ class Main extends Model {
 		}];
 
 		var colCount = sheet.columns.length;
-		if( sheet.props.levelProps != null ) colCount++;
+		if( sheet.props.isLevel ) colCount++;
 
 		for( cindex in 0...sheet.columns.length ) {
 			var c = sheet.columns[cindex];
@@ -1568,7 +1576,7 @@ class Main extends Model {
 			}
 		}
 
-		if( sheet.props.levelProps != null ) {
+		if( sheet.props.isLevel ) {
 			var col = J("<td>");
 			cols.append(col);
 			for( index in 0...sheet.lines.length ) {
@@ -1961,6 +1969,8 @@ class Main extends Model {
 			TTilePos;
 		case "tilelayer":
 			TTileLayer;
+		case "dynamic":
+			TDynamic;
 		default:
 			return;
 		}

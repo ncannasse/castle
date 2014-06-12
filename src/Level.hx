@@ -88,7 +88,12 @@ class Level {
 		watchList = [];
 		watchTimer = new haxe.Timer(50);
 		watchTimer.run = checkWatch;
-		props = sheet.props.levelProps;
+		props = obj.props;
+		if( props == null ) {
+			props = {
+			};
+			obj.props = props;
+		}
 		if( props.tileSize == null ) props.tileSize = 16;
 		tileSize = props.tileSize;
 
@@ -784,10 +789,11 @@ class Level {
 
 	function paint(x, y) {
 		var l = currentLayer;
+		if( !l.visible ) return;
 		switch( l.data ) {
 		case Layer(data):
-			if( data[x + y * width] == l.current || l.blanks[l.current] ) return;
 			var k = data[x + y * width];
+			if( k == l.current || l.blanks[l.current] ) return;
 			var todo = [x, y];
 			while( todo.length > 0 ) {
 				var y = todo.pop();
@@ -815,12 +821,13 @@ class Level {
 			save();
 			draw();
 		case Tiles(_, data):
-			if( data[x + y * width] != 0 ) return;
+			var k = data[x + y * width];
+			if( k == l.current || l.blanks[l.current] ) return;
 			var px = x, py = y, zero = [], todo = [x, y];
 			while( todo.length > 0 ) {
 				var y = todo.pop();
 				var x = todo.pop();
-				if( data[x + y * width] != 0 ) continue;
+				if( data[x + y * width] != k ) continue;
 				var dx = (x - px) % l.currentWidth; if( dx < 0 ) dx += l.currentWidth;
 				var dy = (y - py) % l.currentHeight; if( dy < 0 ) dy += l.currentHeight;
 				var t = l.current + (randomMode ? Std.random(l.currentWidth) + Std.random(l.currentHeight) * l.imagesStride : dx + dy * l.imagesStride);
@@ -856,10 +863,11 @@ class Level {
 	public function onKey( e : js.html.KeyboardEvent ) {
 		if( e.ctrlKey && e.keyCode == K.F4 )
 			action("close");
-		if( e.ctrlKey || J(":focus").length > 0 ) return;
+		if( e.ctrlKey || J(":focus").length > 0 || currentLayer == null ) return;
 
 		J(".popup").remove();
 
+		var l = currentLayer;
 		switch( e.keyCode ) {
 		case K.NUMPAD_ADD:
 			updateZoom(true);
@@ -871,7 +879,7 @@ class Level {
 		case K.ESC:
 			draw();
 		case K.TAB:
-			var i = (layers.indexOf(currentLayer) + (e.shiftKey ? layers.length-1 : 1) ) % layers.length;
+			var i = (layers.indexOf(l) + (e.shiftKey ? layers.length-1 : 1) ) % layers.length;
 			setCursor(layers[i]);
 			e.preventDefault();
 			e.stopPropagation();
@@ -903,6 +911,30 @@ class Level {
 			});
 		case "O".code:
 			if( palette != null ) paletteOption("mode", "object");
+		case K.LEFT:
+			e.preventDefault();
+			if( l.current % l.imagesStride > 0 ) {
+				l.current--;
+				setCursor(l);
+			}
+		case K.RIGHT:
+			e.preventDefault();
+			if( l.current % l.imagesStride < l.imagesStride - 1 ) {
+				l.current++;
+				setCursor(l);
+			}
+		case K.DOWN:
+			e.preventDefault();
+			if( l.current + l.imagesStride < l.images.length ) {
+				l.current += l.imagesStride;
+				setCursor(l);
+			}
+		case K.UP:
+			e.preventDefault();
+			if( l.current >= l.imagesStride ) {
+				l.current -= l.imagesStride;
+				setCursor(l);
+			}
 		default:
 		}
 
@@ -930,7 +962,6 @@ class Level {
 				}
 			case Tiles(_, data):
 				var changed = false;
-				var l = currentLayer;
 				for( dy in 0...l.currentHeight )
 					for( dx in 0...l.currentWidth ) {
 						var i = p.index + dx + dy * width;
@@ -985,6 +1016,7 @@ class Level {
 			return;
 		}
 		var l = currentLayer;
+		if( !l.visible ) return;
 		switch( l.data ) {
 		case Layer(data):
 			if( data[x + y * width] == l.current || l.blanks[l.current] ) return;
@@ -1295,7 +1327,7 @@ class Level {
 				l.data = TileInstances(td, [for( o in objs ) { x : o.x, y : o.y, o : o.id }]);
 				l.dirty = true;
 			default:
-				throw "assert";
+				throw "assert0";
 			}
 		case [Objects, (Ground | Tiles)]:
 			switch( l.data ) {
@@ -1319,7 +1351,7 @@ class Level {
 				l.data = Tiles(td, data);
 				l.dirty = true;
 			default:
-				throw "assert";
+				throw "assert1";
 			}
 		default:
 			js.Lib.alert("Cannot convert from "+old+" to "+mode);
@@ -1383,21 +1415,29 @@ class Level {
 			var s = l.getTileProp();
 			if( s != null )
 				s.opts.priority = Std.parseInt(val);
-		case "border":
+		case "border_in":
 			var s = l.getTileProp();
 			if( s != null ) {
 				if( val == "null" )
-					Reflect.deleteField(s.opts,"border");
+					Reflect.deleteField(s.opts,"borderIn");
 				else
-					s.opts.border = val;
+					s.opts.borderIn = val;
 			}
 		case "border_out":
 			var s = l.getTileProp();
 			if( s != null ) {
-				if( val != "true" )
+				if( val == "null" )
 					Reflect.deleteField(s.opts,"borderOut");
 				else
-					s.opts.borderOut = true;
+					s.opts.borderOut = val;
+			}
+		case "border_mode":
+			var s = l.getTileProp();
+			if( s != null ) {
+				if( val == "null" )
+					Reflect.deleteField(s.opts,"borderMode");
+				else
+					s.opts.borderMode = val;
 			}
 		case "tag":
 			tagMode = (tagMode == null ? (l.tileProps.tags.length == 0 ? "" : l.tileProps.tags[0].name) : null);
@@ -1648,9 +1688,10 @@ class Level {
 					m.find("[name=priority]").val("" + (tobj.opts.priority == null ? 0 : tobj.opts.priority));
 				case Object:
 				case Border:
-					var opts = "<option value='null'>any</option>" + [for( g in grounds ) '<option value="$g">$g</option>'].join("");
-					m.find("[name=border]").html(opts).val(Std.string(tobj.opts.border));
-					m.find("[name=border_out]").prop("checked", tobj.opts.borderOut);
+					var opts = [for( g in grounds ) '<option value="$g">$g</option>'].join("");
+					m.find("[name=border_in]").html("<option value='null'>upper</option><option value='lower'>lower</option>" + opts).val(Std.string(tobj.opts.borderIn));
+					m.find("[name=border_out]").html("<option value='null'>lower</option><option value='upper'>upper</option>" + opts).val(Std.string(tobj.opts.borderOut));
+					m.find("[name=border_mode]").val(Std.string(tobj.opts.borderMode));
 				}
 				m.show();
 			}

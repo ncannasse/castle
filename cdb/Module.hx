@@ -147,6 +147,8 @@ class Module {
 					macro : cdb.Types.TilePos;
 				case TTileLayer:
 					macro : cdb.Types.TileLayer;
+				case TDynamic:
+					s.props.isLevel && c.name == "props" ? macro : cdb.Data.LevelProps : macro : Dynamic;
 				}
 
 				var rt = switch( c.type ) {
@@ -161,6 +163,7 @@ class Module {
 				case TLayer(_): macro : String;
 				case TTilePos: macro : { file : String, size : Int, x : Int, y : Int };
 				case TTileLayer: macro : { file : String, stride : Int, size : Int, data : String };
+				case TDynamic: macro : Dynamic;
 				};
 
 				if( c.opt ) {
@@ -176,7 +179,7 @@ class Module {
 				});
 
 				switch( c.type ) {
-				case TInt, TFloat, TString, TBool, TImage, TColor, TFile, TTilePos:
+				case TInt, TFloat, TString, TBool, TImage, TColor, TFile, TTilePos, TDynamic:
 					var cname = c.name;
 					fields.push({
 						name : "get_"+c.name,
@@ -405,7 +408,7 @@ class Module {
 				for( ai in 0...c.args.length ) {
 					var a = c.args[ai];
 					var econv = switch( a.type ) {
-					case TId, TString, TBool, TInt, TFloat, TImage, TEnum(_), TFlags(_), TColor, TFile, TTileLayer:
+					case TId, TString, TBool, TInt, TFloat, TImage, TEnum(_), TFlags(_), TColor, TFile, TTileLayer, TDynamic:
 						macro v[$v { ai + 1 } ];
 					case TCustom(id):
 						if( a.opt )

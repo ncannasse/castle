@@ -144,7 +144,7 @@ typedef TileLayer = {
 class IndexNoId<T> {
 
 	var name : String;
-	public var all : ArrayRead<T>;
+	public var all(default,null) : ArrayRead<T>;
 
 	public function new( data : Data, sheet : String ) {
 		this.name = sheet;
@@ -160,7 +160,7 @@ class IndexNoId<T> {
 
 class Index<T,Kind> {
 
-	public var all : ArrayRead<T>;
+	public var all(default,null) : ArrayRead<T>;
 	var byIndex : Array<T>;
 	var byId : Map<String,T>;
 	var name : String;

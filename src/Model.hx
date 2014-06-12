@@ -125,7 +125,7 @@ class Model {
 		case TString, TId, TRef(_), TImage, TLayer(_), TFile: "";
 		case TBool: false;
 		case TList: [];
-		case TCustom(_), TTilePos, TTileLayer: null;
+		case TCustom(_), TTilePos, TTileLayer, TDynamic: null;
 		}
 	}
 
@@ -660,6 +660,8 @@ class Model {
 		case TColor:
 			var s = "#" + StringTools.hex(val, 6);
 			esc ? '"' + s + '"' : s;
+		case TDynamic:
+			esc ? haxe.Json.stringify(val) : Std.string(val);
 		}
 	}
 

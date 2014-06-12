@@ -17,6 +17,7 @@ enum ColumnType {
 	TFile;
 	TTilePos;
 	TTileLayer;
+	TDynamic;
 }
 
 #if macro
@@ -68,8 +69,9 @@ typedef LayerProps = {
 typedef TileModeOptions = {
 	?name : String,
 	?priority : Int,
-	?border : Null<String>,
-	?borderOut : Bool,
+	?borderIn : Null<String>,
+	?borderOut : Null<String>,
+	?borderMode : Null<String>,
 };
 
 typedef TileProps = {
@@ -90,7 +92,7 @@ typedef SheetProps = {
 	@:optional var hide : Bool;
 	@:optional var hasIndex : Bool;
 	@:optional var hasGroup : Bool;
-	@:optional var levelProps : LevelProps;
+	@:optional var isLevel : Bool;
 }
 
 typedef Sheet = {

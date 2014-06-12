@@ -112,6 +112,15 @@ HxOverrides.iter = function(a) {
 var Lambda = function() { };
 $hxClasses["Lambda"] = Lambda;
 Lambda.__name__ = ["Lambda"];
+Lambda.array = function(it) {
+	var a = new Array();
+	var $it0 = $iterator(it)();
+	while( $it0.hasNext() ) {
+		var i = $it0.next();
+		a.push(i);
+	}
+	return a;
+};
 Lambda.list = function(it) {
 	var l = new List();
 	var $it0 = $iterator(it)();
@@ -192,7 +201,11 @@ Level.prototype = {
 		this.watchList = [];
 		this.watchTimer = new haxe.Timer(50);
 		this.watchTimer.run = $bind(this,this.checkWatch);
-		this.props = this.sheet.props.levelProps;
+		this.props = this.obj.props;
+		if(this.props == null) {
+			this.props = { };
+			this.obj.props = this.props;
+		}
 		if(this.props.tileSize == null) this.props.tileSize = 16;
 		this.tileSize = this.props.tileSize;
 		var lprops = new haxe.ds.StringMap();
@@ -1136,13 +1149,14 @@ Level.prototype = {
 	}
 	,paint: function(x,y) {
 		var l = this.currentLayer;
+		if(!l.visible) return;
 		{
 			var _g = l.data;
 			switch(_g[1]) {
 			case 0:
 				var data = _g[2];
-				if(data[x + y * this.width] == l.current || l.blanks[l.current]) return;
 				var k = data[x + y * this.width];
+				if(k == l.current || l.blanks[l.current]) return;
 				var todo = [x,y];
 				while(todo.length > 0) {
 					var y1 = todo.pop();
@@ -1172,7 +1186,8 @@ Level.prototype = {
 				break;
 			case 2:
 				var data1 = _g[3];
-				if(data1[x + y * this.width] != 0) return;
+				var k1 = data1[x + y * this.width];
+				if(k1 == l.current || l.blanks[l.current]) return;
 				var px = x;
 				var py = y;
 				var zero = [];
@@ -1180,7 +1195,7 @@ Level.prototype = {
 				while(todo1.length > 0) {
 					var y2 = todo1.pop();
 					var x2 = todo1.pop();
-					if(data1[x2 + y2 * this.width] != 0) continue;
+					if(data1[x2 + y2 * this.width] != k1) continue;
 					var dx = (x2 - px) % l.currentWidth;
 					if(dx < 0) dx += l.currentWidth;
 					var dy = (y2 - py) % l.currentHeight;
@@ -1223,8 +1238,9 @@ Level.prototype = {
 	,onKey: function(e) {
 		var _g1 = this;
 		if(e.ctrlKey && e.keyCode == 115) this.action("close");
-		if(e.ctrlKey || new js.JQuery(":focus").length > 0) return;
+		if(e.ctrlKey || new js.JQuery(":focus").length > 0 || this.currentLayer == null) return;
 		new js.JQuery(".popup").remove();
+		var l = this.currentLayer;
 		var _g = e.keyCode;
 		switch(_g) {
 		case 107:
@@ -1242,7 +1258,7 @@ Level.prototype = {
 			break;
 		case 9:
 			var i;
-			i = (HxOverrides.indexOf(this.layers,this.currentLayer,0) + (e.shiftKey?this.layers.length - 1:1)) % this.layers.length;
+			i = (HxOverrides.indexOf(this.layers,l,0) + (e.shiftKey?this.layers.length - 1:1)) % this.layers.length;
 			this.setCursor(this.layers[i]);
 			e.preventDefault();
 			e.stopPropagation();
@@ -1280,11 +1296,47 @@ Level.prototype = {
 		case 79:
 			if(this.palette != null) this.paletteOption("mode","object");
 			break;
+		case 37:
+			e.preventDefault();
+			if(l.current % l.imagesStride > 0) {
+				var _g11 = l;
+				var _g2 = _g11.current;
+				_g11.set_current(_g2 - 1);
+				_g2;
+				this.setCursor(l);
+			}
+			break;
+		case 39:
+			e.preventDefault();
+			if(l.current % l.imagesStride < l.imagesStride - 1) {
+				var _g12 = l;
+				var _g21 = _g12.current;
+				_g12.set_current(_g21 + 1);
+				_g21;
+				this.setCursor(l);
+			}
+			break;
+		case 40:
+			e.preventDefault();
+			if(l.current + l.imagesStride < l.images.length) {
+				var _g13 = l;
+				_g13.set_current(_g13.current + l.imagesStride);
+				this.setCursor(l);
+			}
+			break;
+		case 38:
+			e.preventDefault();
+			if(l.current >= l.imagesStride) {
+				var _g14 = l;
+				_g14.set_current(_g14.current - l.imagesStride);
+				this.setCursor(l);
+			}
+			break;
 		default:
 		}
 		if(this.curPos == null) return;
-		var _g2 = e.keyCode;
-		switch(_g2) {
+		var _g3 = e.keyCode;
+		switch(_g3) {
 		case 80:
 			this.paint(this.curPos.x,this.curPos.y);
 			break;
@@ -1293,10 +1345,10 @@ Level.prototype = {
 			var p = this.pick();
 			if(p == null) return;
 			{
-				var _g11 = p.layer.data;
-				switch(_g11[1]) {
+				var _g15 = p.layer.data;
+				switch(_g15[1]) {
 				case 0:
-					var data = _g11[2];
+					var data = _g15[2];
 					if(data[p.index] == 0) return;
 					data[p.index] = 0;
 					p.layer.dirty = true;
@@ -1305,20 +1357,19 @@ Level.prototype = {
 					this.draw();
 					break;
 				case 1:
-					var objs = _g11[3];
+					var objs = _g15[3];
 					if(HxOverrides.remove(objs,objs[p.index])) {
 						this.save();
 						this.draw();
 					}
 					break;
 				case 2:
-					var data1 = _g11[3];
+					var data1 = _g15[3];
 					var changed = false;
-					var l = this.currentLayer;
-					var _g3 = 0;
-					var _g21 = l.currentHeight;
-					while(_g3 < _g21) {
-						var dy1 = _g3++;
+					var _g31 = 0;
+					var _g22 = l.currentHeight;
+					while(_g31 < _g22) {
+						var dy1 = _g31++;
 						var _g5 = 0;
 						var _g4 = l.currentWidth;
 						while(_g5 < _g4) {
@@ -1337,7 +1388,7 @@ Level.prototype = {
 					}
 					break;
 				case 3:
-					var insts = _g11[3];
+					var insts = _g15[3];
 					if(HxOverrides.remove(insts,insts[p.index])) {
 						p.layer.dirty = true;
 						this.save();
@@ -1351,12 +1402,12 @@ Level.prototype = {
 		case 69:
 			var p1 = this.pick();
 			{
-				var _g12 = p1.layer.data;
-				switch(_g12[1]) {
+				var _g16 = p1.layer.data;
+				switch(_g16[1]) {
 				case 0:case 2:case 3:
 					break;
 				case 1:
-					var objs1 = _g12[3];
+					var objs1 = _g16[3];
 					new js.JQuery(".popup").remove();
 					this.editProps(p1.layer,p1.index);
 					break;
@@ -1392,6 +1443,7 @@ Level.prototype = {
 			return;
 		}
 		var l = this.currentLayer;
+		if(!l.visible) return;
 		{
 			var _g = l.data;
 			switch(_g[1]) {
@@ -1902,7 +1954,7 @@ Level.prototype = {
 						l.dirty = true;
 						break;
 					default:
-						throw "assert";
+						throw "assert0";
 					}
 				}
 				break;
@@ -1954,7 +2006,7 @@ Level.prototype = {
 						l.dirty = true;
 						break;
 					default:
-						throw "assert";
+						throw "assert1";
 					}
 				}
 				break;
@@ -1986,7 +2038,6 @@ Level.prototype = {
 		}
 	}
 	,paletteOption: function(name,val) {
-		console.log([name,val]);
 		var l = this.currentLayer;
 		if(val != null) val = StringTools.trim(val);
 		switch(name) {
@@ -2055,16 +2106,22 @@ Level.prototype = {
 			var s2 = l.getTileProp();
 			if(s2 != null) s2.opts.priority = Std.parseInt(val);
 			break;
-		case "border":
+		case "border_in":
 			var s3 = l.getTileProp();
 			if(s3 != null) {
-				if(val == "null") Reflect.deleteField(s3.opts,"border"); else s3.opts.border = val;
+				if(val == "null") Reflect.deleteField(s3.opts,"borderIn"); else s3.opts.borderIn = val;
 			}
 			break;
 		case "border_out":
 			var s4 = l.getTileProp();
 			if(s4 != null) {
-				if(val != "true") Reflect.deleteField(s4.opts,"borderOut"); else s4.opts.borderOut = true;
+				if(val == "null") Reflect.deleteField(s4.opts,"borderOut"); else s4.opts.borderOut = val;
+			}
+			break;
+		case "border_mode":
+			var s5 = l.getTileProp();
+			if(s5 != null) {
+				if(val == "null") Reflect.deleteField(s5.opts,"borderMode"); else s5.opts.borderMode = val;
 			}
 			break;
 		case "tag":
@@ -2455,7 +2512,7 @@ Level.prototype = {
 				case "object":
 					break;
 				case "border":
-					var opts = "<option value='null'>any</option>" + ((function($this) {
+					var opts = ((function($this) {
 						var $r;
 						var _g111 = [];
 						{
@@ -2469,8 +2526,9 @@ Level.prototype = {
 						$r = _g111;
 						return $r;
 					}(this))).join("");
-					m.find("[name=border]").html(opts).val(Std.string(tobj.opts.border));
-					m.find("[name=border_out]").prop("checked",tobj.opts.borderOut);
+					m.find("[name=border_in]").html("<option value='null'>upper</option><option value='lower'>lower</option>" + opts).val(Std.string(tobj.opts.borderIn));
+					m.find("[name=border_out]").html("<option value='null'>lower</option><option value='upper'>upper</option>" + opts).val(Std.string(tobj.opts.borderOut));
+					m.find("[name=border_mode]").val(Std.string(tobj.opts.borderMode));
 					break;
 				}
 				m.show();
@@ -2685,7 +2743,7 @@ Model.prototype = {
 				return false;
 			case 8:
 				return [];
-			case 9:case 14:case 15:
+			case 9:case 14:case 15:case 16:
 				return null;
 			}
 		}
@@ -3540,6 +3598,9 @@ Model.prototype = {
 		case 11:
 			var s = "#" + StringTools.hex(val,6);
 			if(esc) return "\"" + s + "\""; else return s;
+			break;
+		case 16:
+			if(esc) return js.Node.stringify(val,null,null); else return Std.string(val);
 			break;
 		}
 	}
@@ -4643,7 +4704,7 @@ Main.prototype = $extend(Model.prototype,{
 		line.next("tr.list").change();
 		var res = new js.JQuery("<tr>").addClass("list");
 		new js.JQuery("<td>").appendTo(res);
-		var cell = new js.JQuery("<td>").attr("colspan","" + (sheet.columns.length + (sheet.props.levelProps != null?1:0))).appendTo(res);
+		var cell = new js.JQuery("<td>").attr("colspan","" + (sheet.columns.length + (sheet.props.isLevel?1:0))).appendTo(res);
 		var div = new js.JQuery("<div>").appendTo(cell);
 		div.hide();
 		var content = new js.JQuery("<table>").appendTo(div);
@@ -4725,7 +4786,7 @@ Main.prototype = $extend(Model.prototype,{
 			this.saveImages();
 			break;
 		case 3:
-			if(sheet.props.levelProps != null && c.name == "width" || c.name == "height") {
+			if(sheet.props.isLevel && (c.name == "width" || c.name == "height")) {
 				var obj = sheet.lines[index];
 				var newW = Reflect.field(obj,"width");
 				var newH = Reflect.field(obj,"height");
@@ -5026,6 +5087,10 @@ Main.prototype = $extend(Model.prototype,{
 				var path2 = this.getAbsPath(v4.file);
 				if(!js.Node.require("fs").existsSync(path2)) return "<span class=\"error\">" + v4.file + "</span>"; else return "#DATA";
 				break;
+			case 16:
+				var str1 = Std.string(v).split("\n").join(" ").split("\t").join("");
+				if(str1.length > 50) str1 = HxOverrides.substr(str1,0,47) + "...";
+				return str1;
 			}
 		}
 	}
@@ -5365,12 +5430,12 @@ Main.prototype = $extend(Model.prototype,{
 		nren.click = function() {
 			li.dblclick();
 		};
-		if(s.props.levelProps != null || this.hasColumn(s,"width",[cdb.ColumnType.TInt]) && this.hasColumn(s,"height",[cdb.ColumnType.TInt])) {
+		if(s.props.isLevel || this.hasColumn(s,"width",[cdb.ColumnType.TInt]) && this.hasColumn(s,"height",[cdb.ColumnType.TInt]) && this.hasColumn(s,"props",[cdb.ColumnType.TDynamic])) {
 			var nlevel = new nodejs.webkit.MenuItem({ label : "Level", type : "checkbox"});
-			nlevel.checked = s.props.levelProps != null;
+			nlevel.checked = s.props.isLevel;
 			n.append(nlevel);
 			nlevel.click = function() {
-				if(s.props.levelProps != null) Reflect.deleteField(s.props,"levelProps"); else s.props.levelProps = { };
+				if(s.props.isLevel) Reflect.deleteField(s.props,"isLevel"); else s.props.isLevel = true;
 				_g.save();
 				_g.refresh();
 			};
@@ -5392,7 +5457,7 @@ Main.prototype = $extend(Model.prototype,{
 		{
 			var _g1 = c.type;
 			switch(_g1[1]) {
-			case 3:case 4:case 1:case 0:case 9:
+			case 3:case 4:case 1:case 0:case 9:case 16:
 				v.empty();
 				var i = new js.JQuery("<input>");
 				v.addClass("edit");
@@ -5403,6 +5468,9 @@ Main.prototype = $extend(Model.prototype,{
 					case 9:
 						var t = _g11[2];
 						i.val(this.typeValToString(this.tmap.get(t),val));
+						break;
+					case 16:
+						i.val(js.Node.stringify(val,null,null));
 						break;
 					default:
 						i.val("" + Std.string(val));
@@ -5467,6 +5535,13 @@ Main.prototype = $extend(Model.prototype,{
 									val2 = null;
 								}
 								break;
+							case 16:
+								try {
+									val2 = js.Node.parse(nv);
+								} catch( e3 ) {
+									val2 = null;
+								}
+								break;
 							default:
 								val2 = nv;
 							}
@@ -5526,7 +5601,7 @@ Main.prototype = $extend(Model.prototype,{
 				}
 				if(c.opt) new js.JQuery("<option>").attr("value","-1").text("--- None ---").prependTo(s);
 				v.append(s);
-				s.change(function(e3) {
+				s.change(function(e4) {
 					val = Std.parseInt(s.val());
 					if(val < 0) {
 						val = null;
@@ -5535,25 +5610,25 @@ Main.prototype = $extend(Model.prototype,{
 					html = _g.valueHtml(c,val,sheet,obj);
 					_g.changed(sheet,c,index,old);
 					editDone();
-					e3.stopPropagation();
+					e4.stopPropagation();
 				});
-				s.keydown(function(e4) {
-					var _g16 = e4.keyCode;
+				s.keydown(function(e5) {
+					var _g16 = e5.keyCode;
 					switch(_g16) {
 					case 37:case 39:
 						s.blur();
 						return;
 					case 9:
 						s.blur();
-						_g.moveCursor(e4.shiftKey?-1:1,0,false,false);
+						_g.moveCursor(e5.shiftKey?-1:1,0,false,false);
 						haxe.Timer.delay(function() {
 							new js.JQuery(".cursor").dblclick();
 						},1);
-						e4.preventDefault();
+						e5.preventDefault();
 						break;
 					default:
 					}
-					e4.stopPropagation();
+					e5.stopPropagation();
 				});
 				s.blur(function(_2) {
 					editDone();
@@ -5579,7 +5654,7 @@ Main.prototype = $extend(Model.prototype,{
 				}
 				if(c.opt || val == null || val == "") new js.JQuery("<option>").attr("value","").text("--- None ---").prependTo(s1);
 				v.append(s1);
-				s1.change(function(e5) {
+				s1.change(function(e6) {
 					val = s1.val();
 					if(val == "") {
 						val = null;
@@ -5588,25 +5663,25 @@ Main.prototype = $extend(Model.prototype,{
 					html = _g.valueHtml(c,val,sheet,obj);
 					_g.changed(sheet,c,index,old);
 					editDone();
-					e5.stopPropagation();
+					e6.stopPropagation();
 				});
-				s1.keydown(function(e6) {
-					var _g18 = e6.keyCode;
+				s1.keydown(function(e7) {
+					var _g18 = e7.keyCode;
 					switch(_g18) {
 					case 37:case 39:
 						s1.blur();
 						return;
 					case 9:
 						s1.blur();
-						_g.moveCursor(e6.shiftKey?-1:1,0,false,false);
+						_g.moveCursor(e7.shiftKey?-1:1,0,false,false);
 						haxe.Timer.delay(function() {
 							new js.JQuery(".cursor").dblclick();
 						},1);
-						e6.preventDefault();
+						e7.preventDefault();
 						break;
 					default:
 					}
-					e6.stopPropagation();
+					e7.stopPropagation();
 				});
 				s1.blur(function(_3) {
 					editDone();
@@ -5628,7 +5703,7 @@ Main.prototype = $extend(Model.prototype,{
 				_g.changed(sheet,c,index,old);
 				break;
 			case 7:
-				var i2 = new js.JQuery("<input>").attr("type","file").css("display","none").change(function(e7) {
+				var i2 = new js.JQuery("<input>").attr("type","file").css("display","none").change(function(e8) {
 					var j = $(this);
 					var file = j.val();
 					var ext = file.split(".").pop().toLowerCase();
@@ -5656,20 +5731,20 @@ Main.prototype = $extend(Model.prototype,{
 			case 10:
 				var values1 = _g1[2];
 				var div = new js.JQuery("<div>").addClass("flagValues");
-				div.click(function(e8) {
-					e8.stopPropagation();
-				}).dblclick(function(e9) {
+				div.click(function(e9) {
 					e9.stopPropagation();
+				}).dblclick(function(e10) {
+					e10.stopPropagation();
 				});
 				var _g22 = 0;
 				var _g19 = values1.length;
 				while(_g22 < _g19) {
 					var i3 = [_g22++];
 					var f1 = new js.JQuery("<input>").attr("type","checkbox").prop("checked",(val & 1 << i3[0]) != 0).change((function(i3) {
-						return function(e10) {
+						return function(e11) {
 							val &= ~(1 << i3[0]);
 							if($(this).prop("checked")) val |= 1 << i3[0];
-							e10.stopPropagation();
+							e11.stopPropagation();
 						};
 					})(i3));
 					new js.JQuery("<label>").text(values1[i3[0]]).appendTo(div).append(f1);
@@ -5689,7 +5764,7 @@ Main.prototype = $extend(Model.prototype,{
 			case 15:
 				break;
 			case 8:case 11:case 12:case 13:case 14:
-				throw "assert";
+				throw "assert2";
 				break;
 			}
 		}
@@ -5848,7 +5923,7 @@ Main.prototype = $extend(Model.prototype,{
 		}
 		lines = _g11;
 		var colCount = sheet.columns.length;
-		if(sheet.props.levelProps != null) colCount++;
+		if(sheet.props.isLevel) colCount++;
 		var _g31 = 0;
 		var _g22 = sheet.columns.length;
 		while(_g31 < _g22) {
@@ -6131,7 +6206,7 @@ Main.prototype = $extend(Model.prototype,{
 				}
 			}
 		}
-		if(sheet.props.levelProps != null) {
+		if(sheet.props.isLevel) {
 			var col1 = new js.JQuery("<td>");
 			cols.append(col1);
 			var _g32 = 0;
@@ -6634,6 +6709,9 @@ Main.prototype = $extend(Model.prototype,{
 			break;
 		case "tilelayer":
 			t = cdb.ColumnType.TTileLayer;
+			break;
+		case "dynamic":
+			t = cdb.ColumnType.TDynamic;
 			break;
 		default:
 			return;
@@ -7160,7 +7238,7 @@ Type.enumEq = function(a,b) {
 	return true;
 };
 var cdb = {};
-cdb.ColumnType = $hxClasses["cdb.ColumnType"] = { __ename__ : ["cdb","ColumnType"], __constructs__ : ["TId","TString","TBool","TInt","TFloat","TEnum","TRef","TImage","TList","TCustom","TFlags","TColor","TLayer","TFile","TTilePos","TTileLayer"] };
+cdb.ColumnType = $hxClasses["cdb.ColumnType"] = { __ename__ : ["cdb","ColumnType"], __constructs__ : ["TId","TString","TBool","TInt","TFloat","TEnum","TRef","TImage","TList","TCustom","TFlags","TColor","TLayer","TFile","TTilePos","TTileLayer","TDynamic"] };
 cdb.ColumnType.TId = ["TId",0];
 cdb.ColumnType.TId.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TString = ["TString",1];
@@ -7188,6 +7266,8 @@ cdb.ColumnType.TTilePos = ["TTilePos",14];
 cdb.ColumnType.TTilePos.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TTileLayer = ["TTileLayer",15];
 cdb.ColumnType.TTileLayer.__enum__ = cdb.ColumnType;
+cdb.ColumnType.TDynamic = ["TDynamic",16];
+cdb.ColumnType.TDynamic.__enum__ = cdb.ColumnType;
 cdb._Data = {};
 cdb._Data.TileMode_Impl_ = function() { };
 $hxClasses["cdb._Data.TileMode_Impl_"] = cdb._Data.TileMode_Impl_;
@@ -7214,7 +7294,7 @@ cdb.Parser.saveType = function(t) {
 	case 10:
 		var values = t[2];
 		return t[1] + ":" + values.join(",");
-	case 0:case 1:case 8:case 3:case 7:case 4:case 2:case 11:case 13:case 14:case 15:
+	case 0:case 1:case 8:case 3:case 7:case 4:case 2:case 11:case 13:case 14:case 15:case 16:
 		return Std.string(t[1]);
 	}
 };
@@ -7278,6 +7358,8 @@ cdb.Parser.getType = function(str) {
 		return cdb.ColumnType.TTilePos;
 	case 15:
 		return cdb.ColumnType.TTileLayer;
+	case 16:
+		return cdb.ColumnType.TDynamic;
 	default:
 		throw "Unknown type " + str;
 	} else throw "Unknown type " + str;
@@ -7324,15 +7406,16 @@ cdb.Parser.parse = function(content) {
 cdb.TileBuilder = function(t,stride,total) {
 	this.borders = new Array();
 	this.groundIds = new haxe.ds.StringMap();
-	this.grounds = [];
+	this.groundMap = [];
 	var _g1 = 0;
 	var _g = total + 1;
 	while(_g1 < _g) {
 		var i = _g1++;
-		this.grounds[i] = 0;
+		this.groundMap[i] = 0;
 	}
-	this.grounds[0] = -1;
+	this.groundMap[0] = 0;
 	this.borders = [];
+	var tmp = new haxe.ds.StringMap();
 	var _g2 = 0;
 	var _g11 = t.sets;
 	while(_g2 < _g11.length) {
@@ -7340,65 +7423,206 @@ cdb.TileBuilder = function(t,stride,total) {
 		++_g2;
 		var _g21 = s.t;
 		switch(_g21) {
-		case "tile":
-			break;
 		case "ground":
-			var gid = s.opts.priority;
-			if(gid == null) gid = 0;
-			gid++;
-			var bl;
-			var _g3 = [];
-			var _g4 = 0;
-			while(_g4 < 16) {
-				var i1 = _g4++;
-				_g3.push([]);
-			}
-			bl = _g3;
-			this.borders[gid] = bl;
-			var _g5 = 0;
-			var _g41 = s.w;
-			while(_g5 < _g41) {
-				var dx = _g5++;
-				var _g7 = 0;
-				var _g6 = s.h;
-				while(_g7 < _g6) {
-					var dy = _g7++;
-					var tid = s.x + dx + (s.y + dy) * stride + 1;
-					bl[15].push(tid - 1);
-					this.grounds[tid] = gid;
+			if(s.opts.name != "" && s.opts.name != null) {
+				var g = tmp.get(s.opts.name);
+				if(g == null) {
+					g = [];
+					tmp.set(s.opts.name,g);
 				}
+				g.push(s);
+			} else {
 			}
-			this.groundIds.set(s.opts.name,gid);
 			break;
-		case "object":
-			break;
-		case "border":
-			break;
+		default:
 		}
 	}
-	var _g8 = 0;
-	var _g12 = t.sets;
-	while(_g8 < _g12.length) {
-		var s1 = _g12[_g8];
-		++_g8;
-		if(s1.t == "border") {
-			var gid1 = this.groundIds.get(s1.opts.border);
-			if(gid1 == null) continue;
-			var bt = this.borders[gid1];
-			if(bt == null) continue;
+	var allGrounds = Lambda.array(tmp);
+	allGrounds.sort(function(g1,g2) {
+		var dp;
+		dp = (function($this) {
+			var $r;
+			var v = g1[0].opts.priority;
+			$r = v == null?0:v;
+			return $r;
+		}(this)) - (function($this) {
+			var $r;
+			var v1 = g2[0].opts.priority;
+			$r = v1 == null?0:v1;
+			return $r;
+		}(this));
+		if(dp != 0) return dp; else return Reflect.compare(g1[0].opts.name,g2[0].opts.name);
+	});
+	var gid = 0;
+	var _g3 = 0;
+	while(_g3 < allGrounds.length) {
+		var g3 = allGrounds[_g3];
+		++_g3;
+		var p;
+		var v2 = g3[0].opts.priority;
+		if(v2 == null) p = 0; else p = v2;
+		if(p > 0) gid++;
+		var fill = [];
+		var _g12 = 0;
+		while(_g12 < g3.length) {
+			var s1 = g3[_g12];
+			++_g12;
 			var _g31 = 0;
 			var _g22 = s1.w;
 			while(_g31 < _g22) {
-				var dx1 = _g31++;
-				var _g51 = 0;
-				var _g42 = s1.h;
-				while(_g51 < _g42) {
-					var dy1 = _g51++;
-					var k;
-					if(s1.opts.borderOut) {
-						if(dx1 == 0 && dy1 == 0) k = 14; else if(dx1 == s1.w - 1 && dy1 == 0) k = 13; else if(dx1 == 0 && dy1 == s1.h - 1) k = 11; else if(dx1 == s1.w - 1 && dy1 == s1.h - 1) k = 7; else continue;
-					} else if(dy1 == 0) if(dx1 == 0) k = 1; else if(dx1 == s1.w - 1) k = 2; else k = 3; else if(dy1 == s1.h - 1) if(dx1 == 0) k = 4; else if(dx1 == s1.w - 1) k = 8; else k = 12; else if(dx1 == 0) k = 5; else if(dx1 == s1.w - 1) k = 10; else continue;
-					bt[k].push(s1.x + dx1 + (s1.y + dy1) * stride);
+				var dx = _g31++;
+				var _g5 = 0;
+				var _g4 = s1.h;
+				while(_g5 < _g4) {
+					var dy = _g5++;
+					var tid = s1.x + dx + (s1.y + dy) * stride;
+					fill.push(tid);
+					this.groundMap[tid + 1] = gid;
+				}
+			}
+		}
+		this.groundIds.set(g3[0].opts.name,{ id : gid, fill : fill});
+	}
+	var maxGid = gid + 1;
+	var allBorders = [];
+	var _g6 = 0;
+	var _g13 = t.sets;
+	while(_g6 < _g13.length) {
+		var s2 = _g13[_g6];
+		++_g6;
+		if(s2.t == "border") allBorders.push(s2);
+	}
+	allBorders.sort(function(b1,b2) {
+		return (function($this) {
+			var $r;
+			var k = 0;
+			if(b1.opts.borderIn != null) k += 1;
+			if(b1.opts.borderOut != null) k += 2;
+			if(b1.opts.borderMode != null) k += 4;
+			$r = k;
+			return $r;
+		}(this)) - (function($this) {
+			var $r;
+			var k1 = 0;
+			if(b2.opts.borderIn != null) k1 += 1;
+			if(b2.opts.borderOut != null) k1 += 2;
+			if(b2.opts.borderMode != null) k1 += 4;
+			$r = k1;
+			return $r;
+		}(this));
+	});
+	haxe.Log.trace(this.groundIds.toString(),{ fileName : "TileBuilder.hx", lineNumber : 71, className : "cdb.TileBuilder", methodName : "new"});
+	var _g7 = 0;
+	while(_g7 < allBorders.length) {
+		var b = allBorders[_g7];
+		++_g7;
+		var gid1 = this.groundIds.get(b.opts.borderIn);
+		var tid1 = this.groundIds.get(b.opts.borderOut);
+		if(gid1 == null && tid1 == null) continue;
+		var gids;
+		var tids;
+		if(gid1 != null) gids = [gid1.id]; else {
+			var _g14 = b.opts.borderIn;
+			if(_g14 == null) {
+				var _g23 = [];
+				var _g32 = tid1.id + 1;
+				while(_g32 < maxGid) {
+					var g4 = _g32++;
+					_g23.push(g4);
+				}
+				gids = _g23;
+			} else switch(_g14) {
+			case "lower":
+				var _g24 = [];
+				var _g41 = 0;
+				var _g33 = tid1.id;
+				while(_g41 < _g33) {
+					var g5 = _g41++;
+					_g24.push(g5);
+				}
+				gids = _g24;
+				break;
+			default:
+				continue;
+			}
+		}
+		if(tid1 != null) tids = [tid1.id]; else {
+			var _g15 = b.opts.borderOut;
+			if(_g15 == null) {
+				var _g25 = [];
+				var _g42 = 0;
+				var _g34 = gid1.id;
+				while(_g42 < _g34) {
+					var g6 = _g42++;
+					_g25.push(g6);
+				}
+				tids = _g25;
+			} else switch(_g15) {
+			case "upper":
+				var _g26 = [];
+				var _g35 = gid1.id + 1;
+				while(_g35 < maxGid) {
+					var g7 = _g35++;
+					_g26.push(g7);
+				}
+				tids = _g26;
+				break;
+			default:
+				continue;
+			}
+		}
+		haxe.Log.trace(b.opts,{ fileName : "TileBuilder.hx", lineNumber : 95, className : "cdb.TileBuilder", methodName : "new", customParams : [gids,tids]});
+		var _g16 = b.opts.borderMode;
+		if(_g16 != null) switch(_g16) {
+		case "corner":
+			var tmp1 = gids;
+			gids = tids;
+			tids = tmp1;
+			break;
+		default:
+		} else {
+		}
+		var _g17 = 0;
+		while(_g17 < gids.length) {
+			var g8 = gids[_g17];
+			++_g17;
+			var _g27 = 0;
+			while(_g27 < tids.length) {
+				var t1 = tids[_g27];
+				++_g27;
+				var bt = this.borders[g8 + t1 * 256];
+				if(bt == null) {
+					var _g36 = [];
+					var _g43 = 0;
+					while(_g43 < 16) {
+						var i1 = _g43++;
+						_g36.push([]);
+					}
+					bt = _g36;
+					if(gid1 != null) bt[8] = gid1.fill;
+					this.borders[g8 + t1 * 256] = bt;
+				}
+				var _g44 = 0;
+				var _g37 = b.w;
+				while(_g44 < _g37) {
+					var dx1 = _g44++;
+					var _g61 = 0;
+					var _g51 = b.h;
+					while(_g61 < _g51) {
+						var dy1 = _g61++;
+						var k2;
+						var _g71 = b.opts.borderMode;
+						if(_g71 == null) {
+							if(dy1 == 0) if(dx1 == 0) k2 = 0; else if(dx1 == b.w - 1) k2 = 2; else k2 = 1; else if(dy1 == b.h - 1) if(dx1 == 0) k2 = 5; else if(dx1 == b.w - 1) k2 = 7; else k2 = 6; else if(dx1 == 0) k2 = 3; else if(dx1 == b.w - 1) k2 = 4; else continue;
+						} else switch(_g71) {
+						case "corner":
+							if(dx1 == 0 && dy1 == 0) k2 = 9; else if(dx1 == b.w - 1 && dy1 == 0) k2 = 10; else if(dx1 == 0 && dy1 == b.h - 1) k2 = 11; else if(dx1 == b.w - 1 && dy1 == b.h - 1) k2 = 12; else continue;
+							break;
+						default:
+							continue;
+						}
+						bt[k2].push(b.x + dx1 + (b.y + dy1) * stride);
+					}
 				}
 			}
 		}
@@ -7423,6 +7647,7 @@ cdb.TileBuilder.prototype = {
 		return h;
 	}
 	,buildGrounds: function(input,width) {
+		var _g4 = this;
 		var height = input.length / width | 0;
 		var p = -1;
 		var out = [];
@@ -7433,29 +7658,29 @@ cdb.TileBuilder.prototype = {
 			while(_g1 < width) {
 				var x = _g1++;
 				var v = input[++p];
-				var g = this.grounds[v];
+				var g = this.groundMap[v];
 				var gl;
-				if(x == 0) gl = g; else gl = this.grounds[input[p - 1]];
+				if(x == 0) gl = g; else gl = this.groundMap[input[p - 1]];
 				var gr;
-				if(x == width - 1) gr = g; else gr = this.grounds[input[p + 1]];
+				if(x == width - 1) gr = g; else gr = this.groundMap[input[p + 1]];
 				var gt;
-				if(y == 0) gt = g; else gt = this.grounds[input[p - width]];
-				var gd;
-				if(y == height - 1) gd = g; else gd = this.grounds[input[p + width]];
+				if(y == 0) gt = g; else gt = this.groundMap[input[p - width]];
+				var gb;
+				if(y == height - 1) gb = g; else gb = this.groundMap[input[p + width]];
 				var gtl;
-				if(x == 0 || y == 0) gtl = g; else gtl = this.grounds[input[p - 1 - width]];
+				if(x == 0 || y == 0) gtl = g; else gtl = this.groundMap[input[p - 1 - width]];
 				var gtr;
-				if(x == width - 1 || y == 0) gtr = g; else gtr = this.grounds[input[p + 1 - width]];
+				if(x == width - 1 || y == 0) gtr = g; else gtr = this.groundMap[input[p + 1 - width]];
 				var gbl;
-				if(x == 0 || y == height - 1) gbl = g; else gbl = this.grounds[input[p - 1 + width]];
+				if(x == 0 || y == height - 1) gbl = g; else gbl = this.groundMap[input[p - 1 + width]];
 				var gbr;
-				if(x == width - 1 || y == height - 1) gbr = g; else gbr = this.grounds[input[p + 1 + width]];
+				if(x == width - 1 || y == height - 1) gbr = g; else gbr = this.groundMap[input[p + 1 + width]];
 				var max;
 				var a;
 				var a1;
 				if(gr > gl) a1 = gr; else a1 = gl;
 				var b;
-				if(gt > gd) b = gt; else b = gd;
+				if(gt > gb) b = gt; else b = gb;
 				if(a1 > b) a = a1; else a = b;
 				var b1;
 				var a2;
@@ -7467,86 +7692,140 @@ cdb.TileBuilder.prototype = {
 				var min;
 				var a3;
 				var a4;
-				var a5 = gr;
-				var b3 = gl;
-				if(a5 <= g) a5 = 1000;
-				if(b3 <= g) b3 = 1000;
-				if(a5 > b3) a4 = b3; else a4 = a5;
+				if(gr > gl) a4 = gl; else a4 = gr;
+				var b3;
+				if(gt > gb) b3 = gb; else b3 = gt;
+				if(a4 > b3) a3 = b3; else a3 = a4;
 				var b4;
-				var a6 = gt;
-				var b5 = gd;
-				if(a6 <= g) a6 = 1000;
-				if(b5 <= g) b5 = 1000;
-				if(a6 > b5) b4 = b5; else b4 = a6;
-				if(a4 <= g) a4 = 1000;
-				if(b4 <= g) b4 = 1000;
-				if(a4 > b4) a3 = b4; else a3 = a4;
-				var b6;
-				var a7;
-				var a8 = gtr;
-				var b7 = gtl;
-				if(a8 <= g) a8 = 1000;
-				if(b7 <= g) b7 = 1000;
-				if(a8 > b7) a7 = b7; else a7 = a8;
-				var b8;
-				var a9 = gbr;
-				var b9 = gbl;
-				if(a9 <= g) a9 = 1000;
-				if(b9 <= g) b9 = 1000;
-				if(a9 > b9) b8 = b9; else b8 = a9;
-				if(a7 <= g) a7 = 1000;
-				if(b8 <= g) b8 = 1000;
-				if(a7 > b8) b6 = b8; else b6 = a7;
-				if(a3 <= g) a3 = 1000;
-				if(b6 <= g) b6 = 1000;
-				if(a3 > b6) min = b6; else min = a3;
-				var _g2 = min - 1;
-				while(_g2 < max) {
-					var g1 = _g2++;
-					var bits = 0;
-					if(g1 < gl) bits |= 10;
-					if(g1 < gr) bits |= 5;
-					if(g1 < gt) bits |= 12;
-					if(g1 < gd) bits |= 3;
-					if(g1 < gtl) bits |= 8;
-					if(g1 < gtr) bits |= 4;
-					if(g1 < gbl) bits |= 2;
-					if(g1 < gbr) bits |= 1;
-					if(bits == 0) continue;
-					var bb = this.borders[g1 + 1];
+				var a5;
+				if(gtr > gtl) a5 = gtl; else a5 = gtr;
+				var b5;
+				if(gbr > gbl) b5 = gbl; else b5 = gbr;
+				if(a5 > b5) b4 = b5; else b4 = a5;
+				if(a3 > b4) min = b4; else min = a3;
+				var _g3 = min;
+				var _g2 = max + 1;
+				while(_g3 < _g2) {
+					var t = _g3++;
+					var bb = this.borders[t + g * 256];
 					if(bb == null) continue;
-					var a10 = bb[bits];
-					if(a10.length == 0) {
-						switch(bits) {
-						case 7:case 11:case 13:case 14:
-							a10 = bb[15];
-							break;
-						case 6:
-							a10 = bb[2];
-							if(a10.length > 0) {
-								out.push(x);
-								out.push(y);
-								out.push(a10.length == 1?a10[0]:a10[this.random(x + y * width) % a10.length]);
-							}
-							a10 = bb[4];
-							break;
-						case 9:
-							a10 = bb[1];
-							if(a10.length > 0) {
-								out.push(x);
-								out.push(y);
-								out.push(a10.length == 1?a10[0]:a10[this.random(x + y * width) % a10.length]);
-							}
-							a10 = bb[8];
-							break;
-						default:
-							continue;
+					var bits = 0;
+					if(t == gtl) bits |= 1;
+					if(t == gt) bits |= 2;
+					if(t == gtr) bits |= 4;
+					if(t == gl) bits |= 8;
+					if(t == gr) bits |= 16;
+					if(t == gbl) bits |= 32;
+					if(t == gb) bits |= 64;
+					if(t == gbr) bits |= 128;
+					if((bits & 10) == 10) {
+						var a6 = bb[9];
+						if(a6.length != 0) {
+							bits &= -48;
+							out.push(x);
+							out.push(y);
+							out.push(a6.length == 1?a6[0]:a6[_g4.random(x + y * width) % a6.length]);
 						}
-						if(a10.length == 0) continue;
 					}
-					out.push(x);
-					out.push(y);
-					out.push(a10.length == 1?a10[0]:a10[this.random(x + y * width) % a10.length]);
+					if((bits & 18) == 18) {
+						var a7 = bb[10];
+						if(a7.length != 0) {
+							bits &= -152;
+							out.push(x);
+							out.push(y);
+							out.push(a7.length == 1?a7[0]:a7[_g4.random(x + y * width) % a7.length]);
+						}
+					}
+					if((bits & 72) == 72) {
+						var a8 = bb[11];
+						if(a8.length != 0) {
+							bits &= -234;
+							out.push(x);
+							out.push(y);
+							out.push(a8.length == 1?a8[0]:a8[_g4.random(x + y * width) % a8.length]);
+						}
+					}
+					if((bits & 80) == 80) {
+						var a9 = bb[12];
+						if(a9.length != 0) {
+							bits &= -245;
+							out.push(x);
+							out.push(y);
+							out.push(a9.length == 1?a9[0]:a9[_g4.random(x + y * width) % a9.length]);
+						}
+					}
+					if((bits & 2) == 2) {
+						var a10 = bb[6];
+						if(a10.length != 0) {
+							bits &= -8;
+							out.push(x);
+							out.push(y);
+							out.push(a10.length == 1?a10[0]:a10[_g4.random(x + y * width) % a10.length]);
+						}
+					}
+					if((bits & 8) == 8) {
+						var a11 = bb[4];
+						if(a11.length != 0) {
+							bits &= -42;
+							out.push(x);
+							out.push(y);
+							out.push(a11.length == 1?a11[0]:a11[_g4.random(x + y * width) % a11.length]);
+						}
+					}
+					if((bits & 16) == 16) {
+						var a12 = bb[3];
+						if(a12.length != 0) {
+							bits &= -149;
+							out.push(x);
+							out.push(y);
+							out.push(a12.length == 1?a12[0]:a12[_g4.random(x + y * width) % a12.length]);
+						}
+					}
+					if((bits & 64) == 64) {
+						var a13 = bb[1];
+						if(a13.length != 0) {
+							bits &= -225;
+							out.push(x);
+							out.push(y);
+							out.push(a13.length == 1?a13[0]:a13[_g4.random(x + y * width) % a13.length]);
+						}
+					}
+					if((bits & 1) == 1) {
+						var a14 = bb[7];
+						if(a14.length != 0) {
+							bits &= -2;
+							out.push(x);
+							out.push(y);
+							out.push(a14.length == 1?a14[0]:a14[_g4.random(x + y * width) % a14.length]);
+						}
+					}
+					if((bits & 4) == 4) {
+						var a15 = bb[5];
+						if(a15.length != 0) {
+							bits &= -5;
+							out.push(x);
+							out.push(y);
+							out.push(a15.length == 1?a15[0]:a15[_g4.random(x + y * width) % a15.length]);
+						}
+					}
+					if((bits & 32) == 32) {
+						var a16 = bb[2];
+						if(a16.length != 0) {
+							bits &= -33;
+							out.push(x);
+							out.push(y);
+							out.push(a16.length == 1?a16[0]:a16[_g4.random(x + y * width) % a16.length]);
+						}
+					}
+					if((bits & 128) == 128) {
+						var a17 = bb[0];
+						if(a17.length != 0) {
+							bits &= -129;
+							out.push(x);
+							out.push(y);
+							out.push(a17.length == 1?a17[0]:a17[_g4.random(x + y * width) % a17.length]);
+						}
+					}
 				}
 			}
 		}
@@ -7759,6 +8038,12 @@ haxe.Json.stringify = function(obj,replacer,insertion) {
 };
 haxe.Json.parse = function(jsonString) {
 	return js.Node.parse(jsonString);
+};
+haxe.Log = function() { };
+$hxClasses["haxe.Log"] = haxe.Log;
+haxe.Log.__name__ = ["haxe","Log"];
+haxe.Log.trace = function(v,infos) {
+	js.Boot.__trace(v,infos);
 };
 haxe.Serializer = function() {
 	this.buf = new StringBuf();
@@ -8761,6 +9046,20 @@ haxe.ds.StringMap.prototype = {
 			return this.ref["$" + i];
 		}};
 	}
+	,toString: function() {
+		var s = new StringBuf();
+		s.b += "{";
+		var it = this.keys();
+		while( it.hasNext() ) {
+			var i = it.next();
+			if(i == null) s.b += "null"; else s.b += "" + i;
+			s.b += " => ";
+			s.add(Std.string(this.get(i)));
+			if(it.hasNext()) s.b += ", ";
+		}
+		s.b += "}";
+		return s.b;
+	}
 	,__class__: haxe.ds.StringMap
 };
 haxe.io.BytesBuffer = function() {
@@ -8890,6 +9189,25 @@ var js = {};
 js.Boot = function() { };
 $hxClasses["js.Boot"] = js.Boot;
 js.Boot.__name__ = ["js","Boot"];
+js.Boot.__unhtml = function(s) {
+	return s.split("&").join("&amp;").split("<").join("&lt;").split(">").join("&gt;");
+};
+js.Boot.__trace = function(v,i) {
+	var msg;
+	if(i != null) msg = i.fileName + ":" + i.lineNumber + ": "; else msg = "";
+	msg += js.Boot.__string_rec(v,"");
+	if(i != null && i.customParams != null) {
+		var _g = 0;
+		var _g1 = i.customParams;
+		while(_g < _g1.length) {
+			var v1 = _g1[_g];
+			++_g;
+			msg += "," + js.Boot.__string_rec(v1,"");
+		}
+	}
+	var d;
+	if(typeof(document) != "undefined" && (d = document.getElementById("haxe:trace")) != null) d.innerHTML += js.Boot.__unhtml(msg) + "<br/>"; else if(typeof console != "undefined" && console.log != null) console.log(msg);
+};
 js.Boot.getClass = function(o) {
 	if((o instanceof Array) && o.__enum__ == null) return Array; else return o.__class__;
 };
