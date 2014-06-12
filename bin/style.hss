@@ -485,6 +485,14 @@ div#menu {
 					display : inline-block;
 				}
 			}
+			.mode.m_group {
+				.opt.name {
+					display : inline-block;
+					input {
+						width : 150px;
+					}
+				}
+			}
 			.mode.m_border {
 				.opt.border_in, .opt.border_out, .opt.border_mode {
 					display : inline-block;

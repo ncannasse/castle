@@ -3,6 +3,36 @@ import cdb.Data;
 
 class TileBuilder {
 
+	/*
+
+		Bits
+
+		1	2	4
+		8	X	16
+		32	64	128
+
+		Corners
+
+		┌  ─  ┐		0 1 2
+		│  ■  │		3 8 4
+		└  ─  ┘		5 6 7
+
+		Lower Corners
+
+		┌ ┐		9  10
+		└ ┘		11 12
+
+		U Corners
+
+		   ┌ ┐			XX  13  XX
+		┌       ┐		14  XX  15
+		└       ┘
+		   └ ┘			XX  16  XX
+
+
+	*/
+
+
 	var groundMap : Array<Int>;
 	var groundIds = new Map<String, { id : Int, fill : Array<Int> }>();
 	var borders = new Array<Array<Array<Int>>>();
@@ -103,7 +133,7 @@ class TileBuilder {
 				for( t in tids ) {
 					var bt = borders[g + t * 256];
 					if( bt == null ) {
-						bt = [for( i in 0...16 ) []];
+						bt = [for( i in 0...20 ) []];
 						if( gid != null ) bt[8] = gid.fill;
 						borders[g + t * 256] = bt;
 					}
@@ -131,6 +161,17 @@ class TileBuilder {
 									k = 11;
 								else if( dx == b.w - 1 && dy == b.h - 1 )
 									k = 12;
+								else
+									continue;
+							case "u":
+								if( dx == 1 && dy == 0 )
+									k = 13;
+								else if( dx == 0 && dy == 1 )
+									k = 14;
+								else if( dx == 2 && dy == 1 )
+									k = 15;
+								else if( dx == 1 && dy == 2 )
+									k = 16;
 								else
 									continue;
 							default:
@@ -207,17 +248,26 @@ class TileBuilder {
 					if( t == gbr )
 						bits |= 128;
 
+					inline function add( a : Array<Int> ) {
+						out.push(x);
+						out.push(y);
+						out.push(a.length == 1 ? a[0] : a[random(x + y * width) % a.length]);
+					}
+
 					inline function check( b, clear, k ) {
 						if( bits & b == b ) {
 							var a = bb[k];
 							if( a.length != 0 ) {
-								bits &= ~(clear|b);
-								out.push(x);
-								out.push(y);
-								out.push(a.length == 1 ? a[0] : a[random(x + y * width) % a.length]);
+								bits &= ~(clear | b);
+								add(a);
 							}
 						}
 					}
+
+					check(2 | 8 | 16, 1 | 4, 13);
+					check(2 | 8 | 64, 1 | 32, 14);
+					check(2 | 16 | 64, 4 | 128, 15);
+					check(8 | 16 | 64, 32 | 128, 16);
 
 					check(2 | 8, 1 | 4 | 32, 9);
 					check(2 | 16, 1 | 4 | 128, 10);

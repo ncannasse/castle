@@ -721,12 +721,12 @@ class Level {
 				marginTop : Std.int(ccy * tileSize * zoomView - border) + "px",
 			});
 			curPos = { x : cx, y : cy, xf : cxf, yf : cyf };
-			J(".cursorPosition").text(cx + "," + cy);
+			content.find(".cursorPosition").text(cx + "," + cy);
 			if( mouseDown ) set(cx, cy);
 		} else {
 			cursor.hide();
 			curPos = null;
-			J(".cursorPosition").text("");
+			content.find(".cursorPosition").text("");
 		}
 
 	}
@@ -962,8 +962,10 @@ class Level {
 				}
 			case Tiles(_, data):
 				var changed = false;
-				for( dy in 0...l.currentHeight )
-					for( dx in 0...l.currentWidth ) {
+				var w = l.currentWidth, h = l.currentHeight;
+				if( randomMode ) w = h = 1;
+				for( dy in 0...h )
+					for( dx in 0...w ) {
 						var i = p.index + dx + dy * width;
 						if( data[i] == 0 ) continue;
 						data[i] = 0;
@@ -1570,10 +1572,11 @@ class Level {
 					}
 				});
 				jsel.mousemove(function(e) {
-					if( !start.down ) return;
 					var o = jsel.offset();
 					var x = Std.int((e.pageX - o.left) / (tileSize + 1));
 					var y = Std.int((e.pageY - o.top) / (tileSize + 1));
+					content.find(".cursorPosition").text(x+","+y);
+					if( !start.down ) return;
 					var x0 = x < start.x ? x : start.x;
 					var y0 = y < start.y ? y : start.y;
 					var x1 = x < start.x ? start.x : x;
@@ -1583,6 +1586,9 @@ class Level {
 					l.currentHeight = y1 - y0 + 1;
 					l.saveState();
 					setCursor(l);
+				});
+				jsel.mouseleave(function(e) {
+					content.find(".cursorPosition").text("");
 				});
 				jsel.mouseup(function(e) {
 					start.down = false;
@@ -1662,6 +1668,7 @@ class Level {
 						0x00FF00;
 					case Border: 0x00FFFF;
 					case Object: 0xFF0000;
+					case Group: 0x808080;
 					}
 					color |= 0xFF000000;
 					var px = s.x * (tileSize + 1);
@@ -1692,6 +1699,8 @@ class Level {
 					m.find("[name=border_in]").html("<option value='null'>upper</option><option value='lower'>lower</option>" + opts).val(Std.string(tobj.opts.borderIn));
 					m.find("[name=border_out]").html("<option value='null'>lower</option><option value='upper'>upper</option>" + opts).val(Std.string(tobj.opts.borderOut));
 					m.find("[name=border_mode]").val(Std.string(tobj.opts.borderMode));
+				case Group:
+					m.find("[name=name]").val(tobj.opts.name == null ? "" : tobj.opts.name);
 				}
 				m.show();
 			}

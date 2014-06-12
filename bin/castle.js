@@ -1053,12 +1053,12 @@ Level.prototype = {
 			if(this.currentLayer.images == null) border = 1;
 			this.cursor.css({ marginLeft : (ccx * this.tileSize * this.zoomView - border | 0) + "px", marginTop : (ccy * this.tileSize * this.zoomView - border | 0) + "px"});
 			this.curPos = { x : cx, y : cy, xf : cxf, yf : cyf};
-			new js.JQuery(".cursorPosition").text(cx + "," + cy);
+			this.content.find(".cursorPosition").text(cx + "," + cy);
 			if(this.mouseDown) this.set(cx,cy);
 		} else {
 			this.cursor.hide();
 			this.curPos = null;
-			new js.JQuery(".cursorPosition").text("");
+			this.content.find(".cursorPosition").text("");
 		}
 	}
 	,editProps: function(l,index) {
@@ -1366,14 +1366,15 @@ Level.prototype = {
 				case 2:
 					var data1 = _g15[3];
 					var changed = false;
-					var _g31 = 0;
-					var _g22 = l.currentHeight;
-					while(_g31 < _g22) {
-						var dy1 = _g31++;
-						var _g5 = 0;
-						var _g4 = l.currentWidth;
-						while(_g5 < _g4) {
-							var dx1 = _g5++;
+					var w = l.currentWidth;
+					var h = l.currentHeight;
+					if(this.randomMode) w = h = 1;
+					var _g22 = 0;
+					while(_g22 < h) {
+						var dy1 = _g22++;
+						var _g31 = 0;
+						while(_g31 < w) {
+							var dx1 = _g31++;
 							var i1 = p.index + dx1 + dy1 * this.width;
 							if(data1[i1] == 0) continue;
 							data1[i1] = 0;
@@ -2324,10 +2325,11 @@ Level.prototype = {
 					}
 				});
 				jsel.mousemove(function(e1) {
-					if(!start_down) return;
 					var o1 = jsel.offset();
 					var x2 = (e1.pageX - o1.left) / (_g.tileSize + 1) | 0;
 					var y2 = (e1.pageY - o1.top) / (_g.tileSize + 1) | 0;
+					_g.content.find(".cursorPosition").text(x2 + "," + y2);
+					if(!start_down) return;
 					var x01;
 					if(x2 < start_x) x01 = x2; else x01 = start_x;
 					var y01;
@@ -2342,7 +2344,10 @@ Level.prototype = {
 					l.saveState();
 					_g.setCursor(l);
 				});
-				jsel.mouseup(function(e2) {
+				jsel.mouseleave(function(e2) {
+					_g.content.find(".cursorPosition").text("");
+				});
+				jsel.mouseup(function(e3) {
 					start_down = false;
 				});
 				this.paletteSelect = select;
@@ -2485,6 +2490,9 @@ Level.prototype = {
 					case "object":
 						color = 16711680;
 						break;
+					case "group":
+						color = 8421504;
+						break;
 					}
 					color |= -16777216;
 					var px = s.x * (this.tileSize + 1);
@@ -2529,6 +2537,9 @@ Level.prototype = {
 					m.find("[name=border_in]").html("<option value='null'>upper</option><option value='lower'>lower</option>" + opts).val(Std.string(tobj.opts.borderIn));
 					m.find("[name=border_out]").html("<option value='null'>lower</option><option value='upper'>upper</option>" + opts).val(Std.string(tobj.opts.borderOut));
 					m.find("[name=border_mode]").val(Std.string(tobj.opts.borderMode));
+					break;
+				case "group":
+					m.find("[name=name]").val(tobj.opts.name == null?"":tobj.opts.name);
 					break;
 				}
 				m.show();
@@ -7511,7 +7522,6 @@ cdb.TileBuilder = function(t,stride,total) {
 			return $r;
 		}(this));
 	});
-	haxe.Log.trace(this.groundIds.toString(),{ fileName : "TileBuilder.hx", lineNumber : 71, className : "cdb.TileBuilder", methodName : "new"});
 	var _g7 = 0;
 	while(_g7 < allBorders.length) {
 		var b = allBorders[_g7];
@@ -7571,7 +7581,6 @@ cdb.TileBuilder = function(t,stride,total) {
 				continue;
 			}
 		}
-		haxe.Log.trace(b.opts,{ fileName : "TileBuilder.hx", lineNumber : 95, className : "cdb.TileBuilder", methodName : "new", customParams : [gids,tids]});
 		var _g16 = b.opts.borderMode;
 		if(_g16 != null) switch(_g16) {
 		case "corner":
@@ -7594,7 +7603,7 @@ cdb.TileBuilder = function(t,stride,total) {
 				if(bt == null) {
 					var _g36 = [];
 					var _g43 = 0;
-					while(_g43 < 16) {
+					while(_g43 < 20) {
 						var i1 = _g43++;
 						_g36.push([]);
 					}
@@ -7617,6 +7626,9 @@ cdb.TileBuilder = function(t,stride,total) {
 						} else switch(_g71) {
 						case "corner":
 							if(dx1 == 0 && dy1 == 0) k2 = 9; else if(dx1 == b.w - 1 && dy1 == 0) k2 = 10; else if(dx1 == 0 && dy1 == b.h - 1) k2 = 11; else if(dx1 == b.w - 1 && dy1 == b.h - 1) k2 = 12; else continue;
+							break;
+						case "u":
+							if(dx1 == 1 && dy1 == 0) k2 = 13; else if(dx1 == 0 && dy1 == 1) k2 = 14; else if(dx1 == 2 && dy1 == 1) k2 = 15; else if(dx1 == 1 && dy1 == 2) k2 = 16; else continue;
 							break;
 						default:
 							continue;
@@ -7718,112 +7730,148 @@ cdb.TileBuilder.prototype = {
 					if(t == gbl) bits |= 32;
 					if(t == gb) bits |= 64;
 					if(t == gbr) bits |= 128;
-					if((bits & 10) == 10) {
-						var a6 = bb[9];
+					if((bits & 26) == 26) {
+						var a6 = bb[13];
 						if(a6.length != 0) {
-							bits &= -48;
+							bits &= -32;
 							out.push(x);
 							out.push(y);
 							out.push(a6.length == 1?a6[0]:a6[_g4.random(x + y * width) % a6.length]);
 						}
 					}
-					if((bits & 18) == 18) {
-						var a7 = bb[10];
+					if((bits & 74) == 74) {
+						var a7 = bb[14];
 						if(a7.length != 0) {
-							bits &= -152;
+							bits &= -108;
 							out.push(x);
 							out.push(y);
 							out.push(a7.length == 1?a7[0]:a7[_g4.random(x + y * width) % a7.length]);
 						}
 					}
-					if((bits & 72) == 72) {
-						var a8 = bb[11];
+					if((bits & 82) == 82) {
+						var a8 = bb[15];
 						if(a8.length != 0) {
-							bits &= -234;
+							bits &= -215;
 							out.push(x);
 							out.push(y);
 							out.push(a8.length == 1?a8[0]:a8[_g4.random(x + y * width) % a8.length]);
 						}
 					}
-					if((bits & 80) == 80) {
-						var a9 = bb[12];
+					if((bits & 88) == 88) {
+						var a9 = bb[16];
 						if(a9.length != 0) {
-							bits &= -245;
+							bits &= -249;
 							out.push(x);
 							out.push(y);
 							out.push(a9.length == 1?a9[0]:a9[_g4.random(x + y * width) % a9.length]);
 						}
 					}
-					if((bits & 2) == 2) {
-						var a10 = bb[6];
+					if((bits & 10) == 10) {
+						var a10 = bb[9];
 						if(a10.length != 0) {
-							bits &= -8;
+							bits &= -48;
 							out.push(x);
 							out.push(y);
 							out.push(a10.length == 1?a10[0]:a10[_g4.random(x + y * width) % a10.length]);
 						}
 					}
-					if((bits & 8) == 8) {
-						var a11 = bb[4];
+					if((bits & 18) == 18) {
+						var a11 = bb[10];
 						if(a11.length != 0) {
-							bits &= -42;
+							bits &= -152;
 							out.push(x);
 							out.push(y);
 							out.push(a11.length == 1?a11[0]:a11[_g4.random(x + y * width) % a11.length]);
 						}
 					}
-					if((bits & 16) == 16) {
-						var a12 = bb[3];
+					if((bits & 72) == 72) {
+						var a12 = bb[11];
 						if(a12.length != 0) {
-							bits &= -149;
+							bits &= -234;
 							out.push(x);
 							out.push(y);
 							out.push(a12.length == 1?a12[0]:a12[_g4.random(x + y * width) % a12.length]);
 						}
 					}
-					if((bits & 64) == 64) {
-						var a13 = bb[1];
+					if((bits & 80) == 80) {
+						var a13 = bb[12];
 						if(a13.length != 0) {
-							bits &= -225;
+							bits &= -245;
 							out.push(x);
 							out.push(y);
 							out.push(a13.length == 1?a13[0]:a13[_g4.random(x + y * width) % a13.length]);
 						}
 					}
-					if((bits & 1) == 1) {
-						var a14 = bb[7];
+					if((bits & 2) == 2) {
+						var a14 = bb[6];
 						if(a14.length != 0) {
-							bits &= -2;
+							bits &= -8;
 							out.push(x);
 							out.push(y);
 							out.push(a14.length == 1?a14[0]:a14[_g4.random(x + y * width) % a14.length]);
 						}
 					}
-					if((bits & 4) == 4) {
-						var a15 = bb[5];
+					if((bits & 8) == 8) {
+						var a15 = bb[4];
 						if(a15.length != 0) {
-							bits &= -5;
+							bits &= -42;
 							out.push(x);
 							out.push(y);
 							out.push(a15.length == 1?a15[0]:a15[_g4.random(x + y * width) % a15.length]);
 						}
 					}
-					if((bits & 32) == 32) {
-						var a16 = bb[2];
+					if((bits & 16) == 16) {
+						var a16 = bb[3];
 						if(a16.length != 0) {
-							bits &= -33;
+							bits &= -149;
 							out.push(x);
 							out.push(y);
 							out.push(a16.length == 1?a16[0]:a16[_g4.random(x + y * width) % a16.length]);
 						}
 					}
-					if((bits & 128) == 128) {
-						var a17 = bb[0];
+					if((bits & 64) == 64) {
+						var a17 = bb[1];
 						if(a17.length != 0) {
-							bits &= -129;
+							bits &= -225;
 							out.push(x);
 							out.push(y);
 							out.push(a17.length == 1?a17[0]:a17[_g4.random(x + y * width) % a17.length]);
+						}
+					}
+					if((bits & 1) == 1) {
+						var a18 = bb[7];
+						if(a18.length != 0) {
+							bits &= -2;
+							out.push(x);
+							out.push(y);
+							out.push(a18.length == 1?a18[0]:a18[_g4.random(x + y * width) % a18.length]);
+						}
+					}
+					if((bits & 4) == 4) {
+						var a19 = bb[5];
+						if(a19.length != 0) {
+							bits &= -5;
+							out.push(x);
+							out.push(y);
+							out.push(a19.length == 1?a19[0]:a19[_g4.random(x + y * width) % a19.length]);
+						}
+					}
+					if((bits & 32) == 32) {
+						var a20 = bb[2];
+						if(a20.length != 0) {
+							bits &= -33;
+							out.push(x);
+							out.push(y);
+							out.push(a20.length == 1?a20[0]:a20[_g4.random(x + y * width) % a20.length]);
+						}
+					}
+					if((bits & 128) == 128) {
+						var a21 = bb[0];
+						if(a21.length != 0) {
+							bits &= -129;
+							out.push(x);
+							out.push(y);
+							out.push(a21.length == 1?a21[0]:a21[_g4.random(x + y * width) % a21.length]);
 						}
 					}
 				}
@@ -8038,12 +8086,6 @@ haxe.Json.stringify = function(obj,replacer,insertion) {
 };
 haxe.Json.parse = function(jsonString) {
 	return js.Node.parse(jsonString);
-};
-haxe.Log = function() { };
-$hxClasses["haxe.Log"] = haxe.Log;
-haxe.Log.__name__ = ["haxe","Log"];
-haxe.Log.trace = function(v,infos) {
-	js.Boot.__trace(v,infos);
 };
 haxe.Serializer = function() {
 	this.buf = new StringBuf();
@@ -9046,20 +9088,6 @@ haxe.ds.StringMap.prototype = {
 			return this.ref["$" + i];
 		}};
 	}
-	,toString: function() {
-		var s = new StringBuf();
-		s.b += "{";
-		var it = this.keys();
-		while( it.hasNext() ) {
-			var i = it.next();
-			if(i == null) s.b += "null"; else s.b += "" + i;
-			s.b += " => ";
-			s.add(Std.string(this.get(i)));
-			if(it.hasNext()) s.b += ", ";
-		}
-		s.b += "}";
-		return s.b;
-	}
 	,__class__: haxe.ds.StringMap
 };
 haxe.io.BytesBuffer = function() {
@@ -9189,25 +9217,6 @@ var js = {};
 js.Boot = function() { };
 $hxClasses["js.Boot"] = js.Boot;
 js.Boot.__name__ = ["js","Boot"];
-js.Boot.__unhtml = function(s) {
-	return s.split("&").join("&amp;").split("<").join("&lt;").split(">").join("&gt;");
-};
-js.Boot.__trace = function(v,i) {
-	var msg;
-	if(i != null) msg = i.fileName + ":" + i.lineNumber + ": "; else msg = "";
-	msg += js.Boot.__string_rec(v,"");
-	if(i != null && i.customParams != null) {
-		var _g = 0;
-		var _g1 = i.customParams;
-		while(_g < _g1.length) {
-			var v1 = _g1[_g];
-			++_g;
-			msg += "," + js.Boot.__string_rec(v1,"");
-		}
-	}
-	var d;
-	if(typeof(document) != "undefined" && (d = document.getElementById("haxe:trace")) != null) d.innerHTML += js.Boot.__unhtml(msg) + "<br/>"; else if(typeof console != "undefined" && console.log != null) console.log(msg);
-};
 js.Boot.getClass = function(o) {
 	if((o instanceof Array) && o.__enum__ == null) return Array; else return o.__class__;
 };
@@ -10438,6 +10447,7 @@ cdb._Data.TileMode_Impl_.Tile = "tile";
 cdb._Data.TileMode_Impl_.Ground = "ground";
 cdb._Data.TileMode_Impl_.Border = "border";
 cdb._Data.TileMode_Impl_.Object = "object";
+cdb._Data.TileMode_Impl_.Group = "group";
 haxe.Serializer.USE_CACHE = false;
 haxe.Serializer.USE_ENUM_INDEX = false;
 haxe.Serializer.BASE64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789%:";

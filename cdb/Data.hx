@@ -55,6 +55,7 @@ typedef LayerProps = {
 	var Ground = "ground";
 	var Border = "border";
 	var Object = "object";
+	var Group = "group";
 	function new(s) {
 		this = s;
 	}
