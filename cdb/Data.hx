@@ -69,6 +69,7 @@ typedef LayerProps = {
 
 typedef TileModeOptions = {
 	?name : String,
+	?value : Dynamic,
 	?priority : Int,
 	?borderIn : Null<String>,
 	?borderOut : Null<String>,

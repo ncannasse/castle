@@ -164,9 +164,13 @@
 						<option value="object">object</option>
 						<option value="group">group</option>
 					</select>
-					<label class="opt name" title="Name for this ground">
+					<label class="opt name" title="Name for this group">
 						Name:
 						<input type="text" name="name" onchange="_.level.paletteOption('name',this.value)"/>
+					</label>
+					<label class="opt value" title="Custom value">
+						Value:
+						<input type="text" name="value" onchange="_.level.paletteOption('value',this.value)"/>
 					</label>
 					<label class="opt priority" title="Priority for this ground (higher is above)">
 						Priority:

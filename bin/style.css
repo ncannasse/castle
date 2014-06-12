@@ -459,7 +459,12 @@ div#menu ul.sheets li.active {
 	*display : inline;
 }
 #content .level .palette .bar .mode.m_group .opt.name input {
-	width : 150px;
+	width : 86px;
+}
+#content .level .palette .bar .mode.m_group .opt.value {
+	display : inline-block;
+	zoom : 1;
+	*display : inline;
 }
 #content .level .palette .bar .mode.m_border .opt.border_in, #content .level .palette .bar .mode.m_border .opt.border_out, #content .level .palette .bar .mode.m_border .opt.border_mode {
 	display : inline-block;

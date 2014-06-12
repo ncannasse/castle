@@ -1413,6 +1413,16 @@ class Level {
 			var s = l.getTileProp();
 			if( s != null )
 				s.opts.name = val;
+		case "value":
+			var s = l.getTileProp();
+			if( s != null ) {
+				var v = try haxe.Json.parse(val) catch( e : Dynamic ) null;
+				if( v == null )
+					Reflect.deleteField(s.opts, "value");
+				else
+					s.opts.value = v;
+				palette.find("[name=value]").val(v == null ? "" : haxe.Json.stringify(v));
+			}
 		case "priority":
 			var s = l.getTileProp();
 			if( s != null )
@@ -1701,6 +1711,7 @@ class Level {
 					m.find("[name=border_mode]").val(Std.string(tobj.opts.borderMode));
 				case Group:
 					m.find("[name=name]").val(tobj.opts.name == null ? "" : tobj.opts.name);
+					m.find("[name=value]").val(tobj.opts.value == null ? "" : haxe.Json.stringify(tobj.opts.value));
 				}
 				m.show();
 			}

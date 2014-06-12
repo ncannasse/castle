@@ -489,8 +489,11 @@ div#menu {
 				.opt.name {
 					display : inline-block;
 					input {
-						width : 150px;
+						width : 86px;
 					}
+				}
+				.opt.value {
+					display : inline-block;
 				}
 			}
 			.mode.m_border {

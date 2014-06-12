@@ -2103,26 +2103,39 @@ Level.prototype = {
 			var s1 = l.getTileProp();
 			if(s1 != null) s1.opts.name = val;
 			break;
-		case "priority":
+		case "value":
 			var s2 = l.getTileProp();
-			if(s2 != null) s2.opts.priority = Std.parseInt(val);
+			if(s2 != null) {
+				var v;
+				try {
+					v = js.Node.parse(val);
+				} catch( e ) {
+					v = null;
+				}
+				if(v == null) Reflect.deleteField(s2.opts,"value"); else s2.opts.value = v;
+				this.palette.find("[name=value]").val(v == null?"":js.Node.stringify(v,null,null));
+			}
+			break;
+		case "priority":
+			var s3 = l.getTileProp();
+			if(s3 != null) s3.opts.priority = Std.parseInt(val);
 			break;
 		case "border_in":
-			var s3 = l.getTileProp();
-			if(s3 != null) {
-				if(val == "null") Reflect.deleteField(s3.opts,"borderIn"); else s3.opts.borderIn = val;
+			var s4 = l.getTileProp();
+			if(s4 != null) {
+				if(val == "null") Reflect.deleteField(s4.opts,"borderIn"); else s4.opts.borderIn = val;
 			}
 			break;
 		case "border_out":
-			var s4 = l.getTileProp();
-			if(s4 != null) {
-				if(val == "null") Reflect.deleteField(s4.opts,"borderOut"); else s4.opts.borderOut = val;
+			var s5 = l.getTileProp();
+			if(s5 != null) {
+				if(val == "null") Reflect.deleteField(s5.opts,"borderOut"); else s5.opts.borderOut = val;
 			}
 			break;
 		case "border_mode":
-			var s5 = l.getTileProp();
-			if(s5 != null) {
-				if(val == "null") Reflect.deleteField(s5.opts,"borderMode"); else s5.opts.borderMode = val;
+			var s6 = l.getTileProp();
+			if(s6 != null) {
+				if(val == "null") Reflect.deleteField(s6.opts,"borderMode"); else s6.opts.borderMode = val;
 			}
 			break;
 		case "tag":
@@ -2540,6 +2553,7 @@ Level.prototype = {
 					break;
 				case "group":
 					m.find("[name=name]").val(tobj.opts.name == null?"":tobj.opts.name);
+					m.find("[name=value]").val(tobj.opts.value == null?"":js.Node.stringify(tobj.opts.value,null,null));
 					break;
 				}
 				m.show();
