@@ -55,7 +55,7 @@
   <options>
     <option showHiddenPaths="False" />
     <option testMovie="OpenDocument" />
-    <option testMovieCommand="bin\nw.exe" />
+    <option testMovieCommand="bin\cdb.exe" />
   </options>
   <!-- Plugin storage -->
   <storage />
