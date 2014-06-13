@@ -574,6 +574,12 @@ class Level {
 		scroll.scroll(function(_) {
 			savePrefs();
 		});
+		
+		scroll[0].onmousewheel = function(e) {
+			if( e.shiftKey )
+				updateZoom(e.wheelDelta > 0);
+		};
+	
 
 		(untyped content.find("[name=color]")).spectrum({
 			clickoutFiresChange : true,
@@ -866,7 +872,7 @@ class Level {
 		if( e.ctrlKey || J(":focus").length > 0 || currentLayer == null ) return;
 
 		J(".popup").remove();
-
+		
 		var l = currentLayer;
 		switch( e.keyCode ) {
 		case K.NUMPAD_ADD:
