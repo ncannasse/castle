@@ -694,20 +694,25 @@ class Model {
 		case TString:
 			if( val.charCodeAt(0) == '"'.code ) {
 				var esc = false;
-				var p = 0;
+				var p = 1;
+				var out = new StringBuf();
 				while( true ) {
 					if( p == val.length ) throw "Unclosed \"";
 					var c = val.charCodeAt(p++);
-					if( esc )
+					if( esc ) {
+						out.addChar(c);
 						esc = false;
-					else switch( c ) {
+					} else switch( c ) {
 						case '"'.code:
-							if( p < val.length ) throw "Invalid content after string '" + val + "'";
+							if( p < val.length ) throw "Invalid content after string '" + val;
 							break;
-						case '/'.code:
+						case '\\'.code:
 							esc = true;
+						default:
+							out.addChar(c);
 					}
 				}
+				return out.toString();
 			} else if( ~/^[A-Za-z0-9_]+$/.match(val) )
 				return val;
 			throw "String requires quotes '" + val + "'";
@@ -770,7 +775,7 @@ class Model {
 							esc = false;
 						else switch( c ) {
 							case '"'.code: break;
-							case '/'.code: esc = true;
+							case '\\'.code: esc = true;
 						}
 					}
 				case ','.code:
