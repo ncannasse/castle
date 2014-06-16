@@ -292,12 +292,14 @@ class Level {
 		return "#" + StringTools.hex(v, 6);
 	}
 
-	function pick() {
+	function pick( ?filter ) {
 		if( curPos == null ) return null;
 		var i = layers.length - 1;
 		while( i >= 0 ) {
 			var l = layers[i--];
-			if( !l.visible ) continue;
+			if( !l.visible || (filter != null && !filter(l)) ) continue;
+			var x = currentLayer.floatCoord ? curPos.xf : curPos.x;
+			var y = currentLayer.floatCoord ? curPos.yf : curPos.y;
 			switch( l.data ) {
 			case Layer(data):
 				var idx = curPos.x + curPos.y * width;
@@ -305,13 +307,11 @@ class Level {
 				if( k == 0 && i >= 0 ) continue;
 				return { k : k, layer : l, index : idx };
 			case Objects(idCol, objs):
-				var x = curPos.xf;
-				var y = curPos.yf;
 				for( i in 0...objs.length ) {
 					var o = objs[i];
 					var w = l.hasSize ? o.width : 1;
 					var h = l.hasSize ? o.height : 1;
-					if( !(o.x >= x + 1 || o.y >= y + 1 || o.x + w < x || o.y + h < y) ) {
+					if( x >= o.x && y >= o.y && x < o.x + w && y < o.y + h ) {
 						if( l.idToIndex == null )
 							return { k : 0, layer : l, index : i };
 						var k = l.idToIndex.get(Reflect.field(o, idCol));
@@ -329,7 +329,7 @@ class Level {
 				for( idx in 0...insts.length ) {
 					var i = insts[idx];
 					var o = objs.get(i.o);
-					if( curPos.xf >= i.x && curPos.yf >= i.y && curPos.xf < i.x + (o == null ? 1 : o.w) && curPos.yf < i.y + (o == null ? 1 : o.h) )
+					if( x >= i.x && y >= i.y && x < i.x + (o == null ? 1 : o.w) && y < i.y + (o == null ? 1 : o.h) )
 						return { k : i.o, layer : l, index : idx };
 				}
 			}
@@ -574,12 +574,12 @@ class Level {
 		scroll.scroll(function(_) {
 			savePrefs();
 		});
-		
+
 		scroll[0].onmousewheel = function(e) {
 			if( e.shiftKey )
 				updateZoom(e.wheelDelta > 0);
 		};
-	
+
 
 		(untyped content.find("[name=color]")).spectrum({
 			clickoutFiresChange : true,
@@ -737,14 +737,17 @@ class Level {
 
 	}
 
-	function editProps( l : LayerData, index : Int ) {
-		var hasProp = false;
-		var o = Reflect.field(obj, l.name)[index];
+	function hasProps( l : LayerData ) {
 		var idCol = switch( l.data ) { case Objects(idCol, _): idCol; default: null; };
 		for( c in l.baseSheet.columns )
 			if( c.name != "x" && c.name != "y" && c.name != idCol )
-				hasProp = true;
-		if( !hasProp ) return;
+				return true;
+		return false;
+	}
+
+	function editProps( l : LayerData, index : Int ) {
+		if( !hasProps(l) ) return;
+		var o = Reflect.field(obj, l.name)[index];
 		var popup = J("<div>").addClass("popup").prependTo(content.find(".scrollContent"));
 		J(js.Browser.window).bind("mousedown", function(_) {
 			popup.remove();
@@ -872,7 +875,7 @@ class Level {
 		if( e.ctrlKey || J(":focus").length > 0 || currentLayer == null ) return;
 
 		J(".popup").remove();
-		
+
 		var l = currentLayer;
 		switch( e.keyCode ) {
 		case K.NUMPAD_ADD:
@@ -992,12 +995,13 @@ class Level {
 				}
 			}
 		case "E".code:
-			var p = pick();
+			var p = pick(function(l) return l.data.match(Objects(_)) && hasProps(l));
+			if( p == null ) return;
 			switch( p.layer.data ) {
-			case Layer(_), Tiles(_), TileInstances(_):
-			case Objects(_,objs):
+			case Objects(_, objs):
 				J(".popup").remove();
 				editProps(p.layer, p.index);
+			default:
 			}
 		default:
 		}
@@ -1247,6 +1251,7 @@ class Level {
 	@:keep function setVisible(b:Bool) {
 		currentLayer.visible = b;
 		draw();
+		J(":focus").blur();
 	}
 
 	@:keep function setAlpha(v:String) {
