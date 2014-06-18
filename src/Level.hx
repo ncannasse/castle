@@ -59,6 +59,9 @@ class Level {
 
 	var watchList : Array<{ path : String, time : Float, callb : Void -> Void }>;
 	var watchTimer : haxe.Timer;
+	var references : Array<{ ref : Dynamic -> Void }>;
+	
+	static var loadedTilesCache = new Map< String, { pending : Array < Int->Int->Array<lvl.Image>->Array<Bool>->Void >, data : { w : Int, h : Int, img : Array<lvl.Image>, blanks : Array<Bool> }} >();
 
 	public function new( model : Model, sheet : Sheet, index : Int ) {
 		this.sheet = sheet;
@@ -66,6 +69,7 @@ class Level {
 		this.index = index;
 		this.obj = sheet.lines[index];
 		this.model = model;
+		references = [];
 	}
 
 	public function getName() {
@@ -178,6 +182,37 @@ class Level {
 
 		waitDone();
 	}
+	
+	public function loadAndSplit(file, size:Int, callb) {
+		var key = file + "@" + size;
+		var a = loadedTilesCache.get(key);
+		if( a == null ) {
+			a = { pending : [], data : null };
+			loadedTilesCache.set(key, a);
+			lvl.Image.load(model.getAbsPath(file), function(i) {
+				var images = [], blanks = [];
+				var w = Std.int(i.width / size);
+				var h = Std.int(i.height / size);
+				for( y in 0...h )
+					for( x in 0...w ) {
+						var i = i.sub(x * size, y * size, size, size);
+						blanks[images.length] = i.isBlank();
+						images.push(i);
+					}
+				a.data = { w : w, h : h, img : images, blanks : blanks };
+				for( p in a.pending )
+					p(w, h, images, blanks);
+				a.pending = [];
+			},function() {
+				throw "Could not load " + file;
+			});
+			watch(file, function() lvl.Image.load(model.getAbsPath(file), function(_) { loadedTilesCache.remove(key); reload(); } , function() { }, true));
+		}
+		if( a.data != null )
+			callb(a.data.w, a.data.h, a.data.img, a.data.blanks);
+		else
+			a.pending.push(callb);
+	}
 
 	public function getTileProps(file,stride) {
 		var p : TilesetProps = Reflect.field(sheet.props.level.tileSets,file);
@@ -215,6 +250,12 @@ class Level {
 		}
 	}
 
+	function allocRef(f) {
+		var r = { ref : f };
+		references.push(r);
+		return r;
+	}
+	
 	public function dispose() {
 		if( content != null ) content.html("");
 		if( view != null ) {
@@ -222,6 +263,8 @@ class Level {
 			var ca = view.getCanvas();
 			ca.parentNode.removeChild(ca);
 			view = null;
+			for( r in references )
+				r.ref = null;
 		}
 		watchTimer.stop();
 		watchTimer = null;
@@ -260,7 +303,6 @@ class Level {
 		if( isDisposed() ) return;
 
 		setup();
-		draw();
 
 		var layer = layers[0];
 		var state : LevelState = try haxe.Unserializer.run(js.Browser.getLocalStorage().getItem(sheetPath)) catch( e : Dynamic ) null;
@@ -456,7 +498,28 @@ class Level {
 		var win = nodejs.webkit.Window.get();
 		content.find(".scroll").css("height", (win.height - 240) + "px");
 	}
-
+	
+	function setSort( j : js.JQuery, callb : { ref : Dynamic -> Void } ) {
+		(untyped j.sortable)( {
+			vertical : false,
+			onDrop : function(item, container, _super) {
+				_super(item, container);
+				callb.ref(null);
+			}
+		});
+	}
+	
+	function spectrum( j : js.JQuery, options : { }, change : { ref : Dynamic -> Void }, ?show : { ref : Dynamic -> Void } ) {
+		untyped options.change = function(c) {
+			change.ref(Std.parseInt("0x" + c.toHex()));
+		};
+		if( show != null )
+			untyped options.show = function() {
+				show.ref(null);
+			};
+		(untyped j).spectrum(options);
+	}
+	
 	function setup() {
 		var page = J("#content");
 		page.html("");
@@ -503,60 +566,54 @@ class Level {
 			}
 			var id = UID++;
 			var t = J('<input type="text" id="_${UID++}">').appendTo(td);
-			(untyped t.spectrum)({
+			spectrum(t,{
 				color : toColor(l.colors[l.current]),
 				clickoutFiresChange : true,
 				showButtons : false,
 				showPaletteOnly : true,
 				showPalette : true,
 				palette : [for( c in l.colors ) toColor(c)],
-				show : function(_) {
-					setCursor(l);
-				},
-				change : function(e) {
-					var color = Std.parseInt("0x" + e.toHex());
-					for( i in 0...l.colors.length )
-						if( l.colors[i] == color ) {
-							l.current = i;
-							setCursor(l);
-							return;
-						}
-					setCursor(l);
-				},
-			});
+			},allocRef(function(color:Int) {
+				for( i in 0...l.colors.length )
+					if( l.colors[i] == color ) {
+						l.current = i;
+						setCursor(l);
+						return;
+					}
+				setCursor(l);
+			}),allocRef(function(_) {
+				setCursor(l);
+			}));
 		}
 
-		(untyped mlayers.sortable)( {
-			vertical : false,
-			onDrop : function(item, container, _super) {
-				_super(item, container);
-				var indexes = [];
-				for( i in mlayers.find("li") )
-					indexes.push(i.data("index"));
-				layers = [for( i in 0...layers.length ) layers[indexes[i]]];
-				for( i in 0...layers.length )
-					layers[i].comp.data("index", i);
+		var callb = allocRef(function(_) {
+			var indexes = [];
+			for( i in mlayers.find("li") )
+				indexes.push(i.data("index"));
+			layers = [for( i in 0...layers.length ) layers[indexes[i]]];
+			for( i in 0...layers.length )
+				layers[i].comp.data("index", i);
 
-				// update layer list
-				var groups = new Map();
-				for( l in layers ) {
-					if( l.listColumnn == null ) continue;
-					var g = groups.get(l.listColumnn.name);
-					if( g == null ) {
-						g = [];
-						groups.set(l.listColumnn.name, g);
-					}
-					g.push(l);
+			// update layer list
+			var groups = new Map();
+			for( l in layers ) {
+				if( l.listColumnn == null ) continue;
+				var g = groups.get(l.listColumnn.name);
+				if( g == null ) {
+					g = [];
+					groups.set(l.listColumnn.name, g);
 				}
-				for( g in groups.keys() ) {
-					var layers = groups.get(g);
-					var objs = [for( l in layers ) l.targetObj.o];
-					Reflect.setField(obj, g, objs);
-				}
-				save();
-				draw();
+				g.push(l);
 			}
+			for( g in groups.keys() ) {
+				var layers = groups.get(g);
+				var objs = [for( l in layers ) l.targetObj.o];
+				Reflect.setField(obj, g, objs);
+			}
+			save();
+			draw();
 		});
+		setSort(mlayers, callb);
 
 		content.find('[name=newlayer]').css({ display : newLayer != null ? 'block' : 'none' });
 
@@ -579,16 +636,11 @@ class Level {
 				updateZoom(e.wheelDelta > 0);
 		};
 
-
-		(untyped content.find("[name=color]")).spectrum({
-			clickoutFiresChange : true,
-			showButtons : false,
-			change : function(c) {
-				currentLayer.props.color = Std.parseInt("0x" + c.toHex());
-				save();
-				draw();
-			},
-		});
+		spectrum(content.find("[name=color]"), { clickoutFiresChange : true, showButtons : false }, allocRef(function(c) {
+			currentLayer.props.color = c;
+			save();
+			draw();
+		}));
 
 		onResize();
 
@@ -1120,6 +1172,26 @@ class Level {
 		case Objects(_):
 		}
 	}
+	
+	function drawTiles( l : LayerData, data : Array<Int> ) {
+		for( y in 0...height )
+			for( x in 0...width ) {
+				var k = data[x + y * width] - 1;
+				if( k < 0 ) continue;
+				view.draw(l.images[k], x * tileSize, y * tileSize);
+			}
+		if( l.props.mode == Ground ) {
+			var b = new cdb.TileBuilder(l.tileProps, l.imagesStride, l.images.length);
+			var a = b.buildGrounds(data, width);
+			var p = 0, max = a.length;
+			while( p < max ) {
+				var x = a[p++];
+				var y = a[p++];
+				var id = a[p++];
+				view.draw(l.images[id], x * tileSize, y * tileSize);
+			}
+		}
+	}
 
 	public function draw() {
 		view.fill(0xFF909090);
@@ -1133,7 +1205,7 @@ class Level {
 				var first = index == 0;
 				for( y in 0...height )
 					for( x in 0...width ) {
-						var k =data[x + y * width];
+						var k = data[x + y * width];
 						if( k == 0 && !first ) continue;
 						if( l.images != null ) {
 							view.draw(l.images[k], x * tileSize, y * tileSize);
@@ -1142,23 +1214,7 @@ class Level {
 						view.fillRect(x * tileSize, y * tileSize, tileSize, tileSize, l.colors[k] | 0xFF000000);
 					}
 			case Tiles(t, data):
-				for( y in 0...height )
-					for( x in 0...width ) {
-						var k = data[x + y * width] - 1;
-						if( k < 0 ) continue;
-						view.draw(l.images[k], x * tileSize, y * tileSize);
-					}
-				if( l.props.mode == Ground ) {
-					var b = new cdb.TileBuilder(l.tileProps, l.imagesStride, l.images.length);
-					var a = b.buildGrounds(data, width);
-					var p = 0, max = a.length;
-					while( p < max ) {
-						var x = a[p++];
-						var y = a[p++];
-						var id = a[p++];
-						view.draw(l.images[id], x * tileSize, y * tileSize);
-					}
-				}
+				drawTiles(l, data);
 			case TileInstances(_, insts):
 				var objs = l.getTileObjects();
 				for( i in insts ) {

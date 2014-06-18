@@ -217,7 +217,7 @@ class LayerData {
 	public function setObjectsData( id, val ) {
 		data = Objects(id, val);
 	}
-
+	
 	public function setTilesData( val : cdb.Types.TileLayer ) {
 		var file = val == null ? null : val.file;
 		var size = val == null ? 16 : val.size;
@@ -235,15 +235,9 @@ class LayerData {
 			return;
 		}
 		level.wait();
-		Image.load(level.model.getAbsPath(file), function(i) {
-			var w = Std.int(i.width / size);
-			var h = Std.int(i.height / size);
-			for( y in 0...h )
-				for( x in 0...w ) {
-					var i = i.sub(x * size, y * size, size, size);
-					blanks[images.length] = i.isBlank();
-					images.push(i);
-				}
+		level.loadAndSplit(file, size, function(w, h, images, blanks) {
+			this.images = images;
+			this.blanks = blanks;
 
 			switch( props.mode ) {
 			case null, Tiles, Ground:
@@ -281,10 +275,7 @@ class LayerData {
 			tileProps = level.getTileProps(file, imagesStride);
 			loadState();
 			level.waitDone();
-		}, function() {
-			throw "Could not load " + file;
 		});
-		level.watch(file, function() Image.load(level.model.getAbsPath(file),function(_) level.reload(), function() {}, true));
 	}
 
 	function set_visible(v) {

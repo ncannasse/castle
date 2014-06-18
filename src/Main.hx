@@ -1679,7 +1679,7 @@ class Main extends Model {
 		}
 		prefs.curSheet = Lambda.indexOf(data.sheets, s);
 		J("#sheets li").removeClass("active").filter("#sheet_" + prefs.curSheet).addClass("active");
-		refresh();
+		if( manual ) refresh();
 	}
 
 	function selectLevel( l : Level ) {
@@ -2010,6 +2010,7 @@ class Main extends Model {
 
 	override function initContent() {
 		super.initContent();
+		(untyped J("body").spectrum).clearAll();
 		var sheets = J("ul#sheets");
 		sheets.children().remove();
 		for( i in 0...data.sheets.length ) {
@@ -2089,6 +2090,8 @@ class Main extends Model {
 		}
 		if( lcur != null )
 			selectLevel(lcur);
+		else
+			refresh();
 	}
 
 	function initMenu() {

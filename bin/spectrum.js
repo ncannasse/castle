@@ -1103,6 +1103,13 @@
     $.fn.spectrum.loadOpts = {};
     $.fn.spectrum.draggable = draggable;
     $.fn.spectrum.defaults = defaultOpts;
+	
+	// --- added (NC) ---
+	$.fn.spectrum.clearAll = function() {
+		$(".sp-container").remove();
+		spectrums = [];
+	}
+	// --------
 
     $.spectrum = { };
     $.spectrum.localization = { };
