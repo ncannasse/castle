@@ -485,7 +485,7 @@ div#menu {
 					display : inline-block;
 				}
 			}
-			.mode.m_group {
+			.mode.m_object, .mode.m_group {
 				.opt.name {
 					display : inline-block;
 					input {

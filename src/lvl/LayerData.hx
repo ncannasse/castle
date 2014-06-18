@@ -63,7 +63,20 @@ class LayerData {
 	public function loadSheetData( sheet : Sheet ) {
 		this.sheet = sheet;
 		if( sheet == null ) {
-			if( props.color == null ) props.color = 0xFF0000;
+			if( props.color == null ) {
+				props.color = 0xFF0000;
+				for( o in level.sheet.lines ) {
+					var props : cdb.Data.LevelProps = o.props;
+					if( props == null ) continue;
+					for( l in props.layers )
+						if( l.l == this.name && l.p.color != null ) {
+							this.props.color = l.p.color;
+							props = null;
+							break;
+						}
+					if( props == null ) break;
+				}
+			}
 			colors = [props.color];
 			names = [name];
 			loadState();
@@ -246,7 +259,7 @@ class LayerData {
 					var vx = v % stride;
 					var vy = Std.int(v / stride);
 					v = vx + vy * w;
-					if( vx >= w || vy >= h || blanks[v] || x >= level.width || y >= level.height )
+					if( vx >= w || vy >= h || x >= level.width || y >= level.height )
 						continue;
 					insts.push({ x : x, y : y, o : v });
 				}

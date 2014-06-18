@@ -847,7 +847,7 @@ class Level {
 			draw();
 		case Tiles(_, data):
 			var k = data[x + y * width];
-			if( k == l.current || l.blanks[l.current] ) return;
+			if( k == l.current + 1 || l.blanks[l.current] ) return;
 			var px = x, py = y, zero = [], todo = [x, y];
 			while( todo.length > 0 ) {
 				var y = todo.pop();
@@ -1738,15 +1738,14 @@ class Level {
 				case Ground:
 					m.find("[name=name]").val(tobj.opts.name == null ? "" : tobj.opts.name);
 					m.find("[name=priority]").val("" + (tobj.opts.priority == null ? 0 : tobj.opts.priority));
-				case Object:
+				case Object, Group:
+					m.find("[name=name]").val(tobj.opts.name == null ? "" : tobj.opts.name);
+					m.find("[name=value]").val(tobj.opts.value == null ? "" : haxe.Json.stringify(tobj.opts.value));
 				case Border:
 					var opts = [for( g in grounds ) '<option value="$g">$g</option>'].join("");
 					m.find("[name=border_in]").html("<option value='null'>upper</option><option value='lower'>lower</option>" + opts).val(Std.string(tobj.opts.borderIn));
 					m.find("[name=border_out]").html("<option value='null'>lower</option><option value='upper'>upper</option>" + opts).val(Std.string(tobj.opts.borderOut));
 					m.find("[name=border_mode]").val(Std.string(tobj.opts.borderMode));
-				case Group:
-					m.find("[name=name]").val(tobj.opts.name == null ? "" : tobj.opts.name);
-					m.find("[name=value]").val(tobj.opts.value == null ? "" : haxe.Json.stringify(tobj.opts.value));
 				}
 				m.show();
 			}

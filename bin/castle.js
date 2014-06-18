@@ -1214,7 +1214,7 @@ Level.prototype = {
 			case 2:
 				var data1 = _g[3];
 				var k1 = data1[x + y * this.width];
-				if(k1 == l.current || l.blanks[l.current]) return;
+				if(k1 == l.current + 1 || l.blanks[l.current]) return;
 				var px = x;
 				var py = y;
 				var zero = [];
@@ -2588,7 +2588,9 @@ Level.prototype = {
 					m.find("[name=name]").val(tobj.opts.name == null?"":tobj.opts.name);
 					m.find("[name=priority]").val("" + (tobj.opts.priority == null?0:tobj.opts.priority));
 					break;
-				case "object":
+				case "object":case "group":
+					m.find("[name=name]").val(tobj.opts.name == null?"":tobj.opts.name);
+					m.find("[name=value]").val(tobj.opts.value == null?"":js.Node.stringify(tobj.opts.value,null,null));
 					break;
 				case "border":
 					var opts = ((function($this) {
@@ -2608,10 +2610,6 @@ Level.prototype = {
 					m.find("[name=border_in]").html("<option value='null'>upper</option><option value='lower'>lower</option>" + opts).val(Std.string(tobj.opts.borderIn));
 					m.find("[name=border_out]").html("<option value='null'>lower</option><option value='upper'>upper</option>" + opts).val(Std.string(tobj.opts.borderOut));
 					m.find("[name=border_mode]").val(Std.string(tobj.opts.borderMode));
-					break;
-				case "group":
-					m.find("[name=name]").val(tobj.opts.name == null?"":tobj.opts.name);
-					m.find("[name=value]").val(tobj.opts.value == null?"":js.Node.stringify(tobj.opts.value,null,null));
 					break;
 				}
 				m.show();
@@ -10022,7 +10020,29 @@ lvl.LayerData.prototype = {
 		var _g5 = this;
 		this.sheet = sheet;
 		if(sheet == null) {
-			if(this.props.color == null) this.props.color = 16711680;
+			if(this.props.color == null) {
+				this.props.color = 16711680;
+				var _g = 0;
+				var _g1 = this.level.sheet.lines;
+				while(_g < _g1.length) {
+					var o = _g1[_g];
+					++_g;
+					var props = o.props;
+					if(props == null) continue;
+					var _g2 = 0;
+					var _g3 = props.layers;
+					while(_g2 < _g3.length) {
+						var l = _g3[_g2];
+						++_g2;
+						if(l.l == this.name && l.p.color != null) {
+							this.props.color = l.p.color;
+							props = null;
+							break;
+						}
+					}
+					if(props == null) break;
+				}
+			}
 			this.colors = [this.props.color];
 			this.names = [this.name];
 			this.loadState();
@@ -10032,36 +10052,36 @@ lvl.LayerData.prototype = {
 		var first = this.level.layers.length == 0;
 		var erase;
 		if(first) erase = "#ccc"; else erase = "rgba(0,0,0,0)";
-		var _g = 0;
-		var _g1 = sheet.columns;
-		while(_g < _g1.length) {
-			var c = _g1[_g];
-			++_g;
-			var _g2 = c.type;
-			switch(_g2[1]) {
+		var _g4 = 0;
+		var _g11 = sheet.columns;
+		while(_g4 < _g11.length) {
+			var c = _g11[_g4];
+			++_g4;
+			var _g21 = c.type;
+			switch(_g21[1]) {
 			case 11:
-				var _g3 = [];
-				var _g4 = 0;
+				var _g31 = [];
+				var _g41 = 0;
 				var _g51 = sheet.lines;
-				while(_g4 < _g51.length) {
-					var o = _g51[_g4];
-					++_g4;
-					_g3.push((function($this) {
+				while(_g41 < _g51.length) {
+					var o1 = _g51[_g41];
+					++_g41;
+					_g31.push((function($this) {
 						var $r;
-						var c1 = Reflect.field(o,c.name);
+						var c1 = Reflect.field(o1,c.name);
 						$r = c1 == null?0:c1;
 						return $r;
 					}(this)));
 				}
-				this.colors = _g3;
+				this.colors = _g31;
 				break;
 			case 7:
 				if(this.images == null) this.images = [];
 				var size = [this.level.tileSize];
-				var _g41 = 0;
-				var _g31 = sheet.lines.length;
-				while(_g41 < _g31) {
-					var idx = [_g41++];
+				var _g42 = 0;
+				var _g32 = sheet.lines.length;
+				while(_g42 < _g32) {
+					var idx = [_g42++];
 					var key = Reflect.field(sheet.lines[idx[0]],c.name);
 					var idat = this.level.model.getImageData(key);
 					if(idat == null && this.images[idx[0]] != null) continue;
@@ -10084,10 +10104,10 @@ lvl.LayerData.prototype = {
 			case 14:
 				if(this.images == null) this.images = [];
 				var size1 = [this.level.tileSize];
-				var _g42 = 0;
-				var _g32 = sheet.lines.length;
-				while(_g42 < _g32) {
-					var idx1 = [_g42++];
+				var _g43 = 0;
+				var _g33 = sheet.lines.length;
+				while(_g43 < _g33) {
+					var idx1 = [_g43++];
 					var data = [Reflect.field(sheet.lines[idx1[0]],c.name)];
 					if(data[0] == null && this.images[idx1[0]] != null) continue;
 					if(data[0] == null) {
@@ -10124,17 +10144,17 @@ lvl.LayerData.prototype = {
 		this.imagesStride = Math.ceil(Math.sqrt(sheet.lines.length));
 		this.idToIndex = new haxe.ds.StringMap();
 		this.indexToId = [];
-		var _g11 = 0;
+		var _g12 = 0;
 		var _g6 = sheet.lines.length;
-		while(_g11 < _g6) {
-			var index = _g11++;
-			var o1 = sheet.lines[index];
+		while(_g12 < _g6) {
+			var index = _g12++;
+			var o2 = sheet.lines[index];
 			var n;
-			if(sheet.props.displayColumn != null) n = Reflect.field(o1,sheet.props.displayColumn); else n = null;
-			if((n == null || n == "") && idCol != null) n = Reflect.field(o1,idCol.name);
+			if(sheet.props.displayColumn != null) n = Reflect.field(o2,sheet.props.displayColumn); else n = null;
+			if((n == null || n == "") && idCol != null) n = Reflect.field(o2,idCol.name);
 			if(n == null || n == "") n = "#" + index;
 			if(idCol != null) {
-				var id = Reflect.field(o1,idCol.name);
+				var id = Reflect.field(o2,idCol.name);
 				if(id != null && id != "") this.idToIndex.set(id,index);
 				this.indexToId[index] = id;
 			}
@@ -10307,7 +10327,7 @@ lvl.LayerData.prototype = {
 					var vx1 = v1 % stride;
 					var vy1 = v1 / stride | 0;
 					v1 = vx1 + vy1 * w;
-					if(vx1 >= w || vy1 >= h || _g3.blanks[v1] || x1 >= _g3.level.width || y1 >= _g3.level.height) continue;
+					if(vx1 >= w || vy1 >= h || x1 >= _g3.level.width || y1 >= _g3.level.height) continue;
 					insts.push({ x : x1, y : y1, o : v1});
 				}
 				_g3.data = lvl.LayerInnerData.TileInstances(d,insts);
