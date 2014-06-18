@@ -50,7 +50,7 @@ class LayerData {
 
 	public var targetObj : { o : Dynamic, f : String };
 	public var listColumnn : Column;
-	public var tileProps : TileProps;
+	public var tileProps : TilesetProps;
 
 	public function new(level, name, p, target) {
 		this.level = level;

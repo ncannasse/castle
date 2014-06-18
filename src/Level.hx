@@ -180,7 +180,7 @@ class Level {
 	}
 
 	public function getTileProps(file,stride) {
-		var p : TileProps = Reflect.field(sheet.props.level.tileSets,file);
+		var p : TilesetProps = Reflect.field(sheet.props.level.tileSets,file);
 		if( p == null ) {
 			p = {
 				stride : stride,

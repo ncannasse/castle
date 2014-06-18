@@ -8168,6 +8168,26 @@ cdb._Types.TileLayerData_Impl_.encode = function(a) {
 	}
 	return cdb._Types.TileLayerData_Impl_._new(haxe.crypto.Base64.encode(b));
 };
+cdb._Types.LevelPropsAccess_Impl_ = function() { };
+$hxClasses["cdb._Types.LevelPropsAccess_Impl_"] = cdb._Types.LevelPropsAccess_Impl_;
+cdb._Types.LevelPropsAccess_Impl_.__name__ = ["cdb","_Types","LevelPropsAccess_Impl_"];
+cdb._Types.LevelPropsAccess_Impl_.get_tileSize = function(this1) {
+	return this1.tileSize;
+};
+cdb._Types.LevelPropsAccess_Impl_.getTileset = function(this1,i,name) {
+	return Reflect.field(i.sheet.props.level.tileSets,name);
+};
+cdb._Types.LevelPropsAccess_Impl_.getLayer = function(this1,name) {
+	if(this1 == null || this1.layers == null) return null;
+	var _g = 0;
+	var _g1 = this1.layers;
+	while(_g < _g1.length) {
+		var l = _g1[_g];
+		++_g;
+		if(l.l == name) return l.p;
+	}
+	return null;
+};
 cdb.IndexNoId = function(data,sheet) {
 	this.name = sheet;
 	var _g = 0;
@@ -8195,6 +8215,7 @@ cdb.Index = function(data,sheet) {
 		var s = _g1[_g];
 		++_g;
 		if(s.name == sheet) {
+			this.sheet = s;
 			this.all = s.lines;
 			this.byId = new haxe.ds.StringMap();
 			this.byIndex = [];
