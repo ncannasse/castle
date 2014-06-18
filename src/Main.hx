@@ -658,7 +658,7 @@ class Main extends Model {
 				var id = UID++;
 				var zoom = 2;
 				var html = '<div id="_c${id}" style="width : ${v.size*zoom}px; height : ${v.size*zoom}px; background : url(\'$path\') -${v.size*v.x*zoom}px -${v.size*v.y*zoom}px; border : 1px solid black;"></div>';
-				html += '<img src="$path" onload="$(\'#_c$id\').css({backgroundSize : (this.width*$zoom)+\'px \' + (this.height*$zoom)+\'px\'}); this.parentNode.removeChild(this)"/>';
+				html += '<img src="$path" onload="$(\'#_c$id\').css({backgroundSize : (this.width*$zoom)+\'px \' + (this.height*$zoom)+\'px\'}); if( this.parentNode != null ) this.parentNode.removeChild(this)"/>';
 				html;
 			}
 		case TTileLayer:

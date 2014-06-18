@@ -603,7 +603,9 @@ div#menu ul.sheets li.active {
 }
 #content .level #cursor {
 	position : absolute;
-	cursor : none;
+}
+#content .level #cursor, #content .level .scroll canvas {
+	cursor : url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAIAAAAmkwkpAAAAB3RJTUUH3gYSDw4zu7+27gAAABd0RVh0U29mdHdhcmUAR0xEUE5HIHZlciAzLjRxhaThAAAACHRwTkdHTEQzAAAAAEqAKR8AAAAEZ0FNQQAAsY8L/GEFAAAABmJLR0QA/wD/AP+gvaeTAAAAEUlEQVR4nGNgQAP/wQAbBw4ANwsL9efVyGMAAAAASUVORK5CYII="),auto;
 }
 #content .level .scroll {
 	padding : 15px;
@@ -627,7 +629,4 @@ div#menu ul.sheets li.active {
 }
 #content .level .scroll .popup td {
 	width : 160px;
-}
-#content .level .scroll canvas {
-	cursor : none;
 }

@@ -5197,7 +5197,7 @@ Main.prototype = $extend(Model.prototype,{
 					var id1 = Main.UID++;
 					var zoom = 2;
 					var html1 = "<div id=\"_c" + id1 + "\" style=\"width : " + v3.size * zoom + "px; height : " + v3.size * zoom + "px; background : url('" + path1 + "') -" + v3.size * v3.x * zoom + "px -" + v3.size * v3.y * zoom + "px; border : 1px solid black;\"></div>";
-					html1 += "<img src=\"" + path1 + "\" onload=\"$('#_c" + id1 + "').css({backgroundSize : (this.width*" + zoom + ")+'px ' + (this.height*" + zoom + ")+'px'}); this.parentNode.removeChild(this)\"/>";
+					html1 += "<img src=\"" + path1 + "\" onload=\"$('#_c" + id1 + "').css({backgroundSize : (this.width*" + zoom + ")+'px ' + (this.height*" + zoom + ")+'px'}); if( this.parentNode != null ) this.parentNode.removeChild(this)\"/>";
 					return html1;
 				}
 				break;

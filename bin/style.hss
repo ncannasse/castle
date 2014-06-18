@@ -637,8 +637,12 @@ div#menu {
 
 	#cursor {
 		position : absolute;
-		cursor : CSS('none');
 	}
+
+	#cursor, .scroll canvas {
+		cursor : CSS('url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAIAAAAmkwkpAAAAB3RJTUUH3gYSDw4zu7+27gAAABd0RVh0U29mdHdhcmUAR0xEUE5HIHZlciAzLjRxhaThAAAACHRwTkdHTEQzAAAAAEqAKR8AAAAEZ0FNQQAAsY8L/GEFAAAABmJLR0QA/wD/AP+gvaeTAAAAEUlEQVR4nGNgQAP/wQAbBw4ANwsL9efVyGMAAAAASUVORK5CYII="),auto');
+	}
+
 
 	.scroll {
 
@@ -666,9 +670,6 @@ div#menu {
 			}
 		}
 
-		canvas {
-			cursor : CSS('none');
-		}
 	}
 
 }
