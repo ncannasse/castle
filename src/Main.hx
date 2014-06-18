@@ -365,7 +365,7 @@ class Main extends Model {
 
 		var res = J("<tr>").addClass("list");
 		J("<td>").appendTo(res);
-		var cell = J("<td>").attr("colspan", "" + (sheet.columns.length + (sheet.props.isLevel ? 1 : 0))).appendTo(res);
+		var cell = J("<td>").attr("colspan", "" + (sheet.columns.length + (sheet.props.level != null ? 1 : 0))).appendTo(res);
 		var div = J("<div>").appendTo(cell);
 		div.hide();
 		var content = J("<table>").appendTo(div);
@@ -439,7 +439,7 @@ class Main extends Model {
 			makeSheet(sheet);
 		case TImage:
 			saveImages();
-		case TInt if( sheet.props.isLevel && (c.name == "width" || c.name == "height") ):
+		case TInt if( sheet.props.level != null && (c.name == "width" || c.name == "height") ):
 			var obj = sheet.lines[index];
 			var newW : Int = Reflect.field(obj, "width");
 			var newH : Int = Reflect.field(obj, "height");
@@ -939,15 +939,17 @@ class Main extends Model {
 		nren.click = function() {
 			li.dblclick();
 		};
-		if( s.props.isLevel || (hasColumn(s, "width", [TInt]) && hasColumn(s, "height", [TInt]) && hasColumn(s,"props",[TDynamic])) ) {
+		if( s.props.level != null || (hasColumn(s, "width", [TInt]) && hasColumn(s, "height", [TInt]) && hasColumn(s,"props",[TDynamic])) ) {
 			var nlevel = new MenuItem( { label : "Level", type : MenuItemType.checkbox } );
-			nlevel.checked = s.props.isLevel;
+			nlevel.checked = s.props.level != null;
 			n.append(nlevel);
 			nlevel.click = function() {
-				if( s.props.isLevel )
-					Reflect.deleteField(s.props, "isLevel");
+				if( s.props.level != null )
+					Reflect.deleteField(s.props, "level");
 				else
-					s.props.isLevel = true;
+					s.props.level = {
+						tileSets : {},
+					}
 				save();
 				refresh();
 			};
@@ -1360,7 +1362,7 @@ class Main extends Model {
 		}];
 
 		var colCount = sheet.columns.length;
-		if( sheet.props.isLevel ) colCount++;
+		if( sheet.props.level != null ) colCount++;
 
 		for( cindex in 0...sheet.columns.length ) {
 			var c = sheet.columns[cindex];
@@ -1576,7 +1578,7 @@ class Main extends Model {
 			}
 		}
 
-		if( sheet.props.isLevel ) {
+		if( sheet.props.level != null ) {
 			var col = J("<td style='width:35px'>");
 			cols.prepend(col);
 			for( index in 0...sheet.lines.length ) {

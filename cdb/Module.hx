@@ -148,7 +148,8 @@ class Module {
 				case TTileLayer:
 					macro : cdb.Types.TileLayer;
 				case TDynamic:
-					s.props.isLevel && c.name == "props" ? macro : cdb.Data.LevelProps : macro : Dynamic;
+					var t = tname.toComplex();
+					s.props.level != null && c.name == "props" ? macro : cdb.Types.LevelPropsAccess<$t> : macro : Dynamic;
 				}
 
 				var rt = switch( c.type ) {

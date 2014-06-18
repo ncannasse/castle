@@ -76,7 +76,7 @@ typedef TileModeOptions = {
 	?borderMode : Null<String>,
 };
 
-typedef TileProps = {
+typedef TilesetProps = {
 	var stride : Int;
 	var sets : Array<{ x : Int, y : Int, w : Int, h : Int, t : TileMode, opts : TileModeOptions }>;
 	var tags : Array<{ name : String, flags : Array<Bool> }>;
@@ -85,7 +85,10 @@ typedef TileProps = {
 typedef LevelProps = {
 	@:optional var tileSize : Int;
 	@:optional var layers : Array<{ l : String, p : LayerProps }>;
-	@:optional var tileSets : Dynamic<TileProps>;
+}
+
+typedef LevelsProps = {
+	var tileSets : Dynamic<TilesetProps>;
 }
 
 typedef SheetProps = {
@@ -94,7 +97,7 @@ typedef SheetProps = {
 	@:optional var hide : Bool;
 	@:optional var hasIndex : Bool;
 	@:optional var hasGroup : Bool;
-	@:optional var isLevel : Bool;
+	@:optional var level : LevelsProps;
 }
 
 typedef Sheet = {

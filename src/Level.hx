@@ -180,16 +180,14 @@ class Level {
 	}
 
 	public function getTileProps(file,stride) {
-		if( props.tileSets == null )
-			props.tileSets = {};
-		var p : TileProps = Reflect.field(props.tileSets,file);
+		var p : TileProps = Reflect.field(sheet.props.level.tileSets,file);
 		if( p == null ) {
 			p = {
 				stride : stride,
 				sets : [],
 				tags : [],
 			};
-			Reflect.setField(props.tileSets, file, p);
+			Reflect.setField(sheet.props.level.tileSets, file, p);
 		} else {
 			if( p.sets == null ) p.sets = [];
 			if( p.tags == null ) p.tags = [];
@@ -368,16 +366,6 @@ class Level {
 				switch( currentLayer.data ) {
 				case Tiles(t, data):
 					t.file = path;
-					if( this.props.tileSets == null ) this.props.tileSets = {};
-					if( !Reflect.hasField(this.props.tileSets, path) ) {
-						for( o in sheet.lines ) {
-							if( o.props == null ) continue;
-							var t = Reflect.field(o.props.tileSets, path);
-							if( t == null ) continue;
-							Reflect.setField(this.props.tileSets, path, haxe.Unserializer.run(haxe.Serializer.run(t)));
-							break;
-						}
-					}
 					currentLayer.dirty = true;
 					save();
 					reload();

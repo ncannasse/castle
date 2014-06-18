@@ -41,7 +41,7 @@ class TileBuilder {
 	var groundIds = new Map<String, { id : Int, fill : Array<Int> }>();
 	var borders = new Array<Array<Array<Int>>>();
 
-	public function new( t : TileProps, stride : Int, total : Int ) {
+	public function new( t : TilesetProps, stride : Int, total : Int ) {
 		groundMap = [];
 		for( i in 0...total+1 )
 			groundMap[i] = 0;

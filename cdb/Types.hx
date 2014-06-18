@@ -127,6 +127,27 @@ abstract TileLayerData(String) {
 
 }
 
+abstract LevelPropsAccess<T>(Data.LevelProps) {
+
+	public var tileSize(get, never) : Int;
+
+	function get_tileSize() {
+		return this.tileSize;
+	}
+
+	public function getTileset( i : Index<T,Dynamic>, name : String ) : Data.TilesetProps {
+		return Reflect.field(@:privateAccess i.sheet.props.level.tileSets, name);
+	}
+
+	public function getLayer( name : String ) : Data.LayerProps {
+		if( this == null || this.layers == null ) return null;
+		for( l in this.layers )
+			if( l.l == name )
+				return l.p;
+		return null;
+	}
+}
+
 typedef TilePos = {
 	var file(default, never) : String;
 	var size(default, never) : Int;
@@ -164,11 +185,13 @@ class Index<T,Kind> {
 	var byIndex : Array<T>;
 	var byId : Map<String,T>;
 	var name : String;
+	var sheet : Data.Sheet;
 
 	public function new( data : Data, sheet : String ) {
 		this.name = sheet;
 		for( s in data.sheets )
 			if( s.name == sheet ) {
+				this.sheet = s;
 				all = cast s.lines;
 				byId = new Map();
 				byIndex = [];
