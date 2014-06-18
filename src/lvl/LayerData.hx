@@ -203,6 +203,17 @@ class LayerData {
 		return objs;
 	}
 
+	public function getSelObjects() {
+		if( tileProps == null ) return [];
+		var x = current % imagesStride;
+		var y = Std.int(current / imagesStride);
+		var out = [];
+		for( o in tileProps.sets )
+			if( o.t == Object && !(o.x >= x + currentWidth || o.y >= y + currentHeight || o.x + o.w <= x || o.y + o.h <= y) )
+				out.push(o);
+		return out;
+	}
+
 	public function setObjectsData( id, val ) {
 		data = Objects(id, val);
 	}
@@ -295,7 +306,32 @@ class LayerData {
 		return v;
 	}
 
-	public function saveState() {
+	function setCurrent(id, w, h) {
+		if( current == id && currentWidth == w && currentHeight == h )
+			return;
+		Reflect.setField(this, "current", id);
+		currentWidth = w;
+		currentHeight = h;
+		if( images != null && comp != null )
+			comp.find("div.img").html("").append(new js.JQuery(images[current].getCanvas()));
+		saveState(false);
+	}
+
+	public function saveState( sync = true ) {
+		if( sync && data != null ) {
+			switch( data ) {
+			case Tiles(t, _), TileInstances(t, _):
+				for( l in level.layers )
+					if( l != this ) {
+						switch( l.data ) {
+						case Tiles(t2, _), TileInstances(t2, _) if( t2.file == t.file ):
+							l.setCurrent(current, currentWidth, currentHeight);
+						default:
+						}
+					}
+			default:
+			}
+		}
 		var s : LayerState = {
 			current : current,
 			visible : visible,

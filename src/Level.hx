@@ -28,10 +28,10 @@ class Level {
 	public var model : Model;
 	public var tileSize : Int;
 	public var sheet : Sheet;
+	public var layers : Array<LayerData>;
 
 	var obj : Dynamic;
 	var content : js.JQuery;
-	var layers : Array<LayerData>;
 	var props : LevelProps;
 
 	var currentLayer : LayerData;
@@ -40,7 +40,7 @@ class Level {
 	var zoomView = 1.;
 	var curPos : { x : Int, y : Int, xf : Float, yf : Float };
 	var mouseDown : Bool;
-	var delDown : Bool;
+	var deleteMode : { l : LayerData };
 	var needSave : Bool;
 	var waitCount : Int;
 
@@ -733,6 +733,7 @@ class Level {
 			curPos = { x : cx, y : cy, xf : cxf, yf : cyf };
 			content.find(".cursorPosition").text(cx + "," + cy);
 			if( mouseDown ) set(cx, cy);
+			if( deleteMode != null ) doDelete();
 		} else {
 			cursor.hide();
 			curPos = null;
@@ -876,7 +877,7 @@ class Level {
 	public function onKey( e : js.html.KeyboardEvent ) {
 		if( e.ctrlKey && e.keyCode == K.F4 )
 			action("close");
-		if( e.ctrlKey || J(":focus").length > 0 || currentLayer == null ) return;
+		if( e.ctrlKey || J("input[type=text]:focus").length > 0 || currentLayer == null ) return;
 
 		J(".popup").remove();
 
@@ -965,47 +966,9 @@ class Level {
 		case "P".code:
 			paint(curPos.x, curPos.y);
 		case K.DELETE:
-			delDown = true;
-			var p = pick();
-			if( p == null ) return;
-			switch( p.layer.data ) {
-			case Layer(data):
-				if( data[p.index] == 0 ) return;
-				data[p.index] = 0;
-				p.layer.dirty = true;
-				cursor.css({ opacity : 0 }).fadeTo(100,1);
-				save();
-				draw();
-			case Objects(_, objs):
-				if( objs.remove(objs[p.index]) ) {
-					save();
-					draw();
-				}
-			case Tiles(_, data):
-				var changed = false;
-				var w = l.currentWidth, h = l.currentHeight;
-				if( randomMode ) w = h = 1;
-				for( dy in 0...h )
-					for( dx in 0...w ) {
-						var i = p.index + dx + dy * width;
-						if( data[i] == 0 ) continue;
-						data[i] = 0;
-						changed = true;
-					}
-				if( changed ) {
-					p.layer.dirty = true;
-					cursor.css({ opacity : 0 }).fadeTo(100,1);
-					save();
-					draw();
-				}
-			case TileInstances(_, insts):
-				if( insts.remove(insts[p.index]) ) {
-					p.layer.dirty = true;
-					save();
-					draw();
-					return;
-				}
-			}
+			if( deleteMode != null ) return;
+			deleteMode = { l : null };
+			doDelete();
 		case "E".code:
 			var p = pick(function(l) return l.data.match(Objects(_)) && hasProps(l));
 			if( p == null ) return;
@@ -1019,10 +982,54 @@ class Level {
 		}
 	}
 
+	function doDelete() {
+		var p = pick(deleteMode.l == null ? null : function(l2) return l2 == deleteMode.l);
+		if( p == null ) return;
+		deleteMode.l = p.layer;
+		switch( p.layer.data ) {
+		case Layer(data):
+			if( data[p.index] == 0 ) return;
+			data[p.index] = 0;
+			p.layer.dirty = true;
+			cursor.css({ opacity : 0 }).fadeTo(100,1);
+			save();
+			draw();
+		case Objects(_, objs):
+			if( objs.remove(objs[p.index]) ) {
+				save();
+				draw();
+			}
+		case Tiles(_, data):
+			var changed = false;
+			var w = currentLayer.currentWidth, h = currentLayer.currentHeight;
+			if( randomMode ) w = h = 1;
+			for( dy in 0...h )
+				for( dx in 0...w ) {
+					var i = p.index + dx + dy * width;
+					if( data[i] == 0 ) continue;
+					data[i] = 0;
+					changed = true;
+				}
+			if( changed ) {
+				p.layer.dirty = true;
+				cursor.css({ opacity : 0 }).fadeTo(100,1);
+				save();
+				draw();
+			}
+		case TileInstances(_, insts):
+			if( insts.remove(insts[p.index]) ) {
+				p.layer.dirty = true;
+				save();
+				draw();
+				return;
+			}
+		}
+	}
+
 	public function onKeyUp( e : js.html.KeyboardEvent ) {
 		switch( e.keyCode ) {
 		case K.DELETE:
-			delDown = false;
+			deleteMode = null;
 			if( needSave ) save();
 		case K.SPACE:
 			spaceDown = false;
@@ -1072,10 +1079,17 @@ class Level {
 			draw();
 		case TileInstances(_, insts):
 			var objs = l.getTileObjects();
-			var putObj = objs.get(l.current);
+			var putObjs = l.getSelObjects();
+			var putObj = putObjs[Std.random(putObjs.length)];
 			var dx = putObj == null ? 0.5 : (putObj.w * 0.5);
 			var dy = putObj == null ? 0.5 : putObj.h - 0.5;
 			var x = l.floatCoord ? curPos.xf : curPos.x, y = l.floatCoord ? curPos.yf : curPos.y;
+
+			if( putObj != null ) {
+				x += (putObjs[0].w - putObj.w) * 0.5;
+				y += putObjs[0].h - putObj.h;
+			}
+
 			for( i in insts ) {
 				var o = objs.get(i.o);
 				var ox = i.x + (o == null ? 0.5 : o.w * 0.5);
@@ -1086,7 +1100,7 @@ class Level {
 				}
 			}
 			if( putObj != null )
-				insts.push( { x : x, y : y, o : l.current } );
+				insts.push( { x : x, y : y, o : putObj.x + putObj.y * l.imagesStride } );
 			else
 				for( dy in 0...l.currentHeight )
 					for( dx in 0...l.currentWidth )
@@ -1192,7 +1206,7 @@ class Level {
 	}
 
 	function save() {
-		if( mouseDown || delDown ) {
+		if( mouseDown || deleteMode != null ) {
 			needSave = true;
 			return;
 		}
@@ -1586,6 +1600,8 @@ class Level {
 						l.saveState();
 						setCursor(l);
 					} else {
+						start.x = x;
+						start.y = y;
 						if( l.tileProps != null )
 							for( p in l.tileProps.sets )
 								if( x >= p.x && y >= p.y && x < p.x + p.w && y < p.y + p.h && p.t == Object ) {
@@ -1596,8 +1612,6 @@ class Level {
 									setCursor(l);
 									return;
 								}
-						start.x = x;
-						start.y = y;
 						start.down = true;
 						l.current = x + y * l.imagesStride;
 						setCursor(l);
@@ -1665,7 +1679,12 @@ class Level {
 					if( used[i] ) continue;
 					paletteSelect.fillRect( (i % l.imagesStride) * (tileSize + 1), Std.int(i / l.imagesStride) * (tileSize + 1), tileSize, tileSize, 0x80000000);
 				}
-				paletteSelect.fillRect( (l.current % l.imagesStride) * (tileSize + 1), Std.int(l.current / l.imagesStride) * (tileSize + 1), (tileSize + 1) * l.currentWidth - 1, (tileSize + 1) * l.currentHeight - 1, 0x805BA1FB);
+				var objs = l.getSelObjects();
+				if( objs.length > 1 )
+					for( o in objs )
+						paletteSelect.fillRect( o.x * (tileSize + 1), o.y * (tileSize + 1), (tileSize + 1) * o.w - 1, (tileSize + 1) * o.h - 1, 0x805BA1FB);
+				else
+					paletteSelect.fillRect( (l.current % l.imagesStride) * (tileSize + 1), Std.int(l.current / l.imagesStride) * (tileSize + 1), (tileSize + 1) * l.currentWidth - 1, (tileSize + 1) * l.currentHeight - 1, 0x805BA1FB);
 			}
 			palette.find(".icon.tag").toggleClass("active", tagMode != null);
 
@@ -1740,20 +1759,29 @@ class Level {
 		}
 
 		var size = zoomView < 1 ? Std.int(tileSize * zoomView) : Math.ceil(tileSize * zoomView);
+		var cur = l.current;
 		var w = randomMode ? 1 : l.currentWidth;
 		var h = randomMode ? 1 : l.currentHeight;
+		if( l.data.match(TileInstances(_)) ) {
+			var o = l.getSelObjects();
+			if( o.length > 0 ) {
+				cur = o[0].x + o[0].y * l.imagesStride;
+				w = o[0].w;
+				h = o[0].h;
+			}
+		}
 		cursorImage.setSize(size * w,size * h);
 		if( l.images != null ) {
 			cursorImage.clear();
 			for( y in 0...h )
 				for( x in 0...w ) {
-					var i = l.images[l.current + x + y * l.imagesStride];
+					var i = l.images[cur + x + y * l.imagesStride];
 					cursorImage.drawSub(i, 0, 0, i.width, i.height, x * size, y * size, size, size);
 				}
 			cursorImage.fill(0x605BA1FB);
 			cursor.css( { border : "none" } );
 		} else {
-			var c = l.colors[l.current];
+			var c = l.colors[cur];
 			var lum = ((c & 0xFF) + ((c >> 8) & 0xFF) + ((c >> 16) & 0xFF)) / (255 * 3);
 			cursorImage.fill(c | 0xFF000000);
 			cursor.css( { border : "1px solid " + (lum < 0.25 ? "white":"black") } );
