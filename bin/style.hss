@@ -643,7 +643,7 @@ div#menu {
 	.scroll {
 
 		padding : 15px;
-		background-color : #888;
+		background-color : #666;
 		overflow:scroll;
 
 		.scrollContent {

@@ -368,6 +368,16 @@ class Level {
 				switch( currentLayer.data ) {
 				case Tiles(t, data):
 					t.file = path;
+					if( this.props.tileSets == null ) this.props.tileSets = {};
+					if( !Reflect.hasField(this.props.tileSets, path) ) {
+						for( o in sheet.lines ) {
+							if( o.props == null ) continue;
+							var t = Reflect.field(o.props.tileSets, path);
+							if( t == null ) continue;
+							Reflect.setField(this.props.tileSets, path, haxe.Unserializer.run(haxe.Serializer.run(t)));
+							break;
+						}
+					}
 					currentLayer.dirty = true;
 					save();
 					reload();
@@ -474,6 +484,7 @@ class Level {
 			td.mousedown(function(e) {
 				switch( e.which ) {
 				case 1:
+					tagMode = null;
 					setCursor(l);
 				case 3:
 					popupLayer(l, e.pageX, e.pageY);
@@ -614,6 +625,11 @@ class Level {
 			if( needSave ) save();
 		}
 		scroll.mousedown(function(e) {
+			if( tagMode != null ) {
+				tagMode = null;
+				setCursor(currentLayer);
+				return;
+			}
 			switch( e.which ) {
 			case 1:
 				mouseDown = true;
@@ -919,7 +935,15 @@ class Level {
 				e.stopPropagation();
 			});
 		case "O".code:
-			if( palette != null ) paletteOption("mode", "object");
+			if( palette != null && l.tileProps != null ) {
+				var isObj = false;
+				for( t in l.tileProps.sets )
+					if( t.x + t.y * l.imagesStride == l.current )
+						isObj = t.t == Object;
+				paletteOption("mode", isObj ? "tile" : "object");
+			}
+		case "R".code:
+			paletteOption("random");
 		case K.LEFT:
 			e.preventDefault();
 			if( l.current % l.imagesStride > 0 ) {
@@ -1096,7 +1120,7 @@ class Level {
 	}
 
 	public function draw() {
-		view.fill(0xFFE0E0E0);
+		view.fill(0xFF909090);
 		for( index in 0...layers.length ) {
 			var l = layers[index];
 			view.alpha = l.props.alpha;
@@ -1107,7 +1131,7 @@ class Level {
 				var first = index == 0;
 				for( y in 0...height )
 					for( x in 0...width ) {
-						var k = data[x + y * width];
+						var k =data[x + y * width];
 						if( k == 0 && !first ) continue;
 						if( l.images != null ) {
 							view.draw(l.images[k], x * tileSize, y * tileSize);
@@ -1464,7 +1488,6 @@ class Level {
 			}
 		case "tag":
 			tagMode = (tagMode == null ? (l.tileProps.tags.length == 0 ? "" : l.tileProps.tags[0].name) : null);
-			palette.find(".icon.tag").toggleClass("active", tagMode != null);
 			savePrefs();
 			setCursor(l);
 		case "addTag":
@@ -1656,6 +1679,7 @@ class Level {
 				}
 				paletteSelect.fillRect( (l.current % l.imagesStride) * (tileSize + 1), Std.int(l.current / l.imagesStride) * (tileSize + 1), (tileSize + 1) * l.currentWidth - 1, (tileSize + 1) * l.currentHeight - 1, 0x805BA1FB);
 			}
+			palette.find(".icon.tag").toggleClass("active", tagMode != null);
 
 			var m = palette.find(".mode");
 			var t = palette.find(".tagMode").hide();

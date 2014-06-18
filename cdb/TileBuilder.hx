@@ -29,6 +29,10 @@ class TileBuilder {
 		└       ┘
 		   └ ┘			XX  16  XX
 
+		Bottom
+
+		└ - ┘			17 18 19
+
 
 	*/
 
@@ -174,6 +178,8 @@ class TileBuilder {
 									k = 16;
 								else
 									continue;
+							case "bottom":
+								k = dx == 0 ? 17 : dx == b.w - 1 ? 19 : 18;
 							default:
 								continue;
 							}
@@ -248,20 +254,27 @@ class TileBuilder {
 					if( t == gbr )
 						bits |= 128;
 
-					inline function add( a : Array<Int> ) {
+					inline function addTo( x : Int, y : Int, a : Array<Int> ) {
 						out.push(x);
 						out.push(y);
 						out.push(a.length == 1 ? a[0] : a[random(x + y * width) % a.length]);
 					}
 
+					inline function add( a : Array<Int> ) {
+						addTo(x, y, a);
+					}
+
 					inline function check( b, clear, k ) {
+						var f = false;
 						if( bits & b == b ) {
 							var a = bb[k];
 							if( a.length != 0 ) {
 								bits &= ~(clear | b);
 								add(a);
+								f = true;
 							}
 						}
+						return f;
 					}
 
 					check(2 | 8 | 16, 1 | 4, 13);
@@ -274,13 +287,35 @@ class TileBuilder {
 					check(8 | 64, 1 | 32 | 128, 11);
 					check(16 | 64, 4 | 32 | 128, 12);
 
-					check(2, 1 | 4, 6);
+					if( check(2, 1 | 4, 6) ) {
+						var a = bb[18];
+						if( a.length != 0 ) {
+							out.push(x);
+							out.push(y + 1);
+							if( x > 0 && y > 0 && groundMap[input[p - 1 - width]] != t )
+								out.push(a[0]);
+							else if( x < width - 1 && y > 0 && groundMap[input[p + 1 - width]] != t )
+								out.push(a[a.length - 1]);
+							else if( a.length == 1 )
+								out.push(a[0]);
+							else
+								out.push(a[1 + random(x + y * width) % (a.length - 2)]);
+						}
+					}
 					check(8, 1 | 32, 4);
 					check(16, 4 | 128, 3);
 					check(64, 32 | 128, 1);
 
-					check(1, 1, 7);
-					check(4, 4, 5);
+					if( check(1, 1, 7) ) {
+						var a = bb[19];
+						if( a.length != 0 )
+							addTo(x, y + 1, a);
+					}
+					if( check(4, 4, 5) ) {
+						var a = bb[17];
+						if( a.length != 0 )
+							addTo(x, y + 1, a);
+					}
 					check(32, 32, 2);
 					check(128, 128, 0);
 				}

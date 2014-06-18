@@ -544,6 +544,20 @@ Level.prototype = {
 						var data = _g1[3];
 						var t = _g1[2];
 						t.file = path;
+						if(_g.props.tileSets == null) _g.props.tileSets = { };
+						if(!Object.prototype.hasOwnProperty.call(_g.props.tileSets,path)) {
+							var _g2 = 0;
+							var _g3 = _g.sheet.lines;
+							while(_g2 < _g3.length) {
+								var o = _g3[_g2];
+								++_g2;
+								if(o.props == null) continue;
+								var t1 = Reflect.field(o.props.tileSets,path);
+								if(t1 == null) continue;
+								Reflect.setField(_g.props.tileSets,path,haxe.Unserializer.run(haxe.Serializer.run(t1)));
+								break;
+							}
+						}
 						_g.currentLayer.dirty = true;
 						_g.save();
 						_g.reload();
@@ -712,6 +726,7 @@ Level.prototype = {
 					var _g2 = e.which;
 					switch(_g2) {
 					case 1:
+						_g3.tagMode = null;
 						_g3.setCursor(l[0]);
 						break;
 					case 3:
@@ -911,6 +926,11 @@ Level.prototype = {
 			if(_g3.needSave) _g3.save();
 		};
 		scroll.mousedown(function(e5) {
+			if(_g3.tagMode != null) {
+				_g3.tagMode = null;
+				_g3.setCursor(_g3.currentLayer);
+				return;
+			}
 			var _g6 = e5.which;
 			switch(_g6) {
 			case 1:
@@ -1301,41 +1321,54 @@ Level.prototype = {
 			});
 			break;
 		case 79:
-			if(this.palette != null) this.paletteOption("mode","object");
+			if(this.palette != null && l.tileProps != null) {
+				var isObj = false;
+				var _g11 = 0;
+				var _g2 = l.tileProps.sets;
+				while(_g11 < _g2.length) {
+					var t = _g2[_g11];
+					++_g11;
+					if(t.x + t.y * l.imagesStride == l.current) isObj = t.t == "object";
+				}
+				this.paletteOption("mode",isObj?"tile":"object");
+			}
+			break;
+		case 82:
+			this.paletteOption("random");
 			break;
 		case 37:
 			e.preventDefault();
 			if(l.current % l.imagesStride > 0) {
-				var _g11 = l;
-				var _g2 = _g11.current;
-				_g11.set_current(_g2 - 1);
-				_g2;
+				var _g12 = l;
+				var _g21 = _g12.current;
+				_g12.set_current(_g21 - 1);
+				_g21;
 				this.setCursor(l);
 			}
 			break;
 		case 39:
 			e.preventDefault();
 			if(l.current % l.imagesStride < l.imagesStride - 1) {
-				var _g12 = l;
-				var _g21 = _g12.current;
-				_g12.set_current(_g21 + 1);
-				_g21;
+				var _g13 = l;
+				var _g22 = _g13.current;
+				_g13.set_current(_g22 + 1);
+				_g22;
 				this.setCursor(l);
 			}
 			break;
 		case 40:
 			e.preventDefault();
 			if(l.current + l.imagesStride < l.images.length) {
-				var _g13 = l;
-				_g13.set_current(_g13.current + l.imagesStride);
+				var _g14 = l;
+				_g14.set_current(_g14.current + l.imagesStride);
 				this.setCursor(l);
 			}
 			break;
 		case 38:
 			e.preventDefault();
 			if(l.current >= l.imagesStride) {
-				var _g14 = l;
-				_g14.set_current(_g14.current - l.imagesStride);
+				var _g15 = l;
+				_g15.set_current(_g15.current - l.imagesStride);
 				this.setCursor(l);
 			}
 			break;
@@ -1352,10 +1385,10 @@ Level.prototype = {
 			var p = this.pick();
 			if(p == null) return;
 			{
-				var _g15 = p.layer.data;
-				switch(_g15[1]) {
+				var _g16 = p.layer.data;
+				switch(_g16[1]) {
 				case 0:
-					var data = _g15[2];
+					var data = _g16[2];
 					if(data[p.index] == 0) return;
 					data[p.index] = 0;
 					p.layer.dirty = true;
@@ -1364,21 +1397,21 @@ Level.prototype = {
 					this.draw();
 					break;
 				case 1:
-					var objs = _g15[3];
+					var objs = _g16[3];
 					if(HxOverrides.remove(objs,objs[p.index])) {
 						this.save();
 						this.draw();
 					}
 					break;
 				case 2:
-					var data1 = _g15[3];
+					var data1 = _g16[3];
 					var changed = false;
 					var w = l.currentWidth;
 					var h = l.currentHeight;
 					if(this.randomMode) w = h = 1;
-					var _g22 = 0;
-					while(_g22 < h) {
-						var dy1 = _g22++;
+					var _g23 = 0;
+					while(_g23 < h) {
+						var dy1 = _g23++;
 						var _g31 = 0;
 						while(_g31 < w) {
 							var dx1 = _g31++;
@@ -1396,7 +1429,7 @@ Level.prototype = {
 					}
 					break;
 				case 3:
-					var insts = _g15[3];
+					var insts = _g16[3];
 					if(HxOverrides.remove(insts,insts[p.index])) {
 						p.layer.dirty = true;
 						this.save();
@@ -1411,10 +1444,10 @@ Level.prototype = {
 			var p1 = this.pick(function(l1) {
 				return (function($this) {
 					var $r;
-					var _g16 = l1.data;
+					var _g17 = l1.data;
 					$r = (function($this) {
 						var $r;
-						switch(_g16[1]) {
+						switch(_g17[1]) {
 						case 1:
 							$r = true;
 							break;
@@ -1428,10 +1461,10 @@ Level.prototype = {
 			});
 			if(p1 == null) return;
 			{
-				var _g17 = p1.layer.data;
-				switch(_g17[1]) {
+				var _g18 = p1.layer.data;
+				switch(_g18[1]) {
 				case 1:
-					var objs1 = _g17[3];
+					var objs1 = _g18[3];
 					new js.JQuery(".popup").remove();
 					this.editProps(p1.layer,p1.index);
 					break;
@@ -1585,7 +1618,7 @@ Level.prototype = {
 		}
 	}
 	,draw: function() {
-		this.view.fill(-2039584);
+		this.view.fill(-7303024);
 		var _g1 = 0;
 		var _g = this.layers.length;
 		while(_g1 < _g) {
@@ -2167,7 +2200,6 @@ Level.prototype = {
 			if(this.tagMode == null) {
 				if(l.tileProps.tags.length == 0) this.tagMode = ""; else this.tagMode = l.tileProps.tags[0].name;
 			} else this.tagMode = null;
-			this.palette.find(".icon.tag").toggleClass("active",this.tagMode != null);
 			this.savePrefs();
 			this.setCursor(l);
 			break;
@@ -2466,6 +2498,7 @@ Level.prototype = {
 				}
 				this.paletteSelect.fillRect(l.current % l.imagesStride * (this.tileSize + 1),(l.current / l.imagesStride | 0) * (this.tileSize + 1),(this.tileSize + 1) * l.currentWidth - 1,(this.tileSize + 1) * l.currentHeight - 1,-2141478405);
 			}
+			this.palette.find(".icon.tag").toggleClass("active",this.tagMode != null);
 			var m = this.palette.find(".mode");
 			var t4 = this.palette.find(".tagMode").hide();
 			if(l.tileProps == null) m.hide(); else if(this.tagMode != null) {
@@ -6264,15 +6297,15 @@ Main.prototype = $extend(Model.prototype,{
 			}
 		}
 		if(sheet.props.isLevel) {
-			var col1 = new js.JQuery("<td>");
-			cols.append(col1);
+			var col1 = new js.JQuery("<td style='width:35px'>");
+			cols.prepend(col1);
 			var _g32 = 0;
 			var _g23 = sheet.lines.length;
 			while(_g32 < _g23) {
 				var index1 = [_g32++];
 				var l2 = lines[index1[0]];
 				var c2 = new js.JQuery("<input type='submit' value='Edit'>");
-				new js.JQuery("<td>").append(c2).appendTo(l2);
+				new js.JQuery("<td>").append(c2).prependTo(l2);
 				c2.click((function(index1) {
 					return function() {
 						var found = null;
@@ -7676,6 +7709,9 @@ cdb.TileBuilder = function(t,stride,total) {
 						case "u":
 							if(dx1 == 1 && dy1 == 0) k2 = 13; else if(dx1 == 0 && dy1 == 1) k2 = 14; else if(dx1 == 2 && dy1 == 1) k2 = 15; else if(dx1 == 1 && dy1 == 2) k2 = 16; else continue;
 							break;
+						case "bottom":
+							if(dx1 == 0) k2 = 17; else if(dx1 == b.w - 1) k2 = 19; else k2 = 18;
+							break;
 						default:
 							continue;
 						}
@@ -7776,6 +7812,7 @@ cdb.TileBuilder.prototype = {
 					if(t == gbl) bits |= 32;
 					if(t == gb) bits |= 64;
 					if(t == gbr) bits |= 128;
+					var f = false;
 					if((bits & 26) == 26) {
 						var a6 = bb[13];
 						if(a6.length != 0) {
@@ -7783,8 +7820,11 @@ cdb.TileBuilder.prototype = {
 							out.push(x);
 							out.push(y);
 							out.push(a6.length == 1?a6[0]:a6[_g4.random(x + y * width) % a6.length]);
+							f = true;
 						}
 					}
+					f;
+					var f1 = false;
 					if((bits & 74) == 74) {
 						var a7 = bb[14];
 						if(a7.length != 0) {
@@ -7792,8 +7832,11 @@ cdb.TileBuilder.prototype = {
 							out.push(x);
 							out.push(y);
 							out.push(a7.length == 1?a7[0]:a7[_g4.random(x + y * width) % a7.length]);
+							f1 = true;
 						}
 					}
+					f1;
+					var f2 = false;
 					if((bits & 82) == 82) {
 						var a8 = bb[15];
 						if(a8.length != 0) {
@@ -7801,8 +7844,11 @@ cdb.TileBuilder.prototype = {
 							out.push(x);
 							out.push(y);
 							out.push(a8.length == 1?a8[0]:a8[_g4.random(x + y * width) % a8.length]);
+							f2 = true;
 						}
 					}
+					f2;
+					var f3 = false;
 					if((bits & 88) == 88) {
 						var a9 = bb[16];
 						if(a9.length != 0) {
@@ -7810,8 +7856,11 @@ cdb.TileBuilder.prototype = {
 							out.push(x);
 							out.push(y);
 							out.push(a9.length == 1?a9[0]:a9[_g4.random(x + y * width) % a9.length]);
+							f3 = true;
 						}
 					}
+					f3;
+					var f4 = false;
 					if((bits & 10) == 10) {
 						var a10 = bb[9];
 						if(a10.length != 0) {
@@ -7819,8 +7868,11 @@ cdb.TileBuilder.prototype = {
 							out.push(x);
 							out.push(y);
 							out.push(a10.length == 1?a10[0]:a10[_g4.random(x + y * width) % a10.length]);
+							f4 = true;
 						}
 					}
+					f4;
+					var f5 = false;
 					if((bits & 18) == 18) {
 						var a11 = bb[10];
 						if(a11.length != 0) {
@@ -7828,8 +7880,11 @@ cdb.TileBuilder.prototype = {
 							out.push(x);
 							out.push(y);
 							out.push(a11.length == 1?a11[0]:a11[_g4.random(x + y * width) % a11.length]);
+							f5 = true;
 						}
 					}
+					f5;
+					var f6 = false;
 					if((bits & 72) == 72) {
 						var a12 = bb[11];
 						if(a12.length != 0) {
@@ -7837,8 +7892,11 @@ cdb.TileBuilder.prototype = {
 							out.push(x);
 							out.push(y);
 							out.push(a12.length == 1?a12[0]:a12[_g4.random(x + y * width) % a12.length]);
+							f6 = true;
 						}
 					}
+					f6;
+					var f7 = false;
 					if((bits & 80) == 80) {
 						var a13 = bb[12];
 						if(a13.length != 0) {
@@ -7846,80 +7904,141 @@ cdb.TileBuilder.prototype = {
 							out.push(x);
 							out.push(y);
 							out.push(a13.length == 1?a13[0]:a13[_g4.random(x + y * width) % a13.length]);
+							f7 = true;
 						}
 					}
-					if((bits & 2) == 2) {
-						var a14 = bb[6];
-						if(a14.length != 0) {
-							bits &= -8;
-							out.push(x);
-							out.push(y);
-							out.push(a14.length == 1?a14[0]:a14[_g4.random(x + y * width) % a14.length]);
+					f7;
+					if((function($this) {
+						var $r;
+						var f8 = false;
+						if((bits & 2) == 2) {
+							var a14 = bb[6];
+							if(a14.length != 0) {
+								bits &= -8;
+								out.push(x);
+								out.push(y);
+								out.push(a14.length == 1?a14[0]:a14[_g4.random(x + y * width) % a14.length]);
+								f8 = true;
+							}
 						}
-					}
-					if((bits & 8) == 8) {
-						var a15 = bb[4];
+						$r = f8;
+						return $r;
+					}(this))) {
+						var a15 = bb[18];
 						if(a15.length != 0) {
+							out.push(x);
+							out.push(y + 1);
+							if(x > 0 && y > 0 && this.groundMap[input[p - 1 - width]] != t) out.push(a15[0]); else if(x < width - 1 && y > 0 && this.groundMap[input[p + 1 - width]] != t) out.push(a15[a15.length - 1]); else if(a15.length == 1) out.push(a15[0]); else out.push(a15[1 + this.random(x + y * width) % (a15.length - 2)]);
+						}
+					}
+					var f9 = false;
+					if((bits & 8) == 8) {
+						var a16 = bb[4];
+						if(a16.length != 0) {
 							bits &= -42;
 							out.push(x);
 							out.push(y);
-							out.push(a15.length == 1?a15[0]:a15[_g4.random(x + y * width) % a15.length]);
+							out.push(a16.length == 1?a16[0]:a16[_g4.random(x + y * width) % a16.length]);
+							f9 = true;
 						}
 					}
+					f9;
+					var f10 = false;
 					if((bits & 16) == 16) {
-						var a16 = bb[3];
-						if(a16.length != 0) {
+						var a17 = bb[3];
+						if(a17.length != 0) {
 							bits &= -149;
 							out.push(x);
 							out.push(y);
-							out.push(a16.length == 1?a16[0]:a16[_g4.random(x + y * width) % a16.length]);
+							out.push(a17.length == 1?a17[0]:a17[_g4.random(x + y * width) % a17.length]);
+							f10 = true;
 						}
 					}
+					f10;
+					var f11 = false;
 					if((bits & 64) == 64) {
-						var a17 = bb[1];
-						if(a17.length != 0) {
+						var a18 = bb[1];
+						if(a18.length != 0) {
 							bits &= -225;
 							out.push(x);
 							out.push(y);
-							out.push(a17.length == 1?a17[0]:a17[_g4.random(x + y * width) % a17.length]);
-						}
-					}
-					if((bits & 1) == 1) {
-						var a18 = bb[7];
-						if(a18.length != 0) {
-							bits &= -2;
-							out.push(x);
-							out.push(y);
 							out.push(a18.length == 1?a18[0]:a18[_g4.random(x + y * width) % a18.length]);
+							f11 = true;
 						}
 					}
-					if((bits & 4) == 4) {
-						var a19 = bb[5];
-						if(a19.length != 0) {
-							bits &= -5;
-							out.push(x);
-							out.push(y);
-							out.push(a19.length == 1?a19[0]:a19[_g4.random(x + y * width) % a19.length]);
+					f11;
+					if((function($this) {
+						var $r;
+						var f12 = false;
+						if((bits & 1) == 1) {
+							var a19 = bb[7];
+							if(a19.length != 0) {
+								bits &= -2;
+								out.push(x);
+								out.push(y);
+								out.push(a19.length == 1?a19[0]:a19[_g4.random(x + y * width) % a19.length]);
+								f12 = true;
+							}
 						}
-					}
-					if((bits & 32) == 32) {
-						var a20 = bb[2];
+						$r = f12;
+						return $r;
+					}(this))) {
+						var a20 = bb[19];
 						if(a20.length != 0) {
+							var y1 = y + 1;
+							out.push(x);
+							out.push(y1);
+							out.push(a20.length == 1?a20[0]:a20[_g4.random(x + y1 * width) % a20.length]);
+						}
+					}
+					if((function($this) {
+						var $r;
+						var f13 = false;
+						if((bits & 4) == 4) {
+							var a21 = bb[5];
+							if(a21.length != 0) {
+								bits &= -5;
+								out.push(x);
+								out.push(y);
+								out.push(a21.length == 1?a21[0]:a21[_g4.random(x + y * width) % a21.length]);
+								f13 = true;
+							}
+						}
+						$r = f13;
+						return $r;
+					}(this))) {
+						var a22 = bb[17];
+						if(a22.length != 0) {
+							var y2 = y + 1;
+							out.push(x);
+							out.push(y2);
+							out.push(a22.length == 1?a22[0]:a22[_g4.random(x + y2 * width) % a22.length]);
+						}
+					}
+					var f14 = false;
+					if((bits & 32) == 32) {
+						var a23 = bb[2];
+						if(a23.length != 0) {
 							bits &= -33;
 							out.push(x);
 							out.push(y);
-							out.push(a20.length == 1?a20[0]:a20[_g4.random(x + y * width) % a20.length]);
+							out.push(a23.length == 1?a23[0]:a23[_g4.random(x + y * width) % a23.length]);
+							f14 = true;
 						}
 					}
+					f14;
+					var f15 = false;
 					if((bits & 128) == 128) {
-						var a21 = bb[0];
-						if(a21.length != 0) {
+						var a24 = bb[0];
+						if(a24.length != 0) {
 							bits &= -129;
 							out.push(x);
 							out.push(y);
-							out.push(a21.length == 1?a21[0]:a21[_g4.random(x + y * width) % a21.length]);
+							out.push(a24.length == 1?a24[0]:a24[_g4.random(x + y * width) % a24.length]);
+							f15 = true;
 						}
 					}
+					f15;
 				}
 			}
 		}

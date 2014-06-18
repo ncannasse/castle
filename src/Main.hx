@@ -1577,12 +1577,12 @@ class Main extends Model {
 		}
 
 		if( sheet.props.isLevel ) {
-			var col = J("<td>");
-			cols.append(col);
+			var col = J("<td style='width:35px'>");
+			cols.prepend(col);
 			for( index in 0...sheet.lines.length ) {
 				var l = lines[index];
 				var c = J("<input type='submit' value='Edit'>");
-				J("<td>").append(c).appendTo(l);
+				J("<td>").append(c).prependTo(l);
 				c.click(function() {
 					var found = null;
 					for( l in levels )

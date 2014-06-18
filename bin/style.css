@@ -607,7 +607,7 @@ div#menu ul.sheets li.active {
 }
 #content .level .scroll {
 	padding : 15px;
-	background-color : #888;
+	background-color : #666;
 	overflow : scroll;
 }
 #content .level .scroll .scrollContent {
