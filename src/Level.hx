@@ -60,7 +60,7 @@ class Level {
 	var watchList : Array<{ path : String, time : Float, callb : Void -> Void }>;
 	var watchTimer : haxe.Timer;
 	var references : Array<{ ref : Dynamic -> Void }>;
-	
+
 	static var loadedTilesCache = new Map< String, { pending : Array < Int->Int->Array<lvl.Image>->Array<Bool>->Void >, data : { w : Int, h : Int, img : Array<lvl.Image>, blanks : Array<Bool> }} >();
 
 	public function new( model : Model, sheet : Sheet, index : Int ) {
@@ -182,7 +182,7 @@ class Level {
 
 		waitDone();
 	}
-	
+
 	public function loadAndSplit(file, size:Int, callb) {
 		var key = file + "@" + size;
 		var a = loadedTilesCache.get(key);
@@ -255,7 +255,7 @@ class Level {
 		references.push(r);
 		return r;
 	}
-	
+
 	public function dispose() {
 		if( content != null ) content.html("");
 		if( view != null ) {
@@ -498,7 +498,7 @@ class Level {
 		var win = nodejs.webkit.Window.get();
 		content.find(".scroll").css("height", (win.height - 240) + "px");
 	}
-	
+
 	function setSort( j : js.JQuery, callb : { ref : Dynamic -> Void } ) {
 		(untyped j.sortable)( {
 			vertical : false,
@@ -508,7 +508,7 @@ class Level {
 			}
 		});
 	}
-	
+
 	function spectrum( j : js.JQuery, options : { }, change : { ref : Dynamic -> Void }, ?show : { ref : Dynamic -> Void } ) {
 		untyped options.change = function(c) {
 			change.ref(Std.parseInt("0x" + c.toHex()));
@@ -519,7 +519,7 @@ class Level {
 			};
 		(untyped j).spectrum(options);
 	}
-	
+
 	function setup() {
 		var page = J("#content");
 		page.html("");
@@ -704,11 +704,12 @@ class Level {
 			}
 			switch( currentLayer.data ) {
 			case Objects(idCol, objs):
-				var fc = currentLayer.floatCoord;
+				var l = currentLayer;
+				var fc = l.floatCoord;
 				var px = fc ? curPos.xf : curPos.x;
 				var py = fc ? curPos.yf : curPos.y;
 				var w = 0., h = 0.;
-				if( currentLayer.hasSize ) {
+				if( l.hasSize ) {
 					if( startPos == null ) return;
 					var sx = fc ? startPos.xf : startPos.x;
 					var sy = fc ? startPos.yf : startPos.y;
@@ -721,30 +722,32 @@ class Level {
 				}
 				for( i in 0...objs.length ) {
 					var o = objs[i];
-					if( o.x == px && o.y == py ) {
-						editProps(currentLayer, i);
+					if( o.x == px && o.y == py && w <= 1 && h <= 1 ) {
+						editProps(l, i);
+						setCursor(l);
 						return;
 					}
 				}
 				var o : { x : Float, y : Float, ?width : Float, ?height : Float } = { x : px, y : py };
 				objs.push(o);
 				if( idCol != null )
-					Reflect.setField(o, idCol, currentLayer.indexToId[currentLayer.current]);
-				for( c in currentLayer.baseSheet.columns ) {
+					Reflect.setField(o, idCol, l.indexToId[currentLayer.current]);
+				for( c in l.baseSheet.columns ) {
 					if( c.opt || c.name == "x" || c.name == "y" || c.name == idCol ) continue;
 					var v = model.getDefault(c);
 					if( v != null ) Reflect.setField(o, c.name, v);
 				}
-				if( currentLayer.hasSize ) {
+				if( l.hasSize ) {
 					o.width = w;
 					o.height = h;
-					setCursor(currentLayer);
+					setCursor(l);
 				}
-				editProps(currentLayer, objs.length - 1);
 				objs.sort(function(o1, o2) {
 					var r = Reflect.compare(o1.y, o2.y);
 					return if( r == 0 ) Reflect.compare(o1.x, o2.x) else r;
 				});
+				if( hasProps(l, true) )
+					editProps(l, Lambda.indexOf(objs, o));
 				save();
 				draw();
 			default:
@@ -794,10 +797,10 @@ class Level {
 
 	}
 
-	function hasProps( l : LayerData ) {
+	function hasProps( l : LayerData, required = false ) {
 		var idCol = switch( l.data ) { case Objects(idCol, _): idCol; default: null; };
 		for( c in l.baseSheet.columns )
-			if( c.name != "x" && c.name != "y" && c.name != idCol )
+			if( c.name != "x" && c.name != "y" && c.name != idCol && (!required || (!c.opt && model.getDefault(c) == null)) )
 				return true;
 		return false;
 	}
@@ -1172,7 +1175,7 @@ class Level {
 		case Objects(_):
 		}
 	}
-	
+
 	function drawTiles( l : LayerData, data : Array<Int> ) {
 		for( y in 0...height )
 			for( x in 0...width ) {
@@ -1231,11 +1234,22 @@ class Level {
 				}
 			case Objects(idCol, objs):
 				if( idCol == null ) {
-					var col = l.props.color | 0xFF000000;
+					var col = l.props.color | 0xA0000000;
 					for( o in objs ) {
 						var w = l.hasSize ? o.width * tileSize : tileSize;
 						var h = l.hasSize ? o.height * tileSize : tileSize;
 						view.fillRect(Std.int(o.x * tileSize), Std.int(o.y * tileSize), Std.int(w), Std.int(h), col);
+					}
+					var col = l.props.color | 0xFF000000;
+					for( o in objs ) {
+						var w = l.hasSize ? Std.int(o.width * tileSize) : tileSize;
+						var h = l.hasSize ? Std.int(o.height * tileSize) : tileSize;
+						var px = Std.int(o.x * tileSize);
+						var py = Std.int(o.y * tileSize);
+						view.fillRect(px, py, w, 1, col);
+						view.fillRect(px, py + h - 1, w, 1, col);
+						view.fillRect(px, py + 1, 1, h - 2, col);
+						view.fillRect(px + w - 1, py + 1, 1, h - 2, col);
 					}
 				} else {
 					for( o in objs ) {
@@ -1287,6 +1301,8 @@ class Level {
 	}
 
 	@:keep function scroll( dx : Int, dy : Int ) {
+		if( dx == null || Math.isNaN(dx) ) dx = 0;
+		if( dy == null || Math.isNaN(dy) ) dy = 0;
 		for( l in layers ) {
 			l.dirty = true;
 			switch( l.data ) {
