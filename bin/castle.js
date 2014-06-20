@@ -156,53 +156,6 @@ Lambda.find = function(it,f) {
 	}
 	return null;
 };
-var IMap = function() { };
-$hxClasses["IMap"] = IMap;
-IMap.__name__ = ["IMap"];
-IMap.prototype = {
-	__class__: IMap
-};
-var haxe = {};
-haxe.ds = {};
-haxe.ds.StringMap = function() {
-	this.h = { };
-};
-$hxClasses["haxe.ds.StringMap"] = haxe.ds.StringMap;
-haxe.ds.StringMap.__name__ = ["haxe","ds","StringMap"];
-haxe.ds.StringMap.__interfaces__ = [IMap];
-haxe.ds.StringMap.prototype = {
-	set: function(key,value) {
-		this.h["$" + key] = value;
-	}
-	,get: function(key) {
-		return this.h["$" + key];
-	}
-	,exists: function(key) {
-		return this.h.hasOwnProperty("$" + key);
-	}
-	,remove: function(key) {
-		key = "$" + key;
-		if(!this.h.hasOwnProperty(key)) return false;
-		delete(this.h[key]);
-		return true;
-	}
-	,keys: function() {
-		var a = [];
-		for( var key in this.h ) {
-		if(this.h.hasOwnProperty(key)) a.push(key.substr(1));
-		}
-		return HxOverrides.iter(a);
-	}
-	,iterator: function() {
-		return { ref : this.h, it : this.keys(), hasNext : function() {
-			return this.it.hasNext();
-		}, next : function() {
-			var i = this.it.next();
-			return this.ref["$" + i];
-		}};
-	}
-	,__class__: haxe.ds.StringMap
-};
 var Level = function(model,sheet,index) {
 	this.reloading = false;
 	this.tagMode = null;
@@ -1016,7 +969,7 @@ Level.prototype = {
 		this.cursor.hide();
 		scont.mouseleave(function(_5) {
 			_g3.curPos = null;
-			_g3.cursor.hide();
+			if(_g3.selection == null) _g3.cursor.hide();
 			new js.JQuery(".cursorPosition").text("");
 		});
 		scont.mousemove(function(e3) {
@@ -1031,7 +984,7 @@ Level.prototype = {
 		scroll.mousedown(function(e4) {
 			if(_g3.tagMode != null) {
 				_g3.tagMode = null;
-				_g3.setCursor(_g3.currentLayer);
+				_g3.setCursor();
 				return;
 			}
 			var _g6 = e4.which;
@@ -1110,7 +1063,7 @@ Level.prototype = {
 						var o = objs1[i6];
 						if(o.x == px && o.y == py && w <= 1 && h <= 1) {
 							_g3.editProps(l3,i6);
-							_g3.setCursor(l3);
+							_g3.setCursor();
 							return;
 						}
 					}
@@ -1129,7 +1082,7 @@ Level.prototype = {
 					if(l3.hasSize) {
 						o1.width = w;
 						o1.height = h;
-						_g3.setCursor(l3);
+						_g3.setCursor();
 					}
 					objs1.sort(function(o11,o2) {
 						var r = Reflect.compare(o11.y,o2.y);
@@ -1143,7 +1096,223 @@ Level.prototype = {
 				}
 			}
 			_g3.startPos = null;
+			if(_g3.selection != null) {
+				_g3.moveSelection();
+				_g3.save();
+				_g3.draw();
+			}
 		});
+	}
+	,deleteSelection: function() {
+		var _g = 0;
+		var _g1 = this.layers;
+		while(_g < _g1.length) {
+			var l = _g1[_g];
+			++_g;
+			if(!l.visible) continue;
+			l.dirty = true;
+			var sx = this.selection.x;
+			var sy = this.selection.y;
+			var sw = this.selection.w;
+			var sh = this.selection.h;
+			{
+				var _g2 = l.data;
+				switch(_g2[1]) {
+				case 0:
+					var data = _g2[2];
+					var sx1 = this.selection.x | 0;
+					var sy1 = this.selection.y | 0;
+					var sw1 = Math.ceil(this.selection.x + this.selection.w) - sx1;
+					var sh1 = Math.ceil(this.selection.y + this.selection.h) - sy1;
+					var _g3 = 0;
+					while(_g3 < sw1) {
+						var dx = _g3++;
+						var _g4 = 0;
+						while(_g4 < sh1) {
+							var dy = _g4++;
+							data[sx1 + dx + (sy1 + dy) * this.width] = 0;
+						}
+					}
+					break;
+				case 2:
+					var data = _g2[3];
+					var sx1 = this.selection.x | 0;
+					var sy1 = this.selection.y | 0;
+					var sw1 = Math.ceil(this.selection.x + this.selection.w) - sx1;
+					var sh1 = Math.ceil(this.selection.y + this.selection.h) - sy1;
+					var _g3 = 0;
+					while(_g3 < sw1) {
+						var dx = _g3++;
+						var _g4 = 0;
+						while(_g4 < sh1) {
+							var dy = _g4++;
+							data[sx1 + dx + (sy1 + dy) * this.width] = 0;
+						}
+					}
+					break;
+				case 3:
+					var insts = _g2[3];
+					var objs = l.getTileObjects();
+					var _g31 = 0;
+					var _g41 = insts.slice();
+					while(_g31 < _g41.length) {
+						var i = _g41[_g31];
+						++_g31;
+						var o = objs.get(i.o);
+						var ow;
+						if(o == null) ow = 1; else ow = o.w;
+						var oh;
+						if(o == null) oh = 1; else oh = o.h;
+						if(sx + sw <= i.x || sy + sh <= i.y || sx >= i.x + ow || sy >= i.y + oh) continue;
+						HxOverrides.remove(insts,i);
+					}
+					break;
+				case 1:
+					var objs1 = _g2[3];
+					var _g32 = 0;
+					var _g42 = objs1.slice();
+					while(_g32 < _g42.length) {
+						var o1 = _g42[_g32];
+						++_g32;
+						var ow1;
+						if(l.hasSize) ow1 = o1.width; else ow1 = 1;
+						var oh1;
+						if(l.hasSize) oh1 = o1.height; else oh1 = 1;
+						if(sx + sw <= o1.x || sy + sh <= o1.y || sx >= o1.x + ow1 || sy >= o1.y + oh1) continue;
+						HxOverrides.remove(objs1,o1);
+					}
+					break;
+				}
+			}
+		}
+	}
+	,moveSelection: function() {
+		var dx = this.selection.x - this.selection.sx;
+		var dy = this.selection.y - this.selection.sy;
+		if(dx == 0 && dy == 0) return;
+		var ix = dx | 0;
+		var iy = dy | 0;
+		var _g = 0;
+		var _g1 = this.layers;
+		while(_g < _g1.length) {
+			var l = _g1[_g];
+			++_g;
+			if(!l.visible) continue;
+			var sx = this.selection.x;
+			var sy = this.selection.y;
+			var sw = this.selection.w;
+			var sh = this.selection.h;
+			l.dirty = true;
+			{
+				var _g2 = l.data;
+				switch(_g2[1]) {
+				case 2:
+					var data = _g2[3];
+					var sx1 = this.selection.x | 0;
+					var sy1 = this.selection.y | 0;
+					var sw1 = Math.ceil(this.selection.x + this.selection.w) - sx1;
+					var sh1 = Math.ceil(this.selection.y + this.selection.h) - sy1;
+					var ndata = [];
+					var _g4 = 0;
+					var _g3 = this.height;
+					while(_g4 < _g3) {
+						var y = _g4++;
+						var _g6 = 0;
+						var _g5 = this.width;
+						while(_g6 < _g5) {
+							var x = _g6++;
+							var k;
+							if(x >= sx1 && x < sx1 + sw1 && y >= sy1 && y < sy1 + sh1) {
+								var tx = x - ix;
+								var ty = y - iy;
+								if(tx >= 0 && tx < this.width && ty >= 0 && ty < this.height) k = data[tx + ty * this.width]; else k = 0;
+							} else if(x >= sx1 - ix && x < sx1 + sw1 - ix && y >= sy1 - iy && y < sy1 + sh1 - iy) k = 0; else k = data[x + y * this.width];
+							ndata.push(k);
+						}
+					}
+					var _g41 = 0;
+					var _g31 = data.length;
+					while(_g41 < _g31) {
+						var i = _g41++;
+						data[i] = ndata[i];
+					}
+					break;
+				case 0:
+					var data = _g2[2];
+					var sx1 = this.selection.x | 0;
+					var sy1 = this.selection.y | 0;
+					var sw1 = Math.ceil(this.selection.x + this.selection.w) - sx1;
+					var sh1 = Math.ceil(this.selection.y + this.selection.h) - sy1;
+					var ndata = [];
+					var _g4 = 0;
+					var _g3 = this.height;
+					while(_g4 < _g3) {
+						var y = _g4++;
+						var _g6 = 0;
+						var _g5 = this.width;
+						while(_g6 < _g5) {
+							var x = _g6++;
+							var k;
+							if(x >= sx1 && x < sx1 + sw1 && y >= sy1 && y < sy1 + sh1) {
+								var tx = x - ix;
+								var ty = y - iy;
+								if(tx >= 0 && tx < this.width && ty >= 0 && ty < this.height) k = data[tx + ty * this.width]; else k = 0;
+							} else if(x >= sx1 - ix && x < sx1 + sw1 - ix && y >= sy1 - iy && y < sy1 + sh1 - iy) k = 0; else k = data[x + y * this.width];
+							ndata.push(k);
+						}
+					}
+					var _g41 = 0;
+					var _g31 = data.length;
+					while(_g41 < _g31) {
+						var i = _g41++;
+						data[i] = ndata[i];
+					}
+					break;
+				case 3:
+					var insts = _g2[3];
+					sx -= dx;
+					sy -= dy;
+					var objs = l.getTileObjects();
+					var _g32 = 0;
+					var _g42 = insts.slice();
+					while(_g32 < _g42.length) {
+						var i1 = _g42[_g32];
+						++_g32;
+						var o = objs.get(i1.o);
+						var ow;
+						if(o == null) ow = 1; else ow = o.w;
+						var oh;
+						if(o == null) oh = 1; else oh = o.h;
+						if(sx + sw <= i1.x || sy + sh <= i1.y || sx >= i1.x + ow || sy >= i1.y + oh) continue;
+						if(l.hasFloatCoord) i1.x += dx; else i1.x += ix;
+						if(l.hasFloatCoord) i1.y += dy; else i1.y += iy;
+						if(i1.x < 0 || i1.y < 0 || i1.x >= this.width || i1.y >= this.height) HxOverrides.remove(insts,i1);
+					}
+					break;
+				case 1:
+					var objs1 = _g2[3];
+					sx -= dx;
+					sy -= dy;
+					var _g33 = 0;
+					var _g43 = objs1.slice();
+					while(_g33 < _g43.length) {
+						var o1 = _g43[_g33];
+						++_g33;
+						var ow1;
+						if(l.hasSize) ow1 = o1.width; else ow1 = 1;
+						var oh1;
+						if(l.hasSize) oh1 = o1.height; else oh1 = 1;
+						if(sx + sw <= o1.x || sy + sh <= o1.y || sx >= o1.x + ow1 || sy >= o1.y + oh1) continue;
+						if(l.hasFloatCoord) o1.x += dx; else o1.x += ix;
+						if(l.hasFloatCoord) o1.y += dy; else o1.y += iy;
+						if(o1.x < 0 || o1.y < 0 || o1.x >= this.width || o1.y >= this.height) HxOverrides.remove(objs1,o1);
+					}
+					break;
+				}
+			}
+		}
+		this.save();
+		this.draw();
 	}
 	,updateCursorPos: function() {
 		if(this.currentLayer == null) return;
@@ -1190,6 +1359,41 @@ Level.prototype = {
 			this.cursor.hide();
 			this.curPos = null;
 			this.content.find(".cursorPosition").text("");
+		}
+		if(this.selection != null) {
+			var fc1 = this.currentLayer.floatCoord;
+			var ccx1;
+			if(fc1) ccx1 = cxf; else ccx1 = cx;
+			var ccy1;
+			if(fc1) ccy1 = cyf; else ccy1 = cy;
+			if(ccx1 < 0) ccx1 = 0;
+			if(ccy1 < 0) ccy1 = 0;
+			if(ccx1 > this.width) ccx1 = this.width;
+			if(ccy1 > this.height) ccy1 = this.height;
+			if(!this.selection.down) {
+				if(this.startPos != null) {
+					this.selection.x = this.selection.sx + (ccx1 - this.startPos.x);
+					this.selection.y = this.selection.sy + (ccy1 - this.startPos.y);
+				} else {
+					this.selection.sx = this.selection.x;
+					this.selection.sy = this.selection.y;
+				}
+				this.setCursor();
+				return;
+			}
+			var x0;
+			if(ccx1 < this.selection.sx) x0 = ccx1; else x0 = this.selection.sx;
+			var y0;
+			if(ccy1 < this.selection.sy) y0 = ccy1; else y0 = this.selection.sy;
+			var x1;
+			if(ccx1 < this.selection.sx) x1 = this.selection.sx; else x1 = ccx1;
+			var y1;
+			if(ccy1 < this.selection.sy) y1 = this.selection.sy; else y1 = ccy1;
+			this.selection.x = x0;
+			this.selection.y = y0;
+			this.selection.w = x1 - x0;
+			this.selection.h = y1 - y0;
+			this.setCursor();
 		}
 	}
 	,hasProps: function(l,required) {
@@ -1279,7 +1483,7 @@ Level.prototype = {
 		this.view.set_zoom(this.zoomView);
 		this.draw();
 		this.updateCursorPos();
-		this.setCursor(this.currentLayer);
+		this.setCursor();
 	}
 	,paint: function(x,y) {
 		var l = this.currentLayer;
@@ -1388,6 +1592,7 @@ Level.prototype = {
 			this.updateZoom();
 			break;
 		case 27:
+			this.clearSelection();
 			this.draw();
 			break;
 		case 9:
@@ -1450,7 +1655,7 @@ Level.prototype = {
 				var _g21 = _g12.current;
 				_g12.set_current(_g21 - 1);
 				_g21;
-				this.setCursor(l);
+				this.setCursor();
 			}
 			break;
 		case 39:
@@ -1460,7 +1665,7 @@ Level.prototype = {
 				var _g22 = _g13.current;
 				_g13.set_current(_g22 + 1);
 				_g22;
-				this.setCursor(l);
+				this.setCursor();
 			}
 			break;
 		case 40:
@@ -1468,7 +1673,7 @@ Level.prototype = {
 			if(l.current + l.imagesStride < l.images.length) {
 				var _g14 = l;
 				_g14.set_current(_g14.current + l.imagesStride);
-				this.setCursor(l);
+				this.setCursor();
 			}
 			break;
 		case 38:
@@ -1476,7 +1681,17 @@ Level.prototype = {
 			if(l.current >= l.imagesStride) {
 				var _g15 = l;
 				_g15.set_current(_g15.current - l.imagesStride);
-				this.setCursor(l);
+				this.setCursor();
+			}
+			break;
+		case 46:
+			if(this.selection != null) {
+				this.deleteSelection();
+				this.clearSelection();
+				this.save();
+				this.draw();
+				return;
+			} else {
 			}
 			break;
 		default:
@@ -1524,8 +1739,27 @@ Level.prototype = {
 				}
 			}
 			break;
+		case 83:
+			if(this.selection != null) {
+				if(this.selection.down) return;
+				this.clearSelection();
+			}
+			var x;
+			if(l.floatCoord) x = this.curPos.xf; else x = this.curPos.x;
+			var y;
+			if(l.floatCoord) y = this.curPos.yf; else y = this.curPos.y;
+			this.selection = { sx : x, sy : y, x : x, y : y, w : 1, h : 1, down : true};
+			this.cursor.addClass("select");
+			this.setCursor();
+			break;
 		default:
 		}
+	}
+	,clearSelection: function() {
+		this.selection = null;
+		this.cursor.removeClass("select");
+		this.cursor.css({ width : "auto", height : "auto"});
+		this.setCursor();
 	}
 	,doDelete: function() {
 		var _g = this;
@@ -1606,11 +1840,20 @@ Level.prototype = {
 			canvas.css({ cursor : ""});
 			this.updateCursorPos();
 			break;
+		case 83:
+			if(this.selection != null) {
+				this.selection.down = false;
+				this.selection.sx = this.selection.x;
+				this.selection.sy = this.selection.y;
+				this.setCursor();
+			}
+			break;
 		default:
 		}
 	}
 	,set: function(x,y) {
 		var _g1 = this;
+		if(this.selection != null) return;
 		if(this.paintMode) {
 			this.paint(x,y);
 			return;
@@ -2051,7 +2294,7 @@ Level.prototype = {
 		var canvas = this.content.find("canvas");
 		canvas.attr("width",this.width * this.tileSize + "px");
 		canvas.attr("height",this.height * this.tileSize + "px");
-		this.setCursor(this.currentLayer);
+		this.setCursor();
 		this.save();
 		this.draw();
 	}
@@ -2261,7 +2504,7 @@ Level.prototype = {
 			}(this))) this.randomMode = false;
 			this.palette.find(".icon.random").toggleClass("active",this.randomMode);
 			this.savePrefs();
-			this.setCursor(l);
+			this.setCursor();
 			return;
 		case "paint":
 			this.paintMode = !this.paintMode;
@@ -2296,7 +2539,7 @@ Level.prototype = {
 				s.t = m;
 				s.opts = { };
 			}
-			this.setCursor(l);
+			this.setCursor();
 			break;
 		case "name":
 			var s1 = l.getTileProp();
@@ -2342,7 +2585,7 @@ Level.prototype = {
 				if(l.tileProps.tags.length == 0) this.tagMode = ""; else this.tagMode = l.tileProps.tags[0].name;
 			} else this.tagMode = null;
 			this.savePrefs();
-			this.setCursor(l);
+			this.setCursor();
 			break;
 		case "addTag":
 			if(val == "") return;
@@ -2356,7 +2599,7 @@ Level.prototype = {
 			l.tileProps.tags.push({ name : val, flags : []});
 			this.tagMode = val;
 			this.savePrefs();
-			this.setCursor(l);
+			this.setCursor();
 			break;
 		case "delTag":
 			var _g3 = 0;
@@ -2371,12 +2614,12 @@ Level.prototype = {
 					this.savePrefs();
 				}
 			}
-			this.setCursor(l);
+			this.setCursor();
 			break;
 		case "selectTag":
 			this.tagMode = val;
 			this.savePrefs();
-			this.setCursor(l);
+			this.setCursor();
 			break;
 		}
 		this.save();
@@ -2384,6 +2627,7 @@ Level.prototype = {
 	}
 	,setCursor: function(l) {
 		var _g = this;
+		if(l == null) l = this.currentLayer;
 		if(l == null) {
 			this.cursor.hide();
 			return;
@@ -2492,7 +2736,7 @@ Level.prototype = {
 						});
 						if(t1 != null) {
 							t1.flags[x1 + y1 * l.imagesStride] = !t1.flags[x1 + y1 * l.imagesStride];
-							_g.setCursor(l);
+							_g.setCursor();
 							_g.save();
 						}
 						return;
@@ -2510,7 +2754,7 @@ Level.prototype = {
 						l.currentWidth = x11 - x0 + 1;
 						l.currentHeight = y11 - y0 + 1;
 						l.saveState();
-						_g.setCursor(l);
+						_g.setCursor();
 					} else {
 						start_x = x1;
 						start_y = y1;
@@ -2525,17 +2769,20 @@ Level.prototype = {
 									l.currentWidth = p.w;
 									l.currentHeight = p.h;
 									l.saveState();
-									_g.setCursor(l);
+									_g.setCursor();
 									return;
 								}
 							}
 						}
 						start_down = true;
 						l.set_current(x1 + y1 * l.imagesStride);
-						_g.setCursor(l);
+						_g.setCursor();
 					}
 				});
 				jsel.mousemove(function(e1) {
+					_g.mousePos.x = e1.pageX;
+					_g.mousePos.y = e1.pageY;
+					_g.updateCursorPos();
 					var o1 = jsel.offset();
 					var x2 = (e1.pageX - o1.left) / (_g.tileSize + 1) | 0;
 					var y2 = (e1.pageY - o1.top) / (_g.tileSize + 1) | 0;
@@ -2553,7 +2800,7 @@ Level.prototype = {
 					l.currentWidth = x12 - x01 + 1;
 					l.currentHeight = y12 - y01 + 1;
 					l.saveState();
-					_g.setCursor(l);
+					_g.setCursor();
 				});
 				jsel.mouseleave(function(e2) {
 					_g.content.find(".cursorPosition").text("");
@@ -2766,6 +3013,12 @@ Level.prototype = {
 		}
 		var size;
 		if(this.zoomView < 1) size = this.tileSize * this.zoomView | 0; else size = Math.ceil(this.tileSize * this.zoomView);
+		if(this.selection != null) {
+			this.cursorImage.setSize(0,0);
+			this.cursor.show();
+			this.cursor.css({ border : "", marginLeft : (this.selection.x * this.tileSize * this.zoomView - 1 | 0) + "px", marginTop : (this.selection.y * this.tileSize * this.zoomView | 0) + "px", width : (this.selection.w * this.tileSize * this.zoomView | 0) + "px", height : (this.selection.h * size | 0) + "px"});
+			return;
+		}
 		var cur = l.current;
 		var w1;
 		if(this.randomMode) w1 = 1; else w1 = l.currentWidth;
@@ -7247,6 +7500,12 @@ Main.prototype = $extend(Model.prototype,{
 	}
 	,__class__: Main
 });
+var IMap = function() { };
+$hxClasses["IMap"] = IMap;
+IMap.__name__ = ["IMap"];
+IMap.prototype = {
+	__class__: IMap
+};
 Math.__name__ = ["Math"];
 var Reflect = function() { };
 $hxClasses["Reflect"] = Reflect;
@@ -8429,6 +8688,7 @@ cdb.Index.prototype = {
 	}
 	,__class__: cdb.Index
 };
+var haxe = {};
 haxe.Json = function() { };
 $hxClasses["haxe.Json"] = haxe.Json;
 haxe.Json.__name__ = ["haxe","Json"];
@@ -9354,6 +9614,7 @@ haxe.crypto.Md5.prototype = {
 	}
 	,__class__: haxe.crypto.Md5
 };
+haxe.ds = {};
 haxe.ds.IntMap = function() {
 	this.h = { };
 };
@@ -9400,6 +9661,45 @@ haxe.ds.ObjectMap.prototype = {
 		return HxOverrides.iter(a);
 	}
 	,__class__: haxe.ds.ObjectMap
+};
+haxe.ds.StringMap = function() {
+	this.h = { };
+};
+$hxClasses["haxe.ds.StringMap"] = haxe.ds.StringMap;
+haxe.ds.StringMap.__name__ = ["haxe","ds","StringMap"];
+haxe.ds.StringMap.__interfaces__ = [IMap];
+haxe.ds.StringMap.prototype = {
+	set: function(key,value) {
+		this.h["$" + key] = value;
+	}
+	,get: function(key) {
+		return this.h["$" + key];
+	}
+	,exists: function(key) {
+		return this.h.hasOwnProperty("$" + key);
+	}
+	,remove: function(key) {
+		key = "$" + key;
+		if(!this.h.hasOwnProperty(key)) return false;
+		delete(this.h[key]);
+		return true;
+	}
+	,keys: function() {
+		var a = [];
+		for( var key in this.h ) {
+		if(this.h.hasOwnProperty(key)) a.push(key.substr(1));
+		}
+		return HxOverrides.iter(a);
+	}
+	,iterator: function() {
+		return { ref : this.h, it : this.keys(), hasNext : function() {
+			return this.it.hasNext();
+		}, next : function() {
+			var i = this.it.next();
+			return this.ref["$" + i];
+		}};
+	}
+	,__class__: haxe.ds.StringMap
 };
 haxe.io.BytesBuffer = function() {
 	this.b = new Array();
@@ -10438,6 +10738,7 @@ lvl.LayerData.prototype = {
 		this.level.loadAndSplit(file,size,function(w,h,images,blanks) {
 			_g1.images = images;
 			_g1.blanks = blanks;
+			if(data[0] == 65535) _g1.props.mode = "objects";
 			var _g21 = _g1.props.mode;
 			if(_g21 == null) {
 				var max = w * h;

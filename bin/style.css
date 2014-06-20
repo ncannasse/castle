@@ -604,6 +604,14 @@ div#menu ul.sheets li.active {
 #content .level #cursor {
 	position : absolute;
 }
+#content .level #cursor.select {
+	border : 1px solid #2E517E;
+	background-color : #5BA1FB;
+	background-color : rgba(91,161,251,0.5);
+	background-color : transparent\9;
+	filter : progid:DXImageTransform.Microsoft.gradient(startColorstr=#7F5BA1FB, endColorstr=#7F5BA1FB);
+	zoom : 1;
+}
 #content .level #cursor, #content .level .scroll canvas {
 	cursor : url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAIAAAAmkwkpAAAAB3RJTUUH3gYSDw4zu7+27gAAABd0RVh0U29mdHdhcmUAR0xEUE5HIHZlciAzLjRxhaThAAAACHRwTkdHTEQzAAAAAEqAKR8AAAAEZ0FNQQAAsY8L/GEFAAAABmJLR0QA/wD/AP+gvaeTAAAAEUlEQVR4nGNgQAP/wQAbBw4ANwsL9efVyGMAAAAASUVORK5CYII="),auto;
 }

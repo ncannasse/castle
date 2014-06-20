@@ -61,6 +61,8 @@ class Level {
 	var watchTimer : haxe.Timer;
 	var references : Array<{ ref : Dynamic -> Void }>;
 
+	var selection : { sx : Float, sy : Float, x : Float, y : Float, w : Float, h : Float, down : Bool };
+
 	static var loadedTilesCache = new Map< String, { pending : Array < Int->Int->Array<lvl.Image>->Array<Bool>->Void >, data : { w : Int, h : Int, img : Array<lvl.Image>, blanks : Array<Bool> }} >();
 
 	public function new( model : Model, sheet : Sheet, index : Int ) {
@@ -652,7 +654,7 @@ class Level {
 
 		scont.mouseleave(function(_) {
 			curPos = null;
-			cursor.hide();
+			if( selection == null ) cursor.hide();
 			J(".cursorPosition").text("");
 		});
 		scont.mousemove(function(e) {
@@ -667,7 +669,7 @@ class Level {
 		scroll.mousedown(function(e) {
 			if( tagMode != null ) {
 				tagMode = null;
-				setCursor(currentLayer);
+				setCursor();
 				return;
 			}
 			switch( e.which ) {
@@ -724,7 +726,7 @@ class Level {
 					var o = objs[i];
 					if( o.x == px && o.y == py && w <= 1 && h <= 1 ) {
 						editProps(l, i);
-						setCursor(l);
+						setCursor();
 						return;
 					}
 				}
@@ -740,7 +742,7 @@ class Level {
 				if( l.hasSize ) {
 					o.width = w;
 					o.height = h;
-					setCursor(l);
+					setCursor();
 				}
 				objs.sort(function(o1, o2) {
 					var r = Reflect.compare(o1.y, o2.y);
@@ -753,7 +755,128 @@ class Level {
 			default:
 			}
 			startPos = null;
+			if( selection != null ) {
+				moveSelection();
+				save();
+				draw();
+			}
 		});
+	}
+
+	function deleteSelection() {
+		for( l in layers ) {
+			if( !l.visible ) continue;
+			l.dirty = true;
+			var sx = selection.x;
+			var sy = selection.y;
+			var sw = selection.w;
+			var sh = selection.h;
+			switch( l.data ) {
+			case Layer(data), Tiles(_, data):
+				var sx = Std.int(selection.x);
+				var sy = Std.int(selection.y);
+				var sw = Math.ceil(selection.x + selection.w) - sx;
+				var sh = Math.ceil(selection.y + selection.h) - sy;
+				for( dx in 0...sw )
+					for( dy in 0...sh )
+						data[sx + dx + (sy + dy) * width] = 0;
+			case TileInstances(_, insts):
+				var objs = l.getTileObjects();
+				for( i in insts.copy() ) {
+					var o = objs.get(i.o);
+					var ow = o == null ? 1 : o.w;
+					var oh = o == null ? 1 : o.h;
+					if( sx + sw <= i.x || sy + sh <= i.y || sx >= i.x + ow || sy >= i.y + oh ) continue;
+					insts.remove(i);
+				}
+			case Objects(_, objs):
+				for( o in objs.copy() ) {
+					var ow = l.hasSize ? o.width : 1;
+					var oh = l.hasSize ? o.height : 1;
+					if( sx + sw <= o.x || sy + sh <= o.y || sx >= o.x + ow || sy >= o.y + oh ) continue;
+					objs.remove(o);
+				}
+			}
+		}
+	}
+
+	function moveSelection() {
+		var dx = selection.x - selection.sx;
+		var dy = selection.y - selection.sy;
+		if( dx == 0 && dy == 0 )
+			return;
+
+		var ix = Std.int(dx);
+		var iy = Std.int(dy);
+
+		for( l in layers ) {
+			if( !l.visible ) continue;
+			var sx = selection.x;
+			var sy = selection.y;
+			var sw = selection.w;
+			var sh = selection.h;
+
+			l.dirty = true;
+			switch( l.data ) {
+			case Tiles(_, data), Layer(data):
+				var sx = Std.int(selection.x);
+				var sy = Std.int(selection.y);
+				var sw = Math.ceil(selection.x + selection.w) - sx;
+				var sh = Math.ceil(selection.y + selection.h) - sy;
+
+				var ndata = [];
+				for( y in 0...height )
+					for( x in 0...width ) {
+						var k;
+						if( x >= sx && x < sx + sw && y >= sy && y < sy + sh ) {
+							var tx = x - ix;
+							var ty = y - iy;
+							if( tx >= 0 && tx < width && ty >= 0 && ty < height )
+								k = data[tx + ty * width];
+							else
+								k = 0;
+						} else if( x >= sx - ix && x < sx + sw - ix && y >= sy - iy && y < sy + sh - iy )
+							k = 0;
+						else
+							k = data[x + y * width];
+						ndata.push(k);
+					}
+				for( i in 0...data.length )
+					data[i] = ndata[i];
+			case TileInstances(_, insts):
+
+				sx -= dx;
+				sy -= dy;
+
+				var objs = l.getTileObjects();
+				for( i in insts.copy() ) {
+					var o = objs.get(i.o);
+					var ow = o == null ? 1 : o.w;
+					var oh = o == null ? 1 : o.h;
+					if( sx + sw <= i.x || sy + sh <= i.y || sx >= i.x + ow || sy >= i.y + oh ) continue;
+					i.x += l.hasFloatCoord ? dx : ix;
+					i.y += l.hasFloatCoord ? dy : iy;
+					if( i.x < 0 || i.y < 0 || i.x >= width || i.y >= height )
+						insts.remove(i);
+				}
+			case Objects(_, objs):
+
+				sx -= dx;
+				sy -= dy;
+
+				for( o in objs.copy() ) {
+					var ow = l.hasSize ? o.width : 1;
+					var oh = l.hasSize ? o.height : 1;
+					if( sx + sw <= o.x || sy + sh <= o.y || sx >= o.x + ow || sy >= o.y + oh ) continue;
+					o.x += l.hasFloatCoord ? dx : ix;
+					o.y += l.hasFloatCoord ? dy : iy;
+					if( o.x < 0 || o.y < 0 || o.x >= width || o.y >= height )
+						objs.remove(o);
+				}
+			}
+		}
+		save();
+		draw();
 	}
 
 	function updateCursorPos() {
@@ -795,6 +918,34 @@ class Level {
 			content.find(".cursorPosition").text("");
 		}
 
+		if( selection != null ) {
+			var fc = currentLayer.floatCoord;
+			var ccx = fc ? cxf : cx, ccy = fc ? cyf : cy;
+			if( ccx < 0 ) ccx = 0;
+			if( ccy < 0 ) ccy = 0;
+			if( ccx > width ) ccx = width;
+			if( ccy > height ) ccy = height;
+			if( !selection.down ) {
+				if( startPos != null ) {
+					selection.x = selection.sx + (ccx - startPos.x);
+					selection.y = selection.sy + (ccy - startPos.y);
+				} else {
+					selection.sx = selection.x;
+					selection.sy = selection.y;
+				}
+				setCursor();
+				return;
+			}
+			var x0 = ccx < selection.sx ? ccx : selection.sx;
+			var y0 = ccy < selection.sy ? ccy : selection.sy;
+			var x1 = ccx < selection.sx ? selection.sx : ccx;
+			var y1 = ccy < selection.sy ? selection.sy : ccy;
+			selection.x = x0;
+			selection.y = y0;
+			selection.w = x1 - x0;
+			selection.h = y1 - y0;
+			setCursor();
+		}
 	}
 
 	function hasProps( l : LayerData, required = false ) {
@@ -853,7 +1004,7 @@ class Level {
 		view.zoom = zoomView;
 		draw();
 		updateCursorPos();
-		setCursor(currentLayer);
+		setCursor();
 	}
 
 	function paint(x, y) {
@@ -946,6 +1097,7 @@ class Level {
 			zoomView = 1;
 			updateZoom();
 		case K.ESC:
+			clearSelection();
 			draw();
 		case K.TAB:
 			var i = (layers.indexOf(l) + (e.shiftKey ? layers.length-1 : 1) ) % layers.length;
@@ -992,26 +1144,32 @@ class Level {
 			e.preventDefault();
 			if( l.current % l.imagesStride > 0 ) {
 				l.current--;
-				setCursor(l);
+				setCursor();
 			}
 		case K.RIGHT:
 			e.preventDefault();
 			if( l.current % l.imagesStride < l.imagesStride - 1 ) {
 				l.current++;
-				setCursor(l);
+				setCursor();
 			}
 		case K.DOWN:
 			e.preventDefault();
 			if( l.current + l.imagesStride < l.images.length ) {
 				l.current += l.imagesStride;
-				setCursor(l);
+				setCursor();
 			}
 		case K.UP:
 			e.preventDefault();
 			if( l.current >= l.imagesStride ) {
 				l.current -= l.imagesStride;
-				setCursor(l);
+				setCursor();
 			}
+		case K.DELETE if( selection != null ):
+			deleteSelection();
+			clearSelection();
+			save();
+			draw();
+			return;
 		default:
 		}
 
@@ -1033,8 +1191,24 @@ class Level {
 				editProps(p.layer, p.index);
 			default:
 			}
+		case "S".code:
+			if( selection != null ) {
+				if( selection.down ) return;
+				clearSelection();
+			}
+			var x = l.floatCoord ? curPos.xf : curPos.x, y = l.floatCoord ? curPos.yf : curPos.y;
+			selection = { sx : x, sy : y, x : x, y : y, w : 1, h : 1, down : true };
+			cursor.addClass("select");
+			setCursor();
 		default:
 		}
+	}
+
+	function clearSelection() {
+		selection = null;
+		cursor.removeClass("select");
+		cursor.css( { width : "auto", height : "auto" } );
+		setCursor();
 	}
 
 	function doDelete() {
@@ -1092,11 +1266,20 @@ class Level {
 			canvas.unbind("mousemove");
 			canvas.css( { cursor : "" } );
 			updateCursorPos();
+		case "S".code:
+			if( selection != null ) {
+				selection.down = false;
+				selection.sx = selection.x;
+				selection.sy = selection.y;
+				setCursor();
+			}
 		default:
 		}
 	}
 
 	function set( x, y ) {
+		if( selection != null )
+			return;
 		if( paintMode ) {
 			paint(x,y);
 			return;
@@ -1378,7 +1561,7 @@ class Level {
 		var canvas = content.find("canvas");
 		canvas.attr("width", (width * tileSize) + "px");
 		canvas.attr("height", (height * tileSize) + "px");
-		setCursor(currentLayer);
+		setCursor();
 		save();
 		draw();
 	}
@@ -1495,7 +1678,7 @@ class Level {
 			if( l.data.match(TileInstances(_)) ) randomMode = false;
 			palette.find(".icon.random").toggleClass("active", randomMode);
 			savePrefs();
-			setCursor(l);
+			setCursor();
 			return;
 		case "paint":
 			paintMode = !paintMode;
@@ -1517,7 +1700,7 @@ class Level {
 				s.t = m;
 				s.opts = { };
 			}
-			setCursor(l);
+			setCursor();
 		case "name":
 			var s = l.getTileProp();
 			if( s != null )
@@ -1563,7 +1746,7 @@ class Level {
 		case "tag":
 			tagMode = (tagMode == null ? (l.tileProps.tags.length == 0 ? "" : l.tileProps.tags[0].name) : null);
 			savePrefs();
-			setCursor(l);
+			setCursor();
 		case "addTag":
 			if( val == "" ) return;
 			for( t in l.tileProps.tags )
@@ -1572,7 +1755,7 @@ class Level {
 			l.tileProps.tags.push( { name : val, flags : [] } );
 			tagMode = val;
 			savePrefs();
-			setCursor(l);
+			setCursor();
 		case "delTag":
 			for( t in l.tileProps.tags )
 				if( t.name == tagMode ) {
@@ -1581,17 +1764,20 @@ class Level {
 					tagMode = t == null ? "" : t.name;
 					savePrefs();
 				}
-			setCursor(l);
+			setCursor();
 		case "selectTag":
 			tagMode = val;
 			savePrefs();
-			setCursor(l);
+			setCursor();
 		}
 		save();
 		draw();
 	}
 
-	function setCursor( l : LayerData ) {
+	function setCursor( ?l : LayerData ) {
+
+		if( l == null )
+			l = currentLayer;
 
 		if( l == null ) {
 			cursor.hide();
@@ -1655,7 +1841,7 @@ class Level {
 						var t = Lambda.find(l.tileProps.tags, function(t) return t.name == tagMode);
 						if( t != null ) {
 							t.flags[x + y * l.imagesStride] = !t.flags[x + y * l.imagesStride];
-							setCursor(l);
+							setCursor();
 							save();
 						}
 						return;
@@ -1670,7 +1856,7 @@ class Level {
 						l.currentWidth = x1 - x0 + 1;
 						l.currentHeight = y1 - y0 + 1;
 						l.saveState();
-						setCursor(l);
+						setCursor();
 					} else {
 						start.x = x;
 						start.y = y;
@@ -1681,15 +1867,20 @@ class Level {
 									l.currentWidth = p.w;
 									l.currentHeight = p.h;
 									l.saveState();
-									setCursor(l);
+									setCursor();
 									return;
 								}
 						start.down = true;
 						l.current = x + y * l.imagesStride;
-						setCursor(l);
+						setCursor();
 					}
 				});
 				jsel.mousemove(function(e) {
+
+					mousePos.x = e.pageX;
+					mousePos.y = e.pageY;
+					updateCursorPos();
+
 					var o = jsel.offset();
 					var x = Std.int((e.pageX - o.left) / (tileSize + 1));
 					var y = Std.int((e.pageY - o.top) / (tileSize + 1));
@@ -1703,7 +1894,7 @@ class Level {
 					l.currentWidth = x1 - x0 + 1;
 					l.currentHeight = y1 - y0 + 1;
 					l.saveState();
-					setCursor(l);
+					setCursor();
 				});
 				jsel.mouseleave(function(e) {
 					content.find(".cursorPosition").text("");
@@ -1831,6 +2022,20 @@ class Level {
 		}
 
 		var size = zoomView < 1 ? Std.int(tileSize * zoomView) : Math.ceil(tileSize * zoomView);
+
+		if( selection != null ) {
+			cursorImage.setSize(0,0);
+			cursor.show();
+			cursor.css( {
+				border : "",
+				marginLeft : Std.int(selection.x * tileSize * zoomView - 1) + "px",
+				marginTop : Std.int(selection.y * tileSize * zoomView) + "px",
+				width : Std.int(selection.w * tileSize * zoomView) + "px",
+				height : Std.int(selection.h * size) + "px"
+			});
+			return;
+		}
+
 		var cur = l.current;
 		var w = randomMode ? 1 : l.currentWidth;
 		var h = randomMode ? 1 : l.currentHeight;

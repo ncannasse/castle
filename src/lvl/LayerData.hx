@@ -217,7 +217,7 @@ class LayerData {
 	public function setObjectsData( id, val ) {
 		data = Objects(id, val);
 	}
-	
+
 	public function setTilesData( val : cdb.Types.TileLayer ) {
 		var file = val == null ? null : val.file;
 		var size = val == null ? 16 : val.size;
@@ -238,6 +238,9 @@ class LayerData {
 		level.loadAndSplit(file, size, function(w, h, images, blanks) {
 			this.images = images;
 			this.blanks = blanks;
+
+			if( data[0] == 0xFFFF )
+				props.mode = Objects;
 
 			switch( props.mode ) {
 			case null, Tiles, Ground:
