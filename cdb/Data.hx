@@ -79,7 +79,7 @@ typedef TileModeOptions = {
 typedef TilesetProps = {
 	var stride : Int;
 	var sets : Array<{ x : Int, y : Int, w : Int, h : Int, t : TileMode, opts : TileModeOptions }>;
-	var tags : Array<{ name : String, flags : Array<Bool> }>;
+	var props : Array<Dynamic>;
 }
 
 typedef LevelProps = {

@@ -449,13 +449,16 @@ div#menu {
 			.icon.paint {
 				background-image : url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAB3RJTUUH3gYDCgYFUrJbbgAAABd0RVh0U29mdHdhcmUAR0xEUE5HIHZlciAzLjRxhaThAAAACHRwTkdHTEQzAAAAAEqAKR8AAAAEZ0FNQQAAsY8L/GEFAAAABmJLR0QAagALAE638FflAAAAc0lEQVR4nJWSUQ7AIAhDvf+l2T7mIvBaNhNijPZJtSsiVq17xC7aT2dJ7Na/AF+6kIBnHq1I/3tMINVBA5yQZNOJK4AgsvXavoK0f3cWEFDFBDFiDTDvkTVkgSAUsBcwQSjeDeAg55nyYzqJLsIySHTDVBd+rl+9TJZX8wAAAABJRU5ErkJggg==');
 			}
-			.icon.tag {
-				background-image : url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABiklEQVR4nJ2Sv0tcQRDHPzPe7b0ikPwHchiwCILBKs15Ph8I6XKXSkiRwj/AVClt/Q8EWxEEI1ZW745TECvxIH+BYhFIEw3+uOdzNkX24SkvBm5h2WF3PjOzM194fi0APwH/j92RwjNJmgLUAAUsTXuzwC4QPY2qqg/2EPwKeAHUOp39uTJYRL5OTNTrURStqCpmRhGqBowBrts9eOe93ynLPDX1ZqdeH7fJydcbeZ4/VBDO+2734K2ZfSuDnXOcnp59vrz8rf3+9/ajxyRpRiLSArKyZjnnfBTVvHOurJEAfBgR9gDvgdsR4WuA8xHhDGgBfBkFFpF2kjSjQkhLwBqgzjlUBTNPlmVPhwEwUNVWHDeOgEElXK6LCNVqdU1V9D9wO44bff7qxiphjAJsHx/3X15dXa9mWabPwCdABbgBBo+UODMzvZnn+ScgL4E/DsE5cJGmPV98QYF74IeZbQZ7IzjfichiHDcOQ9k3ATaCA4ABv9K0VyhrK1S1CizPz8/uhSQGDIb8+AOJa8wIR13ZqAAAAABJRU5ErkJggg==');
+			.icon.create {
+				background-image : url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAA2hpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMC1jMDYxIDY0LjE0MDk0OSwgMjAxMC8xMi8wNy0xMDo1NzowMSAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wTU09Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9tbS8iIHhtbG5zOnN0UmVmPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvc1R5cGUvUmVzb3VyY2VSZWYjIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtcE1NOk9yaWdpbmFsRG9jdW1lbnRJRD0ieG1wLmRpZDpERjQ5QUU2RjNEMjA2ODExODhDNkNCNjMxRDc2RjgxMiIgeG1wTU06RG9jdW1lbnRJRD0ieG1wLmRpZDpEM0UyM0YzNDJGNkQxMUUyOERFOTgyRDM3RTA1OTdGOSIgeG1wTU06SW5zdGFuY2VJRD0ieG1wLmlpZDpDRkE0MzQzNjJGNkQxMUUyOERFOTgyRDM3RTA1OTdGOSIgeG1wOkNyZWF0b3JUb29sPSJBZG9iZSBQaG90b3Nob3AgQ1M1LjEgTWFjaW50b3NoIj4gPHhtcE1NOkRlcml2ZWRGcm9tIHN0UmVmOmluc3RhbmNlSUQ9InhtcC5paWQ6OUM3MEI3MkIwQTIwNjgxMThGNjJEQ0UzOTVCQjBGNUYiIHN0UmVmOmRvY3VtZW50SUQ9InhtcC5kaWQ6REY0OUFFNkYzRDIwNjgxMTg4QzZDQjYzMUQ3NkY4MTIiLz4gPC9yZGY6RGVzY3JpcHRpb24+IDwvcmRmOlJERj4gPC94OnhtcG1ldGE+IDw/eHBhY2tldCBlbmQ9InIiPz4qH7YDAAAA4ElEQVR42qRTUQrDIAyVDbxKYSD0t1DYMXaP3WMgeJgORm9Q6NdgsN8eYF+FloGL4wnBql3Zgycak5iYRIglCuKF2BHfYAdZIVZwJo5Em+AInQUksYHSRDTEI+QSe4M7C13JHWhcDMQyE2EJHYuUvlDIc8KeowU5FHSdzYG/biIv+txDGB7FA4d6g4Ma8rtgHyNZ2KkqtOzT3fm1i3ifM584MwcOe7c84a3akELlU3ARXCE8id/hdW9rZWzAVBlVWJYh4iQ09o2kc62s0b68bDrXyn8PU2yce2bYp8b5I8AAKTdiXjhZA8wAAAAASUVORK5CYII=');
 			}
-			.mode, .tagMode {
+			.icon.delete {
+				background-image : url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAB3RJTUUH3gYUEAMJ+gyqgAAAABd0RVh0U29mdHdhcmUAR0xEUE5HIHZlciAzLjRxhaThAAAACHRwTkdHTEQzAAAAAEqAKR8AAAAEZ0FNQQAAsY8L/GEFAAAABmJLR0QA/wD/AP+gvaeTAAAA9UlEQVR4nKWTSwrCQAyGsxIVF9raS4iCeCUFi3fxCYJ4FZcKHkBREHTja+tCQW2r/kMzdWhrsfSHbzEzSUgyCVFQJdABK3AHD7AGPVAOsfeUBkNggTewwZGx+c4BI5DxO6fAhI1OwASa8l4ATbBnmxnIqgEG/DAHxYgsdTBl27Fas0zXiKqRZXAmL1AVF22O2PrDWarBPn1xWJDbHC3Kw6ccuc3eiMMFnJVHnaOHoWrHQQIB8n8G2IJb0hLEgHlNNGMEqJPSxLjfKOZEfmNNXiYaJKHEoywkl8lhI4vLOtB3wX4ukyrRky65HX6CK1iSu84Vv/EHvTNdpKPQEisAAAAASUVORK5CYII=');
+			}
+			.mode {
 				vertical-align : top;
 				display : inline-block;
-				line-height : 16px;
+				line-height : 18px;
 				label, select, input {
 					font-size : 10px;
 				}
@@ -478,6 +481,17 @@ div#menu {
 				.opt {
 					display : none;
 				}
+				.icon {
+					vertical-align : -4px;
+				}
+			}
+
+			.mode.m_exists .opt.delete {
+				display : inline-block;
+			}
+
+			.mode.m_create .opt.create {
+				display : inline-block;
 			}
 
 			.mode.m_ground {
@@ -485,7 +499,7 @@ div#menu {
 					display : inline-block;
 				}
 			}
-			.mode.m_object, .mode.m_group {
+			.mode.m_group {
 				.opt.name {
 					display : inline-block;
 					input {
@@ -499,14 +513,6 @@ div#menu {
 			.mode.m_border {
 				.opt.border_in, .opt.border_out, .opt.border_mode {
 					display : inline-block;
-				}
-				.border_in, .border_out {
-					select {
-						width : 50px;
-					}
-				}
-				.border_mode select {
-					width : 50px;
 				}
 			}
 		}

@@ -146,24 +146,20 @@
 			<div class="bar">
 				<div class="icon random" onclick="_.level.paletteOption('random')" title="Random mode"></div>
 				<div class="icon paint" onclick="_.level.paletteOption('paint')" title="Paint mode"></div>
-				<div class="icon tag" onclick="_.level.paletteOption('tag')" title="Tag tiles mode"></div>
-				<div class="tagMode">
-					<select name="tags" onchange="_.level.paletteOption('selectTag',this.value)" title="Choose tag to modify">
-					</select>
-					<label title="Create new tag">
-						<input type="text" name="tagName"/>
-						<input type="submit" value="Add" onclick="{ var t = $(this).parent().find('[name=tagName]'); _.level.paletteOption('addTag',t.val()); t.val(''); }"/>
-					</label>
-					<input type="submit" value="Del" onclick="_.level.paletteOption('delTag')"/>
-				</div>
 				<div class="mode">
 					<select name="mode" onchange="_.level.paletteOption('mode',this.value)" title="Change tile mode">
-						<option value="tile">tile</option>
-						<option value="ground">ground</option>
-						<option value="border">border</option>
-						<option value="object">object</option>
-						<option value="group">group</option>
+						<option value="t_tile">tile</option>
+						<option value="t_ground">ground</option>
+						<option value="t_border">border</option>
+						<option value="t_object">object</option>
+						<option value="t_group">group</option>
 					</select>
+					<div class="opt create">
+						<div class="icon create" onclick="_.level.paletteOption('toggleMode')" title="Create"></div>
+					</div>
+					<div class="opt delete">
+						<div class="icon delete" onclick="_.level.paletteOption('toggleMode')" title="Delete"></div>
+					</div>
 					<label class="opt name" title="Name for this group">
 						Name:
 						<input type="text" name="name" onchange="_.level.paletteOption('name',this.value)"/>
