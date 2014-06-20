@@ -57,6 +57,8 @@ class Level {
 	var paletteMode : Null<String> = null;
 	var spaceDown : Bool;
 
+	var perTileProps : Array<Column>;
+
 	var watchList : Array<{ path : String, time : Float, callb : Void -> Void }>;
 	var watchTimer : haxe.Timer;
 	var references : Array<{ ref : Dynamic -> Void }>;
@@ -71,6 +73,10 @@ class Level {
 		this.index = index;
 		this.obj = sheet.lines[index];
 		this.model = model;
+		perTileProps = [];
+		for( c in sheet.columns )
+			if( c.name == "tileProps" && c.type == TList )
+				perTileProps = model.getPseudoSheet(sheet, c).columns;
 		references = [];
 	}
 
@@ -1748,6 +1754,31 @@ class Level {
 		draw();
 	}
 
+	function getPaletteProp() {
+		if( paletteMode == null || paletteMode.substr(0, 2) == "t_" )
+			return null;
+		for( c in perTileProps )
+			if( c.name == paletteMode )
+				return c;
+		return null;
+	}
+
+
+	function getTileProp(x, y) {
+		var l = currentLayer;
+		var a = x + y * l.imagesStride;
+		var p = currentLayer.tileProps.props[a];
+		if( p == null ) {
+			p = { };
+			for( c in perTileProps ) {
+				var v = model.getDefault(c);
+				if( v != null ) Reflect.setField(p, c.name, v);
+			}
+			currentLayer.tileProps.props[a] = p;
+		}
+		return p;
+	}
+
 	function setCursor( ?l : LayerData ) {
 
 		if( l == null )
@@ -1837,6 +1868,15 @@ class Level {
 						l.current = x + y * l.imagesStride;
 						setCursor();
 					}
+
+					var prop = getPaletteProp();
+					if( prop != null && prop.type == TBool ) {
+						var v = getTileProp(x, y);
+						Reflect.setField(v, prop.name, !Reflect.field(v, prop.name));
+						save();
+						setCursor();
+					}
+
 				});
 				jsel.mousemove(function(e) {
 
@@ -1906,12 +1946,29 @@ class Level {
 				paletteSelect.fillRect( (i % l.imagesStride) * (tileSize + 1), Std.int(i / l.imagesStride) * (tileSize + 1), tileSize, tileSize, 0x80000000);
 			}
 
-			var objs = paletteMode == null ? l.getSelObjects() : [];
-			if( objs.length > 1 )
-				for( o in objs )
-					paletteSelect.fillRect( o.x * (tileSize + 1), o.y * (tileSize + 1), (tileSize + 1) * o.w - 1, (tileSize + 1) * o.h - 1, 0x805BA1FB);
-			else
-				paletteSelect.fillRect( (l.current % l.imagesStride) * (tileSize + 1), Std.int(l.current / l.imagesStride) * (tileSize + 1), (tileSize + 1) * l.currentWidth - 1, (tileSize + 1) * l.currentHeight - 1, 0x805BA1FB);
+			var prop = getPaletteProp();
+			if( prop == null || prop.type != TBool ) {
+				var objs = paletteMode == null ? l.getSelObjects() : [];
+				if( objs.length > 1 )
+					for( o in objs )
+						paletteSelect.fillRect( o.x * (tileSize + 1), o.y * (tileSize + 1), (tileSize + 1) * o.w - 1, (tileSize + 1) * o.h - 1, 0x805BA1FB);
+				else
+					paletteSelect.fillRect( (l.current % l.imagesStride) * (tileSize + 1), Std.int(l.current / l.imagesStride) * (tileSize + 1), (tileSize + 1) * l.currentWidth - 1, (tileSize + 1) * l.currentHeight - 1, 0x805BA1FB);
+			}
+			if( prop != null ) {
+				switch( prop.type ) {
+				case TBool:
+					var k = 0;
+					for( y in 0...Math.ceil(l.images.length / l.imagesStride) )
+						for( x in 0...l.imagesStride ) {
+							var p = l.tileProps.props[k++];
+							if( p == null || Reflect.field(p, prop.name) != true ) continue;
+							paletteSelect.fillRect( x * (tileSize + 1), y * (tileSize + 1), tileSize, tileSize, 0x80FB5BA1);
+						}
+				default:
+					// no per-tile display
+				}
+			}
 
 			var m = palette.find(".mode");
 			if( l.tileProps == null ) {
@@ -1957,9 +2014,13 @@ class Level {
 				if( tobj == null )
 					tobj = { x : 0, y : 0, w : 0, h : 0, t : Tile, opts : { } };
 
-				m.find("[name=mode]").val(paletteMode == null ? "t_tile" : paletteMode);
+				var baseModes = [for( m in ["tile", "object", "ground", "border", "group"] ) '<option value="t_$m">${m.substr(0,1).toUpperCase()+m.substr(1)}</option>'].join("\n");
+				var props = [for( t in perTileProps ) '<option value="${t.name}">${t.name}</option>'].join("\n");
+				m.find("[name=mode]").html(baseModes + props).val(paletteMode == null ? "t_tile" : paletteMode);
 				m.attr("class", "").addClass("mode");
-				if( "t_" + tobj.t != paletteMode ) {
+				if( prop != null ) {
+					// TODO
+				} else if( "t_" + tobj.t != paletteMode ) {
 					if( paletteMode != null ) m.addClass("m_create");
 				} else {
 					m.addClass("m_"+paletteMode.substr(2)).addClass("m_exists");

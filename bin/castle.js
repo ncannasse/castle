@@ -156,6 +156,53 @@ Lambda.find = function(it,f) {
 	}
 	return null;
 };
+var IMap = function() { };
+$hxClasses["IMap"] = IMap;
+IMap.__name__ = ["IMap"];
+IMap.prototype = {
+	__class__: IMap
+};
+var haxe = {};
+haxe.ds = {};
+haxe.ds.StringMap = function() {
+	this.h = { };
+};
+$hxClasses["haxe.ds.StringMap"] = haxe.ds.StringMap;
+haxe.ds.StringMap.__name__ = ["haxe","ds","StringMap"];
+haxe.ds.StringMap.__interfaces__ = [IMap];
+haxe.ds.StringMap.prototype = {
+	set: function(key,value) {
+		this.h["$" + key] = value;
+	}
+	,get: function(key) {
+		return this.h["$" + key];
+	}
+	,exists: function(key) {
+		return this.h.hasOwnProperty("$" + key);
+	}
+	,remove: function(key) {
+		key = "$" + key;
+		if(!this.h.hasOwnProperty(key)) return false;
+		delete(this.h[key]);
+		return true;
+	}
+	,keys: function() {
+		var a = [];
+		for( var key in this.h ) {
+		if(this.h.hasOwnProperty(key)) a.push(key.substr(1));
+		}
+		return HxOverrides.iter(a);
+	}
+	,iterator: function() {
+		return { ref : this.h, it : this.keys(), hasNext : function() {
+			return this.it.hasNext();
+		}, next : function() {
+			var i = this.it.next();
+			return this.ref["$" + i];
+		}};
+	}
+	,__class__: haxe.ds.StringMap
+};
 var Level = function(model,sheet,index) {
 	this.reloading = false;
 	this.paletteMode = null;
@@ -169,6 +216,14 @@ var Level = function(model,sheet,index) {
 	this.index = index;
 	this.obj = sheet.lines[index];
 	this.model = model;
+	this.perTileProps = [];
+	var _g = 0;
+	var _g1 = sheet.columns;
+	while(_g < _g1.length) {
+		var c = _g1[_g];
+		++_g;
+		if(c.name == "tileProps" && c.type == cdb.ColumnType.TList) this.perTileProps = model.smap.get(sheet.name + "@" + c.name).s.columns;
+	}
 	this.references = [];
 };
 $hxClasses["Level"] = Level;
@@ -2584,6 +2639,35 @@ Level.prototype = {
 		this.save();
 		this.draw();
 	}
+	,getPaletteProp: function() {
+		if(this.paletteMode == null || HxOverrides.substr(this.paletteMode,0,2) == "t_") return null;
+		var _g = 0;
+		var _g1 = this.perTileProps;
+		while(_g < _g1.length) {
+			var c = _g1[_g];
+			++_g;
+			if(c.name == this.paletteMode) return c;
+		}
+		return null;
+	}
+	,getTileProp: function(x,y) {
+		var l = this.currentLayer;
+		var a = x + y * l.imagesStride;
+		var p = this.currentLayer.tileProps.props[a];
+		if(p == null) {
+			p = { };
+			var _g = 0;
+			var _g1 = this.perTileProps;
+			while(_g < _g1.length) {
+				var c = _g1[_g];
+				++_g;
+				var v = this.model.getDefault(c);
+				if(v != null) p[c.name] = v;
+			}
+			this.currentLayer.tileProps.props[a] = p;
+		}
+		return p;
+	}
 	,setCursor: function(l) {
 		var _g = this;
 		if(l == null) l = this.currentLayer;
@@ -2725,6 +2809,13 @@ Level.prototype = {
 						l.set_current(x1 + y1 * l.imagesStride);
 						_g.setCursor();
 					}
+					var prop = _g.getPaletteProp();
+					if(prop != null && prop.type == cdb.ColumnType.TBool) {
+						var v = _g.getTileProp(x1,y1);
+						Reflect.setField(v,prop.name,!Reflect.field(v,prop.name));
+						_g.save();
+						_g.setCursor();
+					}
 				});
 				jsel.mousemove(function(e1) {
 					_g.mousePos.x = e1.pageX;
@@ -2831,27 +2922,52 @@ Level.prototype = {
 				if(used[i2]) continue;
 				this.paletteSelect.fillRect(i2 % l.imagesStride * (this.tileSize + 1),(i2 / l.imagesStride | 0) * (this.tileSize + 1),this.tileSize,this.tileSize,-2147483648);
 			}
-			var objs2;
-			if(this.paletteMode == null) objs2 = l.getSelObjects(); else objs2 = [];
-			if(objs2.length > 1) {
-				var _g7 = 0;
-				while(_g7 < objs2.length) {
-					var o3 = objs2[_g7];
-					++_g7;
-					this.paletteSelect.fillRect(o3.x * (this.tileSize + 1),o3.y * (this.tileSize + 1),(this.tileSize + 1) * o3.w - 1,(this.tileSize + 1) * o3.h - 1,-2141478405);
+			var prop1 = this.getPaletteProp();
+			if(prop1 == null || prop1.type != cdb.ColumnType.TBool) {
+				var objs2;
+				if(this.paletteMode == null) objs2 = l.getSelObjects(); else objs2 = [];
+				if(objs2.length > 1) {
+					var _g7 = 0;
+					while(_g7 < objs2.length) {
+						var o3 = objs2[_g7];
+						++_g7;
+						this.paletteSelect.fillRect(o3.x * (this.tileSize + 1),o3.y * (this.tileSize + 1),(this.tileSize + 1) * o3.w - 1,(this.tileSize + 1) * o3.h - 1,-2141478405);
+					}
+				} else this.paletteSelect.fillRect(l.current % l.imagesStride * (this.tileSize + 1),(l.current / l.imagesStride | 0) * (this.tileSize + 1),(this.tileSize + 1) * l.currentWidth - 1,(this.tileSize + 1) * l.currentHeight - 1,-2141478405);
+			}
+			if(prop1 != null) {
+				var _g8 = prop1.type;
+				switch(_g8[1]) {
+				case 2:
+					var k2 = 0;
+					var _g23 = 0;
+					var _g18 = Math.ceil(l.images.length / l.imagesStride);
+					while(_g23 < _g18) {
+						var y3 = _g23++;
+						var _g42 = 0;
+						var _g32 = l.imagesStride;
+						while(_g42 < _g32) {
+							var x3 = _g42++;
+							var p1 = l.tileProps.props[k2++];
+							if(p1 == null || Reflect.field(p1,prop1.name) != true) continue;
+							this.paletteSelect.fillRect(x3 * (this.tileSize + 1),y3 * (this.tileSize + 1),this.tileSize,this.tileSize,-2131010655);
+						}
+					}
+					break;
+				default:
 				}
-			} else this.paletteSelect.fillRect(l.current % l.imagesStride * (this.tileSize + 1),(l.current / l.imagesStride | 0) * (this.tileSize + 1),(this.tileSize + 1) * l.currentWidth - 1,(this.tileSize + 1) * l.currentHeight - 1,-2141478405);
+			}
 			var m = this.palette.find(".mode");
 			if(l.tileProps == null) m.hide(); else {
 				var grounds = [];
-				var _g8 = 0;
-				var _g18 = l.tileProps.sets;
-				while(_g8 < _g18.length) {
-					var s = _g18[_g8];
-					++_g8;
+				var _g9 = 0;
+				var _g19 = l.tileProps.sets;
+				while(_g9 < _g19.length) {
+					var s = _g19[_g9];
+					++_g9;
 					var color;
-					var _g23 = s.t;
-					switch(_g23) {
+					var _g24 = s.t;
+					switch(_g24) {
 					case "tile":
 						continue;
 						break;
@@ -2888,14 +3004,45 @@ Level.prototype = {
 				}
 				var tobj = l.getTileProp();
 				if(tobj == null) tobj = { x : 0, y : 0, w : 0, h : 0, t : "tile", opts : { }};
-				m.find("[name=mode]").val(this.paletteMode == null?"t_tile":this.paletteMode);
+				var baseModes = ((function($this) {
+					var $r;
+					var _g10 = [];
+					{
+						var _g110 = 0;
+						var _g25 = ["tile","object","ground","border","group"];
+						while(_g110 < _g25.length) {
+							var m1 = _g25[_g110];
+							++_g110;
+							_g10.push("<option value=\"t_" + m1 + "\">" + (HxOverrides.substr(m1,0,1).toUpperCase() + HxOverrides.substr(m1,1,null)) + "</option>");
+						}
+					}
+					$r = _g10;
+					return $r;
+				}(this))).join("\n");
+				var props = ((function($this) {
+					var $r;
+					var _g111 = [];
+					{
+						var _g26 = 0;
+						var _g33 = $this.perTileProps;
+						while(_g26 < _g33.length) {
+							var t2 = _g33[_g26];
+							++_g26;
+							_g111.push("<option value=\"" + t2.name + "\">" + t2.name + "</option>");
+						}
+					}
+					$r = _g111;
+					return $r;
+				}(this))).join("\n");
+				m.find("[name=mode]").html(baseModes + props).val(this.paletteMode == null?"t_tile":this.paletteMode);
 				m.attr("class","").addClass("mode");
-				if("t_" + cdb._Data.TileMode_Impl_.toString(tobj.t) != this.paletteMode) {
+				if(prop1 != null) {
+				} else if("t_" + cdb._Data.TileMode_Impl_.toString(tobj.t) != this.paletteMode) {
 					if(this.paletteMode != null) m.addClass("m_create");
 				} else {
 					m.addClass("m_" + HxOverrides.substr(this.paletteMode,2,null)).addClass("m_exists");
-					var _g9 = tobj.t;
-					switch(_g9) {
+					var _g27 = tobj.t;
+					switch(_g27) {
 					case "tile":case "object":
 						break;
 					case "ground":
@@ -2909,16 +3056,16 @@ Level.prototype = {
 					case "border":
 						var opts = ((function($this) {
 							var $r;
-							var _g19 = [];
+							var _g34 = [];
 							{
-								var _g24 = 0;
-								while(_g24 < grounds.length) {
-									var g = grounds[_g24];
-									++_g24;
-									_g19.push("<option value=\"" + g + "\">" + g + "</option>");
+								var _g43 = 0;
+								while(_g43 < grounds.length) {
+									var g = grounds[_g43];
+									++_g43;
+									_g34.push("<option value=\"" + g + "\">" + g + "</option>");
 								}
 							}
-							$r = _g19;
+							$r = _g34;
 							return $r;
 						}(this))).join("");
 						m.find("[name=border_in]").html("<option value='null'>upper</option><option value='lower'>lower</option>" + opts).val(Std.string(tobj.opts.borderIn));
@@ -2945,10 +3092,10 @@ Level.prototype = {
 		if(this.randomMode) h1 = 1; else h1 = l.currentHeight;
 		if((function($this) {
 			var $r;
-			var _g10 = l.data;
+			var _g20 = l.data;
 			$r = (function($this) {
 				var $r;
-				switch(_g10[1]) {
+				switch(_g20[1]) {
 				case 3:
 					$r = true;
 					break;
@@ -2969,14 +3116,14 @@ Level.prototype = {
 		this.cursorImage.setSize(size * w1,size * h1);
 		if(l.images != null) {
 			this.cursorImage.clear();
-			var _g20 = 0;
-			while(_g20 < h1) {
-				var y3 = _g20++;
-				var _g110 = 0;
-				while(_g110 < w1) {
-					var x3 = _g110++;
-					var i3 = l.images[cur + x3 + y3 * l.imagesStride];
-					this.cursorImage.drawSub(i3,0,0,i3.width,i3.height,x3 * size,y3 * size,size,size);
+			var _g28 = 0;
+			while(_g28 < h1) {
+				var y4 = _g28++;
+				var _g112 = 0;
+				while(_g112 < w1) {
+					var x4 = _g112++;
+					var i3 = l.images[cur + x4 + y4 * l.imagesStride];
+					this.cursorImage.drawSub(i3,0,0,i3.width,i3.height,x4 * size,y4 * size,size,size);
 				}
 			}
 			this.cursorImage.fill(1616617979);
@@ -7419,12 +7566,6 @@ Main.prototype = $extend(Model.prototype,{
 	}
 	,__class__: Main
 });
-var IMap = function() { };
-$hxClasses["IMap"] = IMap;
-IMap.__name__ = ["IMap"];
-IMap.prototype = {
-	__class__: IMap
-};
 Math.__name__ = ["Math"];
 var Reflect = function() { };
 $hxClasses["Reflect"] = Reflect;
@@ -8607,7 +8748,6 @@ cdb.Index.prototype = {
 	}
 	,__class__: cdb.Index
 };
-var haxe = {};
 haxe.Json = function() { };
 $hxClasses["haxe.Json"] = haxe.Json;
 haxe.Json.__name__ = ["haxe","Json"];
@@ -9533,7 +9673,6 @@ haxe.crypto.Md5.prototype = {
 	}
 	,__class__: haxe.crypto.Md5
 };
-haxe.ds = {};
 haxe.ds.IntMap = function() {
 	this.h = { };
 };
@@ -9580,45 +9719,6 @@ haxe.ds.ObjectMap.prototype = {
 		return HxOverrides.iter(a);
 	}
 	,__class__: haxe.ds.ObjectMap
-};
-haxe.ds.StringMap = function() {
-	this.h = { };
-};
-$hxClasses["haxe.ds.StringMap"] = haxe.ds.StringMap;
-haxe.ds.StringMap.__name__ = ["haxe","ds","StringMap"];
-haxe.ds.StringMap.__interfaces__ = [IMap];
-haxe.ds.StringMap.prototype = {
-	set: function(key,value) {
-		this.h["$" + key] = value;
-	}
-	,get: function(key) {
-		return this.h["$" + key];
-	}
-	,exists: function(key) {
-		return this.h.hasOwnProperty("$" + key);
-	}
-	,remove: function(key) {
-		key = "$" + key;
-		if(!this.h.hasOwnProperty(key)) return false;
-		delete(this.h[key]);
-		return true;
-	}
-	,keys: function() {
-		var a = [];
-		for( var key in this.h ) {
-		if(this.h.hasOwnProperty(key)) a.push(key.substr(1));
-		}
-		return HxOverrides.iter(a);
-	}
-	,iterator: function() {
-		return { ref : this.h, it : this.keys(), hasNext : function() {
-			return this.it.hasNext();
-		}, next : function() {
-			var i = this.it.next();
-			return this.ref["$" + i];
-		}};
-	}
-	,__class__: haxe.ds.StringMap
 };
 haxe.io.BytesBuffer = function() {
 	this.b = new Array();
