@@ -16,11 +16,11 @@ class Image3D extends Image {
 	var uniTex : js.html.webgl.UniformLocation;
 	var uniAlpha : js.html.webgl.UniformLocation;
 
-	public var alpha(default, set) : Float = 1;
 	public var zoom(default, set) : Float = 1;
 
 	var scaleX : Float;
 	var scaleY : Float;
+	var alphaValue = 1.;
 
 	var colorCache : Map<Int,Image>;
 	var texturesObjects : Array<Dynamic>;
@@ -103,9 +103,13 @@ class Image3D extends Image {
 		texturesObjects = [];
 	}
 
-	function set_alpha(v) {
+	override function get_alpha() {
+		return alphaValue;
+	}
+
+	override function set_alpha(v) {
 		endDraw();
-		return alpha = v;
+		return alphaValue = v;
 	}
 
 	function beginDraw( t : Texture ) {

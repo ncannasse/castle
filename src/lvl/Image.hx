@@ -3,6 +3,8 @@ package lvl;
 class Image {
 	public var width(default, null) : Int;
 	public var height(default, null) : Int;
+	public var alpha(get, set) : Float;
+	
 	var ctx : js.html.CanvasRenderingContext2D;
 	var canvas : js.html.CanvasElement;
 	// origin can be either the canvas element or the original IMG if not modified
@@ -19,6 +21,14 @@ class Image {
 		canvas.width = w;
 		canvas.height = h;
 		init();
+	}
+	
+	function get_alpha() {
+		return ctx.globalAlpha;
+	}
+	
+	function set_alpha(v) {
+		return ctx.globalAlpha = v;
 	}
 
 	function init() {

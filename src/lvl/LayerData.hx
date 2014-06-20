@@ -18,20 +18,12 @@ enum LayerInnerData {
 	TileInstances( t : TileInfos, insts : Array<{ x : Float, y : Float, o : Int }> );
 }
 
+class LayerData extends LayerGfx {
 
-class LayerData {
-
-	var level : Level;
-	public var name : String;
 	public var sheet : Sheet;
-	public var names : Array<String>;
-	public var colors : Array<Int>;
-	public var images : Array<Image>;
-	public var blanks : Array<Bool>;
+	public var name : String;
 	public var props : LayerProps;
 	public var data : LayerInnerData;
-
-	public var imagesStride : Int = 0;
 
 	public var visible(default,set) : Bool = true;
 	public var dirty : Bool;
@@ -42,120 +34,37 @@ class LayerData {
 	public var comp : js.JQuery;
 
 	public var baseSheet : Sheet;
-	public var idToIndex : Map<String,Int>;
-	public var indexToId : Array<String>;
 	public var floatCoord : Bool;
-	public var hasFloatCoord : Bool;
-	public var hasSize : Bool;
 
 	public var targetObj : { o : Dynamic, f : String };
 	public var listColumnn : Column;
 	public var tileProps : TilesetProps;
 
 	public function new(level, name, p, target) {
-		this.level = level;
+		super(level);
 		this.name = name;
 		props = p;
-		blanks = [];
 		targetObj = target;
 	}
 
 	public function loadSheetData( sheet : Sheet ) {
+		// look for default color
+		if( sheet == null && props.color == null ) {
+			props.color = 0xFF0000;
+			for( o in level.sheet.lines ) {
+				var props : cdb.Data.LevelProps = o.props;
+				if( props == null ) continue;
+				for( l in props.layers )
+					if( l.l == this.name && l.p.color != null ) {
+						this.props.color = l.p.color;
+						props = null;
+						break;
+					}
+				if( props == null ) break;
+			}
+		}
 		this.sheet = sheet;
-		if( sheet == null ) {
-			if( props.color == null ) {
-				props.color = 0xFF0000;
-				for( o in level.sheet.lines ) {
-					var props : cdb.Data.LevelProps = o.props;
-					if( props == null ) continue;
-					for( l in props.layers )
-						if( l.l == this.name && l.p.color != null ) {
-							this.props.color = l.p.color;
-							props = null;
-							break;
-						}
-					if( props == null ) break;
-				}
-			}
-			colors = [props.color];
-			names = [name];
-			loadState();
-			return;
-		}
-		var idCol = null;
-		var first = @:privateAccess level.layers.length == 0;
-		var erase = first ? "#ccc" : "rgba(0,0,0,0)";
-		for( c in sheet.columns )
-			switch( c.type ) {
-			case TColor:
-				colors = [for( o in sheet.lines ) { var c = Reflect.field(o, c.name); c == null ? 0 : c; } ];
-			case TImage:
-				if( images == null ) images = [];
-				var size = level.tileSize;
-				for( idx in 0...sheet.lines.length ) {
-					var key = Reflect.field(sheet.lines[idx], c.name);
-					var idat = level.model.getImageData(key);
-					if( idat == null && images[idx] != null ) continue;
-					if( idat == null ) {
-						var i = new Image(size, size);
-						i.text("#" + idx, 0, 12);
-						images[idx] = i;
-						continue;
-					}
-					level.wait();
-					Image.load(idat, function(i) {
-						i.resize(size, size);
-						images[idx] = i;
-						level.waitDone();
-					});
-				}
-			case TTilePos:
-				if( images == null ) images = [];
-
-				var size = level.tileSize;
-
-				for( idx in 0...sheet.lines.length ) {
-					var data : cdb.Types.TilePos = Reflect.field(sheet.lines[idx], c.name);
-					if( data == null && images[idx] != null ) continue;
-					if( data == null ) {
-						var i = new Image(size, size);
-						i.text("#" + idx, 0, 12);
-						images[idx] = i;
-						continue;
-					}
-					level.wait();
-					Image.load(level.model.getAbsPath(data.file), function(i) {
-						var i2 = i.sub(data.x * data.size, data.y * data.size, data.size, data.size);
-						i2.resize(size, size);
-						images[idx] = i2;
-						blanks[idx] = i2.isBlank();
-						level.waitDone();
-					});
-					level.watch(data.file, function() { Image.clearCache(level.model.getAbsPath(data.file)); level.reload(); });
-				}
-
-			case TId:
-				idCol = c;
-			default:
-			}
-		names = [];
-		imagesStride = Math.ceil(Math.sqrt(sheet.lines.length));
-		idToIndex = new Map();
-		indexToId = [];
-		for( index in 0...sheet.lines.length ) {
-			var o = sheet.lines[index];
-			var n = if( sheet.props.displayColumn != null ) Reflect.field(o, sheet.props.displayColumn) else null;
-			if( (n == null || n == "") && idCol != null )
-				n = Reflect.field(o, idCol.name);
-			if( n == null || n == "" )
-				n = "#" + index;
-			if( idCol != null ) {
-				var id = Reflect.field(o, idCol.name);
-				if( id != null && id != "" ) idToIndex.set(id, index);
-				indexToId[index] = id;
-			}
-			names.push(n);
-		}
+		fromSheet(sheet, props.color);
 		loadState();
 	}
 
@@ -166,7 +75,7 @@ class LayerData {
 			floatCoord = hasFloatCoord && !state.lock;
 			if( state.current < (images != null ? images.length : names.length) ) {
 				current = state.current;
-				if( (current%imagesStride) + state.cw <= imagesStride && Std.int(current/imagesStride) + state.ch <= Math.ceil((images != null ? images.length : names.length) / imagesStride) ) {
+				if( (current%stride) + state.cw <= stride && Std.int(current/stride) + state.ch <= height ) {
 					currentWidth = state.cw;
 					currentHeight = state.ch;
 					saveState();
@@ -189,7 +98,7 @@ class LayerData {
 	public function getTileProp() {
 		if( tileProps == null ) return null;
 		for( s in tileProps.sets )
-			if( s.x + s.y * imagesStride == current )
+			if( s.x + s.y * stride == current )
 				return s;
 		return null;
 	}
@@ -199,14 +108,14 @@ class LayerData {
 		if( tileProps == null ) return objs;
 		for( o in tileProps.sets )
 			if( o.t == Object )
-				objs.set(o.x + o.y * imagesStride, o);
+				objs.set(o.x + o.y * stride, o);
 		return objs;
 	}
 
 	public function getSelObjects() {
 		if( tileProps == null ) return [];
-		var x = current % imagesStride;
-		var y = Std.int(current / imagesStride);
+		var x = current % stride;
+		var y = Std.int(current / stride);
 		var out = [];
 		for( o in tileProps.sets )
 			if( o.t == Object && !(o.x >= x + currentWidth || o.y >= y + currentHeight || o.x + o.w <= x || o.y + o.h <= y) )
@@ -274,8 +183,9 @@ class LayerData {
 				this.data = TileInstances(d, insts);
 				hasFloatCoord = floatCoord = true;
 			}
-			imagesStride = d.stride = w;
-			tileProps = level.getTileProps(file, imagesStride);
+			this.stride = d.stride = w;
+			height = h;
+			tileProps = level.getTileProps(file, w);
 			loadState();
 			level.waitDone();
 		});

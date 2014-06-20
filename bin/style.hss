@@ -515,6 +515,10 @@ div#menu {
 					display : inline-block;
 				}
 			}
+			
+			.mode.m_ref .opt.refList {
+				display : inline-block;
+			}
 		}
 		.content {
 			padding : 10px;
