@@ -2623,16 +2623,45 @@ Level.prototype = {
 			if(s1 != null) s1.opts.name = val;
 			break;
 		case "value":
+			var p = this.getPaletteProp();
+			if(p != null) {
+				var t = this.getTileProp(l.current % l.stride,l.current / l.stride | 0);
+				var v;
+				var _g2 = p.type;
+				switch(_g2[1]) {
+				case 3:
+					v = Std.parseInt(val);
+					break;
+				case 4:
+					v = Std.parseFloat(val);
+					break;
+				case 1:
+					v = val;
+					break;
+				case 16:
+					try {
+						v = js.Node.parse(val);
+					} catch( e ) {
+						v = null;
+					}
+					break;
+				default:
+					throw "assert";
+				}
+				if(v == null) Reflect.deleteField(t,p.name); else t[p.name] = v;
+				this.saveTileProps();
+				return;
+			}
 			var s2 = l.getTileProp();
 			if(s2 != null) {
-				var v;
+				var v1;
 				try {
-					v = js.Node.parse(val);
-				} catch( e ) {
-					v = null;
+					v1 = js.Node.parse(val);
+				} catch( e1 ) {
+					v1 = null;
 				}
-				if(v == null) Reflect.deleteField(s2.opts,"value"); else s2.opts.value = v;
-				this.palette.find("[name=value]").val(v == null?"":js.Node.stringify(v,null,null));
+				if(v1 == null) Reflect.deleteField(s2.opts,"value"); else s2.opts.value = v1;
+				this.palette.find("[name=value]").val(v1 == null?"":js.Node.stringify(v1,null,null));
 			}
 			break;
 		case "priority":
@@ -2672,11 +2701,13 @@ Level.prototype = {
 		}
 		return null;
 	}
-	,getTileProp: function(x,y) {
+	,getTileProp: function(x,y,create) {
+		if(create == null) create = true;
 		var l = this.currentLayer;
 		var a = x + y * l.stride;
 		var p = this.currentLayer.tileProps.props[a];
 		if(p == null) {
+			if(!create) return null;
 			p = { };
 			var _g = 0;
 			var _g1 = this.perTileProps;
@@ -2704,8 +2735,8 @@ Level.prototype = {
 			while(_g2 < _g3.length) {
 				var c = _g3[_g2];
 				++_g2;
-				var v = this.model.getDefault(c);
-				if(Reflect.field(p,c.name) != v) {
+				var v = Reflect.field(p,c.name);
+				if(v != null && v != this.model.getDefault(c)) {
 					def = false;
 					break;
 				}
@@ -2870,6 +2901,10 @@ Level.prototype = {
 					if(_g.paletteModeCursor < 0) Reflect.deleteField(_g.getTileProp(x1,y1),prop.name); else Reflect.setField(_g.getTileProp(x1,y1),prop.name,c.indexToId[_g.paletteModeCursor]);
 					_g.saveTileProps();
 					break;
+				case 5:
+					if(_g.paletteModeCursor < 0) Reflect.deleteField(_g.getTileProp(x1,y1),prop.name); else Reflect.setField(_g.getTileProp(x1,y1),prop.name,_g.paletteModeCursor);
+					_g.saveTileProps();
+					break;
 				default:
 				}
 			}
@@ -2995,7 +3030,7 @@ Level.prototype = {
 				$r = (function($this) {
 					var $r;
 					switch(_g7[1]) {
-					case 2:case 6:
+					case 2:case 6:case 5:
 						$r = true;
 						break;
 					default:
@@ -3058,6 +3093,45 @@ Level.prototype = {
 					}
 					this.paletteSelect.set_alpha(1);
 					break;
+				case 5:
+					var k4 = 0;
+					var _g23 = 0;
+					var _g17 = l.height;
+					while(_g23 < _g17) {
+						var y2 = _g23++;
+						var _g43 = 0;
+						var _g34 = l.stride;
+						while(_g43 < _g34) {
+							var x2 = _g43++;
+							var p2 = l.tileProps.props[k4++];
+							if(p2 == null) continue;
+							var v1 = Reflect.field(p2,prop.name);
+							if(v1 == null) continue;
+							this.paletteSelect.fillRect(x2 * (this.tileSize + 1),y2 * (this.tileSize + 1),this.tileSize,this.tileSize,Level.colorPalette[v1] | -2147483648);
+						}
+					}
+					break;
+				case 3:case 4:case 1:case 11:case 13:case 16:
+					var k5 = 0;
+					var _g24 = 0;
+					var _g18 = l.height;
+					while(_g24 < _g18) {
+						var y3 = _g24++;
+						var _g44 = 0;
+						var _g35 = l.stride;
+						while(_g44 < _g35) {
+							var x3 = _g44++;
+							var p3 = l.tileProps.props[k5++];
+							if(p3 == null) continue;
+							var v2 = Reflect.field(p3,prop.name);
+							if(v2 == null) continue;
+							this.paletteSelect.fillRect(x3 * (this.tileSize + 1),y3 * (this.tileSize + 1),this.tileSize,1,-1);
+							this.paletteSelect.fillRect(x3 * (this.tileSize + 1),y3 * (this.tileSize + 1),1,this.tileSize,-1);
+							this.paletteSelect.fillRect(x3 * (this.tileSize + 1),(y3 + 1) * (this.tileSize + 1) - 1,this.tileSize,1,-1);
+							this.paletteSelect.fillRect((x3 + 1) * (this.tileSize + 1) - 1,y3 * (this.tileSize + 1),1,this.tileSize,-1);
+						}
+					}
+					break;
 				default:
 				}
 			}
@@ -3065,13 +3139,13 @@ Level.prototype = {
 			if(l.tileProps == null) m.hide(); else {
 				var grounds = [];
 				var _g10 = 0;
-				var _g17 = l.tileProps.sets;
-				while(_g10 < _g17.length) {
-					var s = _g17[_g10];
+				var _g19 = l.tileProps.sets;
+				while(_g10 < _g19.length) {
+					var s = _g19[_g10];
 					++_g10;
 					var color;
-					var _g23 = s.t;
-					switch(_g23) {
+					var _g25 = s.t;
+					switch(_g25) {
 					case "tile":
 						continue;
 						break;
@@ -3110,39 +3184,39 @@ Level.prototype = {
 				if(tobj == null) tobj = { x : 0, y : 0, w : 0, h : 0, t : "tile", opts : { }};
 				var baseModes = ((function($this) {
 					var $r;
-					var _g18 = [];
+					var _g20 = [];
 					{
-						var _g19 = 0;
-						var _g24 = ["tile","object","ground","border","group"];
-						while(_g19 < _g24.length) {
-							var m1 = _g24[_g19];
-							++_g19;
-							_g18.push("<option value=\"t_" + m1 + "\">" + (HxOverrides.substr(m1,0,1).toUpperCase() + HxOverrides.substr(m1,1,null)) + "</option>");
+						var _g110 = 0;
+						var _g26 = ["tile","object","ground","border","group"];
+						while(_g110 < _g26.length) {
+							var m1 = _g26[_g110];
+							++_g110;
+							_g20.push("<option value=\"t_" + m1 + "\">" + (HxOverrides.substr(m1,0,1).toUpperCase() + HxOverrides.substr(m1,1,null)) + "</option>");
 						}
 					}
-					$r = _g18;
+					$r = _g20;
 					return $r;
 				}(this))).join("\n");
 				var props = ((function($this) {
 					var $r;
-					var _g110 = [];
+					var _g111 = [];
 					{
-						var _g25 = 0;
-						var _g34 = $this.perTileProps;
-						while(_g25 < _g34.length) {
-							var t1 = _g34[_g25];
-							++_g25;
-							_g110.push("<option value=\"" + t1.name + "\">" + t1.name + "</option>");
+						var _g27 = 0;
+						var _g36 = $this.perTileProps;
+						while(_g27 < _g36.length) {
+							var t1 = _g36[_g27];
+							++_g27;
+							_g111.push("<option value=\"" + t1.name + "\">" + t1.name + "</option>");
 						}
 					}
-					$r = _g110;
+					$r = _g111;
 					return $r;
 				}(this))).join("\n");
 				m.find("[name=mode]").html(baseModes + props).val(this.paletteMode == null?"t_tile":this.paletteMode);
 				m.attr("class","").addClass("mode");
 				if(prop != null) {
-					var _g26 = prop.type;
-					switch(_g26[1]) {
+					var _g28 = prop.type;
+					switch(_g28[1]) {
 					case 6:
 						var gfx1 = this.perTileGfx.get(prop.name);
 						m.addClass("m_ref");
@@ -3152,13 +3226,14 @@ Level.prototype = {
 							_g3.paletteModeCursor = -1;
 							_g3.setCursor();
 						});
-						var _g43 = 0;
-						var _g35 = gfx1.images.length;
-						while(_g43 < _g35) {
-							var i2 = [_g43++];
+						var _g45 = 0;
+						var _g37 = gfx1.images.length;
+						while(_g45 < _g37) {
+							var i2 = [_g45++];
 							var d = new js.JQuery("<div>").addClass("icon").css({ background : "url('" + gfx1.images[i2[0]].getCanvas().toDataURL() + "')"});
 							d.appendTo(refList);
 							d.toggleClass("active",this.paletteModeCursor == i2[0]);
+							d.attr("title",gfx1.names[i2[0]]);
 							d.click((function(i2) {
 								return function() {
 									_g3.paletteModeCursor = i2[0];
@@ -3167,14 +3242,45 @@ Level.prototype = {
 							})(i2));
 						}
 						break;
+					case 5:
+						var values = _g28[2];
+						m.addClass("m_ref");
+						var refList1 = m.find(".opt.refList");
+						refList1.html("");
+						new js.JQuery("<div>").addClass("icon").addClass("delete").appendTo(refList1).toggleClass("active",this.paletteModeCursor < 0).click(function() {
+							_g3.paletteModeCursor = -1;
+							_g3.setCursor();
+						});
+						var _g46 = 0;
+						var _g38 = values.length;
+						while(_g46 < _g38) {
+							var i3 = [_g46++];
+							var d1 = new js.JQuery("<div>").addClass("icon").css({ background : this.toColor(Level.colorPalette[i3[0]]), width : "auto"}).text(values[i3[0]]);
+							d1.appendTo(refList1);
+							d1.toggleClass("active",this.paletteModeCursor == i3[0]);
+							d1.click((function(i3) {
+								return function() {
+									_g3.paletteModeCursor = i3[0];
+									_g3.setCursor();
+								};
+							})(i3));
+						}
+						break;
+					case 3:case 4:case 1:case 16:
+						m.addClass("m_value");
+						var p4 = this.getTileProp(l.current % l.stride,l.current / l.stride | 0,false);
+						var v3;
+						if(p4 == null) v3 = null; else v3 = Reflect.field(p4,prop.name);
+						m.find("[name=value]").val(prop.type == cdb.ColumnType.TDynamic?js.Node.stringify(v3,null,null):v3 == null?"":"" + v3);
+						break;
 					default:
 					}
 				} else if("t_" + cdb._Data.TileMode_Impl_.toString(tobj.t) != this.paletteMode) {
 					if(this.paletteMode != null) m.addClass("m_create");
 				} else {
 					m.addClass("m_" + HxOverrides.substr(this.paletteMode,2,null)).addClass("m_exists");
-					var _g27 = tobj.t;
-					switch(_g27) {
+					var _g29 = tobj.t;
+					switch(_g29) {
 					case "tile":case "object":
 						break;
 					case "ground":
@@ -3188,16 +3294,16 @@ Level.prototype = {
 					case "border":
 						var opts = ((function($this) {
 							var $r;
-							var _g36 = [];
+							var _g39 = [];
 							{
-								var _g44 = 0;
-								while(_g44 < grounds.length) {
-									var g = grounds[_g44];
-									++_g44;
-									_g36.push("<option value=\"" + g + "\">" + g + "</option>");
+								var _g47 = 0;
+								while(_g47 < grounds.length) {
+									var g = grounds[_g47];
+									++_g47;
+									_g39.push("<option value=\"" + g + "\">" + g + "</option>");
 								}
 							}
-							$r = _g36;
+							$r = _g39;
 							return $r;
 						}(this))).join("");
 						m.find("[name=border_in]").html("<option value='null'>upper</option><option value='lower'>lower</option>" + opts).val(Std.string(tobj.opts.borderIn));
@@ -3224,10 +3330,10 @@ Level.prototype = {
 		if(this.randomMode) h1 = 1; else h1 = l.currentHeight;
 		if((function($this) {
 			var $r;
-			var _g20 = l.data;
+			var _g30 = l.data;
 			$r = (function($this) {
 				var $r;
-				switch(_g20[1]) {
+				switch(_g30[1]) {
 				case 3:
 					$r = true;
 					break;
@@ -3248,14 +3354,14 @@ Level.prototype = {
 		this.cursorImage.setSize(size * w1,size * h1);
 		if(l.images != null) {
 			this.cursorImage.clear();
-			var _g28 = 0;
-			while(_g28 < h1) {
-				var y2 = _g28++;
-				var _g111 = 0;
-				while(_g111 < w1) {
-					var x2 = _g111++;
-					var i3 = l.images[cur + x2 + y2 * l.stride];
-					this.cursorImage.drawSub(i3,0,0,i3.width,i3.height,x2 * size,y2 * size,size,size);
+			var _g40 = 0;
+			while(_g40 < h1) {
+				var y4 = _g40++;
+				var _g112 = 0;
+				while(_g112 < w1) {
+					var x4 = _g112++;
+					var i4 = l.images[cur + x4 + y4 * l.stride];
+					this.cursorImage.drawSub(i4,0,0,i4.width,i4.height,x4 * size,y4 * size,size,size);
 				}
 			}
 			this.cursorImage.fill(1616617979);
@@ -3344,23 +3450,43 @@ Model.prototype = {
 	,getSheetLines: function(sheet) {
 		var p = this.getParentSheet(sheet);
 		if(p == null) return sheet.lines;
-		var all = [];
-		var _g = 0;
-		var _g1 = this.getSheetLines(p.s);
-		while(_g < _g1.length) {
-			var obj = _g1[_g];
-			++_g;
+		if(p.s.props.level != null && p.c == "tileProps") {
+			var all = [];
+			var sets = p.s.props.level.tileSets;
+			var _g = 0;
+			var _g1 = Reflect.fields(sets);
+			while(_g < _g1.length) {
+				var f = _g1[_g];
+				++_g;
+				var t = Reflect.field(sets,f);
+				if(t.props == null) continue;
+				var _g2 = 0;
+				var _g3 = t.props;
+				while(_g2 < _g3.length) {
+					var p1 = _g3[_g2];
+					++_g2;
+					if(p1 != null) all.push(p1);
+				}
+			}
+			return all;
+		}
+		var all1 = [];
+		var _g4 = 0;
+		var _g11 = this.getSheetLines(p.s);
+		while(_g4 < _g11.length) {
+			var obj = _g11[_g4];
+			++_g4;
 			var v = Reflect.field(obj,p.c);
 			if(v != null) {
-				var _g2 = 0;
-				while(_g2 < v.length) {
-					var v1 = v[_g2];
-					++_g2;
-					all.push(v1);
+				var _g21 = 0;
+				while(_g21 < v.length) {
+					var v1 = v[_g21];
+					++_g21;
+					all1.push(v1);
 				}
 			}
 		}
-		return all;
+		return all1;
 	}
 	,getSheetObjects: function(sheet) {
 		var p = this.getParentSheet(sheet);
@@ -3442,8 +3568,27 @@ Model.prototype = {
 			switch(_g[1]) {
 			case 3:case 4:case 5:case 10:case 11:
 				return 0;
-			case 1:case 0:case 6:case 7:case 12:case 13:
+			case 1:case 0:case 7:case 12:case 13:
 				return "";
+			case 6:
+				var s = _g[2];
+				var s1 = this.smap.get(s).s;
+				var l = s1.lines[0];
+				var id = "";
+				if(l != null) {
+					var _g1 = 0;
+					var _g2 = s1.columns;
+					while(_g1 < _g2.length) {
+						var c1 = _g2[_g1];
+						++_g1;
+						if(c1.type == cdb.ColumnType.TId) {
+							id = Reflect.field(l,c1.name);
+							break;
+						}
+					}
+				}
+				haxe.Log.trace(l,{ fileName : "Model.hx", lineNumber : 150, className : "Model", methodName : "getDefault", customParams : [id]});
+				return id;
 			case 2:
 				return false;
 			case 8:
@@ -8889,6 +9034,12 @@ haxe.Json.stringify = function(obj,replacer,insertion) {
 haxe.Json.parse = function(jsonString) {
 	return js.Node.parse(jsonString);
 };
+haxe.Log = function() { };
+$hxClasses["haxe.Log"] = haxe.Log;
+haxe.Log.__name__ = ["haxe","Log"];
+haxe.Log.trace = function(v,infos) {
+	js.Boot.__trace(v,infos);
+};
 haxe.Serializer = function() {
 	this.buf = new StringBuf();
 	this.cache = new Array();
@@ -9979,6 +10130,25 @@ var js = {};
 js.Boot = function() { };
 $hxClasses["js.Boot"] = js.Boot;
 js.Boot.__name__ = ["js","Boot"];
+js.Boot.__unhtml = function(s) {
+	return s.split("&").join("&amp;").split("<").join("&lt;").split(">").join("&gt;");
+};
+js.Boot.__trace = function(v,i) {
+	var msg;
+	if(i != null) msg = i.fileName + ":" + i.lineNumber + ": "; else msg = "";
+	msg += js.Boot.__string_rec(v,"");
+	if(i != null && i.customParams != null) {
+		var _g = 0;
+		var _g1 = i.customParams;
+		while(_g < _g1.length) {
+			var v1 = _g1[_g];
+			++_g;
+			msg += "," + js.Boot.__string_rec(v1,"");
+		}
+	}
+	var d;
+	if(typeof(document) != "undefined" && (d = document.getElementById("haxe:trace")) != null) d.innerHTML += js.Boot.__unhtml(msg) + "<br/>"; else if(typeof console != "undefined" && console.log != null) console.log(msg);
+};
 js.Boot.getClass = function(o) {
 	if((o instanceof Array) && o.__enum__ == null) return Array; else return o.__class__;
 };
@@ -11291,6 +11461,7 @@ nodejs.webkit.MenuItem = nodejs.webkit.$ui.MenuItem;
 nodejs.webkit.Shell = nodejs.webkit.$ui.Shell;
 nodejs.webkit.Window = nodejs.webkit.$ui.Window;
 Level.UID = 0;
+Level.colorPalette = [16711680,65280,16711935,65535,16776960,16777215,33023,65408,8388863,8453888,16711808,16744448];
 Level.loadedTilesCache = new haxe.ds.StringMap();
 K.INSERT = 45;
 K.DELETE = 46;

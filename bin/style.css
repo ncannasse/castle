@@ -492,6 +492,11 @@ div#menu ul.sheets li.active {
 	zoom : 1;
 	*display : inline;
 }
+#content .level .palette .bar .mode.m_value .opt.value {
+	display : inline-block;
+	zoom : 1;
+	*display : inline;
+}
 #content .level .palette .content {
 	padding : 10px;
 }

@@ -21,6 +21,12 @@ typedef LevelState = {
 class Level {
 
 	static var UID = 0;
+	static var colorPalette = [
+		0xFF0000, 0x00FF00,
+		0xFF00FF, 0x00FFFF, 0xFFFF00,
+		0xFFFFFF,
+		0x0080FF, 0x00FF80, 0x8000FF, 0x80FF00, 0xFF0080, 0xFF8000,
+	];
 
 	public var sheetPath : String;
 	public var index : Int;
@@ -1729,6 +1735,23 @@ class Level {
 			if( s != null )
 				s.opts.name = val;
 		case "value":
+			var p = getPaletteProp();
+			if( p != null ) {
+				var t = getTileProp(l.current % l.stride, Std.int(l.current / l.stride));
+				var v : Dynamic = switch( p.type ) {
+				case TInt: Std.parseInt(val);
+				case TFloat: Std.parseFloat(val);
+				case TString: val;
+				case TDynamic: try haxe.Json.parse(val) catch( e : Dynamic ) null;
+				default: throw "assert";
+				}
+				if( v == null )
+					Reflect.deleteField(t, p.name);
+				else
+					Reflect.setField(t, p.name, v);
+				saveTileProps();
+				return;
+			}
 			var s = l.getTileProp();
 			if( s != null ) {
 				var v = try haxe.Json.parse(val) catch( e : Dynamic ) null;
@@ -1781,11 +1804,12 @@ class Level {
 	}
 
 
-	function getTileProp(x, y) {
+	function getTileProp(x, y,create=true) {
 		var l = currentLayer;
 		var a = x + y * l.stride;
 		var p = currentLayer.tileProps.props[a];
 		if( p == null ) {
+			if( !create ) return null;
 			p = { };
 			for( c in perTileProps ) {
 				var v = model.getDefault(c);
@@ -1803,8 +1827,8 @@ class Level {
 			if( p == null ) continue;
 			var def = true;
 			for( c in perTileProps ) {
-				var v = model.getDefault(c);
-				if( Reflect.field(p, c.name) != v ) {
+				var v = Reflect.field(p, c.name);
+				if( v != null && v != model.getDefault(c) ) {
 					def = false;
 					break;
 				}
@@ -1920,6 +1944,12 @@ class Level {
 					else
 						Reflect.setField(getTileProp(x, y), prop.name, c.indexToId[paletteModeCursor]);
 					saveTileProps();
+				case TEnum(_):
+					if( paletteModeCursor < 0 )
+						Reflect.deleteField(getTileProp(x, y), prop.name);
+					else
+						Reflect.setField(getTileProp(x, y), prop.name, paletteModeCursor);
+					saveTileProps();
 				default:
 				}
 			}
@@ -2005,7 +2035,7 @@ class Level {
 			}
 
 			var prop = getPaletteProp();
-			if( prop == null || !prop.type.match(TBool | TRef(_)) ) {
+			if( prop == null || !prop.type.match(TBool | TRef(_) | TEnum(_)) ) {
 				var objs = paletteMode == null ? l.getSelObjects() : [];
 				if( objs.length > 1 )
 					for( o in objs )
@@ -2036,6 +2066,29 @@ class Level {
 							paletteSelect.draw(gfx.images[v], x * (tileSize + 1), y * (tileSize + 1));
 						}
 					paletteSelect.alpha = 1;
+				case TEnum(_):
+					var k = 0;
+					for( y in 0...l.height )
+						for( x in 0...l.stride ) {
+							var p = l.tileProps.props[k++];
+							if( p == null ) continue;
+							var v = Reflect.field(p, prop.name);
+							if( v == null ) continue;
+							paletteSelect.fillRect(x * (tileSize + 1), y * (tileSize + 1), tileSize, tileSize, colorPalette[v] | 0x80000000);
+						}
+				case TInt, TFloat, TString, TColor, TFile, TDynamic:
+					var k = 0;
+					for( y in 0...l.height )
+						for( x in 0...l.stride ) {
+							var p = l.tileProps.props[k++];
+							if( p == null ) continue;
+							var v = Reflect.field(p, prop.name);
+							if( v == null ) continue;
+							paletteSelect.fillRect(x * (tileSize + 1), y * (tileSize + 1), tileSize, 1, 0xFFFFFFFF);
+							paletteSelect.fillRect(x * (tileSize + 1), y * (tileSize + 1), 1, tileSize, 0xFFFFFFFF);
+							paletteSelect.fillRect(x * (tileSize + 1), (y + 1) * (tileSize + 1) - 1, tileSize, 1, 0xFFFFFFFF);
+							paletteSelect.fillRect((x + 1) * (tileSize + 1) - 1, y * (tileSize + 1), 1, tileSize, 0xFFFFFFFF);
+						}
 				default:
 					// no per-tile display
 				}
@@ -2104,11 +2157,34 @@ class Level {
 							var d = J("<div>").addClass("icon").css( { background : "url('" + gfx.images[i].getCanvas().toDataURL() + "')" } );
 							d.appendTo(refList);
 							d.toggleClass("active", paletteModeCursor == i);
+							d.attr("title", gfx.names[i]);
 							d.click(function() {
 								paletteModeCursor = i;
 								setCursor();
 							});
 						}
+					case TEnum(values):
+						m.addClass("m_ref");
+						var refList = m.find(".opt.refList");
+						refList.html("");
+						J("<div>").addClass("icon").addClass("delete").appendTo(refList).toggleClass("active", paletteModeCursor < 0).click(function() {
+							paletteModeCursor = -1;
+							setCursor();
+						});
+						for( i in 0...values.length ) {
+							var d = J("<div>").addClass("icon").css( { background : toColor(colorPalette[i]), width : "auto" } ).text(values[i]);
+							d.appendTo(refList);
+							d.toggleClass("active", paletteModeCursor == i);
+							d.click(function() {
+								paletteModeCursor = i;
+								setCursor();
+							});
+						}
+					case TInt, TFloat, TString, TDynamic:
+						m.addClass("m_value");
+						var p = getTileProp(l.current % l.stride, Std.int(l.current / l.stride),false);
+						var v = p == null ? null : Reflect.field(p, prop.name);
+						m.find("[name=value]").val(prop.type == TDynamic ? haxe.Json.stringify(v) : v == null ? "" : "" + v);
 					default:
 					}
 				} else if( "t_" + tobj.t != paletteMode ) {

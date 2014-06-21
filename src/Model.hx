@@ -63,6 +63,20 @@ class Model {
 	function getSheetLines( sheet : Sheet ) : Array<Dynamic> {
 		var p = getParentSheet(sheet);
 		if( p == null ) return sheet.lines;
+		
+		if( p.s.props.level != null && p.c == "tileProps" ) {
+			var all = [];
+			var sets = p.s.props.level.tileSets;
+			for( f in Reflect.fields(sets) ) {
+				var t : cdb.Data.TilesetProps = Reflect.field(sets, f);
+				if( t.props == null ) continue;
+				for( p in t.props )
+					if( p != null )
+						all.push(p);
+			}
+			return all;
+		}
+			
 		var all = [];
 		for( obj in getSheetLines(p.s) ) {
 			var v : Array<Dynamic> = Reflect.field(obj, p.c);
@@ -122,7 +136,19 @@ class Model {
 			return null;
 		return switch( c.type ) {
 		case TInt, TFloat, TEnum(_), TFlags(_), TColor: 0;
-		case TString, TId, TRef(_), TImage, TLayer(_), TFile: "";
+		case TString, TId, TImage, TLayer(_), TFile: "";
+		case TRef(s):
+			var s = getSheet(s);
+			var l = s.lines[0];
+			var id = "";
+			if( l != null )
+				for( c in s.columns )
+					if( c.type == TId ) {
+						id = Reflect.field(l, c.name);
+						break;
+					}
+			trace(l, id);
+			id;
 		case TBool: false;
 		case TList: [];
 		case TCustom(_), TTilePos, TTileLayer, TDynamic: null;
