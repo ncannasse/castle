@@ -1541,6 +1541,7 @@ class Main extends Model {
 							return;
 						}
 						var dialog = J(J(".tileSelect").parent().html()).prependTo(J("body"));
+						
 
 						dialog.find(".tileView").css( { backgroundImage : 'url("${getAbsPath(file)}")' } ).mousemove(function(e) {
 							var off = JTHIS.offset();
@@ -1569,6 +1570,13 @@ class Main extends Model {
 						});
 						dialog.keydown(function(e) e.stopPropagation()).keypress(function(e) e.stopPropagation());
 						dialog.show();
+						
+						var i = js.Browser.document.createImageElement();
+						i.onload = function(_) {
+							dialog.find(".tileView").height(i.height);
+						};
+						i.src = getAbsPath(file);
+						
 					});
 
 

@@ -1939,16 +1939,26 @@ class Level {
 					saveTileProps();
 				case TRef(_):
 					var c = perTileGfx.get(prop.name);
+					var v;
 					if( paletteModeCursor < 0 )
+						v = model.getDefault(prop);
+					else
+						v = c.indexToId[paletteModeCursor];
+					if( v == null )
 						Reflect.deleteField(getTileProp(x, y), prop.name);
 					else
-						Reflect.setField(getTileProp(x, y), prop.name, c.indexToId[paletteModeCursor]);
+						Reflect.setField(getTileProp(x, y), prop.name, v);
 					saveTileProps();
 				case TEnum(_):
+					var v;
 					if( paletteModeCursor < 0 )
+						v = model.getDefault(prop);
+					else
+						v = paletteModeCursor;
+					if( v == null )
 						Reflect.deleteField(getTileProp(x, y), prop.name);
 					else
-						Reflect.setField(getTileProp(x, y), prop.name, paletteModeCursor);
+						Reflect.setField(getTileProp(x, y), prop.name, v);
 					saveTileProps();
 				default:
 				}
@@ -2044,14 +2054,17 @@ class Level {
 					paletteSelect.fillRect( (l.current % l.stride) * (tileSize + 1), Std.int(l.current / l.stride) * (tileSize + 1), (tileSize + 1) * l.currentWidth - 1, (tileSize + 1) * l.currentHeight - 1, 0x805BA1FB);
 			}
 			if( prop != null ) {
+				var def : Dynamic = model.getDefault(prop);
 				switch( prop.type ) {
 				case TBool:
 					var k = 0;
 					for( y in 0...l.height )
 						for( x in 0...l.stride ) {
 							var p = l.tileProps.props[k++];
-							if( p == null || Reflect.field(p, prop.name) != true ) continue;
-							paletteSelect.fillRect( x * (tileSize + 1), y * (tileSize + 1), tileSize, tileSize, 0x80FB5BA1);
+							if( p == null ) continue;
+							var v = Reflect.field(p, prop.name);
+							if( v == def ) continue;
+							paletteSelect.fillRect( x * (tileSize + 1), y * (tileSize + 1), tileSize, tileSize, v ? 0x80FB5BA1 : 0x805BFBA1);
 						}
 				case TRef(_):
 					var gfx = perTileGfx.get(prop.name);
@@ -2061,8 +2074,9 @@ class Level {
 						for( x in 0...l.stride ) {
 							var p = l.tileProps.props[k++];
 							if( p == null ) continue;
-							var v = gfx.idToIndex.get(Reflect.field(p, prop.name));
-							if( v == null ) continue;
+							var r = Reflect.field(p, prop.name);
+							var v = gfx.idToIndex.get(r);
+							if( v == null || r == def ) continue;
 							paletteSelect.draw(gfx.images[v], x * (tileSize + 1), y * (tileSize + 1));
 						}
 					paletteSelect.alpha = 1;
@@ -2073,7 +2087,7 @@ class Level {
 							var p = l.tileProps.props[k++];
 							if( p == null ) continue;
 							var v = Reflect.field(p, prop.name);
-							if( v == null ) continue;
+							if( v == null || v == def ) continue;
 							paletteSelect.fillRect(x * (tileSize + 1), y * (tileSize + 1), tileSize, tileSize, colorPalette[v] | 0x80000000);
 						}
 				case TInt, TFloat, TString, TColor, TFile, TDynamic:
@@ -2083,7 +2097,7 @@ class Level {
 							var p = l.tileProps.props[k++];
 							if( p == null ) continue;
 							var v = Reflect.field(p, prop.name);
-							if( v == null ) continue;
+							if( v == null || v == def ) continue;
 							paletteSelect.fillRect(x * (tileSize + 1), y * (tileSize + 1), tileSize, 1, 0xFFFFFFFF);
 							paletteSelect.fillRect(x * (tileSize + 1), y * (tileSize + 1), 1, tileSize, 0xFFFFFFFF);
 							paletteSelect.fillRect(x * (tileSize + 1), (y + 1) * (tileSize + 1) - 1, tileSize, 1, 0xFFFFFFFF);

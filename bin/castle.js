@@ -2898,11 +2898,15 @@ Level.prototype = {
 					break;
 				case 6:
 					var c = _g.perTileGfx.get(prop.name);
-					if(_g.paletteModeCursor < 0) Reflect.deleteField(_g.getTileProp(x1,y1),prop.name); else Reflect.setField(_g.getTileProp(x1,y1),prop.name,c.indexToId[_g.paletteModeCursor]);
+					var v1;
+					if(_g.paletteModeCursor < 0) v1 = _g.model.getDefault(prop); else v1 = c.indexToId[_g.paletteModeCursor];
+					if(v1 == null) Reflect.deleteField(_g.getTileProp(x1,y1),prop.name); else Reflect.setField(_g.getTileProp(x1,y1),prop.name,v1);
 					_g.saveTileProps();
 					break;
 				case 5:
-					if(_g.paletteModeCursor < 0) Reflect.deleteField(_g.getTileProp(x1,y1),prop.name); else Reflect.setField(_g.getTileProp(x1,y1),prop.name,_g.paletteModeCursor);
+					var v2;
+					if(_g.paletteModeCursor < 0) v2 = _g.model.getDefault(prop); else v2 = _g.paletteModeCursor;
+					if(v2 == null) Reflect.deleteField(_g.getTileProp(x1,y1),prop.name); else Reflect.setField(_g.getTileProp(x1,y1),prop.name,v2);
 					_g.saveTileProps();
 					break;
 				default:
@@ -3052,87 +3056,91 @@ Level.prototype = {
 				} else this.paletteSelect.fillRect(l.current % l.stride * (this.tileSize + 1),(l.current / l.stride | 0) * (this.tileSize + 1),(this.tileSize + 1) * l.currentWidth - 1,(this.tileSize + 1) * l.currentHeight - 1,-2141478405);
 			}
 			if(prop != null) {
-				var _g9 = prop.type;
-				switch(_g9[1]) {
-				case 2:
-					var k2 = 0;
-					var _g21 = 0;
-					var _g15 = l.height;
-					while(_g21 < _g15) {
-						var y = _g21++;
-						var _g41 = 0;
-						var _g32 = l.stride;
-						while(_g41 < _g32) {
-							var x = _g41++;
-							var p = l.tileProps.props[k2++];
-							if(p == null || Reflect.field(p,prop.name) != true) continue;
-							this.paletteSelect.fillRect(x * (this.tileSize + 1),y * (this.tileSize + 1),this.tileSize,this.tileSize,-2131010655);
+				var def = this.model.getDefault(prop);
+				{
+					var _g9 = prop.type;
+					switch(_g9[1]) {
+					case 2:
+						var k2 = 0;
+						var _g21 = 0;
+						var _g15 = l.height;
+						while(_g21 < _g15) {
+							var y = _g21++;
+							var _g41 = 0;
+							var _g32 = l.stride;
+							while(_g41 < _g32) {
+								var x = _g41++;
+								var p = l.tileProps.props[k2++];
+								if(p == null) continue;
+								var v = Reflect.field(p,prop.name);
+								if(v == def) continue;
+								this.paletteSelect.fillRect(x * (this.tileSize + 1),y * (this.tileSize + 1),this.tileSize,this.tileSize,v?-2131010655:-2141455455);
+							}
 						}
-					}
-					break;
-				case 6:
-					var gfx = this.perTileGfx.get(prop.name);
-					var k3 = 0;
-					this.paletteSelect.set_alpha(0.5);
-					var _g22 = 0;
-					var _g16 = l.height;
-					while(_g22 < _g16) {
-						var y1 = _g22++;
-						var _g42 = 0;
-						var _g33 = l.stride;
-						while(_g42 < _g33) {
-							var x1 = _g42++;
-							var p1 = l.tileProps.props[k3++];
-							if(p1 == null) continue;
-							var v;
-							var key1 = Reflect.field(p1,prop.name);
-							v = gfx.idToIndex.get(key1);
-							if(v == null) continue;
-							this.paletteSelect.draw(gfx.images[v],x1 * (this.tileSize + 1),y1 * (this.tileSize + 1));
+						break;
+					case 6:
+						var gfx = this.perTileGfx.get(prop.name);
+						var k3 = 0;
+						this.paletteSelect.set_alpha(0.5);
+						var _g22 = 0;
+						var _g16 = l.height;
+						while(_g22 < _g16) {
+							var y1 = _g22++;
+							var _g42 = 0;
+							var _g33 = l.stride;
+							while(_g42 < _g33) {
+								var x1 = _g42++;
+								var p1 = l.tileProps.props[k3++];
+								if(p1 == null) continue;
+								var r = Reflect.field(p1,prop.name);
+								var v1 = gfx.idToIndex.get(r);
+								if(v1 == null || r == def) continue;
+								this.paletteSelect.draw(gfx.images[v1],x1 * (this.tileSize + 1),y1 * (this.tileSize + 1));
+							}
 						}
-					}
-					this.paletteSelect.set_alpha(1);
-					break;
-				case 5:
-					var k4 = 0;
-					var _g23 = 0;
-					var _g17 = l.height;
-					while(_g23 < _g17) {
-						var y2 = _g23++;
-						var _g43 = 0;
-						var _g34 = l.stride;
-						while(_g43 < _g34) {
-							var x2 = _g43++;
-							var p2 = l.tileProps.props[k4++];
-							if(p2 == null) continue;
-							var v1 = Reflect.field(p2,prop.name);
-							if(v1 == null) continue;
-							this.paletteSelect.fillRect(x2 * (this.tileSize + 1),y2 * (this.tileSize + 1),this.tileSize,this.tileSize,Level.colorPalette[v1] | -2147483648);
+						this.paletteSelect.set_alpha(1);
+						break;
+					case 5:
+						var k4 = 0;
+						var _g23 = 0;
+						var _g17 = l.height;
+						while(_g23 < _g17) {
+							var y2 = _g23++;
+							var _g43 = 0;
+							var _g34 = l.stride;
+							while(_g43 < _g34) {
+								var x2 = _g43++;
+								var p2 = l.tileProps.props[k4++];
+								if(p2 == null) continue;
+								var v2 = Reflect.field(p2,prop.name);
+								if(v2 == null || v2 == def) continue;
+								this.paletteSelect.fillRect(x2 * (this.tileSize + 1),y2 * (this.tileSize + 1),this.tileSize,this.tileSize,Level.colorPalette[v2] | -2147483648);
+							}
 						}
-					}
-					break;
-				case 3:case 4:case 1:case 11:case 13:case 16:
-					var k5 = 0;
-					var _g24 = 0;
-					var _g18 = l.height;
-					while(_g24 < _g18) {
-						var y3 = _g24++;
-						var _g44 = 0;
-						var _g35 = l.stride;
-						while(_g44 < _g35) {
-							var x3 = _g44++;
-							var p3 = l.tileProps.props[k5++];
-							if(p3 == null) continue;
-							var v2 = Reflect.field(p3,prop.name);
-							if(v2 == null) continue;
-							this.paletteSelect.fillRect(x3 * (this.tileSize + 1),y3 * (this.tileSize + 1),this.tileSize,1,-1);
-							this.paletteSelect.fillRect(x3 * (this.tileSize + 1),y3 * (this.tileSize + 1),1,this.tileSize,-1);
-							this.paletteSelect.fillRect(x3 * (this.tileSize + 1),(y3 + 1) * (this.tileSize + 1) - 1,this.tileSize,1,-1);
-							this.paletteSelect.fillRect((x3 + 1) * (this.tileSize + 1) - 1,y3 * (this.tileSize + 1),1,this.tileSize,-1);
+						break;
+					case 3:case 4:case 1:case 11:case 13:case 16:
+						var k5 = 0;
+						var _g24 = 0;
+						var _g18 = l.height;
+						while(_g24 < _g18) {
+							var y3 = _g24++;
+							var _g44 = 0;
+							var _g35 = l.stride;
+							while(_g44 < _g35) {
+								var x3 = _g44++;
+								var p3 = l.tileProps.props[k5++];
+								if(p3 == null) continue;
+								var v3 = Reflect.field(p3,prop.name);
+								if(v3 == null || v3 == def) continue;
+								this.paletteSelect.fillRect(x3 * (this.tileSize + 1),y3 * (this.tileSize + 1),this.tileSize,1,-1);
+								this.paletteSelect.fillRect(x3 * (this.tileSize + 1),y3 * (this.tileSize + 1),1,this.tileSize,-1);
+								this.paletteSelect.fillRect(x3 * (this.tileSize + 1),(y3 + 1) * (this.tileSize + 1) - 1,this.tileSize,1,-1);
+								this.paletteSelect.fillRect((x3 + 1) * (this.tileSize + 1) - 1,y3 * (this.tileSize + 1),1,this.tileSize,-1);
+							}
 						}
+						break;
+					default:
 					}
-					break;
-				default:
 				}
 			}
 			var m = this.palette.find(".mode");
@@ -3269,9 +3277,9 @@ Level.prototype = {
 					case 3:case 4:case 1:case 16:
 						m.addClass("m_value");
 						var p4 = this.getTileProp(l.current % l.stride,l.current / l.stride | 0,false);
-						var v3;
-						if(p4 == null) v3 = null; else v3 = Reflect.field(p4,prop.name);
-						m.find("[name=value]").val(prop.type == cdb.ColumnType.TDynamic?js.Node.stringify(v3,null,null):v3 == null?"":"" + v3);
+						var v4;
+						if(p4 == null) v4 = null; else v4 = Reflect.field(p4,prop.name);
+						m.find("[name=value]").val(prop.type == cdb.ColumnType.TDynamic?js.Node.stringify(v4,null,null):v4 == null?"":"" + v4);
 						break;
 					default:
 					}
@@ -7050,6 +7058,15 @@ Main.prototype = $extend(Model.prototype,{
 									};
 								})());
 								dialog.show();
+								var i2;
+								var _this = window.document;
+								i2 = _this.createElement("img");
+								i2.onload = (function() {
+									return function(_6) {
+										dialog.find(".tileView").height(i2.height);
+									};
+								})();
+								i2.src = _g4.getAbsPath(file);
 							};
 						})(set,v,val,index,c));
 						break;
@@ -7099,8 +7116,8 @@ Main.prototype = $extend(Model.prototype,{
 		var _g33 = 0;
 		var _g24 = lines.length;
 		while(_g33 < _g24) {
-			var i2 = _g33++;
-			if(sheet.separators[snext] == i2) {
+			var i3 = _g33++;
+			if(sheet.separators[snext] == i3) {
 				var sep = new js.JQuery("<tr>").addClass("separator").append("<td colspan=\"" + (colCount + 1) + "\">").appendTo(content);
 				var content2 = [sep.find("td")];
 				var title = [sheet.props.separatorTitles != null?sheet.props.separatorTitles[snext]:null];
@@ -7110,7 +7127,7 @@ Main.prototype = $extend(Model.prototype,{
 					return function(e15) {
 						content2[0].empty();
 						new js.JQuery("<input>").appendTo(content2[0]).focus().val(title[0] == null?"":title[0]).blur((function(pos,title,content2) {
-							return function(_6) {
+							return function(_7) {
 								title[0] = $(this).val();
 								$(this).remove();
 								content2[0].text(title[0]);
@@ -7140,7 +7157,7 @@ Main.prototype = $extend(Model.prototype,{
 				})(pos,title,content2));
 				snext++;
 			}
-			content.append(lines[i2]);
+			content.append(lines[i3]);
 		}
 		inTodo = true;
 		var _g25 = 0;
