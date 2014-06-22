@@ -153,6 +153,8 @@ typedef TilePos = {
 	var size(default, never) : Int;
 	var x(default, never) : Int;
 	var y(default, never) : Int;
+	var width(default, never) : Null<Int>;
+	var height(default, never) : Null<Int>;
 }
 
 typedef TileLayer = {

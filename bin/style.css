@@ -110,7 +110,7 @@ div.modal #col_options.t_custom .custom {
 .modal.tileSelect .menu {
 	margin-bottom : 5px;
 }
-.modal.tileSelect .menu input[name=size] {
+.modal.tileSelect .menu input[name=size], .modal.tileSelect .menu input[name=width], .modal.tileSelect .menu input[name=height] {
 	width : 30px;
 }
 .modal.tileSelect .tileCursor {

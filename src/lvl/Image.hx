@@ -87,6 +87,11 @@ class Image {
 		invalidate();
 	}
 
+	public function drawScaled( i : Image, x : Int, y : Int, width : Int, height : Int ) {
+		ctx.drawImage(i.origin, i.originX, i.originY, i.width, i.height, x, y, width, height);
+		invalidate();
+	}
+
 	public function drawSub( i : Image, srcX : Int, srcY : Int, srcW : Int, srcH : Int, x : Int, y : Int, dstW : Int = -1, dstH : Int = -1, smooth = false ) {
 		if( dstW < 0 ) dstW = srcW;
 		if( dstH < 0 ) dstH = srcH;

@@ -68,8 +68,7 @@ class LayerGfx {
 					}
 					level.wait();
 					Image.load(level.model.getAbsPath(data.file), function(i) {
-						var i2 = i.sub(data.x * data.size, data.y * data.size, data.size, data.size);
-						i2.resize(size, size);
+						var i2 = i.sub(data.x * data.size, data.y * data.size, data.size * (data.width == null ? 1 : data.width), data.size * (data.height == null ? 1 : data.height));
 						images[idx] = i2;
 						blanks[idx] = i2.isBlank();
 						level.waitDone();

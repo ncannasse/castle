@@ -156,53 +156,6 @@ Lambda.find = function(it,f) {
 	}
 	return null;
 };
-var IMap = function() { };
-$hxClasses["IMap"] = IMap;
-IMap.__name__ = ["IMap"];
-IMap.prototype = {
-	__class__: IMap
-};
-var haxe = {};
-haxe.ds = {};
-haxe.ds.StringMap = function() {
-	this.h = { };
-};
-$hxClasses["haxe.ds.StringMap"] = haxe.ds.StringMap;
-haxe.ds.StringMap.__name__ = ["haxe","ds","StringMap"];
-haxe.ds.StringMap.__interfaces__ = [IMap];
-haxe.ds.StringMap.prototype = {
-	set: function(key,value) {
-		this.h["$" + key] = value;
-	}
-	,get: function(key) {
-		return this.h["$" + key];
-	}
-	,exists: function(key) {
-		return this.h.hasOwnProperty("$" + key);
-	}
-	,remove: function(key) {
-		key = "$" + key;
-		if(!this.h.hasOwnProperty(key)) return false;
-		delete(this.h[key]);
-		return true;
-	}
-	,keys: function() {
-		var a = [];
-		for( var key in this.h ) {
-		if(this.h.hasOwnProperty(key)) a.push(key.substr(1));
-		}
-		return HxOverrides.iter(a);
-	}
-	,iterator: function() {
-		return { ref : this.h, it : this.keys(), hasNext : function() {
-			return this.it.hasNext();
-		}, next : function() {
-			var i = this.it.next();
-			return this.ref["$" + i];
-		}};
-	}
-	,__class__: haxe.ds.StringMap
-};
 var Level = function(model,sheet,index) {
 	this.reloading = false;
 	this.paletteModeCursor = 0;
@@ -2110,7 +2063,8 @@ Level.prototype = {
 							var k = data[x + y * this.width];
 							if(k == 0 && !first) continue;
 							if(l.images != null) {
-								this.view.draw(l.images[k],x * this.tileSize,y * this.tileSize);
+								var i = l.images[k];
+								this.view.draw(i,x * this.tileSize - (i.width - this.tileSize >> 1),y * this.tileSize - (i.height - this.tileSize));
 								continue;
 							}
 							this.view.fillRect(x * this.tileSize,y * this.tileSize,this.tileSize,this.tileSize,l.colors[k] | -16777216);
@@ -2127,13 +2081,13 @@ Level.prototype = {
 					var objs = l.getTileObjects();
 					var _g31 = 0;
 					while(_g31 < insts.length) {
-						var i = insts[_g31];
+						var i1 = insts[_g31];
 						++_g31;
-						var x1 = i.x * this.tileSize | 0;
-						var y1 = i.y * this.tileSize | 0;
-						var obj = objs.get(i.o);
+						var x1 = i1.x * this.tileSize | 0;
+						var y1 = i1.y * this.tileSize | 0;
+						var obj = objs.get(i1.o);
 						if(obj == null) {
-							this.view.draw(l.images[i.o],x1,y1);
+							this.view.draw(l.images[i1.o],x1,y1);
 							this.view.fillRect(x1,y1,this.tileSize,this.tileSize,-2130771968);
 						} else {
 							var _g51 = 0;
@@ -2144,7 +2098,7 @@ Level.prototype = {
 								var _g61 = obj.w;
 								while(_g7 < _g61) {
 									var dx = _g7++;
-									this.view.draw(l.images[i.o + dx + dy * l.stride],x1 + dx * this.tileSize,y1 + dy * this.tileSize);
+									this.view.draw(l.images[i1.o + dx + dy * l.stride],x1 + dx * this.tileSize,y1 + dy * this.tileSize);
 								}
 							}
 						}
@@ -2197,7 +2151,8 @@ Level.prototype = {
 								continue;
 							}
 							if(l.images != null) {
-								this.view.draw(l.images[k1],o2.x * this.tileSize | 0,o2.y * this.tileSize | 0);
+								var i2 = l.images[k1];
+								this.view.draw(i2,(o2.x * this.tileSize | 0) - (i2.width - this.tileSize >> 1),(o2.y * this.tileSize | 0) - (i2.height - this.tileSize));
 								continue;
 							}
 							var w3;
@@ -2836,7 +2791,8 @@ Level.prototype = {
 			var n = _g11++;
 			var x = n % l.stride * (this.tileSize + 1);
 			var y = (n / l.stride | 0) * (this.tileSize + 1);
-			i.draw(l.images[n],x,y);
+			var li = l.images[n];
+			if(li.width == this.tileSize && li.height == this.tileSize) i.draw(li,x,y); else i.drawScaled(li,x,y,this.tileSize,this.tileSize);
 		}
 		var jsel = this.palette.find("canvas.select");
 		var select = lvl.Image.fromCanvas(jsel[0]);
@@ -2850,6 +2806,7 @@ Level.prototype = {
 			var o = jsel.offset();
 			var x1 = (e.pageX - o.left) / (_g.tileSize + 1) | 0;
 			var y1 = (e.pageY - o.top) / (_g.tileSize + 1) | 0;
+			if(x1 + y1 * l.stride >= l.images.length) return;
 			if(e.shiftKey) {
 				var x0;
 				if(x1 < start_x) x0 = x1; else x0 = start_x;
@@ -5942,7 +5899,8 @@ Main.prototype = $extend(Model.prototype,{
 				if(!js.Node.require("fs").existsSync(path1)) return "<span class=\"error\">" + v3.file + "</span>"; else {
 					var id1 = Main.UID++;
 					var zoom = 2;
-					var html1 = "<div id=\"_c" + id1 + "\" style=\"width : " + v3.size * zoom + "px; height : " + v3.size * zoom + "px; background : url('" + path1 + "') -" + v3.size * v3.x * zoom + "px -" + v3.size * v3.y * zoom + "px; border : 1px solid black;\"></div>";
+					var html1;
+					html1 = "<div id=\"_c" + id1 + "\" style=\"width : " + v3.size * zoom * (v3.width == null?1:v3.width) + "px; height : " + v3.size * zoom * (v3.height == null?1:v3.height) + "px; background : url('" + path1 + "') -" + v3.size * v3.x * zoom + "px -" + v3.size * v3.y * zoom + "px; border : 1px solid black;\"></div>";
 					html1 += "<img src=\"" + path1 + "\" onload=\"$('#_c" + id1 + "').css({backgroundSize : (this.width*" + zoom + ")+'px ' + (this.height*" + zoom + ")+'px'}); if( this.parentNode != null ) this.parentNode.removeChild(this)\"/>";
 					return html1;
 				}
@@ -6981,8 +6939,12 @@ Main.prototype = $extend(Model.prototype,{
 								if(rv == null) posX = 0; else posX = rv.x;
 								var posY;
 								if(rv == null) posY = 0; else posY = rv.y;
-								var prevX = posX;
-								var prevY = posY;
+								var width;
+								if(rv == null) width = null; else width = rv.width;
+								var height;
+								if(rv == null) height = null; else height = rv.height;
+								if(width == null) width = 1;
+								if(height == null) height = 1;
 								if(file == null) {
 									var i1 = index[0] - 1;
 									while(i1 >= 0) {
@@ -6995,13 +6957,22 @@ Main.prototype = $extend(Model.prototype,{
 										}
 									}
 								}
+								var setVal = (function(set) {
+									return function() {
+										var v1 = { file : file, size : size, x : posX, y : posY};
+										if(width != 1) v1.width = width;
+										if(height != 1) v1.height = height;
+										set[0](v1);
+									};
+								})(set);
 								if(file == null) {
-									_g4.chooseFile((function(set,v) {
+									_g4.chooseFile((function(v) {
 										return function(path1) {
-											set[0]({ file : path1, size : size, x : prevX, y : prevY});
+											file = path1;
+											setVal();
 											v[0].dblclick();
 										};
-									})(set,v));
+									})(v));
 									return;
 								}
 								var dialog = ((function($this) {
@@ -7010,25 +6981,43 @@ Main.prototype = $extend(Model.prototype,{
 									$r = new js.JQuery(html1);
 									return $r;
 								}(this))).prependTo(new js.JQuery("body"));
+								var maxWidth = 1000000;
+								var maxHeight = 1000000;
 								dialog.find(".tileView").css({ backgroundImage : "url(\"" + _g4.getAbsPath(file) + "\")"}).mousemove((function() {
 									return function(e11) {
 										var off = $(this).offset();
 										posX = (e11.pageX - off.left) / size | 0;
 										posY = (e11.pageY - off.top) / size | 0;
+										if((posX + width) * size > maxWidth) posX = (maxWidth / size | 0) - width;
+										if((posY + height) * size > maxHeight) posY = (maxHeight / size | 0) - height;
+										if(posX < 0) posX = 0;
+										if(posY < 0) posY = 0;
 										new js.JQuery(".tileCursor").not(".current").css({ marginLeft : size * posX - 1 + "px", marginTop : size * posY - 1 + "px"});
 									};
-								})()).click((function(set) {
+								})()).click((function() {
 									return function(_4) {
-										set[0]({ file : file, size : size, x : posX, y : posY});
+										setVal();
 										dialog.remove();
 										_g4.save();
 									};
-								})(set));
+								})());
 								dialog.find("[name=size]").val("" + size).change((function() {
 									return function(_5) {
 										size = Std.parseInt($(this).val());
-										new js.JQuery(".tileCursor").css({ width : size + "px", height : size + "px"});
+										new js.JQuery(".tileCursor").css({ width : size * width + "px", height : size * height + "px"});
 										new js.JQuery(".tileCursor.current").css({ marginLeft : size * posX - 2 + "px", marginTop : size * posY - 2 + "px"});
+									};
+								})()).change();
+								dialog.find("[name=width]").val("" + width).change((function() {
+									return function(_6) {
+										width = Std.parseInt($(this).val());
+										new js.JQuery(".tileCursor").css({ width : size * width + "px", height : size * height + "px"});
+									};
+								})()).change();
+								dialog.find("[name=height]").val("" + height).change((function() {
+									return function(_7) {
+										height = Std.parseInt($(this).val());
+										new js.JQuery(".tileCursor").css({ width : size * width + "px", height : size * height + "px"});
 									};
 								})()).change();
 								dialog.find("[name=cancel]").click((function() {
@@ -7036,18 +7025,18 @@ Main.prototype = $extend(Model.prototype,{
 										dialog.remove();
 									};
 								})());
-								dialog.find("[name=file]").click((function(set,v) {
+								dialog.find("[name=file]").click((function(v) {
 									return function() {
-										_g4.chooseFile((function(set,v) {
+										_g4.chooseFile((function(v) {
 											return function(file1) {
 												dialog.remove();
-												set[0]({ file : file1, size : size, x : posX, y : posY});
+												setVal();
 												_g4.save();
 												v[0].dblclick();
 											};
-										})(set,v));
+										})(v));
 									};
-								})(set,v));
+								})(v));
 								dialog.keydown((function() {
 									return function(e12) {
 										e12.stopPropagation();
@@ -7062,7 +7051,9 @@ Main.prototype = $extend(Model.prototype,{
 								var _this = window.document;
 								i2 = _this.createElement("img");
 								i2.onload = (function() {
-									return function(_6) {
+									return function(_8) {
+										maxWidth = i2.width;
+										maxHeight = i2.height;
 										dialog.find(".tileView").height(i2.height);
 									};
 								})();
@@ -7127,7 +7118,7 @@ Main.prototype = $extend(Model.prototype,{
 					return function(e15) {
 						content2[0].empty();
 						new js.JQuery("<input>").appendTo(content2[0]).focus().val(title[0] == null?"":title[0]).blur((function(pos,title,content2) {
-							return function(_7) {
+							return function(_9) {
 								title[0] = $(this).val();
 								$(this).remove();
 								content2[0].text(title[0]);
@@ -7860,6 +7851,12 @@ Main.prototype = $extend(Model.prototype,{
 	}
 	,__class__: Main
 });
+var IMap = function() { };
+$hxClasses["IMap"] = IMap;
+IMap.__name__ = ["IMap"];
+IMap.prototype = {
+	__class__: IMap
+};
 Math.__name__ = ["Math"];
 var Reflect = function() { };
 $hxClasses["Reflect"] = Reflect;
@@ -9042,6 +9039,7 @@ cdb.Index.prototype = {
 	}
 	,__class__: cdb.Index
 };
+var haxe = {};
 haxe.Json = function() { };
 $hxClasses["haxe.Json"] = haxe.Json;
 haxe.Json.__name__ = ["haxe","Json"];
@@ -9973,6 +9971,7 @@ haxe.crypto.Md5.prototype = {
 	}
 	,__class__: haxe.crypto.Md5
 };
+haxe.ds = {};
 haxe.ds.IntMap = function() {
 	this.h = { };
 };
@@ -10019,6 +10018,45 @@ haxe.ds.ObjectMap.prototype = {
 		return HxOverrides.iter(a);
 	}
 	,__class__: haxe.ds.ObjectMap
+};
+haxe.ds.StringMap = function() {
+	this.h = { };
+};
+$hxClasses["haxe.ds.StringMap"] = haxe.ds.StringMap;
+haxe.ds.StringMap.__name__ = ["haxe","ds","StringMap"];
+haxe.ds.StringMap.__interfaces__ = [IMap];
+haxe.ds.StringMap.prototype = {
+	set: function(key,value) {
+		this.h["$" + key] = value;
+	}
+	,get: function(key) {
+		return this.h["$" + key];
+	}
+	,exists: function(key) {
+		return this.h.hasOwnProperty("$" + key);
+	}
+	,remove: function(key) {
+		key = "$" + key;
+		if(!this.h.hasOwnProperty(key)) return false;
+		delete(this.h[key]);
+		return true;
+	}
+	,keys: function() {
+		var a = [];
+		for( var key in this.h ) {
+		if(this.h.hasOwnProperty(key)) a.push(key.substr(1));
+		}
+		return HxOverrides.iter(a);
+	}
+	,iterator: function() {
+		return { ref : this.h, it : this.keys(), hasNext : function() {
+			return this.it.hasNext();
+		}, next : function() {
+			var i = this.it.next();
+			return this.ref["$" + i];
+		}};
+	}
+	,__class__: haxe.ds.StringMap
 };
 haxe.io.BytesBuffer = function() {
 	this.b = new Array();
@@ -10520,6 +10558,10 @@ lvl.Image.prototype = {
 		this.ctx.drawImage(i.origin,i.originX,i.originY,i.width,i.height,x,y,i.width,i.height);
 		this.invalidate();
 	}
+	,drawScaled: function(i,x,y,width,height) {
+		this.ctx.drawImage(i.origin,i.originX,i.originY,i.width,i.height,x,y,width,height);
+		this.invalidate();
+	}
 	,drawSub: function(i,srcX,srcY,srcW,srcH,x,y,dstW,dstH,smooth) {
 		if(smooth == null) smooth = false;
 		if(dstH == null) dstH = -1;
@@ -10864,7 +10906,7 @@ lvl.LayerGfx.prototype = {
 				break;
 			case 14:
 				if(this.images == null) this.images = [];
-				var size1 = [this.level.tileSize];
+				var size1 = this.level.tileSize;
 				var _g42 = 0;
 				var _g32 = sheet.lines.length;
 				while(_g42 < _g32) {
@@ -10872,21 +10914,20 @@ lvl.LayerGfx.prototype = {
 					var data = [Reflect.field(sheet.lines[idx1[0]],c.name)];
 					if(data[0] == null && this.images[idx1[0]] != null) continue;
 					if(data[0] == null) {
-						var i2 = new lvl.Image(size1[0],size1[0]);
+						var i2 = new lvl.Image(size1,size1);
 						i2.text("#" + idx1[0],0,12);
 						this.images[idx1[0]] = i2;
 						continue;
 					}
 					this.level.wait();
-					lvl.Image.load(this.level.model.getAbsPath(data[0].file),(function(data,idx1,size1) {
+					lvl.Image.load(this.level.model.getAbsPath(data[0].file),(function(data,idx1) {
 						return function(i3) {
-							var i21 = i3.sub(data[0].x * data[0].size,data[0].y * data[0].size,data[0].size,data[0].size);
-							i21.resize(size1[0],size1[0]);
+							var i21 = i3.sub(data[0].x * data[0].size,data[0].y * data[0].size,data[0].size * (data[0].width == null?1:data[0].width),data[0].size * (data[0].height == null?1:data[0].height));
 							_g5.images[idx1[0]] = i21;
 							_g5.blanks[idx1[0]] = i21.isBlank();
 							_g5.level.waitDone();
 						};
-					})(data,idx1,size1));
+					})(data,idx1));
 					this.level.watch(data[0].file,(function(data) {
 						return function() {
 							lvl.Image.clearCache(_g5.level.model.getAbsPath(data[0].file));

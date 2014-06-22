@@ -657,7 +657,7 @@ class Main extends Model {
 			else {
 				var id = UID++;
 				var zoom = 2;
-				var html = '<div id="_c${id}" style="width : ${v.size*zoom}px; height : ${v.size*zoom}px; background : url(\'$path\') -${v.size*v.x*zoom}px -${v.size*v.y*zoom}px; border : 1px solid black;"></div>';
+				var html = '<div id="_c${id}" style="width : ${v.size*zoom*(v.width==null?1:v.width)}px; height : ${v.size*zoom*(v.height==null?1:v.height)}px; background : url(\'$path\') -${v.size*v.x*zoom}px -${v.size*v.y*zoom}px; border : 1px solid black;"></div>';
 				html += '<img src="$path" onload="$(\'#_c$id\').css({backgroundSize : (this.width*$zoom)+\'px \' + (this.height*$zoom)+\'px\'}); if( this.parentNode != null ) this.parentNode.removeChild(this)"/>';
 				html;
 			}
@@ -1519,8 +1519,10 @@ class Main extends Model {
 						var size = rv == null ? 16 : rv.size;
 						var posX = rv == null ? 0 : rv.x;
 						var posY = rv == null ? 0 : rv.y;
-						var prevX = posX;
-						var prevY = posY;
+						var width = rv == null ? null : rv.width;
+						var height = rv == null ? null : rv.height;
+						if( width == null ) width = 1;
+						if( height == null ) height = 1;
 						if( file == null ) {
 							var i = index - 1;
 							while( i >= 0 ) {
@@ -1533,37 +1535,63 @@ class Main extends Model {
 								}
 							}
 						}
+					
+						function setVal() {
+							var v : Dynamic = { file : file, size : size, x : posX, y : posY };
+							if( width != 1 ) v.width = width;
+							if( height != 1 ) v.height = height;
+							set(v);
+						}
+
 						if( file == null ) {
 							chooseFile(function(path) {
-								set( { file : path, size : size, x : prevX, y : prevY } );
+								file = path;
+								setVal();
 								v.dblclick();
 							});
 							return;
 						}
 						var dialog = J(J(".tileSelect").parent().html()).prependTo(J("body"));
 						
+						var maxWidth = 1000000, maxHeight = 1000000;
 
 						dialog.find(".tileView").css( { backgroundImage : 'url("${getAbsPath(file)}")' } ).mousemove(function(e) {
 							var off = JTHIS.offset();
 							posX = Std.int((e.pageX - off.left)/size);
 							posY = Std.int((e.pageY - off.top) / size);
-							// TODO : make sure we don't get out the image bounds
-							J(".tileCursor").not(".current").css( { marginLeft : (size * posX - 1) + "px", marginTop : (size * posY - 1) + "px" } );
+							if( (posX + width) * size > maxWidth )
+								posX = Std.int(maxWidth / size) - width;
+							if( (posY + height) * size > maxHeight )
+								posY = Std.int(maxHeight / size) - height;
+							if( posX < 0 ) posX = 0;
+							if( posY < 0 ) posY = 0;
+							J(".tileCursor").not(".current").css({
+								marginLeft : (size * posX - 1) + "px",
+								marginTop : (size * posY - 1) + "px",
+							});
 						}).click(function(_) {
-							set( { file : file, size : size, x : posX, y : posY } );
+							setVal();
 							dialog.remove();
 							save();
 						});
 						dialog.find("[name=size]").val("" + size).change(function(_) {
 							size = Std.parseInt(JTHIS.val());
-							J(".tileCursor").css( { width:size+"px", height:size+"px" } );
+							J(".tileCursor").css( { width:(size*width)+"px", height:(size*height)+"px" } );
 							J(".tileCursor.current").css( { marginLeft : (size * posX - 2) + "px", marginTop : (size * posY - 2) + "px" } );
+						}).change();
+						dialog.find("[name=width]").val("" + width).change(function(_) {
+							width = Std.parseInt(JTHIS.val());
+							J(".tileCursor").css( { width:(size*width)+"px", height:(size*height)+"px" } );
+						}).change();
+						dialog.find("[name=height]").val("" + height).change(function(_) {
+							height = Std.parseInt(JTHIS.val());
+							J(".tileCursor").css( { width:(size*width)+"px", height:(size*height)+"px" } );
 						}).change();
 						dialog.find("[name=cancel]").click(function() dialog.remove());
 						dialog.find("[name=file]").click(function() {
 							chooseFile(function(file) {
 								dialog.remove();
-								set({ file : file, size : size, x : posX, y : posY });
+								setVal();
 								save();
 								v.dblclick();
 							});
@@ -1573,6 +1601,8 @@ class Main extends Model {
 						
 						var i = js.Browser.document.createImageElement();
 						i.onload = function(_) {
+							maxWidth = i.width;
+							maxHeight = i.height;
 							dialog.find(".tileView").height(i.height);
 						};
 						i.src = getAbsPath(file);

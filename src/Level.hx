@@ -1424,7 +1424,8 @@ class Level {
 						var k = data[x + y * width];
 						if( k == 0 && !first ) continue;
 						if( l.images != null ) {
-							view.draw(l.images[k], x * tileSize, y * tileSize);
+							var i = l.images[k];
+							view.draw(i, x * tileSize - ((i.width - tileSize) >> 1), y * tileSize - (i.height - tileSize));
 							continue;
 						}
 						view.fillRect(x * tileSize, y * tileSize, tileSize, tileSize, l.colors[k] | 0xFF000000);
@@ -1475,7 +1476,8 @@ class Level {
 							continue;
 						}
 						if( l.images != null ) {
-							view.draw(l.images[k], Std.int(o.x * tileSize), Std.int(o.y * tileSize));
+							var i = l.images[k];
+							view.draw(i, Std.int(o.x * tileSize) - ((i.width - tileSize) >> 1), Std.int(o.y * tileSize) - (i.height - tileSize));
 							continue;
 						}
 						var w = l.hasSize ? o.width * tileSize : tileSize;
@@ -1887,7 +1889,11 @@ class Level {
 		for( n in 0...l.images.length ) {
 			var x = (n % l.stride) * (tileSize + 1);
 			var y = Std.int(n / l.stride) * (tileSize + 1);
-			i.draw(l.images[n], x, y);
+			var li = l.images[n];
+			if( li.width == tileSize && li.height == tileSize )
+				i.draw(li, x, y);
+			else
+				i.drawScaled(li, x, y, tileSize, tileSize);
 		}
 		var jsel = palette.find("canvas.select");
 		var select = lvl.Image.fromCanvas(cast jsel[0]);
@@ -1901,6 +1907,7 @@ class Level {
 			var o = jsel.offset();
 			var x = Std.int((e.pageX - o.left) / (tileSize + 1));
 			var y = Std.int((e.pageY - o.top) / (tileSize + 1));
+			if( x + y * l.stride >= l.images.length ) return;
 
 			if( e.shiftKey ) {
 				var x0 = x < start.x ? x : start.x;
