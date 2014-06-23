@@ -6220,24 +6220,40 @@ Main.prototype = $extend(Model.prototype,{
 			n.append(m);
 		}
 		nleft.click = function() {
-			var index = Lambda.indexOf(_g.data.sheets,s);
-			if(index > 0) {
-				HxOverrides.remove(_g.data.sheets,s);
-				_g.data.sheets.splice(index - 1,0,s);
-				_g.prefs.curSheet = index - 1;
-				_g.initContent();
-				_g.save();
+			var prev = -1;
+			var _g2 = 0;
+			var _g12 = _g.data.sheets.length;
+			while(_g2 < _g12) {
+				var i = _g2++;
+				var s2 = _g.data.sheets[i];
+				if(s == s2) break;
+				if(!s2.props.hide) prev = i;
 			}
+			if(prev < 0) return;
+			HxOverrides.remove(_g.data.sheets,s);
+			_g.data.sheets.splice(prev,0,s);
+			_g.prefs.curSheet = prev;
+			_g.initContent();
+			_g.save();
 		};
 		nright.click = function() {
-			var index1 = Lambda.indexOf(_g.data.sheets,s);
-			if(index1 < _g.data.sheets.length - 1) {
-				HxOverrides.remove(_g.data.sheets,s);
-				_g.data.sheets.splice(index1 + 1,0,s);
-				_g.prefs.curSheet = index1 + 1;
-				_g.initContent();
-				_g.save();
+			var found = null;
+			var _g21 = 0;
+			var _g13 = _g.data.sheets.length;
+			while(_g21 < _g13) {
+				var i1 = _g21++;
+				var s21 = _g.data.sheets[i1];
+				if(s == s21) found = -1; else if(!s21.props.hide && found != null) {
+					found = i1;
+					break;
+				}
 			}
+			if(found == null || found < 0) return;
+			HxOverrides.remove(_g.data.sheets,s);
+			_g.data.sheets.splice(found,0,s);
+			_g.prefs.curSheet = found;
+			_g.initContent();
+			_g.save();
 		};
 		ndel.click = function() {
 			_g.deleteSheet(s);
@@ -6250,19 +6266,19 @@ Main.prototype = $extend(Model.prototype,{
 		nindex.checked = s.props.hasIndex;
 		nindex.click = function() {
 			if(s.props.hasIndex) {
-				var _g12 = 0;
-				var _g2 = _g.getSheetLines(s);
-				while(_g12 < _g2.length) {
-					var o = _g2[_g12];
-					++_g12;
+				var _g14 = 0;
+				var _g22 = _g.getSheetLines(s);
+				while(_g14 < _g22.length) {
+					var o = _g22[_g14];
+					++_g14;
 					Reflect.deleteField(o,"index");
 				}
 				s.props.hasIndex = false;
 			} else {
 				var _g3 = 0;
-				var _g13 = s.columns;
-				while(_g3 < _g13.length) {
-					var c = _g13[_g3];
+				var _g15 = s.columns;
+				while(_g3 < _g15.length) {
+					var c = _g15[_g3];
 					++_g3;
 					if(c.name == "index") {
 						_g.error("Column 'index' already exists");
@@ -6276,19 +6292,19 @@ Main.prototype = $extend(Model.prototype,{
 		ngroup.checked = s.props.hasGroup;
 		ngroup.click = function() {
 			if(s.props.hasGroup) {
-				var _g14 = 0;
-				var _g21 = _g.getSheetLines(s);
-				while(_g14 < _g21.length) {
-					var o1 = _g21[_g14];
-					++_g14;
+				var _g16 = 0;
+				var _g23 = _g.getSheetLines(s);
+				while(_g16 < _g23.length) {
+					var o1 = _g23[_g16];
+					++_g16;
 					Reflect.deleteField(o1,"group");
 				}
 				s.props.hasGroup = false;
 			} else {
 				var _g4 = 0;
-				var _g15 = s.columns;
-				while(_g4 < _g15.length) {
-					var c1 = _g15[_g4];
+				var _g17 = s.columns;
+				while(_g4 < _g17.length) {
+					var c1 = _g17[_g4];
 					++_g4;
 					if(c1.name == "group") {
 						_g.error("Column 'group' already exists");

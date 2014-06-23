@@ -877,24 +877,36 @@ class Main extends Model {
 		for( m in [nins, nleft, nright, nren, ndel, nindex, ngroup] )
 			n.append(m);
 		nleft.click = function() {
-			var index = Lambda.indexOf(data.sheets, s);
-			if( index > 0 ) {
-				data.sheets.remove(s);
-				data.sheets.insert(index - 1, s);
-				prefs.curSheet = index - 1;
-				initContent();
-				save();
+			var prev = -1;
+			for( i in 0...data.sheets.length ) {
+				var s2 = data.sheets[i];
+				if( s == s2 ) break;
+				if( !s2.props.hide ) prev = i;
 			}
+			if( prev < 0 ) return;
+			data.sheets.remove(s);
+			data.sheets.insert(prev, s);
+			prefs.curSheet = prev;
+			initContent();
+			save();
 		};
 		nright.click = function() {
-			var index = Lambda.indexOf(data.sheets, s);
-			if( index < data.sheets.length - 1 ) {
-				data.sheets.remove(s);
-				data.sheets.insert(index + 1, s);
-				prefs.curSheet = index + 1;
-				initContent();
-				save();
+			var found = null;
+			for( i in 0...data.sheets.length ) {
+				var s2 = data.sheets[i];
+				if( s == s2 )
+					found = -1;
+				else if( !s2.props.hide && found != null ) {
+					found = i;
+					break;
+				}
 			}
+			if( found == null || found < 0 ) return;
+			data.sheets.remove(s);
+			data.sheets.insert(found, s);
+			prefs.curSheet = found;
+			initContent();
+			save();
 		}
 		ndel.click = function() {
 			deleteSheet(s);
@@ -1535,7 +1547,7 @@ class Main extends Model {
 								}
 							}
 						}
-					
+
 						function setVal() {
 							var v : Dynamic = { file : file, size : size, x : posX, y : posY };
 							if( width != 1 ) v.width = width;
@@ -1552,7 +1564,7 @@ class Main extends Model {
 							return;
 						}
 						var dialog = J(J(".tileSelect").parent().html()).prependTo(J("body"));
-						
+
 						var maxWidth = 1000000, maxHeight = 1000000;
 
 						dialog.find(".tileView").css( { backgroundImage : 'url("${getAbsPath(file)}")' } ).mousemove(function(e) {
@@ -1598,7 +1610,7 @@ class Main extends Model {
 						});
 						dialog.keydown(function(e) e.stopPropagation()).keypress(function(e) e.stopPropagation());
 						dialog.show();
-						
+
 						var i = js.Browser.document.createImageElement();
 						i.onload = function(_) {
 							maxWidth = i.width;
@@ -1606,7 +1618,7 @@ class Main extends Model {
 							dialog.find(".tileView").height(i.height);
 						};
 						i.src = getAbsPath(file);
-						
+
 					});
 
 
