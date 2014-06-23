@@ -196,7 +196,7 @@ class Level {
 			var t = Reflect.field(obj, sheet.props.displayColumn);
 			if( t != null ) title = t;
 		}
-		
+
 		// load tile props gfxs
 		perTileGfx = new Map();
 		for( c in perTileProps )
@@ -366,13 +366,19 @@ class Level {
 		while( i >= 0 ) {
 			var l = layers[i--];
 			if( !l.visible || (filter != null && !filter(l)) ) continue;
-			var x = currentLayer.floatCoord ? curPos.xf : curPos.x;
-			var y = currentLayer.floatCoord ? curPos.yf : curPos.y;
+			var x = curPos.xf;
+			var y = curPos.yf;
+			var ix = Std.int((x - curPos.x) * tileSize);
+			var iy = Std.int((y - curPos.y) * tileSize);
 			switch( l.data ) {
 			case Layer(data):
 				var idx = curPos.x + curPos.y * width;
 				var k = data[idx];
 				if( k == 0 && i >= 0 ) continue;
+				if( l.images != null ) {
+					var i = l.images[k];
+					if( i.getPixel(ix, iy) >>> 24 == 0 ) continue;
+				}
 				return { k : k, layer : l, index : idx };
 			case Objects(idCol, objs):
 				for( i in 0...objs.length ) {
@@ -383,22 +389,33 @@ class Level {
 						if( l.idToIndex == null )
 							return { k : 0, layer : l, index : i };
 						var k = l.idToIndex.get(Reflect.field(o, idCol));
-						if( k != null )
+						if( k != null ) {
+							if( l.images != null ) {
+								var i = l.images[k];
+								if( i.getPixel(ix, iy) >>> 24 == 0 ) continue;
+							}
 							return { k : k, layer : l, index : i };
+						}
 					}
 				}
 			case Tiles(_,data):
 				var idx = curPos.x + curPos.y * width;
 				var k = data[idx] - 1;
 				if( k < 0 ) continue;
+				var i = l.images[k];
+				if( i.getPixel(ix, iy) >>> 24 == 0 ) continue;
 				return { k : k, layer : l, index : idx };
 			case TileInstances(_, insts):
 				var objs = l.getTileObjects();
-				for( idx in 0...insts.length ) {
-					var i = insts[idx];
+				var idx = insts.length;
+				while( idx > 0 ) {
+					var i = insts[--idx];
 					var o = objs.get(i.o);
-					if( x >= i.x && y >= i.y && x < i.x + (o == null ? 1 : o.w) && y < i.y + (o == null ? 1 : o.h) )
+					if( x >= i.x && y >= i.y && x < i.x + (o == null ? 1 : o.w) && y < i.y + (o == null ? 1 : o.h) ) {
+						var im = l.images[i.o + Std.int(x-i.x) + Std.int(y - i.y) * l.stride];
+						if( im.getPixel(ix, iy) >>> 24 == 0 ) continue;
 						return { k : i.o, layer : l, index : idx };
+					}
 				}
 			}
 		}
@@ -466,6 +483,7 @@ class Level {
 					break;
 				}
 			}
+			props.layers.push({ l : name, p : { alpha : 1. } });
 			currentLayer = cast { name : name };
 			savePrefs();
 			save();
@@ -1703,6 +1721,7 @@ class Level {
 	}
 
 	@:keep function paletteOption(name, ?val:String) {
+		var m = TileMode.ofString(paletteMode == null ? "" : paletteMode.substr(2));
 		var l = currentLayer;
 		if( val != null ) val = StringTools.trim(val);
 		switch( name ) {
@@ -1724,8 +1743,7 @@ class Level {
 			paletteModeCursor = 0;
 			setCursor();
 		case "toggleMode":
-			var m = TileMode.ofString(paletteMode.substr(2));
-			var s = l.getTileProp();
+			var s = l.getTileProp(m);
 			if( s == null ) {
 				s = { x : l.current % l.stride, y : Std.int(l.current / l.stride), w : l.currentWidth, h : l.currentHeight, t : m, opts : {} };
 				l.tileProps.sets.push(s);
@@ -1733,7 +1751,7 @@ class Level {
 				l.tileProps.sets.remove(s);
 			setCursor();
 		case "name":
-			var s = l.getTileProp();
+			var s = l.getTileProp(m);
 			if( s != null )
 				s.opts.name = val;
 		case "value":
@@ -1754,7 +1772,7 @@ class Level {
 				saveTileProps();
 				return;
 			}
-			var s = l.getTileProp();
+			var s = l.getTileProp(m);
 			if( s != null ) {
 				var v = try haxe.Json.parse(val) catch( e : Dynamic ) null;
 				if( v == null )
@@ -1764,11 +1782,11 @@ class Level {
 				palette.find("[name=value]").val(v == null ? "" : haxe.Json.stringify(v));
 			}
 		case "priority":
-			var s = l.getTileProp();
+			var s = l.getTileProp(m);
 			if( s != null )
 				s.opts.priority = Std.parseInt(val);
 		case "border_in":
-			var s = l.getTileProp();
+			var s = l.getTileProp(m);
 			if( s != null ) {
 				if( val == "null" )
 					Reflect.deleteField(s.opts,"borderIn");
@@ -1776,7 +1794,7 @@ class Level {
 					s.opts.borderIn = val;
 			}
 		case "border_out":
-			var s = l.getTileProp();
+			var s = l.getTileProp(m);
 			if( s != null ) {
 				if( val == "null" )
 					Reflect.deleteField(s.opts,"borderOut");
@@ -1784,7 +1802,7 @@ class Level {
 					s.opts.borderOut = val;
 			}
 		case "border_mode":
-			var s = l.getTileProp();
+			var s = l.getTileProp(m);
 			if( s != null ) {
 				if( val == "null" )
 					Reflect.deleteField(s.opts,"borderMode");
@@ -1821,7 +1839,7 @@ class Level {
 		}
 		return p;
 	}
-	
+
 	function saveTileProps() {
 		var pr = currentLayer.tileProps.props;
 		for( i in 0...pr.length ) {
@@ -1843,7 +1861,7 @@ class Level {
 		save();
 		setCursor();
 	}
-	
+
 	function setLayer( l : LayerData ) {
 		var old = currentLayer;
 		if( l == old ) {
@@ -1851,7 +1869,7 @@ class Level {
 			return;
 		}
 		currentLayer = l;
-		
+
 		savePrefs();
 		content.find("[name=alpha]").val(Std.string(Std.int(l.props.alpha * 100)));
 		content.find("[name=visible]").prop("checked", l.visible);
@@ -1877,12 +1895,12 @@ class Level {
 			palette.remove();
 			paletteSelect = null;
 		}
-		
+
 		if( l.images == null ) {
 			setCursor();
 			return;
 		}
-		
+
 		palette = J(J("#paletteContent").html()).appendTo(content);
 		var i = lvl.Image.fromCanvas(cast palette.find("canvas.view")[0]);
 		i.setSize(l.stride * (tileSize + 1), l.height * (tileSize + 1));
@@ -1971,7 +1989,7 @@ class Level {
 				}
 			}
 		});
-		
+
 		jsel.mousemove(function(e) {
 			mousePos.x = e.pageX;
 			mousePos.y = e.pageY;
@@ -1993,11 +2011,11 @@ class Level {
 			l.saveState();
 			setCursor();
 		});
-		
+
 		jsel.mouseleave(function(e) {
 			content.find(".cursorPosition").text("");
 		});
-		
+
 		jsel.mouseup(function(e) {
 			start.down = false;
 		});
@@ -2155,7 +2173,8 @@ class Level {
 					paletteSelect.fillRect(px + w - 1, py, 1, h, color);
 				}
 
-				var tobj = l.getTileProp();
+				var mode = TileMode.ofString(paletteMode == null ? "" : paletteMode.substr(2));
+				var tobj = l.getTileProp(mode);
 				if( tobj == null )
 					tobj = { x : 0, y : 0, w : 0, h : 0, t : Tile, opts : { } };
 
@@ -2170,10 +2189,11 @@ class Level {
 						m.addClass("m_ref");
 						var refList = m.find(".opt.refList");
 						refList.html("");
-						J("<div>").addClass("icon").addClass("delete").appendTo(refList).toggleClass("active", paletteModeCursor < 0).click(function() {
-							paletteModeCursor = -1;
-							setCursor();
-						});
+						if( prop.opt )
+							J("<div>").addClass("icon").addClass("delete").appendTo(refList).toggleClass("active", paletteModeCursor < 0).click(function() {
+								paletteModeCursor = -1;
+								setCursor();
+							});
 						for( i in 0...gfx.images.length ) {
 							var d = J("<div>").addClass("icon").css( { background : "url('" + gfx.images[i].getCanvas().toDataURL() + "')" } );
 							d.appendTo(refList);
@@ -2188,10 +2208,11 @@ class Level {
 						m.addClass("m_ref");
 						var refList = m.find(".opt.refList");
 						refList.html("");
-						J("<div>").addClass("icon").addClass("delete").appendTo(refList).toggleClass("active", paletteModeCursor < 0).click(function() {
-							paletteModeCursor = -1;
-							setCursor();
-						});
+						if( prop.opt )
+							J("<div>").addClass("icon").addClass("delete").appendTo(refList).toggleClass("active", paletteModeCursor < 0).click(function() {
+								paletteModeCursor = -1;
+								setCursor();
+							});
 						for( i in 0...values.length ) {
 							var d = J("<div>").addClass("icon").css( { background : toColor(colorPalette[i]), width : "auto" } ).text(values[i]);
 							d.appendTo(refList);

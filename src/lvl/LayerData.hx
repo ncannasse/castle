@@ -95,10 +95,10 @@ class LayerData extends LayerGfx {
 		if( sheet.lines.length > 256 ) throw "Too many lines";
 	}
 
-	public function getTileProp() {
+	public function getTileProp( mode ) {
 		if( tileProps == null ) return null;
 		for( s in tileProps.sets )
-			if( s.x + s.y * stride == current )
+			if( s.x + s.y * stride == current && s.t == mode )
 				return s;
 		return null;
 	}

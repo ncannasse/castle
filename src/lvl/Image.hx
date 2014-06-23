@@ -4,7 +4,7 @@ class Image {
 	public var width(default, null) : Int;
 	public var height(default, null) : Int;
 	public var alpha(get, set) : Float;
-	
+
 	var ctx : js.html.CanvasRenderingContext2D;
 	var canvas : js.html.CanvasElement;
 	// origin can be either the canvas element or the original IMG if not modified
@@ -22,11 +22,11 @@ class Image {
 		canvas.height = h;
 		init();
 	}
-	
+
 	function get_alpha() {
 		return ctx.globalAlpha;
 	}
-	
+
 	function set_alpha(v) {
 		return ctx.globalAlpha = v;
 	}
@@ -113,6 +113,11 @@ class Image {
 		for( k in 0...width * height * 4 )
 			if( i.data[k] != 0 ) return false;
 		return true;
+	}
+
+	public function getPixel(x, y) {
+		var i = ctx.getImageData(x, y, 1, 1);
+		return (i.data[0]<<24) | (i.data[1] << 16) | (i.data[2] << 8) | i.data[3];
 	}
 
 	public function setSize( width, height ) {

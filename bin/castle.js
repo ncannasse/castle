@@ -156,6 +156,53 @@ Lambda.find = function(it,f) {
 	}
 	return null;
 };
+var IMap = function() { };
+$hxClasses["IMap"] = IMap;
+IMap.__name__ = ["IMap"];
+IMap.prototype = {
+	__class__: IMap
+};
+var haxe = {};
+haxe.ds = {};
+haxe.ds.StringMap = function() {
+	this.h = { };
+};
+$hxClasses["haxe.ds.StringMap"] = haxe.ds.StringMap;
+haxe.ds.StringMap.__name__ = ["haxe","ds","StringMap"];
+haxe.ds.StringMap.__interfaces__ = [IMap];
+haxe.ds.StringMap.prototype = {
+	set: function(key,value) {
+		this.h["$" + key] = value;
+	}
+	,get: function(key) {
+		return this.h["$" + key];
+	}
+	,exists: function(key) {
+		return this.h.hasOwnProperty("$" + key);
+	}
+	,remove: function(key) {
+		key = "$" + key;
+		if(!this.h.hasOwnProperty(key)) return false;
+		delete(this.h[key]);
+		return true;
+	}
+	,keys: function() {
+		var a = [];
+		for( var key in this.h ) {
+		if(this.h.hasOwnProperty(key)) a.push(key.substr(1));
+		}
+		return HxOverrides.iter(a);
+	}
+	,iterator: function() {
+		return { ref : this.h, it : this.keys(), hasNext : function() {
+			return this.it.hasNext();
+		}, next : function() {
+			var i = this.it.next();
+			return this.ref["$" + i];
+		}};
+	}
+	,__class__: haxe.ds.StringMap
+};
 var Level = function(model,sheet,index) {
 	this.reloading = false;
 	this.paletteModeCursor = 0;
@@ -532,10 +579,10 @@ Level.prototype = {
 		while(i >= 0) {
 			var l = this.layers[i--];
 			if(!l.visible || filter != null && !filter(l)) continue;
-			var x;
-			if(this.currentLayer.floatCoord) x = this.curPos.xf; else x = this.curPos.x;
-			var y;
-			if(this.currentLayer.floatCoord) y = this.curPos.yf; else y = this.curPos.y;
+			var x = this.curPos.xf;
+			var y = this.curPos.yf;
+			var ix = (x - this.curPos.x) * this.tileSize | 0;
+			var iy = (y - this.curPos.y) * this.tileSize | 0;
 			{
 				var _g = l.data;
 				switch(_g[1]) {
@@ -544,6 +591,10 @@ Level.prototype = {
 					var idx = this.curPos.x + this.curPos.y * this.width;
 					var k = data[idx];
 					if(k == 0 && i >= 0) continue;
+					if(l.images != null) {
+						var i1 = l.images[k];
+						if(i1.getPixel(ix,iy) >>> 24 == 0) continue;
+					}
 					return { k : k, layer : l, index : idx};
 				case 1:
 					var objs = _g[3];
@@ -551,18 +602,24 @@ Level.prototype = {
 					var _g2 = 0;
 					var _g1 = objs.length;
 					while(_g2 < _g1) {
-						var i1 = _g2++;
-						var o = objs[i1];
+						var i2 = _g2++;
+						var o = objs[i2];
 						var w;
 						if(l.hasSize) w = o.width; else w = 1;
 						var h;
 						if(l.hasSize) h = o.height; else h = 1;
 						if(x >= o.x && y >= o.y && x < o.x + w && y < o.y + h) {
-							if(l.idToIndex == null) return { k : 0, layer : l, index : i1};
+							if(l.idToIndex == null) return { k : 0, layer : l, index : i2};
 							var k1;
 							var key = Reflect.field(o,idCol);
 							k1 = l.idToIndex.get(key);
-							if(k1 != null) return { k : k1, layer : l, index : i1};
+							if(k1 != null) {
+								if(l.images != null) {
+									var i3 = l.images[k1];
+									if(i3.getPixel(ix,iy) >>> 24 == 0) continue;
+								}
+								return { k : k1, layer : l, index : i2};
+							}
 						}
 					}
 					break;
@@ -571,17 +628,21 @@ Level.prototype = {
 					var idx1 = this.curPos.x + this.curPos.y * this.width;
 					var k2 = data1[idx1] - 1;
 					if(k2 < 0) continue;
+					var i4 = l.images[k2];
+					if(i4.getPixel(ix,iy) >>> 24 == 0) continue;
 					return { k : k2, layer : l, index : idx1};
 				case 3:
 					var insts = _g[3];
 					var objs1 = l.getTileObjects();
-					var _g21 = 0;
-					var _g11 = insts.length;
-					while(_g21 < _g11) {
-						var idx2 = _g21++;
-						var i2 = insts[idx2];
-						var o1 = objs1.get(i2.o);
-						if(x >= i2.x && y >= i2.y && x < i2.x + (o1 == null?1:o1.w) && y < i2.y + (o1 == null?1:o1.h)) return { k : i2.o, layer : l, index : idx2};
+					var idx2 = insts.length;
+					while(idx2 > 0) {
+						var i5 = insts[--idx2];
+						var o1 = objs1.get(i5.o);
+						if(x >= i5.x && y >= i5.y && x < i5.x + (o1 == null?1:o1.w) && y < i5.y + (o1 == null?1:o1.h)) {
+							var im = l.images[i5.o + (x - i5.x | 0) + (y - i5.y | 0) * l.stride];
+							if(im.getPixel(ix,iy) >>> 24 == 0) continue;
+							return { k : i5.o, layer : l, index : idx2};
+						}
 					}
 					break;
 				}
@@ -675,6 +736,7 @@ Level.prototype = {
 					break;
 				}
 			}
+			this.props.layers.push({ l : name, p : { alpha : 1.}});
 			this.currentLayer = { name : name};
 			this.savePrefs();
 			this.save();
@@ -2513,6 +2575,7 @@ Level.prototype = {
 		}
 	}
 	,paletteOption: function(name,val) {
+		var m = cdb._Data.TileMode_Impl_.ofString(this.paletteMode == null?"":HxOverrides.substr(this.paletteMode,2,null));
 		var l = this.currentLayer;
 		if(val != null) val = StringTools.trim(val);
 		switch(name) {
@@ -2565,8 +2628,7 @@ Level.prototype = {
 			this.setCursor();
 			break;
 		case "toggleMode":
-			var m = cdb._Data.TileMode_Impl_.ofString(HxOverrides.substr(this.paletteMode,2,null));
-			var s = l.getTileProp();
+			var s = l.getTileProp(m);
 			if(s == null) {
 				s = { x : l.current % l.stride, y : l.current / l.stride | 0, w : l.currentWidth, h : l.currentHeight, t : m, opts : { }};
 				l.tileProps.sets.push(s);
@@ -2574,7 +2636,7 @@ Level.prototype = {
 			this.setCursor();
 			break;
 		case "name":
-			var s1 = l.getTileProp();
+			var s1 = l.getTileProp(m);
 			if(s1 != null) s1.opts.name = val;
 			break;
 		case "value":
@@ -2607,7 +2669,7 @@ Level.prototype = {
 				this.saveTileProps();
 				return;
 			}
-			var s2 = l.getTileProp();
+			var s2 = l.getTileProp(m);
 			if(s2 != null) {
 				var v1;
 				try {
@@ -2620,23 +2682,23 @@ Level.prototype = {
 			}
 			break;
 		case "priority":
-			var s3 = l.getTileProp();
+			var s3 = l.getTileProp(m);
 			if(s3 != null) s3.opts.priority = Std.parseInt(val);
 			break;
 		case "border_in":
-			var s4 = l.getTileProp();
+			var s4 = l.getTileProp(m);
 			if(s4 != null) {
 				if(val == "null") Reflect.deleteField(s4.opts,"borderIn"); else s4.opts.borderIn = val;
 			}
 			break;
 		case "border_out":
-			var s5 = l.getTileProp();
+			var s5 = l.getTileProp(m);
 			if(s5 != null) {
 				if(val == "null") Reflect.deleteField(s5.opts,"borderOut"); else s5.opts.borderOut = val;
 			}
 			break;
 		case "border_mode":
-			var s6 = l.getTileProp();
+			var s6 = l.getTileProp(m);
 			if(s6 != null) {
 				if(val == "null") Reflect.deleteField(s6.opts,"borderMode"); else s6.opts.borderMode = val;
 			}
@@ -3145,7 +3207,8 @@ Level.prototype = {
 					this.paletteSelect.fillRect(px,py,1,h,color);
 					this.paletteSelect.fillRect(px + w - 1,py,1,h,color);
 				}
-				var tobj = l.getTileProp();
+				var mode = cdb._Data.TileMode_Impl_.ofString(this.paletteMode == null?"":HxOverrides.substr(this.paletteMode,2,null));
+				var tobj = l.getTileProp(mode);
 				if(tobj == null) tobj = { x : 0, y : 0, w : 0, h : 0, t : "tile", opts : { }};
 				var baseModes = ((function($this) {
 					var $r;
@@ -3187,7 +3250,7 @@ Level.prototype = {
 						m.addClass("m_ref");
 						var refList = m.find(".opt.refList");
 						refList.html("");
-						new js.JQuery("<div>").addClass("icon").addClass("delete").appendTo(refList).toggleClass("active",this.paletteModeCursor < 0).click(function() {
+						if(prop.opt) new js.JQuery("<div>").addClass("icon").addClass("delete").appendTo(refList).toggleClass("active",this.paletteModeCursor < 0).click(function() {
 							_g3.paletteModeCursor = -1;
 							_g3.setCursor();
 						});
@@ -3212,7 +3275,7 @@ Level.prototype = {
 						m.addClass("m_ref");
 						var refList1 = m.find(".opt.refList");
 						refList1.html("");
-						new js.JQuery("<div>").addClass("icon").addClass("delete").appendTo(refList1).toggleClass("active",this.paletteModeCursor < 0).click(function() {
+						if(prop.opt) new js.JQuery("<div>").addClass("icon").addClass("delete").appendTo(refList1).toggleClass("active",this.paletteModeCursor < 0).click(function() {
 							_g3.paletteModeCursor = -1;
 							_g3.setCursor();
 						});
@@ -7851,12 +7914,6 @@ Main.prototype = $extend(Model.prototype,{
 	}
 	,__class__: Main
 });
-var IMap = function() { };
-$hxClasses["IMap"] = IMap;
-IMap.__name__ = ["IMap"];
-IMap.prototype = {
-	__class__: IMap
-};
 Math.__name__ = ["Math"];
 var Reflect = function() { };
 $hxClasses["Reflect"] = Reflect;
@@ -9039,7 +9096,6 @@ cdb.Index.prototype = {
 	}
 	,__class__: cdb.Index
 };
-var haxe = {};
 haxe.Json = function() { };
 $hxClasses["haxe.Json"] = haxe.Json;
 haxe.Json.__name__ = ["haxe","Json"];
@@ -9971,7 +10027,6 @@ haxe.crypto.Md5.prototype = {
 	}
 	,__class__: haxe.crypto.Md5
 };
-haxe.ds = {};
 haxe.ds.IntMap = function() {
 	this.h = { };
 };
@@ -10018,45 +10073,6 @@ haxe.ds.ObjectMap.prototype = {
 		return HxOverrides.iter(a);
 	}
 	,__class__: haxe.ds.ObjectMap
-};
-haxe.ds.StringMap = function() {
-	this.h = { };
-};
-$hxClasses["haxe.ds.StringMap"] = haxe.ds.StringMap;
-haxe.ds.StringMap.__name__ = ["haxe","ds","StringMap"];
-haxe.ds.StringMap.__interfaces__ = [IMap];
-haxe.ds.StringMap.prototype = {
-	set: function(key,value) {
-		this.h["$" + key] = value;
-	}
-	,get: function(key) {
-		return this.h["$" + key];
-	}
-	,exists: function(key) {
-		return this.h.hasOwnProperty("$" + key);
-	}
-	,remove: function(key) {
-		key = "$" + key;
-		if(!this.h.hasOwnProperty(key)) return false;
-		delete(this.h[key]);
-		return true;
-	}
-	,keys: function() {
-		var a = [];
-		for( var key in this.h ) {
-		if(this.h.hasOwnProperty(key)) a.push(key.substr(1));
-		}
-		return HxOverrides.iter(a);
-	}
-	,iterator: function() {
-		return { ref : this.h, it : this.keys(), hasNext : function() {
-			return this.it.hasNext();
-		}, next : function() {
-			var i = this.it.next();
-			return this.ref["$" + i];
-		}};
-	}
-	,__class__: haxe.ds.StringMap
 };
 haxe.io.BytesBuffer = function() {
 	this.b = new Array();
@@ -10590,6 +10606,10 @@ lvl.Image.prototype = {
 		}
 		return true;
 	}
+	,getPixel: function(x,y) {
+		var i = this.ctx.getImageData(x,y,1,1);
+		return i.data[0] << 24 | i.data[1] << 16 | i.data[2] << 8 | i.data[3];
+	}
 	,setSize: function(width,height) {
 		if(width == this.width && height == this.height) return;
 		this.canvas.width = width;
@@ -11062,14 +11082,14 @@ lvl.LayerData.prototype = $extend(lvl.LayerGfx.prototype,{
 		}
 		if(this.sheet.lines.length > 256) throw "Too many lines";
 	}
-	,getTileProp: function() {
+	,getTileProp: function(mode) {
 		if(this.tileProps == null) return null;
 		var _g = 0;
 		var _g1 = this.tileProps.sets;
 		while(_g < _g1.length) {
 			var s = _g1[_g];
 			++_g;
-			if(s.x + s.y * this.stride == this.current) return s;
+			if(s.x + s.y * this.stride == this.current && s.t == mode) return s;
 		}
 		return null;
 	}
