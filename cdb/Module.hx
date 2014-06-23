@@ -162,7 +162,7 @@ class Module {
 					var t = (makeTypeName(s.name+"@"+c.name) + "Def").toComplex();
 					macro : Array<$t>;
 				case TLayer(_): macro : String;
-				case TTilePos: macro : { file : String, size : Int, x : Int, y : Int };
+				case TTilePos: macro : { file : String, size : Int, x : Int, y : Int, ?width : Int, ?height : Int };
 				case TTileLayer: macro : { file : String, stride : Int, size : Int, data : String };
 				case TDynamic: macro : Dynamic;
 				};
