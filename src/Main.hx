@@ -1601,7 +1601,8 @@ class Main extends Model {
 						}).change();
 						dialog.find("[name=cancel]").click(function() dialog.remove());
 						dialog.find("[name=file]").click(function() {
-							chooseFile(function(file) {
+							chooseFile(function(f) {
+								file = f;
 								dialog.remove();
 								setVal();
 								save();

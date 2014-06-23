@@ -7093,7 +7093,8 @@ Main.prototype = $extend(Model.prototype,{
 								dialog.find("[name=file]").click((function(v) {
 									return function() {
 										_g4.chooseFile((function(v) {
-											return function(file1) {
+											return function(f2) {
+												file = f2;
 												dialog.remove();
 												setVal();
 												_g4.save();
@@ -8430,6 +8431,7 @@ cdb.TileBuilder = function(t,stride,total) {
 			if(b1.opts.borderIn != null) k += 1;
 			if(b1.opts.borderOut != null) k += 2;
 			if(b1.opts.borderMode != null) k += 4;
+			if(b1.opts.borderIn != null && b1.opts.borderOut != null && b1.opts.borderIn != "lower" && b1.opts.borderOut != "upper") k += 8;
 			$r = k;
 			return $r;
 		}(this)) - (function($this) {
@@ -8438,6 +8440,7 @@ cdb.TileBuilder = function(t,stride,total) {
 			if(b2.opts.borderIn != null) k1 += 1;
 			if(b2.opts.borderOut != null) k1 += 2;
 			if(b2.opts.borderMode != null) k1 += 4;
+			if(b2.opts.borderIn != null && b2.opts.borderOut != null && b2.opts.borderIn != "lower" && b2.opts.borderOut != "upper") k1 += 8;
 			$r = k1;
 			return $r;
 		}(this));
@@ -8501,9 +8504,11 @@ cdb.TileBuilder = function(t,stride,total) {
 				continue;
 			}
 		}
+		var clear = gid1 != null && tid1 != null;
 		var _g16 = b.opts.borderMode;
 		if(_g16 != null) switch(_g16) {
 		case "corner":
+			clear = false;
 			var tmp1 = gids;
 			gids = tids;
 			tids = tmp1;
@@ -8520,7 +8525,7 @@ cdb.TileBuilder = function(t,stride,total) {
 				var t1 = tids[_g27];
 				++_g27;
 				var bt = this.borders[g8 + t1 * 256];
-				if(bt == null) {
+				if(bt == null || clear) {
 					var _g36 = [];
 					var _g43 = 0;
 					while(_g43 < 20) {

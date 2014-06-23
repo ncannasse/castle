@@ -97,6 +97,7 @@ class TileBuilder {
 			if( b.opts.borderIn != null ) k += 1;
 			if( b.opts.borderOut != null ) k += 2;
 			if( b.opts.borderMode != null ) k += 4;
+			if( b.opts.borderIn != null && b.opts.borderOut != null && b.opts.borderIn != "lower" && b.opts.borderOut != "upper" ) k += 8;
 			return k;
 		}
 		allBorders.sort(function(b1, b2) {
@@ -125,8 +126,10 @@ class TileBuilder {
 				default: continue;
 				}
 			}
+			var clear = gid != null && tid != null;
 			switch( b.opts.borderMode ) {
 			case "corner":
+				clear = false;
 				// swap
 				var tmp = gids;
 				gids = tids;
@@ -136,7 +139,7 @@ class TileBuilder {
 			for( g in gids )
 				for( t in tids ) {
 					var bt = borders[g + t * 256];
-					if( bt == null ) {
+					if( bt == null || clear ) {
 						bt = [for( i in 0...20 ) []];
 						if( gid != null ) bt[8] = gid.fill;
 						borders[g + t * 256] = bt;
