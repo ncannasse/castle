@@ -156,53 +156,6 @@ Lambda.find = function(it,f) {
 	}
 	return null;
 };
-var IMap = function() { };
-$hxClasses["IMap"] = IMap;
-IMap.__name__ = ["IMap"];
-IMap.prototype = {
-	__class__: IMap
-};
-var haxe = {};
-haxe.ds = {};
-haxe.ds.StringMap = function() {
-	this.h = { };
-};
-$hxClasses["haxe.ds.StringMap"] = haxe.ds.StringMap;
-haxe.ds.StringMap.__name__ = ["haxe","ds","StringMap"];
-haxe.ds.StringMap.__interfaces__ = [IMap];
-haxe.ds.StringMap.prototype = {
-	set: function(key,value) {
-		this.h["$" + key] = value;
-	}
-	,get: function(key) {
-		return this.h["$" + key];
-	}
-	,exists: function(key) {
-		return this.h.hasOwnProperty("$" + key);
-	}
-	,remove: function(key) {
-		key = "$" + key;
-		if(!this.h.hasOwnProperty(key)) return false;
-		delete(this.h[key]);
-		return true;
-	}
-	,keys: function() {
-		var a = [];
-		for( var key in this.h ) {
-		if(this.h.hasOwnProperty(key)) a.push(key.substr(1));
-		}
-		return HxOverrides.iter(a);
-	}
-	,iterator: function() {
-		return { ref : this.h, it : this.keys(), hasNext : function() {
-			return this.it.hasNext();
-		}, next : function() {
-			var i = this.it.next();
-			return this.ref["$" + i];
-		}};
-	}
-	,__class__: haxe.ds.StringMap
-};
 var Level = function(model,sheet,index) {
 	this.reloading = false;
 	this.paletteModeCursor = 0;
@@ -258,6 +211,11 @@ Level.prototype = {
 		this.watchList = [];
 		this.watchTimer = new haxe.Timer(50);
 		this.watchTimer.run = $bind(this,this.checkWatch);
+		var $it0 = Level.loadedTilesCache.keys();
+		while( $it0.hasNext() ) {
+			var key = $it0.next();
+			this.watchSplit(key);
+		}
 		this.props = this.obj.props;
 		if(this.props == null) {
 			this.props = { };
@@ -371,9 +329,9 @@ Level.prototype = {
 				}
 			}
 		}
-		var $it0 = lprops.iterator();
-		while( $it0.hasNext() ) {
-			var c1 = $it0.next();
+		var $it1 = lprops.iterator();
+		while( $it1.hasNext() ) {
+			var c1 = $it1.next();
 			HxOverrides.remove(this.props.layers,c1);
 		}
 		if(this.sheet.props.displayColumn != null) {
@@ -401,8 +359,26 @@ Level.prototype = {
 		}
 		this.waitDone();
 	}
-	,loadAndSplit: function(file,size,callb) {
+	,watchSplit: function(key) {
 		var _g = this;
+		var file = key.split("@").shift();
+		var abs = this.model.getAbsPath(file);
+		this.watch(file,function() {
+			lvl.Image.load(abs,function(_) {
+				Level.loadedTilesCache.remove(key);
+				_g.reload();
+			},function() {
+				var _g1 = 0;
+				var _g2 = _g.watchList;
+				while(_g1 < _g2.length) {
+					var w = _g2[_g1];
+					++_g1;
+					if(w.path == abs) w.time = 0;
+				}
+			},true);
+		});
+	}
+	,loadAndSplit: function(file,size,callb) {
 		var key = file + "@" + size;
 		var a = Level.loadedTilesCache.get(key);
 		if(a == null) {
@@ -413,12 +389,12 @@ Level.prototype = {
 				var blanks = [];
 				var w = i.width / size | 0;
 				var h = i.height / size | 0;
-				var _g1 = 0;
-				while(_g1 < h) {
-					var y = _g1++;
-					var _g11 = 0;
-					while(_g11 < w) {
-						var x = _g11++;
+				var _g = 0;
+				while(_g < h) {
+					var y = _g++;
+					var _g1 = 0;
+					while(_g1 < w) {
+						var x = _g1++;
 						var i1 = i.sub(x * size,y * size,size,size);
 						blanks[images.length] = i1.isBlank();
 						images.push(i1);
@@ -426,9 +402,9 @@ Level.prototype = {
 				}
 				a.data = { w : w, h : h, img : images, blanks : blanks};
 				var _g2 = 0;
-				var _g12 = a.pending;
-				while(_g2 < _g12.length) {
-					var p = _g12[_g2];
+				var _g11 = a.pending;
+				while(_g2 < _g11.length) {
+					var p = _g11[_g2];
 					++_g2;
 					p(w,h,images,blanks);
 				}
@@ -436,13 +412,7 @@ Level.prototype = {
 			},function() {
 				throw "Could not load " + file;
 			});
-			this.watch(file,function() {
-				lvl.Image.load(_g.model.getAbsPath(file),function(_) {
-					Level.loadedTilesCache.remove(key);
-					_g.reload();
-				},function() {
-				},true);
-			});
+			this.watchSplit(key);
 		}
 		if(a.data != null) callb(a.data.w,a.data.h,a.data.img,a.data.blanks); else a.pending.push(callb);
 	}
@@ -509,7 +479,17 @@ Level.prototype = {
 	}
 	,watch: function(path,callb) {
 		path = this.model.getAbsPath(path);
-		this.watchList.push({ path : path, time : this.getFileTime(path), callb : callb});
+		var _g = 0;
+		var _g1 = this.watchList;
+		while(_g < _g1.length) {
+			var w = _g1[_g];
+			++_g;
+			if(w.path == path) {
+				w.callb.push(callb);
+				return;
+			}
+		}
+		this.watchList.push({ path : path, time : this.getFileTime(path), callb : [callb]});
 	}
 	,checkWatch: function() {
 		var _g = 0;
@@ -520,7 +500,13 @@ Level.prototype = {
 			var f = this.getFileTime(w.path);
 			if(f != w.time && f != 0.) {
 				w.time = f;
-				w.callb();
+				var _g2 = 0;
+				var _g3 = w.callb;
+				while(_g2 < _g3.length) {
+					var c = _g3[_g2];
+					++_g2;
+					c();
+				}
 			}
 		}
 	}
@@ -7914,6 +7900,12 @@ Main.prototype = $extend(Model.prototype,{
 	}
 	,__class__: Main
 });
+var IMap = function() { };
+$hxClasses["IMap"] = IMap;
+IMap.__name__ = ["IMap"];
+IMap.prototype = {
+	__class__: IMap
+};
 Math.__name__ = ["Math"];
 var Reflect = function() { };
 $hxClasses["Reflect"] = Reflect;
@@ -9096,6 +9088,7 @@ cdb.Index.prototype = {
 	}
 	,__class__: cdb.Index
 };
+var haxe = {};
 haxe.Json = function() { };
 $hxClasses["haxe.Json"] = haxe.Json;
 haxe.Json.__name__ = ["haxe","Json"];
@@ -10027,6 +10020,7 @@ haxe.crypto.Md5.prototype = {
 	}
 	,__class__: haxe.crypto.Md5
 };
+haxe.ds = {};
 haxe.ds.IntMap = function() {
 	this.h = { };
 };
@@ -10073,6 +10067,45 @@ haxe.ds.ObjectMap.prototype = {
 		return HxOverrides.iter(a);
 	}
 	,__class__: haxe.ds.ObjectMap
+};
+haxe.ds.StringMap = function() {
+	this.h = { };
+};
+$hxClasses["haxe.ds.StringMap"] = haxe.ds.StringMap;
+haxe.ds.StringMap.__name__ = ["haxe","ds","StringMap"];
+haxe.ds.StringMap.__interfaces__ = [IMap];
+haxe.ds.StringMap.prototype = {
+	set: function(key,value) {
+		this.h["$" + key] = value;
+	}
+	,get: function(key) {
+		return this.h["$" + key];
+	}
+	,exists: function(key) {
+		return this.h.hasOwnProperty("$" + key);
+	}
+	,remove: function(key) {
+		key = "$" + key;
+		if(!this.h.hasOwnProperty(key)) return false;
+		delete(this.h[key]);
+		return true;
+	}
+	,keys: function() {
+		var a = [];
+		for( var key in this.h ) {
+		if(this.h.hasOwnProperty(key)) a.push(key.substr(1));
+		}
+		return HxOverrides.iter(a);
+	}
+	,iterator: function() {
+		return { ref : this.h, it : this.keys(), hasNext : function() {
+			return this.it.hasNext();
+		}, next : function() {
+			var i = this.it.next();
+			return this.ref["$" + i];
+		}};
+	}
+	,__class__: haxe.ds.StringMap
 };
 haxe.io.BytesBuffer = function() {
 	this.b = new Array();

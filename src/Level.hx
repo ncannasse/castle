@@ -68,7 +68,7 @@ class Level {
 	var perTileProps : Array<Column>;
 	var perTileGfx : Map<String, lvl.LayerGfx>;
 
-	var watchList : Array<{ path : String, time : Float, callb : Void -> Void }>;
+	var watchList : Array<{ path : String, time : Float, callb : Array<Void -> Void> }>;
 	var watchTimer : haxe.Timer;
 	var references : Array<{ ref : Dynamic -> Void }>;
 
@@ -109,6 +109,10 @@ class Level {
 		watchList = [];
 		watchTimer = new haxe.Timer(50);
 		watchTimer.run = checkWatch;
+
+		for( key in loadedTilesCache.keys() )
+			watchSplit(key);
+
 		props = obj.props;
 		if( props == null ) {
 			props = {
@@ -211,6 +215,16 @@ class Level {
 		waitDone();
 	}
 
+	function watchSplit(key:String) {
+		var file = key.split("@").shift();
+		var abs = model.getAbsPath(file);
+		watch(file, function() lvl.Image.load(abs, function(_) { loadedTilesCache.remove(key); reload(); } , function() {
+			for( w in watchList )
+				if( w.path == abs )
+					w.time = 0;
+		}, true));
+	}
+
 	public function loadAndSplit(file, size:Int, callb) {
 		var key = file + "@" + size;
 		var a = loadedTilesCache.get(key);
@@ -234,7 +248,7 @@ class Level {
 			},function() {
 				throw "Could not load " + file;
 			});
-			watch(file, function() lvl.Image.load(model.getAbsPath(file), function(_) { loadedTilesCache.remove(key); reload(); } , function() { }, true));
+			watchSplit(key);
 		}
 		if( a.data != null )
 			callb(a.data.w, a.data.h, a.data.img, a.data.blanks);
@@ -303,7 +317,12 @@ class Level {
 
 	public function watch( path : String, callb : Void -> Void ) {
 		path = model.getAbsPath(path);
-		watchList.push( { path : path, time : getFileTime(path), callb : callb } );
+		for( w in watchList )
+			if( w.path == path ) {
+				w.callb.push(callb);
+				return;
+			}
+		watchList.push( { path : path, time : getFileTime(path), callb : [callb] } );
 	}
 
 	function checkWatch() {
@@ -311,7 +330,8 @@ class Level {
 			var f = getFileTime(w.path);
 			if( f != w.time && f != 0. ) {
 				w.time = f;
-				w.callb();
+				for( c in w.callb )
+					c();
 			}
 		}
 	}
