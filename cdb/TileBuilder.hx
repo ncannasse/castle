@@ -126,10 +126,9 @@ class TileBuilder {
 				default: continue;
 				}
 			}
-			var clear = gid != null && tid != null;
+			var clear = gid != null && tid != null && b.opts.borderMode == null;
 			switch( b.opts.borderMode ) {
 			case "corner":
-				clear = false;
 				// swap
 				var tmp = gids;
 				gids = tids;

@@ -1761,6 +1761,7 @@ class Level {
 		case "mode":
 			paletteMode = val == "t_tile" ? null : val;
 			paletteModeCursor = 0;
+			savePrefs();
 			setCursor();
 		case "toggleMode":
 			var s = l.getTileProp(m);
@@ -2250,7 +2251,7 @@ class Level {
 					default:
 					}
 				} else if( "t_" + tobj.t != paletteMode ) {
-					if( paletteMode != null ) m.addClass("m_create");
+					if( paletteMode != null ) m.addClass("m_create").addClass("c_"+paletteMode.substr(2));
 				} else {
 					m.addClass("m_"+paletteMode.substr(2)).addClass("m_exists");
 					switch( tobj.t ) {

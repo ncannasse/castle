@@ -494,6 +494,10 @@ div#menu {
 				display : inline-block;
 			}
 
+			.mode.m_create.c_border, .mode.m_border {
+				min-width : 430px;
+			}
+
 			.mode.m_ground {
 				.opt.name, .opt.priority {
 					display : inline-block;
@@ -515,15 +519,15 @@ div#menu {
 					display : inline-block;
 				}
 			}
-			
+
 			.mode.m_ref .opt.refList {
 				display : inline-block;
 			}
-			
+
 			.mode.m_value .opt.value {
 				display : inline-block;
 			}
-			
+
 		}
 		.content {
 			padding : 10px;
