@@ -263,6 +263,10 @@
 					<input type="submit" value="Scroll" onclick="_.level.scroll(parseInt($(parentNode).find('[name=sx]').val()),parseInt($(parentNode).find('[name=sy]').val()))"/>
 				</div>
 				<div class="item">
+					<label>Value <input type="text" class="small" name="scale"/></label>
+					<input type="submit" value="Scale" onclick="_.level.scale(parseFloat($(parentNode).find('[name=scale]').val()))"/>
+				</div>
+				<div class="item">
 					<input type="submit" value="Cancel" onclick="_.level.action('options')"/>
 				</div>
 			</div>

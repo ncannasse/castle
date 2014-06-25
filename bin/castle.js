@@ -2283,6 +2283,101 @@ Level.prototype = {
 		var state = { zoomView : this.zoomView, curLayer : this.currentLayer == null?null:this.currentLayer.name, scrollX : sc.scrollLeft(), scrollY : sc.scrollTop(), paintMode : this.paintMode, randomMode : this.randomMode, paletteMode : this.paletteMode, paletteModeCursor : this.paletteModeCursor};
 		js.Browser.getLocalStorage().setItem(this.sheetPath,haxe.Serializer.run(state));
 	}
+	,scale: function(s) {
+		if(s == null || isNaN(s)) return;
+		var _g = 0;
+		var _g1 = this.layers;
+		while(_g < _g1.length) {
+			var l = _g1[_g];
+			++_g;
+			l.dirty = true;
+			{
+				var _g2 = l.data;
+				switch(_g2[1]) {
+				case 2:
+					var data = _g2[3];
+					var ndata = [];
+					var _g4 = 0;
+					var _g3 = this.height;
+					while(_g4 < _g3) {
+						var y = _g4++;
+						var _g6 = 0;
+						var _g5 = this.width;
+						while(_g6 < _g5) {
+							var x = _g6++;
+							var tx = x / s | 0;
+							var ty = y / s | 0;
+							var k;
+							if(tx >= this.width || ty >= this.height) k = 0; else k = data[tx + ty * this.width];
+							ndata.push(k);
+						}
+					}
+					var _g41 = 0;
+					var _g31 = this.width * this.height;
+					while(_g41 < _g31) {
+						var i = _g41++;
+						data[i] = ndata[i];
+					}
+					break;
+				case 0:
+					var data = _g2[2];
+					var ndata = [];
+					var _g4 = 0;
+					var _g3 = this.height;
+					while(_g4 < _g3) {
+						var y = _g4++;
+						var _g6 = 0;
+						var _g5 = this.width;
+						while(_g6 < _g5) {
+							var x = _g6++;
+							var tx = x / s | 0;
+							var ty = y / s | 0;
+							var k;
+							if(tx >= this.width || ty >= this.height) k = 0; else k = data[tx + ty * this.width];
+							ndata.push(k);
+						}
+					}
+					var _g41 = 0;
+					var _g31 = this.width * this.height;
+					while(_g41 < _g31) {
+						var i = _g41++;
+						data[i] = ndata[i];
+					}
+					break;
+				case 1:
+					var objs = _g2[3];
+					var m;
+					if(l.floatCoord) m = this.tileSize; else m = 1;
+					var _g32 = 0;
+					var _g42 = objs.slice();
+					while(_g32 < _g42.length) {
+						var o = _g42[_g32];
+						++_g32;
+						o.x = (o.x * s * m | 0) / m;
+						o.y = (o.y * s * m | 0) / m;
+						if(o.x < 0 || o.y < 0 || o.x >= this.width || o.y >= this.height) HxOverrides.remove(objs,o);
+					}
+					break;
+				case 3:
+					var insts = _g2[3];
+					var m1;
+					if(l.floatCoord) m1 = this.tileSize; else m1 = 1;
+					var _g33 = 0;
+					var _g43 = insts.slice();
+					while(_g33 < _g43.length) {
+						var i1 = _g43[_g33];
+						++_g33;
+						i1.x = (i1.x * s * m1 | 0) / m1;
+						i1.y = (i1.y * s * m1 | 0) / m1;
+						if(i1.x < 0 || i1.y < 0 || i1.x >= this.width || i1.y >= this.height) HxOverrides.remove(insts,i1);
+					}
+					break;
+				}
+			}
+		}
+		this.save();
+		this.draw();
+	}
 	,scroll: function(dx,dy) {
 		if(dx == null || isNaN(dx)) dx = 0;
 		if(dy == null || isNaN(dy)) dy = 0;
@@ -4491,8 +4586,6 @@ Model.prototype = {
 		case 5:
 			var values = t[2];
 			return this.valToString(cdb.ColumnType.TString,values[val],esc);
-		case 8:case 14:case 15:
-			return "????";
 		case 9:
 			var t1 = t[2];
 			return this.typeValToString(this.tmap.get(t1),val,esc);
@@ -4511,9 +4604,11 @@ Model.prototype = {
 			var s = "#" + StringTools.hex(val,6);
 			if(esc) return "\"" + s + "\""; else return s;
 			break;
-		case 16:
+		case 15:case 16:case 14:
 			if(esc) return js.Node.stringify(val,null,null); else return Std.string(val);
 			break;
+		case 8:
+			return "???";
 		}
 	}
 	,typeValToString: function(t,val,esc) {
@@ -9073,73 +9168,63 @@ cdb._Types.LevelPropsAccess_Impl_.getLayer = function(this1,name) {
 	}
 	return null;
 };
-cdb.IndexNoId = function(data,sheet) {
-	this.name = sheet;
+cdb.Index = function(data,name) {
+	this.name = name;
 	var _g = 0;
 	var _g1 = data.sheets;
 	while(_g < _g1.length) {
 		var s = _g1[_g];
 		++_g;
-		if(s.name == sheet) {
+		if(s.name == name) {
 			this.all = s.lines;
-			return;
-		}
-	}
-	throw "'" + sheet + "' not found in CDB data";
-};
-$hxClasses["cdb.IndexNoId"] = cdb.IndexNoId;
-cdb.IndexNoId.__name__ = ["cdb","IndexNoId"];
-cdb.IndexNoId.prototype = {
-	__class__: cdb.IndexNoId
-};
-cdb.Index = function(data,sheet) {
-	this.name = sheet;
-	var _g = 0;
-	var _g1 = data.sheets;
-	while(_g < _g1.length) {
-		var s = _g1[_g];
-		++_g;
-		if(s.name == sheet) {
 			this.sheet = s;
-			this.all = s.lines;
-			this.byId = new haxe.ds.StringMap();
-			this.byIndex = [];
-			var _g2 = 0;
-			var _g3 = s.columns;
-			try {
-				while(_g2 < _g3.length) {
-					var c = _g3[_g2];
-					++_g2;
-					var _g4 = c.type;
-					switch(_g4[1]) {
-					case 0:
-						var cname = c.name;
-						var _g5 = 0;
-						var _g6 = s.lines;
-						while(_g5 < _g6.length) {
-							var a = _g6[_g5];
-							++_g5;
-							var id = Reflect.field(a,cname);
-							if(id != null && id != "") {
-								var value = a;
-								this.byId.set(id,value);
-								this.byIndex.push(a);
-							}
-						}
-						throw "__break__";
-						break;
-					default:
-					}
-				}
-			} catch( e ) { if( e != "__break__" ) throw e; }
-			return;
+			break;
 		}
 	}
-	throw "'" + sheet + "' not found in CDB data";
+	if(this.sheet == null) throw "'" + name + "' not found in CDB data";
 };
 $hxClasses["cdb.Index"] = cdb.Index;
 cdb.Index.__name__ = ["cdb","Index"];
 cdb.Index.prototype = {
+	__class__: cdb.Index
+};
+cdb.IndexId = function(data,name) {
+	cdb.Index.call(this,data,name);
+	this.byId = new haxe.ds.StringMap();
+	this.byIndex = [];
+	var _g = 0;
+	var _g1 = this.sheet.columns;
+	try {
+		while(_g < _g1.length) {
+			var c = _g1[_g];
+			++_g;
+			var _g2 = c.type;
+			switch(_g2[1]) {
+			case 0:
+				var cname = c.name;
+				var _g3 = 0;
+				var _g4 = this.sheet.lines;
+				while(_g3 < _g4.length) {
+					var a = _g4[_g3];
+					++_g3;
+					var id = Reflect.field(a,cname);
+					if(id != null && id != "") {
+						var value = a;
+						this.byId.set(id,value);
+						this.byIndex.push(a);
+					}
+				}
+				throw "__break__";
+				break;
+			default:
+			}
+		}
+	} catch( e ) { if( e != "__break__" ) throw e; }
+};
+$hxClasses["cdb.IndexId"] = cdb.IndexId;
+cdb.IndexId.__name__ = ["cdb","IndexId"];
+cdb.IndexId.__super__ = cdb.Index;
+cdb.IndexId.prototype = $extend(cdb.Index.prototype,{
 	get: function(k) {
 		return this.byId.get(k);
 	}
@@ -9148,8 +9233,8 @@ cdb.Index.prototype = {
 		var v = this.byId.get(id);
 		if(v == null && !opt) throw "Missing " + this.name + "." + id; else return v;
 	}
-	,__class__: cdb.Index
-};
+	,__class__: cdb.IndexId
+});
 haxe.Json = function() { };
 $hxClasses["haxe.Json"] = haxe.Json;
 haxe.Json.__name__ = ["haxe","Json"];

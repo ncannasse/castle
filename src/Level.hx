@@ -1554,6 +1554,45 @@ class Level {
 		js.Browser.getLocalStorage().setItem(sheetPath, haxe.Serializer.run(state));
 	}
 
+	@:keep function scale( s : Float ) {
+		if( s == null || Math.isNaN(s) )
+			return;
+		for( l in layers ) {
+			l.dirty = true;
+			switch( l.data ) {
+			case Tiles(_, data), Layer(data):
+				var ndata = [];
+				for( y in 0...height )
+					for( x in 0...width ) {
+						var tx = Std.int(x / s);
+						var ty = Std.int(y / s);
+						var k = if( tx >= width || ty >= height ) 0 else data[tx + ty * width];
+						ndata.push(k);
+					}
+				for( i in 0...width * height )
+					data[i] = ndata[i];
+			case Objects(_, objs):
+				var m = l.floatCoord ? tileSize : 1;
+				for( o in objs.copy() ) {
+					o.x = Std.int(o.x * s * m) / m;
+					o.y = Std.int(o.y * s * m) / m;
+					if( o.x < 0 || o.y < 0 || o.x >= width || o.y >= height )
+						objs.remove(o);
+				}
+			case TileInstances(_, insts):
+				var m = l.floatCoord ? tileSize : 1;
+				for( i in insts.copy() ) {
+					i.x = Std.int(i.x * s * m) / m;
+					i.y = Std.int(i.y * s * m) / m;
+					if( i.x < 0 || i.y < 0 || i.x >= width || i.y >= height )
+						insts.remove(i);
+				}
+			}
+		}
+		save();
+		draw();
+	}
+
 	@:keep function scroll( dx : Int, dy : Int ) {
 		if( dx == null || Math.isNaN(dx) ) dx = 0;
 		if( dy == null || Math.isNaN(dy) ) dy = 0;

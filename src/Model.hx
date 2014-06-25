@@ -63,7 +63,7 @@ class Model {
 	function getSheetLines( sheet : Sheet ) : Array<Dynamic> {
 		var p = getParentSheet(sheet);
 		if( p == null ) return sheet.lines;
-		
+
 		if( p.s.props.level != null && p.c == "tileProps" ) {
 			var all = [];
 			var sets = p.s.props.level.tileSets;
@@ -76,7 +76,7 @@ class Model {
 			}
 			return all;
 		}
-			
+
 		var all = [];
 		for( obj in getSheetLines(p.s) ) {
 			var v : Array<Dynamic> = Reflect.field(obj, p.c);
@@ -672,8 +672,6 @@ class Model {
 				'"' + val.split("\\").join("\\\\").split('"').join("\\\"") + '"';
 		case TEnum(values):
 			valToString(TString, values[val], esc);
-		case TList, TTilePos, TTileLayer:
-			"????";
 		case TCustom(t):
 			typeValToString(tmap.get(t), val, esc);
 		case TFlags(values):
@@ -686,8 +684,10 @@ class Model {
 		case TColor:
 			var s = "#" + StringTools.hex(val, 6);
 			esc ? '"' + s + '"' : s;
-		case TDynamic:
+		case TTileLayer, TDynamic, TTilePos:
 			esc ? haxe.Json.stringify(val) : Std.string(val);
+		case TList:
+			"???";
 		}
 	}
 

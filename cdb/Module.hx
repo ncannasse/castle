@@ -465,17 +465,17 @@ class Module {
 					name : fname,
 					pos : pos,
 					access : [APublic, AStatic],
-					kind : FVar(macro : cdb.Types.Index<$t,$kind>),
+					kind : FVar(macro : cdb.Types.IndexId<$t,$kind>),
 				});
-				assigns.push(macro $i { fname } = new cdb.Types.Index(root, $v { s.name } ));
+				assigns.push(macro $i { fname } = new cdb.Types.IndexId(root, $v { s.name } ));
 			} else {
 				fields.push({
 					name : fname,
 					pos : pos,
 					access : [APublic, AStatic],
-					kind : FVar(macro : cdb.Types.IndexNoId<$t>),
+					kind : FVar(macro : cdb.Types.Index<$t>),
 				});
-				assigns.push(macro $i { fname } = new cdb.Types.IndexNoId(root, $v { s.name } ));
+				assigns.push(macro $i { fname } = new cdb.Types.Index(root, $v { s.name } ));
 			}
 		}
 		types.push({

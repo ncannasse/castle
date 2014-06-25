@@ -135,7 +135,7 @@ abstract LevelPropsAccess<T>(Data.LevelProps) {
 		return this.tileSize;
 	}
 
-	public function getTileset( i : Index<T,Dynamic>, name : String ) : Data.TilesetProps {
+	public function getTileset( i : Index<T>, name : String ) : Data.TilesetProps {
 		return Reflect.field(@:privateAccess i.sheet.props.level.tileSets, name);
 	}
 
@@ -164,56 +164,49 @@ typedef TileLayer = {
 	var data(default, never) : TileLayerData;
 }
 
-class IndexNoId<T> {
+class Index<T> {
 
-	var name : String;
 	public var all(default,null) : ArrayRead<T>;
+	var name : String;
+	var sheet : Data.Sheet;
 
-	public function new( data : Data, sheet : String ) {
-		this.name = sheet;
+	public function new(data:Data , name) {
+		this.name = name;
 		for( s in data.sheets )
-			if( s.name == sheet ) {
+			if( s.name == name ) {
 				all = cast s.lines;
-				return;
+				this.sheet = s;
+				break;
 			}
-		throw "'" + sheet + "' not found in CDB data";
+		if( sheet == null )
+			throw "'" + name + "' not found in CDB data";
 	}
 
 }
 
-class Index<T,Kind> {
+class IndexId<T,Kind> extends Index<T> {
 
-	public var all(default,null) : ArrayRead<T>;
 	var byIndex : Array<T>;
 	var byId : Map<String,T>;
-	var name : String;
-	var sheet : Data.Sheet;
 
-	public function new( data : Data, sheet : String ) {
-		this.name = sheet;
-		for( s in data.sheets )
-			if( s.name == sheet ) {
-				this.sheet = s;
-				all = cast s.lines;
-				byId = new Map();
-				byIndex = [];
-				for( c in s.columns )
-					switch( c.type ) {
-					case TId:
-						var cname = c.name;
-						for( a in s.lines ) {
-							var id = Reflect.field(a, cname);
-							if( id != null && id != "" ) {
-								byId.set(id, a);
-								byIndex.push(a);
-							}
-						}
-						break;
-					default:
+	public function new( data, name ) {
+		super(data, name);
+		byId = new Map();
+		byIndex = [];
+		for( c in sheet.columns )
+			switch( c.type ) {
+			case TId:
+				var cname = c.name;
+				for( a in sheet.lines ) {
+					var id = Reflect.field(a, cname);
+					if( id != null && id != "" ) {
+						byId.set(id, a);
+						byIndex.push(a);
 					}
-				return;
+				}
+				break;
+			default:
 			}
-		throw "'" + sheet + "' not found in CDB data";
 	}
 
 	public inline function get( k : Kind ) {
