@@ -1981,6 +1981,8 @@ class Level {
 
 		palette.find(".icon.random").toggleClass("active",randomMode);
 		palette.find(".icon.paint").toggleClass("active", paintMode);
+		palette.mousedown(function(e) e.stopPropagation());
+		palette.mouseup(function(e) e.stopPropagation());
 
 		var start = { x : l.current % l.stride, y : Std.int(l.current / l.stride), down : false };
 		jsel.mousedown(function(e) {

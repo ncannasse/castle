@@ -2945,15 +2945,21 @@ Level.prototype = {
 		select.setSize(i.width,i.height);
 		this.palette.find(".icon.random").toggleClass("active",this.randomMode);
 		this.palette.find(".icon.paint").toggleClass("active",this.paintMode);
+		this.palette.mousedown(function(e) {
+			e.stopPropagation();
+		});
+		this.palette.mouseup(function(e1) {
+			e1.stopPropagation();
+		});
 		var start_x = l.current % l.stride;
 		var start_y = l.current / l.stride | 0;
 		var start_down = false;
-		jsel.mousedown(function(e) {
+		jsel.mousedown(function(e2) {
 			var o = jsel.offset();
-			var x1 = (e.pageX - o.left) / (_g.tileSize + 1) | 0;
-			var y1 = (e.pageY - o.top) / (_g.tileSize + 1) | 0;
+			var x1 = (e2.pageX - o.left) / (_g.tileSize + 1) | 0;
+			var y1 = (e2.pageY - o.top) / (_g.tileSize + 1) | 0;
 			if(x1 + y1 * l.stride >= l.images.length) return;
-			if(e.shiftKey) {
+			if(e2.shiftKey) {
 				var x0;
 				if(x1 < start_x) x0 = x1; else x0 = start_x;
 				var y0;
@@ -3016,14 +3022,14 @@ Level.prototype = {
 				}
 			}
 		});
-		jsel.mousemove(function(e1) {
-			_g.mousePos.x = e1.pageX;
-			_g.mousePos.y = e1.pageY;
+		jsel.mousemove(function(e3) {
+			_g.mousePos.x = e3.pageX;
+			_g.mousePos.y = e3.pageY;
 			_g.updateCursorPos();
 			if(_g.selection == null) _g.cursor.hide();
 			var o1 = jsel.offset();
-			var x2 = (e1.pageX - o1.left) / (_g.tileSize + 1) | 0;
-			var y2 = (e1.pageY - o1.top) / (_g.tileSize + 1) | 0;
+			var x2 = (e3.pageX - o1.left) / (_g.tileSize + 1) | 0;
+			var y2 = (e3.pageY - o1.top) / (_g.tileSize + 1) | 0;
 			_g.content.find(".cursorPosition").text(x2 + "," + y2);
 			if(!start_down) return;
 			var x01;
@@ -3040,10 +3046,10 @@ Level.prototype = {
 			l.saveState();
 			_g.setCursor();
 		});
-		jsel.mouseleave(function(e2) {
+		jsel.mouseleave(function(e4) {
 			_g.content.find(".cursorPosition").text("");
 		});
-		jsel.mouseup(function(e3) {
+		jsel.mouseup(function(e5) {
 			start_down = false;
 		});
 		this.paletteSelect = select;
