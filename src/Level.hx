@@ -1558,6 +1558,7 @@ class Level {
 		if( s == null || Math.isNaN(s) )
 			return;
 		for( l in layers ) {
+			if( !l.visible ) continue;
 			l.dirty = true;
 			switch( l.data ) {
 			case Tiles(_, data), Layer(data):
@@ -1597,6 +1598,7 @@ class Level {
 		if( dx == null || Math.isNaN(dx) ) dx = 0;
 		if( dy == null || Math.isNaN(dy) ) dy = 0;
 		for( l in layers ) {
+			if( !l.visible ) continue;
 			l.dirty = true;
 			switch( l.data ) {
 			case Tiles(_, data), Layer(data):
