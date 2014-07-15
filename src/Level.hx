@@ -12,6 +12,7 @@ typedef LevelState = {
 	var zoomView : Float;
 	var scrollX : Int;
 	var scrollY : Int;
+	var smallPalette : Bool;
 	var paintMode : Bool;
 	var randomMode : Bool;
 	var paletteMode : Null<String>;
@@ -49,6 +50,7 @@ class Level {
 	var mouseDown : Bool;
 	var deleteMode : { l : LayerData };
 	var needSave : Bool;
+	var smallPalette : Bool = false;
 	var waitCount : Int;
 
 	var view : lvl.Image3D;
@@ -364,6 +366,8 @@ class Level {
 			randomMode = state.randomMode;
 			paletteMode = state.paletteMode;
 			paletteModeCursor = state.paletteModeCursor;
+			smallPalette = state.smallPalette;
+			if( smallPalette == null ) smallPalette = false;
 		}
 
 		setLayer(layer);
@@ -520,7 +524,8 @@ class Level {
 		var ndel = new MenuItem( { label : "Delete" } );
 		var nshow = new MenuItem( { label : "Show Only" } );
 		var nshowAll = new MenuItem( { label : "Show All" } );
-		for( m in [nshow, nshowAll, nclear, ndel] )
+		var nrename = new MenuItem( { label : "Rename" } );
+		for( m in [nshow, nshowAll, nrename, nclear, ndel] )
 			n.append(m);
 		nclear.click = function() {
 			switch( l.data ) {
@@ -556,6 +561,30 @@ class Level {
 				l2.visible = true;
 			draw();
 		};
+		nrename.click = function() {
+			l.comp.find("span").remove();
+			l.comp.prepend(J("<input>").val(l.name).focus().blur(function(_) {
+				var n = StringTools.trim(JTHIS.val());
+				for( p in props.layers )
+					if( p.l == n ) {
+						reload();
+						return;
+					}
+				for( p in props.layers )
+					if( p.l == l.name )
+						p.l = n;
+				var layers : Array<{ name : String, data : Dynamic }> = Reflect.field(obj, newLayer.name);
+				for( l2 in layers )
+					if( l2.name == l.name )
+						l2.name = n;
+				l.name = n;
+				currentLayer = null;
+				setLayer(l);
+				save();
+				reload();
+			}).keypress(function(e) if( e.keyCode == 13 ) JTHIS.blur()));
+		};
+		nrename.enabled = ndel.enabled;
 		n.popup(mouseX, mouseY);
 	}
 
@@ -1585,6 +1614,7 @@ class Level {
 			randomMode : randomMode,
 			paletteMode : paletteMode,
 			paletteModeCursor : paletteModeCursor,
+			smallPalette : smallPalette,
 		};
 		js.Browser.getLocalStorage().setItem(sheetPath, haxe.Serializer.run(state));
 	}
@@ -1906,6 +1936,12 @@ class Level {
 				else
 					s.opts.borderMode = val;
 			}
+		case "small":
+			smallPalette = !smallPalette;
+			savePrefs();
+			palette.toggleClass("small", smallPalette);
+			palette.find(".icon.small").toggleClass("active", smallPalette);
+			return;
 		}
 		save();
 		draw();
@@ -1999,6 +2035,7 @@ class Level {
 		}
 
 		palette = J(J("#paletteContent").html()).appendTo(content);
+		palette.toggleClass("small", smallPalette);
 		var i = lvl.Image.fromCanvas(cast palette.find("canvas.view")[0]);
 		i.setSize(l.stride * (tileSize + 1), l.height * (tileSize + 1));
 		for( n in 0...l.images.length ) {
@@ -2011,13 +2048,14 @@ class Level {
 				i.drawScaled(li, x, y, tileSize, tileSize);
 		}
 		var jsel = palette.find("canvas.select");
-		var jpreview = palette.find(".preview");
+		var jpreview = palette.find(".preview").hide();
 		var ipreview = lvl.Image.fromCanvas(cast jpreview.find("canvas")[0]);
 		var select = lvl.Image.fromCanvas(cast jsel[0]);
 		select.setSize(i.width, i.height);
 
 		palette.find(".icon.random").toggleClass("active",randomMode);
 		palette.find(".icon.paint").toggleClass("active", paintMode);
+		palette.find(".icon.small").toggleClass("active", smallPalette);
 		palette.mousedown(function(e) e.stopPropagation());
 		palette.mouseup(function(e) e.stopPropagation());
 
@@ -2346,7 +2384,7 @@ class Level {
 					default:
 					}
 				} else if( "t_" + tobj.t != paletteMode ) {
-					if( paletteMode != null ) m.addClass("m_create").addClass("c_"+paletteMode.substr(2));
+					if( paletteMode == null ) m.addClass("m_tile") else m.addClass("m_create").addClass("c_"+paletteMode.substr(2));
 				} else {
 					m.addClass("m_"+paletteMode.substr(2)).addClass("m_exists");
 					switch( tobj.t ) {

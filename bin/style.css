@@ -393,7 +393,7 @@ div#menu ul.sheets li.active {
 	height : 16px;
 	padding : 1px 2px;
 	padding-bottom : 3px;
-	border-bottom : 1px solid #AAA;
+	border-top : 1px solid #AAA;
 }
 #content .level .palette .bar .icon {
 	width : 16px;
@@ -432,6 +432,9 @@ div#menu ul.sheets li.active {
 #content .level .palette .bar .icon.delete {
 	background-image : url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAB3RJTUUH3gYUEAMJ+gyqgAAAABd0RVh0U29mdHdhcmUAR0xEUE5HIHZlciAzLjRxhaThAAAACHRwTkdHTEQzAAAAAEqAKR8AAAAEZ0FNQQAAsY8L/GEFAAAABmJLR0QA/wD/AP+gvaeTAAAA9UlEQVR4nKWTSwrCQAyGsxIVF9raS4iCeCUFi3fxCYJ4FZcKHkBREHTja+tCQW2r/kMzdWhrsfSHbzEzSUgyCVFQJdABK3AHD7AGPVAOsfeUBkNggTewwZGx+c4BI5DxO6fAhI1OwASa8l4ATbBnmxnIqgEG/DAHxYgsdTBl27Fas0zXiKqRZXAmL1AVF22O2PrDWarBPn1xWJDbHC3Kw6ccuc3eiMMFnJVHnaOHoWrHQQIB8n8G2IJb0hLEgHlNNGMEqJPSxLjfKOZEfmNNXiYaJKHEoywkl8lhI4vLOtB3wX4ukyrRky65HX6CK1iSu84Vv/EHvTNdpKPQEisAAAAASUVORK5CYII=");
 }
+#content .level .palette .bar .icon.small {
+	background-image : url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAB3RJTUUH3gcPFR0hp0sGYAAAABd0RVh0U29mdHdhcmUAR0xEUE5HIHZlciAzLjRxhaThAAAACHRwTkdHTEQzAAAAAEqAKR8AAAAEZ0FNQQAAsY8L/GEFAAAABmJLR0QA/wD/AP+gvaeTAAAAJElEQVR4nGP4//8/AyWYIs2jBowaQBsDgOA/MZh2Bgx8GJCDARAx1Ueb40dlAAAAAElFTkSuQmCC");
+}
 #content .level .palette .bar .mode {
 	vertical-align : top;
 	display : inline-block;
@@ -463,6 +466,11 @@ div#menu ul.sheets li.active {
 }
 #content .level .palette .bar .mode .icon {
 	vertical-align : -4px;
+}
+#content .level .palette .bar .mode.m_tile .opt.tile {
+	display : inline-block;
+	zoom : 1;
+	*display : inline;
 }
 #content .level .palette .bar .mode.m_exists .opt.delete {
 	display : inline-block;
@@ -515,6 +523,15 @@ div#menu ul.sheets li.active {
 }
 #content .level .palette .select {
 	position : absolute;
+}
+#content .level .palette.small .content {
+	height : 0px;
+	padding-top : 0px;
+	padding-bottom : 0px;
+	overflow : hidden;
+}
+#content .level .palette.small .content .select {
+	display : none;
 }
 #content .level .menu {
 	background-color : #EEE;
@@ -578,6 +595,10 @@ div#menu ul.sheets li.active {
 }
 #content .level .menu .item .img:hover {
 	border-color : orange;
+}
+#content .level .menu .item.layer input {
+	display : block;
+	width : 80px;
 }
 #content .level .menu .item:hover {
 	background-color : #FFF;

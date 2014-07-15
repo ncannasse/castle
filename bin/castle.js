@@ -164,6 +164,7 @@ var Level = function(model,sheet,index) {
 	this.paintMode = false;
 	this.startPos = null;
 	this.mousePos = { x : 0, y : 0};
+	this.smallPalette = false;
 	this.zoomView = 1.;
 	this.sheet = sheet;
 	this.sheetPath = model.getPath(sheet);
@@ -547,6 +548,8 @@ Level.prototype = {
 			this.randomMode = state.randomMode;
 			this.paletteMode = state.paletteMode;
 			this.paletteModeCursor = state.paletteModeCursor;
+			this.smallPalette = state.smallPalette;
+			if(this.smallPalette == null) this.smallPalette = false;
 		}
 		this.setLayer(layer);
 		this.updateZoom();
@@ -739,8 +742,9 @@ Level.prototype = {
 		var ndel = new nodejs.webkit.MenuItem({ label : "Delete"});
 		var nshow = new nodejs.webkit.MenuItem({ label : "Show Only"});
 		var nshowAll = new nodejs.webkit.MenuItem({ label : "Show All"});
+		var nrename = new nodejs.webkit.MenuItem({ label : "Rename"});
 		var _g1 = 0;
-		var _g11 = [nshow,nshowAll,nclear,ndel];
+		var _g11 = [nshow,nshowAll,nrename,nclear,ndel];
 		while(_g1 < _g11.length) {
 			var m = _g11[_g1];
 			++_g1;
@@ -810,6 +814,44 @@ Level.prototype = {
 			}
 			_g.draw();
 		};
+		nrename.click = function() {
+			l.comp.find("span").remove();
+			l.comp.prepend(new js.JQuery("<input>").val(l.name).focus().blur(function(_) {
+				var n1 = StringTools.trim($(this).val());
+				var _g16 = 0;
+				var _g25 = _g.props.layers;
+				while(_g16 < _g25.length) {
+					var p = _g25[_g16];
+					++_g16;
+					if(p.l == n1) {
+						_g.reload();
+						return;
+					}
+				}
+				var _g17 = 0;
+				var _g26 = _g.props.layers;
+				while(_g17 < _g26.length) {
+					var p1 = _g26[_g17];
+					++_g17;
+					if(p1.l == l.name) p1.l = n1;
+				}
+				var layers1 = Reflect.field(_g.obj,_g.newLayer.name);
+				var _g18 = 0;
+				while(_g18 < layers1.length) {
+					var l22 = layers1[_g18];
+					++_g18;
+					if(l22.name == l.name) l22.name = n1;
+				}
+				l.name = n1;
+				_g.currentLayer = null;
+				_g.setLayer(l);
+				_g.save();
+				_g.reload();
+			}).keypress(function(e) {
+				if(e.keyCode == 13) $(this).blur();
+			}));
+		};
+		nrename.enabled = ndel.enabled;
 		n.popup(mouseX,mouseY);
 	}
 	,onResize: function() {
@@ -2289,7 +2331,7 @@ Level.prototype = {
 	}
 	,savePrefs: function() {
 		var sc = this.content.find(".scroll");
-		var state = { zoomView : this.zoomView, curLayer : this.currentLayer == null?null:this.currentLayer.name, scrollX : sc.scrollLeft(), scrollY : sc.scrollTop(), paintMode : this.paintMode, randomMode : this.randomMode, paletteMode : this.paletteMode, paletteModeCursor : this.paletteModeCursor};
+		var state = { zoomView : this.zoomView, curLayer : this.currentLayer == null?null:this.currentLayer.name, scrollX : sc.scrollLeft(), scrollY : sc.scrollTop(), paintMode : this.paintMode, randomMode : this.randomMode, paletteMode : this.paletteMode, paletteModeCursor : this.paletteModeCursor, smallPalette : this.smallPalette};
 		js.Browser.getLocalStorage().setItem(this.sheetPath,haxe.Serializer.run(state));
 	}
 	,scale: function(s) {
@@ -2843,6 +2885,12 @@ Level.prototype = {
 				if(val == "null") Reflect.deleteField(s6.opts,"borderMode"); else s6.opts.borderMode = val;
 			}
 			break;
+		case "small":
+			this.smallPalette = !this.smallPalette;
+			this.savePrefs();
+			this.palette.toggleClass("small",this.smallPalette);
+			this.palette.find(".icon.small").toggleClass("active",this.smallPalette);
+			return;
 		}
 		this.save();
 		this.draw();
@@ -2985,6 +3033,7 @@ Level.prototype = {
 			$r = new js.JQuery(html);
 			return $r;
 		}(this))).appendTo(this.content);
+		this.palette.toggleClass("small",this.smallPalette);
 		var i = lvl.Image.fromCanvas(this.palette.find("canvas.view")[0]);
 		i.setSize(l.stride * (this.tileSize + 1),l.height * (this.tileSize + 1));
 		var _g11 = 0;
@@ -2997,12 +3046,13 @@ Level.prototype = {
 			if(li.width == this.tileSize && li.height == this.tileSize) i.draw(li,x,y); else i.drawScaled(li,x,y,this.tileSize,this.tileSize);
 		}
 		var jsel = this.palette.find("canvas.select");
-		var jpreview = this.palette.find(".preview");
+		var jpreview = this.palette.find(".preview").hide();
 		var ipreview = lvl.Image.fromCanvas(jpreview.find("canvas")[0]);
 		var select = lvl.Image.fromCanvas(jsel[0]);
 		select.setSize(i.width,i.height);
 		this.palette.find(".icon.random").toggleClass("active",this.randomMode);
 		this.palette.find(".icon.paint").toggleClass("active",this.paintMode);
+		this.palette.find(".icon.small").toggleClass("active",this.smallPalette);
 		this.palette.mousedown(function(e) {
 			e.stopPropagation();
 		});
@@ -3465,7 +3515,7 @@ Level.prototype = {
 					default:
 					}
 				} else if("t_" + cdb._Data.TileMode_Impl_.toString(tobj.t) != this.paletteMode) {
-					if(this.paletteMode != null) m.addClass("m_create").addClass("c_" + HxOverrides.substr(this.paletteMode,2,null));
+					if(this.paletteMode == null) m.addClass("m_tile"); else m.addClass("m_create").addClass("c_" + HxOverrides.substr(this.paletteMode,2,null));
 				} else {
 					m.addClass("m_" + HxOverrides.substr(this.paletteMode,2,null)).addClass("m_exists");
 					var _g29 = tobj.t;

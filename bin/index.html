@@ -148,9 +148,11 @@
 			<div class="preview">
 				<canvas width="64" height="64"/>
 			</div>
+			<div class="content">
+				<canvas class="select"></canvas>
+				<canvas class="view"></canvas>
+			</div>
 			<div class="bar">
-				<div class="icon random" onclick="_.level.paletteOption('random')" title="Random mode"></div>
-				<div class="icon paint" onclick="_.level.paletteOption('paint')" title="Paint mode"></div>
 				<div class="mode">
 					<select name="mode" onchange="_.level.paletteOption('mode',this.value)" title="Change tile mode">
 						<option value="t_tile">tile</option>
@@ -159,6 +161,11 @@
 						<option value="t_object">object</option>
 						<option value="t_group">group</option>
 					</select>
+					<div class="opt tile">
+						<div class="icon random" onclick="_.level.paletteOption('random')" title="Random mode"></div>
+						<div class="icon paint" onclick="_.level.paletteOption('paint')" title="Paint mode"></div>
+						<div class="icon small" onclick="_.level.paletteOption('small')" title="Reduce"></div>
+					</div>
 					<div class="opt create">
 						<div class="icon create" onclick="_.level.paletteOption('toggleMode')" title="Create"></div>
 					</div>
@@ -207,10 +214,6 @@
 					<div class="opt refList">
 					</div>
 				</div>
-			</div>
-			<div class="content">
-				<canvas class="select"></canvas>
-				<canvas class="view"></canvas>
 			</div>
 		</div>
 	</div>
