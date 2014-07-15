@@ -579,7 +579,7 @@ Level.prototype = {
 					if(k == 0 && i >= 0) continue;
 					if(l.images != null) {
 						var i1 = l.images[k];
-						if(i1.getPixel(ix,iy) >>> 24 == 0) continue;
+						if(i1.getPixel(ix + (i1.width - this.tileSize >> 1),iy + (i1.height - this.tileSize)) >>> 24 == 0) continue;
 					}
 					return { k : k, layer : l, index : idx};
 				case 1:
@@ -602,7 +602,7 @@ Level.prototype = {
 							if(k1 != null) {
 								if(l.images != null) {
 									var i3 = l.images[k1];
-									if(i3.getPixel(ix,iy) >>> 24 == 0) continue;
+									if(i3.getPixel(ix + (i3.width - this.tileSize >> 1),iy + (i3.height - this.tileSize)) >>> 24 == 0) continue;
 								}
 								return { k : k1, layer : l, index : i2};
 							}
@@ -1108,62 +1108,65 @@ Level.prototype = {
 				case 1:
 					var objs1 = _g7[3];
 					var idCol = _g7[2];
-					var l3 = _g3.currentLayer;
-					var fc = l3.floatCoord;
-					var px;
-					if(fc) px = _g3.curPos.xf; else px = _g3.curPos.x;
-					var py;
-					if(fc) py = _g3.curPos.yf; else py = _g3.curPos.y;
-					var w = 0.;
-					var h = 0.;
-					if(l3.hasSize) {
-						if(_g3.startPos == null) return;
-						var sx;
-						if(fc) sx = _g3.startPos.xf; else sx = _g3.startPos.x;
-						var sy;
-						if(fc) sy = _g3.startPos.yf; else sy = _g3.startPos.y;
-						w = px - sx;
-						h = py - sy;
-						px = sx;
-						py = sy;
-						if(w < 0.5) if(fc) w = 0.5; else w = 1;
-						if(h < 0.5) if(fc) h = 0.5; else h = 1;
-					}
-					var _g27 = 0;
-					var _g16 = objs1.length;
-					while(_g27 < _g16) {
-						var i6 = _g27++;
-						var o = objs1[i6];
-						if(o.x == px && o.y == py && w <= 1 && h <= 1) {
-							_g3.editProps(l3,i6);
-							_g3.setCursor();
-							return;
+					if(_g3.currentLayer.visible && _g3.curPos.x >= 0 && _g3.curPos.y >= 0) {
+						var l3 = _g3.currentLayer;
+						var fc = l3.floatCoord;
+						var px;
+						if(fc) px = _g3.curPos.xf; else px = _g3.curPos.x;
+						var py;
+						if(fc) py = _g3.curPos.yf; else py = _g3.curPos.y;
+						var w = 0.;
+						var h = 0.;
+						if(l3.hasSize) {
+							if(_g3.startPos == null) return;
+							var sx;
+							if(fc) sx = _g3.startPos.xf; else sx = _g3.startPos.x;
+							var sy;
+							if(fc) sy = _g3.startPos.yf; else sy = _g3.startPos.y;
+							w = px - sx;
+							h = py - sy;
+							px = sx;
+							py = sy;
+							if(w < 0.5) if(fc) w = 0.5; else w = 1;
+							if(h < 0.5) if(fc) h = 0.5; else h = 1;
 						}
+						var _g27 = 0;
+						var _g16 = objs1.length;
+						while(_g27 < _g16) {
+							var i6 = _g27++;
+							var o = objs1[i6];
+							if(o.x == px && o.y == py && w <= 1 && h <= 1) {
+								_g3.editProps(l3,i6);
+								_g3.setCursor();
+								return;
+							}
+						}
+						var o1 = { x : px, y : py};
+						objs1.push(o1);
+						if(idCol != null) o1[idCol] = l3.indexToId[_g3.currentLayer.current];
+						var _g17 = 0;
+						var _g28 = l3.baseSheet.columns;
+						while(_g17 < _g28.length) {
+							var c2 = _g28[_g17];
+							++_g17;
+							if(c2.opt || c2.name == "x" || c2.name == "y" || c2.name == idCol) continue;
+							var v = _g3.model.getDefault(c2);
+							if(v != null) o1[c2.name] = v;
+						}
+						if(l3.hasSize) {
+							o1.width = w;
+							o1.height = h;
+							_g3.setCursor();
+						}
+						objs1.sort(function(o11,o2) {
+							var r = Reflect.compare(o11.y,o2.y);
+							if(r == 0) return Reflect.compare(o11.x,o2.x); else return r;
+						});
+						if(_g3.hasProps(l3,true)) _g3.editProps(l3,Lambda.indexOf(objs1,o1));
+						_g3.save();
+						_g3.draw();
+					} else {
 					}
-					var o1 = { x : px, y : py};
-					objs1.push(o1);
-					if(idCol != null) o1[idCol] = l3.indexToId[_g3.currentLayer.current];
-					var _g17 = 0;
-					var _g28 = l3.baseSheet.columns;
-					while(_g17 < _g28.length) {
-						var c2 = _g28[_g17];
-						++_g17;
-						if(c2.opt || c2.name == "x" || c2.name == "y" || c2.name == idCol) continue;
-						var v = _g3.model.getDefault(c2);
-						if(v != null) o1[c2.name] = v;
-					}
-					if(l3.hasSize) {
-						o1.width = w;
-						o1.height = h;
-						_g3.setCursor();
-					}
-					objs1.sort(function(o11,o2) {
-						var r = Reflect.compare(o11.y,o2.y);
-						if(r == 0) return Reflect.compare(o11.x,o2.x); else return r;
-					});
-					if(_g3.hasProps(l3,true)) _g3.editProps(l3,Lambda.indexOf(objs1,o1));
-					_g3.save();
-					_g3.draw();
 					break;
 				default:
 				}
@@ -1708,19 +1711,72 @@ Level.prototype = {
 		case 79:
 			if(this.palette != null && l.tileProps != null) {
 				var mode = "object";
+				var found = false;
 				var _g11 = 0;
 				var _g2 = l.tileProps.sets;
 				while(_g11 < _g2.length) {
 					var t = _g2[_g11];
 					++_g11;
 					if(t.x + t.y * l.stride == l.current && t.t == mode) {
+						found = true;
 						HxOverrides.remove(l.tileProps.sets,t);
-						this.setCursor();
-						return;
+						break;
 					}
 				}
-				l.tileProps.sets.push({ x : l.current % l.stride, y : l.current / l.stride | 0, w : l.currentWidth, h : l.currentHeight, t : mode, opts : { }});
+				if(!found) {
+					l.tileProps.sets.push({ x : l.current % l.stride, y : l.current / l.stride | 0, w : l.currentWidth, h : l.currentHeight, t : mode, opts : { }});
+					var _g12 = 0;
+					var _g21 = this.layers;
+					while(_g12 < _g21.length) {
+						var l2 = _g21[_g12];
+						++_g12;
+						if(l2.tileProps == l.tileProps) {
+							var _g3 = l2.data;
+							switch(_g3[1]) {
+							case 3:
+								var insts = _g3[3];
+								var found1 = [];
+								var _g4 = 0;
+								while(_g4 < insts.length) {
+									var i1 = insts[_g4];
+									++_g4;
+									if(i1.o == l.current) found1.push({ x : i1.x, y : i1.y, i : []}); else {
+										var d = i1.o - l.current;
+										var dx1 = d % l.stride;
+										var dy1 = d / l.stride | 0;
+										var _g5 = 0;
+										while(_g5 < found1.length) {
+											var f = found1[_g5];
+											++_g5;
+											if(f.x == i1.x - dx1 && f.y == i1.y - dy1) f.i.push(i1);
+										}
+									}
+								}
+								var count = l.currentWidth * l.currentHeight - 1;
+								var _g41 = 0;
+								while(_g41 < found1.length) {
+									var f1 = found1[_g41];
+									++_g41;
+									if(f1.i.length == count) {
+										var _g51 = 0;
+										var _g6 = f1.i;
+										while(_g51 < _g6.length) {
+											var i2 = _g6[_g51];
+											++_g51;
+											l2.dirty = true;
+											HxOverrides.remove(insts,i2);
+										}
+									}
+								}
+								break;
+							default:
+							}
+						}
+					}
+				}
 				this.setCursor();
+				this.save();
+				this.draw();
 			}
 			break;
 		case 82:
@@ -1729,36 +1785,36 @@ Level.prototype = {
 		case 37:
 			e.preventDefault();
 			if(l.current % l.stride > 0) {
-				var _g12 = l;
-				var _g21 = _g12.current;
-				_g12.set_current(_g21 - 1);
-				_g21;
+				var _g13 = l;
+				var _g22 = _g13.current;
+				_g13.set_current(_g22 - 1);
+				_g22;
 				this.setCursor();
 			}
 			break;
 		case 39:
 			e.preventDefault();
 			if(l.current % l.stride < l.stride - 1) {
-				var _g13 = l;
-				var _g22 = _g13.current;
-				_g13.set_current(_g22 + 1);
-				_g22;
+				var _g14 = l;
+				var _g23 = _g14.current;
+				_g14.set_current(_g23 + 1);
+				_g23;
 				this.setCursor();
 			}
 			break;
 		case 40:
 			e.preventDefault();
 			if(l.current + l.stride < l.images.length) {
-				var _g14 = l;
-				_g14.set_current(_g14.current + l.stride);
+				var _g15 = l;
+				_g15.set_current(_g15.current + l.stride);
 				this.setCursor();
 			}
 			break;
 		case 38:
 			e.preventDefault();
 			if(l.current >= l.stride) {
-				var _g15 = l;
-				_g15.set_current(_g15.current - l.stride);
+				var _g16 = l;
+				_g16.set_current(_g16.current - l.stride);
 				this.setCursor();
 			}
 			break;
@@ -1775,8 +1831,8 @@ Level.prototype = {
 		default:
 		}
 		if(this.curPos == null) return;
-		var _g3 = e.keyCode;
-		switch(_g3) {
+		var _g7 = e.keyCode;
+		switch(_g7) {
 		case 80:
 			this.paint(this.curPos.x,this.curPos.y);
 			break;
@@ -1789,10 +1845,10 @@ Level.prototype = {
 			var p = this.pick(function(l1) {
 				return (function($this) {
 					var $r;
-					var _g16 = l1.data;
+					var _g17 = l1.data;
 					$r = (function($this) {
 						var $r;
-						switch(_g16[1]) {
+						switch(_g17[1]) {
 						case 1:
 							$r = true;
 							break;
@@ -1806,10 +1862,10 @@ Level.prototype = {
 			});
 			if(p == null) return;
 			{
-				var _g17 = p.layer.data;
-				switch(_g17[1]) {
+				var _g18 = p.layer.data;
+				switch(_g18[1]) {
 				case 1:
-					var objs = _g17[3];
+					var objs = _g18[3];
 					new js.JQuery(".popup").remove();
 					this.editProps(p.layer,p.index);
 					break;
@@ -2941,6 +2997,8 @@ Level.prototype = {
 			if(li.width == this.tileSize && li.height == this.tileSize) i.draw(li,x,y); else i.drawScaled(li,x,y,this.tileSize,this.tileSize);
 		}
 		var jsel = this.palette.find("canvas.select");
+		var jpreview = this.palette.find(".preview");
+		var ipreview = lvl.Image.fromCanvas(jpreview.find("canvas")[0]);
 		var select = lvl.Image.fromCanvas(jsel[0]);
 		select.setSize(i.width,i.height);
 		this.palette.find(".icon.random").toggleClass("active",this.randomMode);
@@ -2951,6 +3009,7 @@ Level.prototype = {
 		this.palette.mouseup(function(e1) {
 			e1.stopPropagation();
 		});
+		var curPreview = -1;
 		var start_x = l.current % l.stride;
 		var start_y = l.current / l.stride | 0;
 		var start_down = false;
@@ -3031,6 +3090,16 @@ Level.prototype = {
 			var x2 = (e3.pageX - o1.left) / (_g.tileSize + 1) | 0;
 			var y2 = (e3.pageY - o1.top) / (_g.tileSize + 1) | 0;
 			_g.content.find(".cursorPosition").text(x2 + "," + y2);
+			var id = x2 + y2 * l.stride;
+			if(id >= l.images.length || l.blanks[id]) {
+				curPreview = -1;
+				jpreview.hide();
+			} else if(curPreview != id) {
+				curPreview = id;
+				jpreview.show();
+				ipreview.fill(-12582848);
+				ipreview.copyFrom(l.images[id],false);
+			}
 			if(!start_down) return;
 			var x01;
 			if(x2 < start_x) x01 = x2; else x01 = start_x;
@@ -3048,6 +3117,8 @@ Level.prototype = {
 		});
 		jsel.mouseleave(function(e4) {
 			_g.content.find(".cursorPosition").text("");
+			curPreview = -1;
+			jpreview.hide();
 		});
 		jsel.mouseup(function(e5) {
 			start_down = false;
@@ -3134,7 +3205,7 @@ Level.prototype = {
 			while(_g14 < _g6) {
 				var i1 = _g14++;
 				if(used[i1]) continue;
-				this.paletteSelect.fillRect(i1 % l.stride * (this.tileSize + 1),(i1 / l.stride | 0) * (this.tileSize + 1),this.tileSize,this.tileSize,-2147483648);
+				this.paletteSelect.fillRect(i1 % l.stride * (this.tileSize + 1),(i1 / l.stride | 0) * (this.tileSize + 1),this.tileSize,this.tileSize,805306368);
 			}
 			var prop = this.getPaletteProp();
 			if(prop == null || !(function($this) {
@@ -3272,7 +3343,7 @@ Level.prototype = {
 							grounds.push(s.opts.name);
 						}
 						if(this.paletteMode != null && this.paletteMode != "t_ground") continue;
-						color = 65280;
+						if(this.paletteMode == null) color = 40960; else color = 65280;
 						break;
 					case "border":
 						if(this.paletteMode != "t_border") continue;
@@ -3280,7 +3351,7 @@ Level.prototype = {
 						break;
 					case "object":
 						if(this.paletteMode != null && this.paletteMode != "t_object") continue;
-						color = 16711680;
+						if(this.paletteMode == null) color = 8388608; else color = 16711680;
 						break;
 					case "group":
 						if(this.paletteMode != "t_group") continue;
@@ -3787,6 +3858,7 @@ Model.prototype = {
 				if(this.curSavedData != null) {
 					this.history.push(this.curSavedData);
 					this.redo = [];
+					if(this.history.length > 200) this.history.shift();
 				}
 				this.curSavedData = sdata;
 			}
@@ -5486,7 +5558,8 @@ Main.prototype = $extend(Model.prototype,{
 				var sheet = this.cursor.s;
 				var posX;
 				if(this.cursor.x < 0) posX = 0; else posX = this.cursor.x;
-				var posY = this.cursor.y;
+				var posY;
+				if(this.cursor.y < 0) posY = 0; else posY = this.cursor.y;
 				var _g13 = 0;
 				var _g23 = this.clipboard.data;
 				while(_g13 < _g23.length) {
@@ -8195,6 +8268,7 @@ $hxClasses["Type"] = Type;
 Type.__name__ = ["Type"];
 Type.getClassName = function(c) {
 	var a = c.__name__;
+	if(a == null) return null;
 	return a.join(".");
 };
 Type.getEnumName = function(e) {
@@ -8243,8 +8317,7 @@ Type["typeof"] = function(v) {
 		if(v == null) return ValueType.TNull;
 		var e = v.__enum__;
 		if(e != null) return ValueType.TEnum(e);
-		var c;
-		if((v instanceof Array) && v.__enum__ == null) c = Array; else c = v.__class__;
+		var c = js.Boot.getClass(v);
 		if(c != null) return ValueType.TClass(c);
 		return ValueType.TObject;
 	case "function":
@@ -10368,7 +10441,13 @@ js.Boot.__trace = function(v,i) {
 	if(typeof(document) != "undefined" && (d = document.getElementById("haxe:trace")) != null) d.innerHTML += js.Boot.__unhtml(msg) + "<br/>"; else if(typeof console != "undefined" && console.log != null) console.log(msg);
 };
 js.Boot.getClass = function(o) {
-	if((o instanceof Array) && o.__enum__ == null) return Array; else return o.__class__;
+	if((o instanceof Array) && o.__enum__ == null) return Array; else {
+		var cl = o.__class__;
+		if(cl != null) return cl;
+		var name = js.Boot.__nativeClassName(o);
+		if(name != null) return js.Boot.__resolveNativeClass(name);
+		return null;
+	}
 };
 js.Boot.__string_rec = function(o,s) {
 	if(o == null) return "null";
@@ -10472,6 +10551,8 @@ js.Boot.__instanceof = function(o,cl) {
 			if(typeof(cl) == "function") {
 				if(o instanceof cl) return true;
 				if(js.Boot.__interfLoop(js.Boot.getClass(o),cl)) return true;
+			} else if(typeof(cl) == "object" && js.Boot.__isNativeObj(cl)) {
+				if(o instanceof cl) return true;
 			}
 		} else return false;
 		if(cl == Class && o.__name__ != null) return true;
@@ -10481,6 +10562,17 @@ js.Boot.__instanceof = function(o,cl) {
 };
 js.Boot.__cast = function(o,t) {
 	if(js.Boot.__instanceof(o,t)) return o; else throw "Cannot cast " + Std.string(o) + " to " + Std.string(t);
+};
+js.Boot.__nativeClassName = function(o) {
+	var name = js.Boot.__toStr.call(o).slice(8,-1);
+	if(name == "Object" || name == "Function" || name == "Math" || name == "JSON") return null;
+	return name;
+};
+js.Boot.__isNativeObj = function(o) {
+	return js.Boot.__nativeClassName(o) != null;
+};
+js.Boot.__resolveNativeClass = function(name) {
+	if(typeof window != "undefined") return window[name]; else return global[name];
 };
 js.Browser = function() { };
 $hxClasses["js.Browser"] = js.Browser;
@@ -11718,6 +11810,7 @@ haxe.Unserializer.BASE64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
 haxe.crypto.Base64.CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 haxe.crypto.Base64.BYTES = haxe.io.Bytes.ofString(haxe.crypto.Base64.CHARS);
 haxe.ds.ObjectMap.count = 0;
+js.Boot.__toStr = {}.toString;
 js.NodeC.UTF8 = "utf8";
 js.NodeC.ASCII = "ascii";
 js.NodeC.BINARY = "binary";

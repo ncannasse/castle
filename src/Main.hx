@@ -225,7 +225,7 @@ class Main extends Model {
 				return;
 			var sheet = cursor.s;
 			var posX = cursor.x < 0 ? 0 : cursor.x;
-			var posY = cursor.y;
+			var posY = cursor.y < 0 ? 0 : cursor.y;
 			for( obj1 in clipboard.data ) {
 				if( posY == sheet.lines.length )
 					super.newLine(sheet);

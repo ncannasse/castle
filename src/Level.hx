@@ -397,7 +397,7 @@ class Level {
 				if( k == 0 && i >= 0 ) continue;
 				if( l.images != null ) {
 					var i = l.images[k];
-					if( i.getPixel(ix, iy) >>> 24 == 0 ) continue;
+					if( i.getPixel(ix + ((i.width - tileSize)>>1), iy + (i.height - tileSize)) >>> 24 == 0 ) continue;
 				}
 				return { k : k, layer : l, index : idx };
 			case Objects(idCol, objs):
@@ -412,7 +412,7 @@ class Level {
 						if( k != null ) {
 							if( l.images != null ) {
 								var i = l.images[k];
-								if( i.getPixel(ix, iy) >>> 24 == 0 ) continue;
+								if( i.getPixel(ix + ((i.width - tileSize)>>1), iy + (i.height - tileSize)) >>> 24 == 0 ) continue;
 							}
 							return { k : k, layer : l, index : i };
 						}
@@ -769,7 +769,7 @@ class Level {
 				return;
 			}
 			switch( currentLayer.data ) {
-			case Objects(idCol, objs):
+			case Objects(idCol, objs) if( currentLayer.visible && curPos.x >= 0 && curPos.y >= 0 ):
 				var l = currentLayer;
 				var fc = l.floatCoord;
 				var px = fc ? curPos.xf : curPos.x;
@@ -1197,14 +1197,49 @@ class Level {
 		case "O".code:
 			if( palette != null && l.tileProps != null ) {
 				var mode = Object;
+				var found = false;
+				
 				for( t in l.tileProps.sets )
 					if( t.x + t.y * l.stride == l.current && t.t == mode ) {
+						found = true;
 						l.tileProps.sets.remove(t);
-						setCursor();
-						return;
+						break;
 					}
-				l.tileProps.sets.push( { x : l.current % l.stride, y : Std.int(l.current / l.stride), w : l.currentWidth, h : l.currentHeight, t : mode, opts : {} } );
+				if( !found ) {
+					l.tileProps.sets.push( { x : l.current % l.stride, y : Std.int(l.current / l.stride), w : l.currentWidth, h : l.currentHeight, t : mode, opts : { } } );
+					
+					// look for existing objects and group them
+					for( l2 in layers )
+						if( l2.tileProps == l.tileProps ) {
+							switch( l2.data ) {
+							case TileInstances(_, insts):
+								var found = [];
+								for( i in insts )
+									if( i.o == l.current )
+										found.push({ x : i.x, y : i.y, i : [] });
+									else {
+										var d = i.o - l.current;
+										var dx = d % l.stride;
+										var dy = Std.int(d / l.stride);
+										for( f in found )
+											if( f.x == i.x - dx && f.y == i.y - dy )
+												f.i.push(i);
+									}
+								var count = l.currentWidth * l.currentHeight - 1;
+								for( f in found )
+									if( f.i.length == count )
+										for( i in f.i ) {
+											l2.dirty = true;
+											insts.remove(i);
+										}
+							default:
+							}
+						}
+				}
+				
 				setCursor();
+				save();
+				draw();
 			}
 		case "R".code:
 			paletteOption("random");
@@ -1976,6 +2011,8 @@ class Level {
 				i.drawScaled(li, x, y, tileSize, tileSize);
 		}
 		var jsel = palette.find("canvas.select");
+		var jpreview = palette.find(".preview");
+		var ipreview = lvl.Image.fromCanvas(cast jpreview.find("canvas")[0]);
 		var select = lvl.Image.fromCanvas(cast jsel[0]);
 		select.setSize(i.width, i.height);
 
@@ -1984,6 +2021,7 @@ class Level {
 		palette.mousedown(function(e) e.stopPropagation());
 		palette.mouseup(function(e) e.stopPropagation());
 
+		var curPreview = -1;
 		var start = { x : l.current % l.stride, y : Std.int(l.current / l.stride), down : false };
 		jsel.mousedown(function(e) {
 			var o = jsel.offset();
@@ -2063,7 +2101,19 @@ class Level {
 			var o = jsel.offset();
 			var x = Std.int((e.pageX - o.left) / (tileSize + 1));
 			var y = Std.int((e.pageY - o.top) / (tileSize + 1));
-			content.find(".cursorPosition").text(x+","+y);
+			content.find(".cursorPosition").text(x + "," + y);
+			
+			var id = x + y * l.stride;
+			if( id >= l.images.length || l.blanks[id] ) {
+				curPreview = -1;
+				jpreview.hide();
+			} else if( curPreview != id ) {
+				curPreview = id;
+				jpreview.show();
+				ipreview.fill(0xFF400040);
+				ipreview.copyFrom(l.images[id], false);
+			}
+			
 			if( !start.down ) return;
 			var x0 = x < start.x ? x : start.x;
 			var y0 = y < start.y ? y : start.y;
@@ -2078,6 +2128,8 @@ class Level {
 
 		jsel.mouseleave(function(e) {
 			content.find(".cursorPosition").text("");
+			curPreview = -1;
+			jpreview.hide();
 		});
 
 		jsel.mouseup(function(e) {
@@ -2130,7 +2182,7 @@ class Level {
 
 			for( i in 0...l.images.length ) {
 				if( used[i] ) continue;
-				paletteSelect.fillRect( (i % l.stride) * (tileSize + 1), Std.int(i / l.stride) * (tileSize + 1), tileSize, tileSize, 0x80000000);
+				paletteSelect.fillRect( (i % l.stride) * (tileSize + 1), Std.int(i / l.stride) * (tileSize + 1), tileSize, tileSize, 0x30000000);
 			}
 
 			var prop = getPaletteProp();
@@ -2215,13 +2267,13 @@ class Level {
 							grounds.push(s.opts.name);
 						}
 						if( paletteMode != null && paletteMode != "t_ground" ) continue;
-						color = 0x00FF00;
+						color = paletteMode == null ? 0x00A000 : 0x00FF00;
 					case Border:
 						if( paletteMode != "t_border" ) continue;
 						color = 0x00FFFF;
 					case Object:
 						if( paletteMode != null && paletteMode != "t_object" ) continue;
-						color = 0xFF0000;
+						color = paletteMode == null ? 0x800000 : 0xFF0000;
 					case Group:
 						if( paletteMode != "t_group" ) continue;
 						color = 0xFFFFFF;

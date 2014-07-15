@@ -378,6 +378,16 @@ div#menu ul.sheets li.active {
 	right : 30px;
 	bottom : 60px;
 }
+#content .level .palette .preview {
+	position : absolute;
+	margin-left : -68px;
+	margin-top : -1px;
+	width : 64px;
+	height : 64px;
+	border : 1px solid #aaa;
+	background-color : black;
+	padding : 1px;
+}
 #content .level .palette .bar {
 	background-color : #CCC;
 	height : 16px;
@@ -656,8 +666,8 @@ div#menu ul.sheets li.active {
 	width : auto;
 }
 #content .level .scroll .popup th {
-	width : 80px;
+	min-width : 80px;
 }
 #content .level .scroll .popup td {
-	width : 160px;
+	min-width : 160px;
 }

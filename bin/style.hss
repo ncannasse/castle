@@ -418,6 +418,18 @@ div#menu {
 		position : fixed;
 		right : 30px;
 		bottom : 60px;
+		
+		.preview {
+			position : absolute;
+			margin-left : -68px;
+			margin-top : -1px;
+			width : 64px;
+			height : 64px;
+			border : 1px solid #aaa;
+			background-color : black;
+			padding : 1px;
+		}
+		
 		.bar {
 			background-color : #CCC;
 			height : 16px;
@@ -687,10 +699,10 @@ div#menu {
 				width : auto;
 			}
 			th {
-				width : 80px;
+				min-width : 80px;
 			}
 			td {
-				width : 160px;
+				min-width : 160px;
 			}
 		}
 
