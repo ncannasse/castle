@@ -1174,9 +1174,20 @@ class Level {
 	}
 
 	public function onKey( e : js.html.KeyboardEvent ) {
-		if( e.ctrlKey && e.keyCode == K.F4 )
-			action("close");
-		if( e.ctrlKey || J("input[type=text]:focus").length > 0 || currentLayer == null ) return;
+		var l = currentLayer;
+
+		if( e.ctrlKey ) {
+			switch( e.keyCode ) {
+			case K.F4:
+				action("close");
+			case K.DELETE:
+				var p = pick();
+				if( p != null )
+					deleteAll(p.layer, p.k, p.index);
+			}
+			return;
+		}
+		if( J("input[type=text]:focus").length > 0 || currentLayer == null ) return;
 
 		J(".popup").remove();
 
@@ -1227,7 +1238,7 @@ class Level {
 			if( palette != null && l.tileProps != null ) {
 				var mode = Object;
 				var found = false;
-				
+
 				for( t in l.tileProps.sets )
 					if( t.x + t.y * l.stride == l.current && t.t == mode ) {
 						found = true;
@@ -1236,7 +1247,7 @@ class Level {
 					}
 				if( !found ) {
 					l.tileProps.sets.push( { x : l.current % l.stride, y : Std.int(l.current / l.stride), w : l.currentWidth, h : l.currentHeight, t : mode, opts : { } } );
-					
+
 					// look for existing objects and group them
 					for( l2 in layers )
 						if( l2.tileProps == l.tileProps ) {
@@ -1265,7 +1276,7 @@ class Level {
 							}
 						}
 				}
-				
+
 				setCursor();
 				save();
 				draw();
@@ -1341,6 +1352,24 @@ class Level {
 		cursor.removeClass("select");
 		cursor.css( { width : "auto", height : "auto" } );
 		setCursor();
+	}
+
+	function deleteAll( l : LayerData, k : Int, index : Int ) {
+		switch( l.data ) {
+		case Layer(data), Tiles(_, data):
+			for( i in 0...width * height )
+				if( data[i] == k + 1 )
+					data[i] = 0;
+		case Objects(_, objs):
+			return;
+		case TileInstances(_, insts):
+			for( i in insts.copy() )
+				if( i.o == k )
+					insts.remove(i);
+		}
+		l.dirty = true;
+		save();
+		draw();
 	}
 
 	function doDelete() {
@@ -2140,7 +2169,7 @@ class Level {
 			var x = Std.int((e.pageX - o.left) / (tileSize + 1));
 			var y = Std.int((e.pageY - o.top) / (tileSize + 1));
 			content.find(".cursorPosition").text(x + "," + y);
-			
+
 			var id = x + y * l.stride;
 			if( id >= l.images.length || l.blanks[id] ) {
 				curPreview = -1;
@@ -2151,7 +2180,7 @@ class Level {
 				ipreview.fill(0xFF400040);
 				ipreview.copyFrom(l.images[id], false);
 			}
-			
+
 			if( !start.down ) return;
 			var x0 = x < start.x ? x : start.x;
 			var y0 = y < start.y ? y : start.y;

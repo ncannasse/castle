@@ -156,6 +156,53 @@ Lambda.find = function(it,f) {
 	}
 	return null;
 };
+var IMap = function() { };
+$hxClasses["IMap"] = IMap;
+IMap.__name__ = ["IMap"];
+IMap.prototype = {
+	__class__: IMap
+};
+var haxe = {};
+haxe.ds = {};
+haxe.ds.StringMap = function() {
+	this.h = { };
+};
+$hxClasses["haxe.ds.StringMap"] = haxe.ds.StringMap;
+haxe.ds.StringMap.__name__ = ["haxe","ds","StringMap"];
+haxe.ds.StringMap.__interfaces__ = [IMap];
+haxe.ds.StringMap.prototype = {
+	set: function(key,value) {
+		this.h["$" + key] = value;
+	}
+	,get: function(key) {
+		return this.h["$" + key];
+	}
+	,exists: function(key) {
+		return this.h.hasOwnProperty("$" + key);
+	}
+	,remove: function(key) {
+		key = "$" + key;
+		if(!this.h.hasOwnProperty(key)) return false;
+		delete(this.h[key]);
+		return true;
+	}
+	,keys: function() {
+		var a = [];
+		for( var key in this.h ) {
+		if(this.h.hasOwnProperty(key)) a.push(key.substr(1));
+		}
+		return HxOverrides.iter(a);
+	}
+	,iterator: function() {
+		return { ref : this.h, it : this.keys(), hasNext : function() {
+			return this.it.hasNext();
+		}, next : function() {
+			var i = this.it.next();
+			return this.ref["$" + i];
+		}};
+	}
+	,__class__: haxe.ds.StringMap
+};
 var Level = function(model,sheet,index) {
 	this.reloading = false;
 	this.paletteModeCursor = 0;
@@ -1693,12 +1740,25 @@ Level.prototype = {
 	}
 	,onKey: function(e) {
 		var _g1 = this;
-		if(e.ctrlKey && e.keyCode == 115) this.action("close");
-		if(e.ctrlKey || new js.JQuery("input[type=text]:focus").length > 0 || this.currentLayer == null) return;
-		new js.JQuery(".popup").remove();
 		var l = this.currentLayer;
-		var _g = e.keyCode;
-		switch(_g) {
+		if(e.ctrlKey) {
+			var _g = e.keyCode;
+			switch(_g) {
+			case 115:
+				this.action("close");
+				break;
+			case 46:
+				var p = this.pick();
+				if(p != null) this.deleteAll(p.layer,p.k,p.index);
+				break;
+			}
+			return;
+		}
+		if(new js.JQuery("input[type=text]:focus").length > 0 || this.currentLayer == null) return;
+		new js.JQuery(".popup").remove();
+		var l1 = this.currentLayer;
+		var _g2 = e.keyCode;
+		switch(_g2) {
 		case 107:
 			this.updateZoom(true);
 			break;
@@ -1715,7 +1775,7 @@ Level.prototype = {
 			break;
 		case 9:
 			var i;
-			i = (HxOverrides.indexOf(this.layers,l,0) + (e.shiftKey?this.layers.length - 1:1)) % this.layers.length;
+			i = (HxOverrides.indexOf(this.layers,l1,0) + (e.shiftKey?this.layers.length - 1:1)) % this.layers.length;
 			this.setLayer(this.layers[i]);
 			e.preventDefault();
 			e.stopPropagation();
@@ -1751,28 +1811,28 @@ Level.prototype = {
 			});
 			break;
 		case 79:
-			if(this.palette != null && l.tileProps != null) {
+			if(this.palette != null && l1.tileProps != null) {
 				var mode = "object";
 				var found = false;
 				var _g11 = 0;
-				var _g2 = l.tileProps.sets;
-				while(_g11 < _g2.length) {
-					var t = _g2[_g11];
+				var _g21 = l1.tileProps.sets;
+				while(_g11 < _g21.length) {
+					var t = _g21[_g11];
 					++_g11;
-					if(t.x + t.y * l.stride == l.current && t.t == mode) {
+					if(t.x + t.y * l1.stride == l1.current && t.t == mode) {
 						found = true;
-						HxOverrides.remove(l.tileProps.sets,t);
+						HxOverrides.remove(l1.tileProps.sets,t);
 						break;
 					}
 				}
 				if(!found) {
-					l.tileProps.sets.push({ x : l.current % l.stride, y : l.current / l.stride | 0, w : l.currentWidth, h : l.currentHeight, t : mode, opts : { }});
+					l1.tileProps.sets.push({ x : l1.current % l1.stride, y : l1.current / l1.stride | 0, w : l1.currentWidth, h : l1.currentHeight, t : mode, opts : { }});
 					var _g12 = 0;
-					var _g21 = this.layers;
-					while(_g12 < _g21.length) {
-						var l2 = _g21[_g12];
+					var _g22 = this.layers;
+					while(_g12 < _g22.length) {
+						var l2 = _g22[_g12];
 						++_g12;
-						if(l2.tileProps == l.tileProps) {
+						if(l2.tileProps == l1.tileProps) {
 							var _g3 = l2.data;
 							switch(_g3[1]) {
 							case 3:
@@ -1782,10 +1842,10 @@ Level.prototype = {
 								while(_g4 < insts.length) {
 									var i1 = insts[_g4];
 									++_g4;
-									if(i1.o == l.current) found1.push({ x : i1.x, y : i1.y, i : []}); else {
-										var d = i1.o - l.current;
-										var dx1 = d % l.stride;
-										var dy1 = d / l.stride | 0;
+									if(i1.o == l1.current) found1.push({ x : i1.x, y : i1.y, i : []}); else {
+										var d = i1.o - l1.current;
+										var dx1 = d % l1.stride;
+										var dy1 = d / l1.stride | 0;
 										var _g5 = 0;
 										while(_g5 < found1.length) {
 											var f = found1[_g5];
@@ -1794,7 +1854,7 @@ Level.prototype = {
 										}
 									}
 								}
-								var count = l.currentWidth * l.currentHeight - 1;
+								var count = l1.currentWidth * l1.currentHeight - 1;
 								var _g41 = 0;
 								while(_g41 < found1.length) {
 									var f1 = found1[_g41];
@@ -1826,37 +1886,37 @@ Level.prototype = {
 			break;
 		case 37:
 			e.preventDefault();
-			if(l.current % l.stride > 0) {
-				var _g13 = l;
-				var _g22 = _g13.current;
-				_g13.set_current(_g22 - 1);
-				_g22;
+			if(l1.current % l1.stride > 0) {
+				var _g13 = l1;
+				var _g23 = _g13.current;
+				_g13.set_current(_g23 - 1);
+				_g23;
 				this.setCursor();
 			}
 			break;
 		case 39:
 			e.preventDefault();
-			if(l.current % l.stride < l.stride - 1) {
-				var _g14 = l;
-				var _g23 = _g14.current;
-				_g14.set_current(_g23 + 1);
-				_g23;
+			if(l1.current % l1.stride < l1.stride - 1) {
+				var _g14 = l1;
+				var _g24 = _g14.current;
+				_g14.set_current(_g24 + 1);
+				_g24;
 				this.setCursor();
 			}
 			break;
 		case 40:
 			e.preventDefault();
-			if(l.current + l.stride < l.images.length) {
-				var _g15 = l;
-				_g15.set_current(_g15.current + l.stride);
+			if(l1.current + l1.stride < l1.images.length) {
+				var _g15 = l1;
+				_g15.set_current(_g15.current + l1.stride);
 				this.setCursor();
 			}
 			break;
 		case 38:
 			e.preventDefault();
-			if(l.current >= l.stride) {
-				var _g16 = l;
-				_g16.set_current(_g16.current - l.stride);
+			if(l1.current >= l1.stride) {
+				var _g16 = l1;
+				_g16.set_current(_g16.current - l1.stride);
 				this.setCursor();
 			}
 			break;
@@ -1884,10 +1944,10 @@ Level.prototype = {
 			this.doDelete();
 			break;
 		case 69:
-			var p = this.pick(function(l1) {
+			var p1 = this.pick(function(l3) {
 				return (function($this) {
 					var $r;
-					var _g17 = l1.data;
+					var _g17 = l3.data;
 					$r = (function($this) {
 						var $r;
 						switch(_g17[1]) {
@@ -1900,16 +1960,16 @@ Level.prototype = {
 						return $r;
 					}($this));
 					return $r;
-				}(this)) && _g1.hasProps(l1);
+				}(this)) && _g1.hasProps(l3);
 			});
-			if(p == null) return;
+			if(p1 == null) return;
 			{
-				var _g18 = p.layer.data;
+				var _g18 = p1.layer.data;
 				switch(_g18[1]) {
 				case 1:
 					var objs = _g18[3];
 					new js.JQuery(".popup").remove();
-					this.editProps(p.layer,p.index);
+					this.editProps(p1.layer,p1.index);
 					break;
 				default:
 				}
@@ -1921,9 +1981,9 @@ Level.prototype = {
 				this.clearSelection();
 			}
 			var x;
-			if(l.floatCoord) x = this.curPos.xf; else x = this.curPos.x;
+			if(l1.floatCoord) x = this.curPos.xf; else x = this.curPos.x;
 			var y;
-			if(l.floatCoord) y = this.curPos.yf; else y = this.curPos.y;
+			if(l1.floatCoord) y = this.curPos.yf; else y = this.curPos.y;
 			this.selection = { sx : x, sy : y, x : x, y : y, w : 1, h : 1, down : true};
 			this.cursor.addClass("select");
 			this.setCursor();
@@ -1936,6 +1996,47 @@ Level.prototype = {
 		this.cursor.removeClass("select");
 		this.cursor.css({ width : "auto", height : "auto"});
 		this.setCursor();
+	}
+	,deleteAll: function(l,k,index) {
+		{
+			var _g = l.data;
+			switch(_g[1]) {
+			case 0:
+				var data = _g[2];
+				var _g2 = 0;
+				var _g1 = this.width * this.height;
+				while(_g2 < _g1) {
+					var i = _g2++;
+					if(data[i] == k + 1) data[i] = 0;
+				}
+				break;
+			case 2:
+				var data = _g[3];
+				var _g2 = 0;
+				var _g1 = this.width * this.height;
+				while(_g2 < _g1) {
+					var i = _g2++;
+					if(data[i] == k + 1) data[i] = 0;
+				}
+				break;
+			case 1:
+				var objs = _g[3];
+				return;
+			case 3:
+				var insts = _g[3];
+				var _g11 = 0;
+				var _g21 = insts.slice();
+				while(_g11 < _g21.length) {
+					var i1 = _g21[_g11];
+					++_g11;
+					if(i1.o == k) HxOverrides.remove(insts,i1);
+				}
+				break;
+			}
+		}
+		l.dirty = true;
+		this.save();
+		this.draw();
 	}
 	,doDelete: function() {
 		var _g = this;
@@ -8144,12 +8245,6 @@ Main.prototype = $extend(Model.prototype,{
 	}
 	,__class__: Main
 });
-var IMap = function() { };
-$hxClasses["IMap"] = IMap;
-IMap.__name__ = ["IMap"];
-IMap.prototype = {
-	__class__: IMap
-};
 Math.__name__ = ["Math"];
 var Reflect = function() { };
 $hxClasses["Reflect"] = Reflect;
@@ -8318,7 +8413,6 @@ $hxClasses["Type"] = Type;
 Type.__name__ = ["Type"];
 Type.getClassName = function(c) {
 	var a = c.__name__;
-	if(a == null) return null;
 	return a.join(".");
 };
 Type.getEnumName = function(e) {
@@ -8367,7 +8461,8 @@ Type["typeof"] = function(v) {
 		if(v == null) return ValueType.TNull;
 		var e = v.__enum__;
 		if(e != null) return ValueType.TEnum(e);
-		var c = js.Boot.getClass(v);
+		var c;
+		if((v instanceof Array) && v.__enum__ == null) c = Array; else c = v.__class__;
 		if(c != null) return ValueType.TClass(c);
 		return ValueType.TObject;
 	case "function":
@@ -9325,7 +9420,6 @@ cdb.IndexId.prototype = $extend(cdb.Index.prototype,{
 	}
 	,__class__: cdb.IndexId
 });
-var haxe = {};
 haxe.Json = function() { };
 $hxClasses["haxe.Json"] = haxe.Json;
 haxe.Json.__name__ = ["haxe","Json"];
@@ -10257,7 +10351,6 @@ haxe.crypto.Md5.prototype = {
 	}
 	,__class__: haxe.crypto.Md5
 };
-haxe.ds = {};
 haxe.ds.IntMap = function() {
 	this.h = { };
 };
@@ -10304,45 +10397,6 @@ haxe.ds.ObjectMap.prototype = {
 		return HxOverrides.iter(a);
 	}
 	,__class__: haxe.ds.ObjectMap
-};
-haxe.ds.StringMap = function() {
-	this.h = { };
-};
-$hxClasses["haxe.ds.StringMap"] = haxe.ds.StringMap;
-haxe.ds.StringMap.__name__ = ["haxe","ds","StringMap"];
-haxe.ds.StringMap.__interfaces__ = [IMap];
-haxe.ds.StringMap.prototype = {
-	set: function(key,value) {
-		this.h["$" + key] = value;
-	}
-	,get: function(key) {
-		return this.h["$" + key];
-	}
-	,exists: function(key) {
-		return this.h.hasOwnProperty("$" + key);
-	}
-	,remove: function(key) {
-		key = "$" + key;
-		if(!this.h.hasOwnProperty(key)) return false;
-		delete(this.h[key]);
-		return true;
-	}
-	,keys: function() {
-		var a = [];
-		for( var key in this.h ) {
-		if(this.h.hasOwnProperty(key)) a.push(key.substr(1));
-		}
-		return HxOverrides.iter(a);
-	}
-	,iterator: function() {
-		return { ref : this.h, it : this.keys(), hasNext : function() {
-			return this.it.hasNext();
-		}, next : function() {
-			var i = this.it.next();
-			return this.ref["$" + i];
-		}};
-	}
-	,__class__: haxe.ds.StringMap
 };
 haxe.io.BytesBuffer = function() {
 	this.b = new Array();
@@ -10491,13 +10545,7 @@ js.Boot.__trace = function(v,i) {
 	if(typeof(document) != "undefined" && (d = document.getElementById("haxe:trace")) != null) d.innerHTML += js.Boot.__unhtml(msg) + "<br/>"; else if(typeof console != "undefined" && console.log != null) console.log(msg);
 };
 js.Boot.getClass = function(o) {
-	if((o instanceof Array) && o.__enum__ == null) return Array; else {
-		var cl = o.__class__;
-		if(cl != null) return cl;
-		var name = js.Boot.__nativeClassName(o);
-		if(name != null) return js.Boot.__resolveNativeClass(name);
-		return null;
-	}
+	if((o instanceof Array) && o.__enum__ == null) return Array; else return o.__class__;
 };
 js.Boot.__string_rec = function(o,s) {
 	if(o == null) return "null";
@@ -10601,8 +10649,6 @@ js.Boot.__instanceof = function(o,cl) {
 			if(typeof(cl) == "function") {
 				if(o instanceof cl) return true;
 				if(js.Boot.__interfLoop(js.Boot.getClass(o),cl)) return true;
-			} else if(typeof(cl) == "object" && js.Boot.__isNativeObj(cl)) {
-				if(o instanceof cl) return true;
 			}
 		} else return false;
 		if(cl == Class && o.__name__ != null) return true;
@@ -10612,17 +10658,6 @@ js.Boot.__instanceof = function(o,cl) {
 };
 js.Boot.__cast = function(o,t) {
 	if(js.Boot.__instanceof(o,t)) return o; else throw "Cannot cast " + Std.string(o) + " to " + Std.string(t);
-};
-js.Boot.__nativeClassName = function(o) {
-	var name = js.Boot.__toStr.call(o).slice(8,-1);
-	if(name == "Object" || name == "Function" || name == "Math" || name == "JSON") return null;
-	return name;
-};
-js.Boot.__isNativeObj = function(o) {
-	return js.Boot.__nativeClassName(o) != null;
-};
-js.Boot.__resolveNativeClass = function(name) {
-	if(typeof window != "undefined") return window[name]; else return global[name];
 };
 js.Browser = function() { };
 $hxClasses["js.Browser"] = js.Browser;
@@ -11860,7 +11895,6 @@ haxe.Unserializer.BASE64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
 haxe.crypto.Base64.CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 haxe.crypto.Base64.BYTES = haxe.io.Bytes.ofString(haxe.crypto.Base64.CHARS);
 haxe.ds.ObjectMap.count = 0;
-js.Boot.__toStr = {}.toString;
 js.NodeC.UTF8 = "utf8";
 js.NodeC.ASCII = "ascii";
 js.NodeC.BINARY = "binary";

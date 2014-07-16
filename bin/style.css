@@ -566,7 +566,7 @@ div#menu ul.sheets li.active {
 	display : inline-block;
 	zoom : 1;
 	*display : inline;
-	min-width : 100px;
+	min-width : 80px;
 	text-align : center;
 	cursor : pointer;
 	height : 60px;

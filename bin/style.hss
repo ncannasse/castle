@@ -418,7 +418,7 @@ div#menu {
 		position : fixed;
 		right : 30px;
 		bottom : 60px;
-		
+
 		.preview {
 			position : absolute;
 			margin-left : -68px;
@@ -429,7 +429,7 @@ div#menu {
 			background-color : black;
 			padding : 1px;
 		}
-		
+
 		.bar {
 			background-color : #CCC;
 			height : 16px;
@@ -504,7 +504,7 @@ div#menu {
 			.mode.m_tile .opt.tile {
 				display : inline-block;
 			}
-			
+
 			.mode.m_exists .opt.delete {
 				display : inline-block;
 			}
@@ -555,7 +555,7 @@ div#menu {
 			position : absolute;
 		}
 	}
-	
+
 	.palette.small {
 		.content {
 			height : 0px;
@@ -597,7 +597,7 @@ div#menu {
 		.item {
 			padding : 10px;
 			display : inline-block;
-			min-width : 100px;
+			min-width : 80px;
 			text-align : center;
 			cursor : pointer;
 			height : 60px;
@@ -625,7 +625,7 @@ div#menu {
 				border-color : orange;
 			}
 		}
-		
+
 		.item.layer input {
 			display : block;
 			width : 80px;
