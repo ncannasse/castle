@@ -159,11 +159,13 @@ class LayerData extends LayerGfx {
 					if( v < 0 ) continue;
 					var vx = v % stride;
 					var vy = Std.int(v / stride);
-					v = vx + vy * w;
+					var v2 = vx + vy * w;
 					if( vx >= w || vy >= h || blanks[v] )
-						data[i] = 0;
-					else
-						data[i] = v + 1;
+						v2 = -1;
+					if( v != v2 ) {
+						data[i] = v2 + 1;
+						dirty = true;
+					}
 				}
 			case Objects:
 				var insts = [];
@@ -175,9 +177,12 @@ class LayerData extends LayerGfx {
 					var v = data[p++];
 					var vx = v % stride;
 					var vy = Std.int(v / stride);
-					v = vx + vy * w;
-					if( vx >= w || vy >= h || x >= level.width || y >= level.height )
+					var v2 = vx + vy * w;
+					if( vx >= w || vy >= h || x >= level.width || y >= level.height ) {
+						dirty = true;
 						continue;
+					}
+					if( v != v2 ) dirty = true;
 					insts.push({ x : x, y : y, o : v });
 				}
 				this.data = TileInstances(d, insts);
