@@ -1274,6 +1274,12 @@ class Level {
 			});
 		case "L".code:
 			action("lock", !l.lock);
+			content.find("[name=lock]").prop("checked", l.lock);
+		case "G".code:
+			if( l.hasFloatCoord ) {
+				action("lockGrid", l.floatCoord);
+				content.find("[name=lockGrid]").prop("checked", !l.floatCoord);
+			}
 		case "O".code:
 			if( palette != null && l.tileProps != null ) {
 				var mode = Object;

@@ -1858,6 +1858,13 @@ Level.prototype = {
 			break;
 		case 76:
 			this.action("lock",!l1.lock);
+			this.content.find("[name=lock]").prop("checked",l1.lock);
+			break;
+		case 71:
+			if(l1.hasFloatCoord) {
+				this.action("lockGrid",l1.floatCoord);
+				this.content.find("[name=lockGrid]").prop("checked",!l1.floatCoord);
+			}
 			break;
 		case 79:
 			if(this.palette != null && l1.tileProps != null) {
