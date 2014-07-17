@@ -1,5 +1,5 @@
 (function () { "use strict";
-var $hxClasses = {},$estr = function() { return js.Boot.__string_rec(this,''); };
+var $hxClasses = {};
 function $extend(from, fields) {
 	function Inherit() {} Inherit.prototype = from; var proto = new Inherit();
 	for (var name in fields) proto[name] = fields[name];
@@ -155,6 +155,53 @@ Lambda.find = function(it,f) {
 		if(f(v)) return v;
 	}
 	return null;
+};
+var IMap = function() { };
+$hxClasses["IMap"] = IMap;
+IMap.__name__ = ["IMap"];
+IMap.prototype = {
+	__class__: IMap
+};
+var haxe = {};
+haxe.ds = {};
+haxe.ds.StringMap = function() {
+	this.h = { };
+};
+$hxClasses["haxe.ds.StringMap"] = haxe.ds.StringMap;
+haxe.ds.StringMap.__name__ = ["haxe","ds","StringMap"];
+haxe.ds.StringMap.__interfaces__ = [IMap];
+haxe.ds.StringMap.prototype = {
+	set: function(key,value) {
+		this.h["$" + key] = value;
+	}
+	,get: function(key) {
+		return this.h["$" + key];
+	}
+	,exists: function(key) {
+		return this.h.hasOwnProperty("$" + key);
+	}
+	,remove: function(key) {
+		key = "$" + key;
+		if(!this.h.hasOwnProperty(key)) return false;
+		delete(this.h[key]);
+		return true;
+	}
+	,keys: function() {
+		var a = [];
+		for( var key in this.h ) {
+		if(this.h.hasOwnProperty(key)) a.push(key.substr(1));
+		}
+		return HxOverrides.iter(a);
+	}
+	,iterator: function() {
+		return { ref : this.h, it : this.keys(), hasNext : function() {
+			return this.it.hasNext();
+		}, next : function() {
+			var i = this.it.next();
+			return this.ref["$" + i];
+		}};
+	}
+	,__class__: haxe.ds.StringMap
 };
 var Level = function(model,sheet,index) {
 	this.reloading = false;
@@ -567,7 +614,7 @@ Level.prototype = {
 		var i = this.layers.length - 1;
 		while(i >= 0) {
 			var l = this.layers[i--];
-			if(!l.visible || filter != null && !filter(l)) continue;
+			if(!l.enabled() || filter != null && !filter(l)) continue;
 			var x = this.curPos.xf;
 			var y = this.curPos.yf;
 			var ix = (x - this.curPos.x) * this.tileSize | 0;
@@ -639,8 +686,9 @@ Level.prototype = {
 		}
 		return null;
 	}
-	,action: function(name) {
+	,action: function(name,val) {
 		var _g = this;
+		var l = this.currentLayer;
 		switch(name) {
 		case "close":
 			(js.Boot.__cast(this.model , Main)).closeLevel(this);
@@ -684,7 +732,47 @@ Level.prototype = {
 				}
 			});
 			break;
+		case "lock":
+			l.lock = val;
+			l.comp.toggleClass("locked",l.lock);
+			l.saveState();
+			break;
+		case "lockGrid":
+			l.floatCoord = l.hasFloatCoord && !val;
+			l.saveState();
+			break;
+		case "visible":
+			l.set_visible(val);
+			l.saveState();
+			this.draw();
+			break;
+		case "alpha":
+			l.props.alpha = val / 100;
+			this.model.save(false);
+			this.draw();
+			break;
+		case "size":
+			{
+				var _g2 = l.data;
+				switch(_g2[1]) {
+				case 2:
+					var t1 = _g2[2];
+					var size = val;
+					t1.stride = t1.size * t1.stride / size | 0;
+					t1.size = size;
+					l.dirty = true;
+					this.save();
+					this.reload();
+					break;
+				default:
+				}
+			}
+			break;
+		case "mode":
+			this.setLayerMode(val);
+			break;
 		}
+		new js.JQuery(":focus").blur();
 	}
 	,addNewLayer: function(name) {
 		var _g = this.newLayer.type;
@@ -801,6 +889,7 @@ Level.prototype = {
 				var l2 = _g23[_g14];
 				++_g14;
 				l2.set_visible(l == l2);
+				l2.saveState();
 			}
 			_g.draw();
 		};
@@ -811,6 +900,7 @@ Level.prototype = {
 				var l21 = _g24[_g15];
 				++_g15;
 				l21.set_visible(true);
+				l21.saveState();
 			}
 			_g.draw();
 		};
@@ -893,6 +983,7 @@ Level.prototype = {
 			l[0].comp = td[0];
 			td[0].data("index",index);
 			if(!l[0].visible) td[0].addClass("hidden");
+			if(l[0].lock) td[0].addClass("locked");
 			td[0].mousedown((function(l) {
 				return function(e) {
 					var _g2 = e.which;
@@ -1150,7 +1241,7 @@ Level.prototype = {
 				case 1:
 					var objs1 = _g7[3];
 					var idCol = _g7[2];
-					if(_g3.currentLayer.visible && _g3.curPos.x >= 0 && _g3.curPos.y >= 0) {
+					if(_g3.currentLayer.enabled() && _g3.curPos.x >= 0 && _g3.curPos.y >= 0) {
 						var l3 = _g3.currentLayer;
 						var fc = l3.floatCoord;
 						var px;
@@ -1227,7 +1318,7 @@ Level.prototype = {
 		while(_g < _g1.length) {
 			var l = _g1[_g];
 			++_g;
-			if(!l.visible) continue;
+			if(!l.enabled()) continue;
 			l.dirty = true;
 			var sx = this.selection.x;
 			var sy = this.selection.y;
@@ -1315,7 +1406,7 @@ Level.prototype = {
 		while(_g < _g1.length) {
 			var l = _g1[_g];
 			++_g;
-			if(!l.visible) continue;
+			if(!l.enabled()) continue;
 			var sx = this.selection.x;
 			var sy = this.selection.y;
 			var sw = this.selection.w;
@@ -1344,6 +1435,7 @@ Level.prototype = {
 								var tx = x - ix;
 								var ty = y - iy;
 								if(tx >= 0 && tx < this.width && ty >= 0 && ty < this.height) k = data[tx + ty * this.width]; else k = 0;
+								if(k == 0 && !(x >= sx1 - ix && x < sx1 + sw1 - ix && y >= sy1 - iy && y < sy1 + sh1 - iy)) k = data[x + y * this.width];
 							} else if(x >= sx1 - ix && x < sx1 + sw1 - ix && y >= sy1 - iy && y < sy1 + sh1 - iy) k = 0; else k = data[x + y * this.width];
 							ndata.push(k);
 						}
@@ -1375,6 +1467,7 @@ Level.prototype = {
 								var tx = x - ix;
 								var ty = y - iy;
 								if(tx >= 0 && tx < this.width && ty >= 0 && ty < this.height) k = data[tx + ty * this.width]; else k = 0;
+								if(k == 0 && !(x >= sx1 - ix && x < sx1 + sw1 - ix && y >= sy1 - iy && y < sy1 + sh1 - iy)) k = data[x + y * this.width];
 							} else if(x >= sx1 - ix && x < sx1 + sw1 - ix && y >= sy1 - iy && y < sy1 + sh1 - iy) k = 0; else k = data[x + y * this.width];
 							ndata.push(k);
 						}
@@ -1605,7 +1698,7 @@ Level.prototype = {
 	}
 	,paint: function(x,y) {
 		var l = this.currentLayer;
-		if(!l.visible) return;
+		if(!l.enabled()) return;
 		{
 			var _g = l.data;
 			switch(_g[1]) {
@@ -1762,6 +1855,9 @@ Level.prototype = {
 				_g1.mousePos.y = e1.pageY;
 				e1.stopPropagation();
 			});
+			break;
+		case 76:
+			this.action("lock",!l1.lock);
 			break;
 		case 79:
 			if(this.palette != null && l1.tileProps != null) {
@@ -2089,7 +2185,7 @@ Level.prototype = {
 			return;
 		}
 		var l = this.currentLayer;
-		if(!l.visible) return;
+		if(!l.enabled()) return;
 		{
 			var _g = l.data;
 			switch(_g[1]) {
@@ -2577,20 +2673,6 @@ Level.prototype = {
 		this.save();
 		this.draw();
 	}
-	,setLock: function(b) {
-		this.currentLayer.floatCoord = this.currentLayer.hasFloatCoord && !b;
-		this.currentLayer.saveState();
-	}
-	,setVisible: function(b) {
-		this.currentLayer.set_visible(b);
-		this.draw();
-		new js.JQuery(":focus").blur();
-	}
-	,setAlpha: function(v) {
-		this.currentLayer.props.alpha = Std.parseInt(v) / 100;
-		this.model.save(false);
-		this.draw();
-	}
 	,setTileSize: function(value) {
 		this.props.tileSize = this.tileSize = value;
 		var _g = 0;
@@ -2792,22 +2874,6 @@ Level.prototype = {
 		if(mode == "tiles") Reflect.deleteField(this.currentLayer.props,"mode");
 		this.save();
 		this.reload();
-	}
-	,setSize: function(size) {
-		{
-			var _g = this.currentLayer.data;
-			switch(_g[1]) {
-			case 2:
-				var t = _g[2];
-				t.stride = t.size * t.stride / size | 0;
-				t.size = size;
-				this.currentLayer.dirty = true;
-				this.save();
-				this.reload();
-				break;
-			default:
-			}
-		}
 	}
 	,paletteOption: function(name,val) {
 		var m = cdb._Data.TileMode_Impl_.ofString(this.paletteMode == null?"":HxOverrides.substr(this.paletteMode,2,null));
@@ -3017,7 +3083,8 @@ Level.prototype = {
 		this.savePrefs();
 		this.content.find("[name=alpha]").val(Std.string(l.props.alpha * 100 | 0));
 		this.content.find("[name=visible]").prop("checked",l.visible);
-		this.content.find("[name=lock]").prop("checked",!l.floatCoord).closest(".item").css({ display : l.hasFloatCoord?"":"none"});
+		this.content.find("[name=lock]").prop("checked",l.lock);
+		this.content.find("[name=lockGrid]").prop("checked",!l.floatCoord).closest(".item").css({ display : l.hasFloatCoord?"":"none"});
 		this.content.find("[name=mode]").val("" + (l.props.mode != null?l.props.mode:"tiles"));
 		this.content.find("[name=color]").spectrum("set",this.toColor(l.props.color)).closest(".item").css({ display : l.idToIndex == null && !(function($this) {
 			var $r;
@@ -8198,12 +8265,6 @@ Main.prototype = $extend(Model.prototype,{
 	}
 	,__class__: Main
 });
-var IMap = function() { };
-$hxClasses["IMap"] = IMap;
-IMap.__name__ = ["IMap"];
-IMap.prototype = {
-	__class__: IMap
-};
 Math.__name__ = ["Math"];
 var Reflect = function() { };
 $hxClasses["Reflect"] = Reflect;
@@ -8352,27 +8413,20 @@ Sys.time = function() {
 };
 var ValueType = $hxClasses["ValueType"] = { __ename__ : ["ValueType"], __constructs__ : ["TNull","TInt","TFloat","TBool","TObject","TFunction","TClass","TEnum","TUnknown"] };
 ValueType.TNull = ["TNull",0];
-ValueType.TNull.toString = $estr;
 ValueType.TNull.__enum__ = ValueType;
 ValueType.TInt = ["TInt",1];
-ValueType.TInt.toString = $estr;
 ValueType.TInt.__enum__ = ValueType;
 ValueType.TFloat = ["TFloat",2];
-ValueType.TFloat.toString = $estr;
 ValueType.TFloat.__enum__ = ValueType;
 ValueType.TBool = ["TBool",3];
-ValueType.TBool.toString = $estr;
 ValueType.TBool.__enum__ = ValueType;
 ValueType.TObject = ["TObject",4];
-ValueType.TObject.toString = $estr;
 ValueType.TObject.__enum__ = ValueType;
 ValueType.TFunction = ["TFunction",5];
-ValueType.TFunction.toString = $estr;
 ValueType.TFunction.__enum__ = ValueType;
-ValueType.TClass = function(c) { var $x = ["TClass",6,c]; $x.__enum__ = ValueType; $x.toString = $estr; return $x; };
-ValueType.TEnum = function(e) { var $x = ["TEnum",7,e]; $x.__enum__ = ValueType; $x.toString = $estr; return $x; };
+ValueType.TClass = function(c) { var $x = ["TClass",6,c]; $x.__enum__ = ValueType; return $x; };
+ValueType.TEnum = function(e) { var $x = ["TEnum",7,e]; $x.__enum__ = ValueType; return $x; };
 ValueType.TUnknown = ["TUnknown",8];
-ValueType.TUnknown.toString = $estr;
 ValueType.TUnknown.__enum__ = ValueType;
 var Type = function() { };
 $hxClasses["Type"] = Type;
@@ -8460,45 +8514,33 @@ Type.enumEq = function(a,b) {
 var cdb = {};
 cdb.ColumnType = $hxClasses["cdb.ColumnType"] = { __ename__ : ["cdb","ColumnType"], __constructs__ : ["TId","TString","TBool","TInt","TFloat","TEnum","TRef","TImage","TList","TCustom","TFlags","TColor","TLayer","TFile","TTilePos","TTileLayer","TDynamic"] };
 cdb.ColumnType.TId = ["TId",0];
-cdb.ColumnType.TId.toString = $estr;
 cdb.ColumnType.TId.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TString = ["TString",1];
-cdb.ColumnType.TString.toString = $estr;
 cdb.ColumnType.TString.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TBool = ["TBool",2];
-cdb.ColumnType.TBool.toString = $estr;
 cdb.ColumnType.TBool.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TInt = ["TInt",3];
-cdb.ColumnType.TInt.toString = $estr;
 cdb.ColumnType.TInt.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TFloat = ["TFloat",4];
-cdb.ColumnType.TFloat.toString = $estr;
 cdb.ColumnType.TFloat.__enum__ = cdb.ColumnType;
-cdb.ColumnType.TEnum = function(values) { var $x = ["TEnum",5,values]; $x.__enum__ = cdb.ColumnType; $x.toString = $estr; return $x; };
-cdb.ColumnType.TRef = function(sheet) { var $x = ["TRef",6,sheet]; $x.__enum__ = cdb.ColumnType; $x.toString = $estr; return $x; };
+cdb.ColumnType.TEnum = function(values) { var $x = ["TEnum",5,values]; $x.__enum__ = cdb.ColumnType; return $x; };
+cdb.ColumnType.TRef = function(sheet) { var $x = ["TRef",6,sheet]; $x.__enum__ = cdb.ColumnType; return $x; };
 cdb.ColumnType.TImage = ["TImage",7];
-cdb.ColumnType.TImage.toString = $estr;
 cdb.ColumnType.TImage.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TList = ["TList",8];
-cdb.ColumnType.TList.toString = $estr;
 cdb.ColumnType.TList.__enum__ = cdb.ColumnType;
-cdb.ColumnType.TCustom = function(name) { var $x = ["TCustom",9,name]; $x.__enum__ = cdb.ColumnType; $x.toString = $estr; return $x; };
-cdb.ColumnType.TFlags = function(values) { var $x = ["TFlags",10,values]; $x.__enum__ = cdb.ColumnType; $x.toString = $estr; return $x; };
+cdb.ColumnType.TCustom = function(name) { var $x = ["TCustom",9,name]; $x.__enum__ = cdb.ColumnType; return $x; };
+cdb.ColumnType.TFlags = function(values) { var $x = ["TFlags",10,values]; $x.__enum__ = cdb.ColumnType; return $x; };
 cdb.ColumnType.TColor = ["TColor",11];
-cdb.ColumnType.TColor.toString = $estr;
 cdb.ColumnType.TColor.__enum__ = cdb.ColumnType;
-cdb.ColumnType.TLayer = function(type) { var $x = ["TLayer",12,type]; $x.__enum__ = cdb.ColumnType; $x.toString = $estr; return $x; };
+cdb.ColumnType.TLayer = function(type) { var $x = ["TLayer",12,type]; $x.__enum__ = cdb.ColumnType; return $x; };
 cdb.ColumnType.TFile = ["TFile",13];
-cdb.ColumnType.TFile.toString = $estr;
 cdb.ColumnType.TFile.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TTilePos = ["TTilePos",14];
-cdb.ColumnType.TTilePos.toString = $estr;
 cdb.ColumnType.TTilePos.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TTileLayer = ["TTileLayer",15];
-cdb.ColumnType.TTileLayer.toString = $estr;
 cdb.ColumnType.TTileLayer.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TDynamic = ["TDynamic",16];
-cdb.ColumnType.TDynamic.toString = $estr;
 cdb.ColumnType.TDynamic.__enum__ = cdb.ColumnType;
 cdb._Data = {};
 cdb._Data.TileMode_Impl_ = function() { };
@@ -9398,7 +9440,6 @@ cdb.IndexId.prototype = $extend(cdb.Index.prototype,{
 	}
 	,__class__: cdb.IndexId
 });
-var haxe = {};
 haxe.Json = function() { };
 $hxClasses["haxe.Json"] = haxe.Json;
 haxe.Json.__name__ = ["haxe","Json"];
@@ -10330,7 +10371,6 @@ haxe.crypto.Md5.prototype = {
 	}
 	,__class__: haxe.crypto.Md5
 };
-haxe.ds = {};
 haxe.ds.IntMap = function() {
 	this.h = { };
 };
@@ -10377,45 +10417,6 @@ haxe.ds.ObjectMap.prototype = {
 		return HxOverrides.iter(a);
 	}
 	,__class__: haxe.ds.ObjectMap
-};
-haxe.ds.StringMap = function() {
-	this.h = { };
-};
-$hxClasses["haxe.ds.StringMap"] = haxe.ds.StringMap;
-haxe.ds.StringMap.__name__ = ["haxe","ds","StringMap"];
-haxe.ds.StringMap.__interfaces__ = [IMap];
-haxe.ds.StringMap.prototype = {
-	set: function(key,value) {
-		this.h["$" + key] = value;
-	}
-	,get: function(key) {
-		return this.h["$" + key];
-	}
-	,exists: function(key) {
-		return this.h.hasOwnProperty("$" + key);
-	}
-	,remove: function(key) {
-		key = "$" + key;
-		if(!this.h.hasOwnProperty(key)) return false;
-		delete(this.h[key]);
-		return true;
-	}
-	,keys: function() {
-		var a = [];
-		for( var key in this.h ) {
-		if(this.h.hasOwnProperty(key)) a.push(key.substr(1));
-		}
-		return HxOverrides.iter(a);
-	}
-	,iterator: function() {
-		return { ref : this.h, it : this.keys(), hasNext : function() {
-			return this.it.hasNext();
-		}, next : function() {
-			var i = this.it.next();
-			return this.ref["$" + i];
-		}};
-	}
-	,__class__: haxe.ds.StringMap
 };
 haxe.io.BytesBuffer = function() {
 	this.b = new Array();
@@ -10503,15 +10504,12 @@ haxe.io.Eof.prototype = {
 };
 haxe.io.Error = $hxClasses["haxe.io.Error"] = { __ename__ : ["haxe","io","Error"], __constructs__ : ["Blocked","Overflow","OutsideBounds","Custom"] };
 haxe.io.Error.Blocked = ["Blocked",0];
-haxe.io.Error.Blocked.toString = $estr;
 haxe.io.Error.Blocked.__enum__ = haxe.io.Error;
 haxe.io.Error.Overflow = ["Overflow",1];
-haxe.io.Error.Overflow.toString = $estr;
 haxe.io.Error.Overflow.__enum__ = haxe.io.Error;
 haxe.io.Error.OutsideBounds = ["OutsideBounds",2];
-haxe.io.Error.OutsideBounds.toString = $estr;
 haxe.io.Error.OutsideBounds.__enum__ = haxe.io.Error;
-haxe.io.Error.Custom = function(e) { var $x = ["Custom",3,e]; $x.__enum__ = haxe.io.Error; $x.toString = $estr; return $x; };
+haxe.io.Error.Custom = function(e) { var $x = ["Custom",3,e]; $x.__enum__ = haxe.io.Error; return $x; };
 haxe.io.Path = function(path) {
 	switch(path) {
 	case ".":case "..":
@@ -11219,10 +11217,10 @@ lvl.Image3D.prototype = $extend(lvl.Image.prototype,{
 	,__class__: lvl.Image3D
 });
 lvl.LayerInnerData = $hxClasses["lvl.LayerInnerData"] = { __ename__ : ["lvl","LayerInnerData"], __constructs__ : ["Layer","Objects","Tiles","TileInstances"] };
-lvl.LayerInnerData.Layer = function(a) { var $x = ["Layer",0,a]; $x.__enum__ = lvl.LayerInnerData; $x.toString = $estr; return $x; };
-lvl.LayerInnerData.Objects = function(idCol,objs) { var $x = ["Objects",1,idCol,objs]; $x.__enum__ = lvl.LayerInnerData; $x.toString = $estr; return $x; };
-lvl.LayerInnerData.Tiles = function(t,data) { var $x = ["Tiles",2,t,data]; $x.__enum__ = lvl.LayerInnerData; $x.toString = $estr; return $x; };
-lvl.LayerInnerData.TileInstances = function(t,insts) { var $x = ["TileInstances",3,t,insts]; $x.__enum__ = lvl.LayerInnerData; $x.toString = $estr; return $x; };
+lvl.LayerInnerData.Layer = function(a) { var $x = ["Layer",0,a]; $x.__enum__ = lvl.LayerInnerData; return $x; };
+lvl.LayerInnerData.Objects = function(idCol,objs) { var $x = ["Objects",1,idCol,objs]; $x.__enum__ = lvl.LayerInnerData; return $x; };
+lvl.LayerInnerData.Tiles = function(t,data) { var $x = ["Tiles",2,t,data]; $x.__enum__ = lvl.LayerInnerData; return $x; };
+lvl.LayerInnerData.TileInstances = function(t,insts) { var $x = ["TileInstances",3,t,insts]; $x.__enum__ = lvl.LayerInnerData; return $x; };
 lvl.LayerGfx = function(level) {
 	this.height = 0;
 	this.stride = 0;
@@ -11355,6 +11353,7 @@ lvl.LayerData = function(level,name,p,target) {
 	this.currentHeight = 1;
 	this.currentWidth = 1;
 	this.current = 0;
+	this.lock = false;
 	this.visible = true;
 	lvl.LayerGfx.call(this,level);
 	this.name = name;
@@ -11393,6 +11392,9 @@ lvl.LayerData.prototype = $extend(lvl.LayerGfx.prototype,{
 		this.fromSheet(sheet,this.props.color);
 		this.loadState();
 	}
+	,enabled: function() {
+		return this.visible && !this.lock;
+	}
 	,loadState: function() {
 		var state;
 		try {
@@ -11402,16 +11404,17 @@ lvl.LayerData.prototype = $extend(lvl.LayerGfx.prototype,{
 		}
 		if(state != null) {
 			this.set_visible(state.visible);
-			this.floatCoord = this.hasFloatCoord && !state.lock;
+			this.lock = !(!state.lock);
+			this.floatCoord = this.hasFloatCoord && !state.lockGrid;
 			if(state.current < (this.images != null?this.images.length:this.names.length)) {
 				this.set_current(state.current);
 				if(this.current % this.stride + state.cw <= this.stride && (this.current / this.stride | 0) + state.ch <= this.height) {
 					this.currentWidth = state.cw;
 					this.currentHeight = state.ch;
-					this.saveState();
 				}
 			}
 		}
+		this.stateLoaded = true;
 	}
 	,setLayerData: function(val) {
 		if(val == null || val == "") this.data = lvl.LayerInnerData.Layer((function($this) {
@@ -11591,7 +11594,6 @@ lvl.LayerData.prototype = $extend(lvl.LayerGfx.prototype,{
 	,set_visible: function(v) {
 		this.visible = v;
 		if(this.comp != null) this.comp.toggleClass("hidden",!this.visible);
-		this.saveState();
 		return v;
 	}
 	,set_current: function(v) {
@@ -11612,6 +11614,7 @@ lvl.LayerData.prototype = $extend(lvl.LayerGfx.prototype,{
 	}
 	,saveState: function(sync) {
 		if(sync == null) sync = true;
+		if(!this.stateLoaded) return;
 		if(sync && this.data != null) {
 			var _g = this.data;
 			switch(_g[1]) {
@@ -11668,7 +11671,7 @@ lvl.LayerData.prototype = $extend(lvl.LayerGfx.prototype,{
 			default:
 			}
 		}
-		var s = { current : this.current, visible : this.visible, lock : this.hasFloatCoord && !this.floatCoord, cw : this.currentWidth, ch : this.currentHeight};
+		var s = { current : this.current, visible : this.visible, lock : this.lock, lockGrid : this.hasFloatCoord && !this.floatCoord, cw : this.currentWidth, ch : this.currentHeight};
 		js.Browser.getLocalStorage().setItem(this.level.sheetPath + ":" + this.name,haxe.Serializer.run(s));
 	}
 	,save: function() {

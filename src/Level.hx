@@ -389,7 +389,7 @@ class Level {
 		var i = layers.length - 1;
 		while( i >= 0 ) {
 			var l = layers[i--];
-			if( !l.visible || (filter != null && !filter(l)) ) continue;
+			if( !l.enabled() || (filter != null && !filter(l)) ) continue;
 			var x = curPos.xf;
 			var y = curPos.yf;
 			var ix = Std.int((x - curPos.x) * tileSize);
@@ -446,7 +446,8 @@ class Level {
 		return null;
 	}
 
-	@:keep function action(name) {
+	@:keep function action(name, ?val:Dynamic) {
+		var l = currentLayer;
 		switch( name ) {
 		case "close":
 			cast(model, Main).closeLevel(this);
@@ -483,8 +484,38 @@ class Level {
 				default:
 				}
 			});
+		case 'lock':
+			l.lock = val;
+			l.comp.toggleClass("locked", l.lock);
+			l.saveState();
+		case 'lockGrid':
+			l.floatCoord = l.hasFloatCoord && !val;
+			l.saveState();
+		case 'visible':
+			l.visible = val;
+			l.saveState();
+			draw();
+		case 'alpha':
+			l.props.alpha = val / 100;
+			model.save(false);
+			draw();
+		case 'size':
+			switch( l.data ) {
+			case Tiles(t, _):
+				var size : Int = val;
+				t.stride = Std.int(t.size * t.stride / size);
+				t.size = size;
+				l.dirty = true;
+				save();
+				reload();
+			default:
+			}
+		case 'mode':
+			setLayerMode(val);
 		}
+		J(":focus").blur();
 	}
+
 
 	@:keep function addNewLayer( name ) {
 		switch( newLayer.type ) {
@@ -552,13 +583,17 @@ class Level {
 			reload();
 		};
 		nshow.click = function() {
-			for( l2 in layers )
+			for( l2 in layers ) {
 				l2.visible = l == l2;
+				l2.saveState();
+			}
 			draw();
 		};
 		nshowAll.click = function() {
-			for( l2 in layers )
+			for( l2 in layers ) {
 				l2.visible = true;
+				l2.saveState();
+			}
 			draw();
 		};
 		nrename.click = function() {
@@ -627,6 +662,7 @@ class Level {
 			l.comp = td;
 			td.data("index", index);
 			if( !l.visible ) td.addClass("hidden");
+			if( l.lock ) td.addClass("locked");
 			td.mousedown(function(e) {
 				switch( e.which ) {
 				case 1:
@@ -798,7 +834,7 @@ class Level {
 				return;
 			}
 			switch( currentLayer.data ) {
-			case Objects(idCol, objs) if( currentLayer.visible && curPos.x >= 0 && curPos.y >= 0 ):
+			case Objects(idCol, objs) if( currentLayer.enabled() && curPos.x >= 0 && curPos.y >= 0 ):
 				var l = currentLayer;
 				var fc = l.floatCoord;
 				var px = fc ? curPos.xf : curPos.x;
@@ -858,7 +894,7 @@ class Level {
 
 	function deleteSelection() {
 		for( l in layers ) {
-			if( !l.visible ) continue;
+			if( !l.enabled() ) continue;
 			l.dirty = true;
 			var sx = selection.x;
 			var sy = selection.y;
@@ -903,7 +939,7 @@ class Level {
 		var iy = Std.int(dy);
 
 		for( l in layers ) {
-			if( !l.visible ) continue;
+			if( !l.enabled() ) continue;
 			var sx = selection.x;
 			var sy = selection.y;
 			var sw = selection.w;
@@ -928,6 +964,8 @@ class Level {
 								k = data[tx + ty * width];
 							else
 								k = 0;
+							if( k == 0 && !(x >= sx - ix && x < sx + sw - ix && y >= sy - iy && y < sy + sh - iy) )
+								k = data[x + y * width];
 						} else if( x >= sx - ix && x < sx + sw - ix && y >= sy - iy && y < sy + sh - iy )
 							k = 0;
 						else
@@ -1102,7 +1140,7 @@ class Level {
 
 	function paint(x, y) {
 		var l = currentLayer;
-		if( !l.visible ) return;
+		if( !l.enabled() ) return;
 		switch( l.data ) {
 		case Layer(data):
 			var k = data[x + y * width];
@@ -1234,6 +1272,8 @@ class Level {
 				mousePos.y = e.pageY;
 				e.stopPropagation();
 			});
+		case "L".code:
+			action("lock", !l.lock);
 		case "O".code:
 			if( palette != null && l.tileProps != null ) {
 				var mode = Object;
@@ -1446,7 +1486,7 @@ class Level {
 			return;
 		}
 		var l = currentLayer;
-		if( !l.visible ) return;
+		if( !l.enabled() ) return;
 		switch( l.data ) {
 		case Layer(data):
 			if( data[x + y * width] == l.current || l.blanks[l.current] ) return;
@@ -1730,23 +1770,6 @@ class Level {
 		draw();
 	}
 
-	@:keep function setLock(b:Bool) {
-		currentLayer.floatCoord = currentLayer.hasFloatCoord && !b;
-		currentLayer.saveState();
-	}
-
-	@:keep function setVisible(b:Bool) {
-		currentLayer.visible = b;
-		draw();
-		J(":focus").blur();
-	}
-
-	@:keep function setAlpha(v:String) {
-		currentLayer.props.alpha = Std.parseInt(v) / 100;
-		model.save(false);
-		draw();
-	}
-
 	@:keep function setTileSize( value : Int ) {
 		this.props.tileSize = tileSize = value;
 		for( l in layers ) {
@@ -1772,7 +1795,7 @@ class Level {
 		draw();
 	}
 
-	@:keep function setLayerMode( mode : LayerMode ) {
+	function setLayerMode( mode : LayerMode ) {
 		var l = currentLayer;
 		if( l.tileProps == null ) {
 			js.Lib.alert("Choose file first");
@@ -1861,18 +1884,6 @@ class Level {
 		if( mode == Tiles ) Reflect.deleteField(currentLayer.props, "mode");
 		save();
 		reload();
-	}
-
-	@:keep function setSize(size) {
-		switch( currentLayer.data ) {
-		case Tiles(t, _):
-			t.stride = Std.int(t.size * t.stride / size);
-			t.size = size;
-			currentLayer.dirty = true;
-			save();
-			reload();
-		default:
-		}
 	}
 
 	@:keep function paletteOption(name, ?val:String) {
@@ -2035,7 +2046,8 @@ class Level {
 		savePrefs();
 		content.find("[name=alpha]").val(Std.string(Std.int(l.props.alpha * 100)));
 		content.find("[name=visible]").prop("checked", l.visible);
-		content.find("[name=lock]").prop("checked", !l.floatCoord).closest(".item").css( { display : l.hasFloatCoord ? "" : "none" } );
+		content.find("[name=lock]").prop("checked", l.lock);
+		content.find("[name=lockGrid]").prop("checked", !l.floatCoord).closest(".item").css( { display : l.hasFloatCoord ? "" : "none" } );
 		content.find("[name=mode]").val(""+(l.props.mode != null ? l.props.mode : LayerMode.Tiles));
 		(untyped content.find("[name=color]")).spectrum("set", toColor(l.props.color)).closest(".item").css( { display : l.idToIndex == null && !l.data.match(Tiles(_) | TileInstances(_)) ? "" : "none" } );
 		switch( l.data ) {

@@ -232,14 +232,17 @@
 			</div>
 			<div class="submenu layer">
 				<div class="item">
-					<label><input type="checkbox" name="visible" onchange="_.level.setVisible(this.checked)"/> Visible</label>
+					<label><input type="checkbox" name="visible" onchange="_.level.action('visible',this.checked)"/> Visible</label>
 				</div>
 				<div class="item">
-					<input type="range" name="alpha" min="0" max="100" onchange="_.level.setAlpha(this.value)"/> Alpha
+					<label><input type="checkbox" name="lock" onchange="_.level.action('lock',this.checked)"/> Lock</label>
+				</div>
+				<div class="item">
+					<input type="range" name="alpha" min="0" max="100" onchange="_.level.action('alpha',parseInt(this.value))"/> Alpha
 				</div>
 				<div class="item">
 					<label>Mode:
-						<select name="mode" onchange="_.level.setLayerMode(this.value)">
+						<select name="mode" onchange="_.level.action('mode',this.value)">
 							<option value="tiles">Tiles</option>
 							<option value="ground">Ground</option>
 							<option value="objects">Objects</option>
@@ -250,13 +253,13 @@
 					<input name="color"/> Color
 				</div>
 				<div class="item">
-					<label><input type="checkbox" name="lock" onchange="_.level.setLock(this.checked)"/> Lock Grid</label>
+					<label><input type="checkbox" name="lockGrid" onchange="_.level.action('lockGrid',this.checked)"/> Lock Grid</label>
 				</div>
 				<div class="item">
 					<input type="submit" name="file" value="File..." onclick="_.level.action('file')"/>
 				</div>
 				<div class="item">
-					<label>Size <input type="text" name="size" onchange="_.level.setSize(parseInt(this.value))"/>px</label>
+					<label>Size <input type="text" name="size" onchange="_.level.action('size',parseInt(this.value))"/>px</label>
 				</div>
 			</div>
 			<div class="submenu options">

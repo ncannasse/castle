@@ -561,6 +561,9 @@ div#menu ul.sheets li.active {
 	filter : alpha(opacity=50);
 	zoom : 1;
 }
+#content .level .menu .item.locked span {
+	color : #C44;
+}
 #content .level .menu .item {
 	padding : 10px;
 	display : inline-block;

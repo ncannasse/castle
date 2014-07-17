@@ -4,6 +4,7 @@ import cdb.Data;
 typedef LayerState = {
 	var current : Int;
 	var visible : Bool;
+	var lockGrid : Bool;
 	var lock : Bool;
 	var cw : Int;
 	var ch : Int;
@@ -26,6 +27,7 @@ class LayerData extends LayerGfx {
 	public var data : LayerInnerData;
 
 	public var visible(default,set) : Bool = true;
+	public var lock : Bool = false;
 	public var dirty : Bool;
 
 	public var current(default, set) : Int = 0;
@@ -39,6 +41,8 @@ class LayerData extends LayerGfx {
 	public var targetObj : { o : Dynamic, f : String };
 	public var listColumnn : Column;
 	public var tileProps : TilesetProps;
+
+	var stateLoaded : Bool;
 
 	public function new(level, name, p, target) {
 		super(level);
@@ -68,20 +72,25 @@ class LayerData extends LayerGfx {
 		loadState();
 	}
 
+	public function enabled() {
+		return visible && !lock;
+	}
+
 	function loadState() {
 		var state : LayerState = try haxe.Unserializer.run(js.Browser.getLocalStorage().getItem(level.sheetPath + ":" + name)) catch( e : Dynamic ) null;
 		if( state != null ) {
 			visible = state.visible;
-			floatCoord = hasFloatCoord && !state.lock;
+			lock = !!state.lock;
+			floatCoord = hasFloatCoord && !state.lockGrid;
 			if( state.current < (images != null ? images.length : names.length) ) {
 				current = state.current;
 				if( (current%stride) + state.cw <= stride && Std.int(current/stride) + state.ch <= height ) {
 					currentWidth = state.cw;
 					currentHeight = state.ch;
-					saveState();
 				}
 			}
 		}
+		stateLoaded = true;
 	}
 
 	public function setLayerData( val : String ) {
@@ -199,7 +208,6 @@ class LayerData extends LayerGfx {
 	function set_visible(v) {
 		visible = v;
 		if( comp != null ) comp.toggleClass("hidden", !visible);
-		saveState();
 		return v;
 	}
 
@@ -227,6 +235,8 @@ class LayerData extends LayerGfx {
 	}
 
 	public function saveState( sync = true ) {
+		if( !stateLoaded )
+			return;
 		if( sync && data != null ) {
 			switch( data ) {
 			case Tiles(t, _), TileInstances(t, _):
@@ -244,7 +254,8 @@ class LayerData extends LayerGfx {
 		var s : LayerState = {
 			current : current,
 			visible : visible,
-			lock : hasFloatCoord && !floatCoord,
+			lock : lock,
+			lockGrid : hasFloatCoord && !floatCoord,
 			cw : currentWidth,
 			ch : currentHeight,
 		};

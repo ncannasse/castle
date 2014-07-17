@@ -594,6 +594,10 @@ div#menu {
 			opacity : 0.5;
 		}
 
+		.item.locked span {
+			color : #C44;
+		}
+
 		.item {
 			padding : 10px;
 			display : inline-block;
