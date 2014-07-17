@@ -1893,6 +1893,8 @@ class Level {
 	}
 
 	@:keep function paletteOption(name, ?val:String) {
+		if( palette == null )
+			return;
 		var m = TileMode.ofString(paletteMode == null ? "" : paletteMode.substr(2));
 		var l = currentLayer;
 		if( val != null ) val = StringTools.trim(val);

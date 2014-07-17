@@ -493,7 +493,7 @@ class Module {
 		var mpath = Context.getLocalModule();
 		Context.defineModule(mpath, types);
 		Context.registerModuleDependency(mpath, path);
-		return Context.getType("Void");
+		return macro : Void;
 		#end
 	}
 
