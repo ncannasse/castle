@@ -2186,24 +2186,46 @@ Level.prototype = {
 				var data1 = _g[3];
 				var changed = false;
 				if(this.randomMode) {
-					var p = x + y * this.width;
-					var id = l.current + Std.random(l.currentWidth) + Std.random(l.currentHeight) * l.stride + 1;
-					if(data1[p] == id || l.blanks[id - 1]) return;
-					data1[p] = id;
-					changed = true;
+					var putObjs = l.getSelObjects();
+					var putObj = putObjs[Std.random(putObjs.length)];
+					if(putObj != null) {
+						var id = putObj.x + putObj.y * l.stride + 1;
+						var _g2 = 0;
+						var _g11 = putObj.w;
+						while(_g2 < _g11) {
+							var dx = _g2++;
+							var _g4 = 0;
+							var _g3 = putObj.h;
+							while(_g4 < _g3) {
+								var dy = _g4++;
+								var k = id + dx + dy * l.stride;
+								var p = x + dx + (y + dy) * this.width;
+								if(data1[p] == k || l.blanks[k - 1]) continue;
+								data1[p] = k;
+								changed = true;
+							}
+						}
+						changed = true;
+					} else {
+						var p1 = x + y * this.width;
+						var id1 = l.current + Std.random(l.currentWidth) + Std.random(l.currentHeight) * l.stride + 1;
+						if(data1[p1] == id1 || l.blanks[id1 - 1]) return;
+						data1[p1] = id1;
+						changed = true;
+					}
 				} else {
-					var _g2 = 0;
-					var _g11 = l.currentHeight;
-					while(_g2 < _g11) {
-						var dy = _g2++;
-						var _g4 = 0;
-						var _g3 = l.currentWidth;
-						while(_g4 < _g3) {
-							var dx = _g4++;
-							var p1 = x + dx + (y + dy) * this.width;
-							var id1 = l.current + dx + dy * l.stride + 1;
-							if(data1[p1] == id1 || l.blanks[id1 - 1]) continue;
-							data1[p1] = id1;
+					var _g21 = 0;
+					var _g12 = l.currentHeight;
+					while(_g21 < _g12) {
+						var dy1 = _g21++;
+						var _g41 = 0;
+						var _g31 = l.currentWidth;
+						while(_g41 < _g31) {
+							var dx1 = _g41++;
+							var p2 = x + dx1 + (y + dy1) * this.width;
+							var id2 = l.current + dx1 + dy1 * l.stride + 1;
+							if(data1[p2] == id2 || l.blanks[id2 - 1]) continue;
+							data1[p2] = id2;
 							changed = true;
 						}
 					}
@@ -2216,50 +2238,50 @@ Level.prototype = {
 			case 3:
 				var insts = _g[3];
 				var objs = l.getTileObjects();
-				var putObjs = l.getSelObjects();
-				var putObj = putObjs[Std.random(putObjs.length)];
-				var dx1;
-				if(putObj == null) dx1 = 0.5; else dx1 = putObj.w * 0.5;
-				var dy1;
-				if(putObj == null) dy1 = 0.5; else dy1 = putObj.h - 0.5;
+				var putObjs1 = l.getSelObjects();
+				var putObj1 = putObjs1[Std.random(putObjs1.length)];
+				var dx2;
+				if(putObj1 == null) dx2 = 0.5; else dx2 = putObj1.w * 0.5;
+				var dy2;
+				if(putObj1 == null) dy2 = 0.5; else dy2 = putObj1.h - 0.5;
 				var x1;
 				if(l.floatCoord) x1 = this.curPos.xf; else x1 = this.curPos.x;
 				var y1;
 				if(l.floatCoord) y1 = this.curPos.yf; else y1 = this.curPos.y;
-				if(putObj != null) {
-					x1 += (putObjs[0].w - putObj.w) * 0.5;
-					y1 += putObjs[0].h - putObj.h;
+				if(putObj1 != null) {
+					x1 += (putObjs1[0].w - putObj1.w) * 0.5;
+					y1 += putObjs1[0].h - putObj1.h;
 				}
-				var _g12 = 0;
-				while(_g12 < insts.length) {
-					var i = insts[_g12];
-					++_g12;
+				var _g13 = 0;
+				while(_g13 < insts.length) {
+					var i = insts[_g13];
+					++_g13;
 					var o = objs.get(i.o);
 					var ox;
 					ox = i.x + (o == null?0.5:o.w * 0.5);
 					var oy;
 					oy = i.y + (o == null?0.5:o.h - 0.5);
-					if(x1 + dx1 >= ox - 0.5 && y1 + dy1 >= oy - 0.5 && x1 + dx1 < ox + 0.5 && y1 + dy1 < oy + 0.5) {
+					if(x1 + dx2 >= ox - 0.5 && y1 + dy2 >= oy - 0.5 && x1 + dx2 < ox + 0.5 && y1 + dy2 < oy + 0.5) {
 						if(i.o == l.current && i.x == x1 && i.y == y1) return;
 						HxOverrides.remove(insts,i);
 					}
 				}
-				if(putObj != null) insts.push({ x : x1, y : y1, o : putObj.x + putObj.y * l.stride}); else {
-					var _g21 = 0;
-					var _g13 = l.currentHeight;
-					while(_g21 < _g13) {
-						var dy2 = _g21++;
-						var _g41 = 0;
-						var _g31 = l.currentWidth;
-						while(_g41 < _g31) {
-							var dx2 = _g41++;
-							insts.push({ x : x1 + dx2, y : y1 + dy2, o : l.current + dx2 + dy2 * l.stride});
+				if(putObj1 != null) insts.push({ x : x1, y : y1, o : putObj1.x + putObj1.y * l.stride}); else {
+					var _g22 = 0;
+					var _g14 = l.currentHeight;
+					while(_g22 < _g14) {
+						var dy3 = _g22++;
+						var _g42 = 0;
+						var _g32 = l.currentWidth;
+						while(_g42 < _g32) {
+							var dx3 = _g42++;
+							insts.push({ x : x1 + dx3, y : y1 + dy3, o : l.current + dx3 + dy3 * l.stride});
 						}
 					}
 				}
 				insts.sort(function(i1,i2) {
-					var dy3;
-					dy3 = (function($this) {
+					var dy4;
+					dy4 = (function($this) {
 						var $r;
 						var o1 = objs.get(i1.o);
 						$r = (i1.y + (o1 == null?1:o1.h)) * _g1.tileSize | 0;
@@ -2270,7 +2292,7 @@ Level.prototype = {
 						$r = (i2.y + (o2 == null?1:o2.h)) * _g1.tileSize | 0;
 						return $r;
 					}(this));
-					if(dy3 == 0) return (function($this) {
+					if(dy4 == 0) return (function($this) {
 						var $r;
 						var o3 = objs.get(i1.o);
 						$r = (i1.x + (o3 == null?0.5:o3.w * 0.5)) * _g1.tileSize | 0;
@@ -2280,7 +2302,7 @@ Level.prototype = {
 						var o4 = objs.get(i2.o);
 						$r = (i2.x + (o4 == null?0.5:o4.w * 0.5)) * _g1.tileSize | 0;
 						return $r;
-					}(this)); else return dy3;
+					}(this)); else return dy4;
 				});
 				l.dirty = true;
 				this.save();

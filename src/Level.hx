@@ -1530,11 +1530,26 @@ class Level {
 		case Tiles(_, data):
 			var changed = false;
 			if( randomMode ) {
-				var p = x + y * width;
-				var id = l.current + Std.random(l.currentWidth) + Std.random(l.currentHeight) * l.stride + 1;
-				if( data[p] == id || l.blanks[id - 1] ) return;
-				data[p] = id;
-				changed = true;
+				var putObjs = l.getSelObjects();
+				var putObj = putObjs[Std.random(putObjs.length)];
+				if( putObj != null ) {
+					var id = putObj.x + putObj.y * l.stride + 1;
+					for( dx in 0...putObj.w )
+						for( dy in 0...putObj.h ) {
+							var k = id + dx + dy * l.stride;
+							var p = (x + dx) + (y + dy) * width;
+							if( data[p] == k || l.blanks[k - 1] ) continue;
+							data[p] = k;
+							changed = true;
+						}
+					changed = true;
+				} else {
+					var p = x + y * width;
+					var id = l.current + Std.random(l.currentWidth) + Std.random(l.currentHeight) * l.stride + 1;
+					if( data[p] == id || l.blanks[id - 1] ) return;
+					data[p] = id;
+					changed = true;
+				}
 			} else {
 				for( dy in 0...l.currentHeight )
 					for( dx in 0...l.currentWidth ) {
