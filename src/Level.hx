@@ -47,7 +47,7 @@ class Level {
 	var cursorImage : lvl.Image;
 	var zoomView = 1.;
 	var curPos : { x : Int, y : Int, xf : Float, yf : Float };
-	var mouseDown : Bool;
+	var mouseDown : { rx : Int, ry : Int };
 	var deleteMode : { l : LayerData };
 	var needSave : Bool;
 	var smallPalette : Bool = false;
@@ -60,6 +60,7 @@ class Level {
 	var newLayer : Column;
 
 	var palette : js.JQuery;
+	var paletteZoom : Int;
 	var paletteSelect : lvl.Image;
 	var paintMode : Bool = false;
 	var randomMode : Bool = false;
@@ -792,7 +793,7 @@ class Level {
 			updateCursorPos();
 		});
 		function onMouseUp(_) {
-			mouseDown = false;
+			mouseDown = null;
 			if( needSave ) save();
 		}
 		scroll.mousedown(function(e) {
@@ -803,7 +804,9 @@ class Level {
 			}
 			switch( e.which ) {
 			case 1:
-				mouseDown = true;
+				if( currentLayer == null )
+					return;
+				mouseDown = { rx : curPos == null ? 0 : (curPos.x % currentLayer.currentWidth), ry : curPos == null ? 0 : (curPos.y % currentLayer.currentHeight) };
 				if( curPos != null ) {
 					set(curPos.x, curPos.y);
 					startPos = Reflect.copy(curPos);
@@ -1022,7 +1025,7 @@ class Level {
 			var fc = currentLayer.floatCoord;
 			var border = 0;
 			var ccx = fc ? cxf : cx, ccy = fc ? cyf : cy;
-			if( currentLayer.hasSize && mouseDown ) {
+			if( currentLayer.hasSize && mouseDown != null ) {
 				var px = fc ? startPos.xf : startPos.x;
 				var py = fc ? startPos.yf : startPos.y;
 				var pw = (fc?cxf:cx) - px;
@@ -1041,7 +1044,7 @@ class Level {
 			});
 			curPos = { x : cx, y : cy, xf : cxf, yf : cyf };
 			content.find(".cursorPosition").text(cx + "," + cy);
-			if( mouseDown ) set(cx, cy);
+			if( mouseDown != null ) set(Std.int(cx/currentLayer.currentWidth)*currentLayer.currentWidth + mouseDown.rx, Std.int(cy/currentLayer.currentHeight)*currentLayer.currentHeight + mouseDown.ry);
 			if( deleteMode != null ) doDelete();
 		} else {
 			cursor.hide();
@@ -1331,26 +1334,50 @@ class Level {
 			paletteOption("random");
 		case K.LEFT:
 			e.preventDefault();
-			if( l.current % l.stride > 0 ) {
-				l.current--;
+			if( l.current % l.stride > l.currentWidth-1 ) {
+				var w = l.currentWidth, h = l.currentHeight;
+				l.current -= w;
+				if( w != 1 || h != 1 ) {
+					l.currentWidth = w;
+					l.currentHeight = h;
+					l.saveState();
+				}
 				setCursor();
 			}
 		case K.RIGHT:
 			e.preventDefault();
-			if( l.current % l.stride < l.stride - 1 ) {
-				l.current++;
+			if( l.current % l.stride < l.stride - l.currentWidth ) {
+				var w = l.currentWidth, h = l.currentHeight;
+				l.current += w;
+				if( w != 1 || h != 1 ) {
+					l.currentWidth = w;
+					l.currentHeight = h;
+					l.saveState();
+				}
 				setCursor();
 			}
 		case K.DOWN:
 			e.preventDefault();
-			if( l.current + l.stride < l.images.length ) {
-				l.current += l.stride;
+			if( l.current + l.stride * l.currentHeight < l.images.length ) {
+				var w = l.currentWidth, h = l.currentHeight;
+				l.current += l.stride * h;
+				if( w != 1 || h != 1 ) {
+					l.currentWidth = w;
+					l.currentHeight = h;
+					l.saveState();
+				}
 				setCursor();
 			}
 		case K.UP:
 			e.preventDefault();
-			if( l.current >= l.stride ) {
-				l.current -= l.stride;
+			if( l.current >= l.stride * l.currentHeight ) {
+				var w = l.currentWidth, h = l.currentHeight;
+				l.current -= l.stride * h;
+				if( w != 1 || h != 1 ) {
+					l.currentWidth = w;
+					l.currentHeight = h;
+					l.saveState();
+				}
 				setCursor();
 			}
 		case K.DELETE if( selection != null ):
@@ -1668,7 +1695,7 @@ class Level {
 	}
 
 	function save() {
-		if( mouseDown || deleteMode != null ) {
+		if( mouseDown != null || deleteMode != null ) {
 			needSave = true;
 			return;
 		}
@@ -2086,15 +2113,21 @@ class Level {
 		palette = J(J("#paletteContent").html()).appendTo(content);
 		palette.toggleClass("small", smallPalette);
 		var i = lvl.Image.fromCanvas(cast palette.find("canvas.view")[0]);
-		i.setSize(l.stride * (tileSize + 1), l.height * (tileSize + 1));
+		paletteZoom = 1;
+
+		while( paletteZoom < 4 && l.stride * paletteZoom * tileSize < 256 && l.height * paletteZoom * tileSize < 256 )
+			paletteZoom++;
+
+		var tsize = tileSize * paletteZoom;
+		i.setSize(l.stride * (tsize + 1), l.height * (tsize + 1));
 		for( n in 0...l.images.length ) {
-			var x = (n % l.stride) * (tileSize + 1);
-			var y = Std.int(n / l.stride) * (tileSize + 1);
+			var x = (n % l.stride) * (tsize + 1);
+			var y = Std.int(n / l.stride) * (tsize + 1);
 			var li = l.images[n];
-			if( li.width == tileSize && li.height == tileSize )
+			if( li.width == tsize && li.height == tsize )
 				i.draw(li, x, y);
 			else
-				i.drawScaled(li, x, y, tileSize, tileSize);
+				i.drawScaled(li, x, y, tsize, tsize);
 		}
 		var jsel = palette.find("canvas.select");
 		var jpreview = palette.find(".preview").hide();
@@ -2112,8 +2145,8 @@ class Level {
 		var start = { x : l.current % l.stride, y : Std.int(l.current / l.stride), down : false };
 		jsel.mousedown(function(e) {
 			var o = jsel.offset();
-			var x = Std.int((e.pageX - o.left) / (tileSize + 1));
-			var y = Std.int((e.pageY - o.top) / (tileSize + 1));
+			var x = Std.int((e.pageX - o.left) / (tileSize*paletteZoom + 1));
+			var y = Std.int((e.pageY - o.top) / (tileSize*paletteZoom + 1));
 			if( x + y * l.stride >= l.images.length ) return;
 
 			if( e.shiftKey ) {
@@ -2186,8 +2219,8 @@ class Level {
 			if( selection == null ) cursor.hide();
 
 			var o = jsel.offset();
-			var x = Std.int((e.pageX - o.left) / (tileSize + 1));
-			var y = Std.int((e.pageY - o.top) / (tileSize + 1));
+			var x = Std.int((e.pageX - o.left) / (tileSize * paletteZoom + 1));
+			var y = Std.int((e.pageY - o.top) / (tileSize * paletteZoom + 1));
 			content.find(".cursorPosition").text(x + "," + y);
 
 			var id = x + y * l.stride;
@@ -2267,9 +2300,11 @@ class Level {
 				}
 			}
 
+			var tsize = tileSize * paletteZoom;
+
 			for( i in 0...l.images.length ) {
 				if( used[i] ) continue;
-				paletteSelect.fillRect( (i % l.stride) * (tileSize + 1), Std.int(i / l.stride) * (tileSize + 1), tileSize, tileSize, 0x30000000);
+				paletteSelect.fillRect( (i % l.stride) * (tsize + 1), Std.int(i / l.stride) * (tsize + 1), tsize, tsize, 0x30000000);
 			}
 
 			var prop = getPaletteProp();
@@ -2277,9 +2312,9 @@ class Level {
 				var objs = paletteMode == null ? l.getSelObjects() : [];
 				if( objs.length > 1 )
 					for( o in objs )
-						paletteSelect.fillRect( o.x * (tileSize + 1), o.y * (tileSize + 1), (tileSize + 1) * o.w - 1, (tileSize + 1) * o.h - 1, 0x805BA1FB);
+						paletteSelect.fillRect( o.x * (tsize + 1), o.y * (tsize + 1), (tsize + 1) * o.w - 1, (tsize + 1) * o.h - 1, 0x805BA1FB);
 				else
-					paletteSelect.fillRect( (l.current % l.stride) * (tileSize + 1), Std.int(l.current / l.stride) * (tileSize + 1), (tileSize + 1) * l.currentWidth - 1, (tileSize + 1) * l.currentHeight - 1, 0x805BA1FB);
+					paletteSelect.fillRect( (l.current % l.stride) * (tsize + 1), Std.int(l.current / l.stride) * (tsize + 1), (tsize + 1) * l.currentWidth - 1, (tsize + 1) * l.currentHeight - 1, 0x805BA1FB);
 			}
 			if( prop != null ) {
 				var def : Dynamic = model.getDefault(prop);
@@ -2292,7 +2327,7 @@ class Level {
 							if( p == null ) continue;
 							var v = Reflect.field(p, prop.name);
 							if( v == def ) continue;
-							paletteSelect.fillRect( x * (tileSize + 1), y * (tileSize + 1), tileSize, tileSize, v ? 0x80FB5BA1 : 0x805BFBA1);
+							paletteSelect.fillRect( x * (tsize + 1), y * (tsize + 1), tsize, tsize, v ? 0x80FB5BA1 : 0x805BFBA1);
 						}
 				case TRef(_):
 					var gfx = perTileGfx.get(prop.name);
@@ -2305,7 +2340,7 @@ class Level {
 							var r = Reflect.field(p, prop.name);
 							var v = gfx.idToIndex.get(r);
 							if( v == null || r == def ) continue;
-							paletteSelect.draw(gfx.images[v], x * (tileSize + 1), y * (tileSize + 1));
+							paletteSelect.drawScaled(gfx.images[v], x * (tsize + 1), y * (tsize + 1), tsize, tsize);
 						}
 					paletteSelect.alpha = 1;
 				case TEnum(_):
@@ -2316,7 +2351,7 @@ class Level {
 							if( p == null ) continue;
 							var v = Reflect.field(p, prop.name);
 							if( v == null || v == def ) continue;
-							paletteSelect.fillRect(x * (tileSize + 1), y * (tileSize + 1), tileSize, tileSize, colorPalette[v] | 0x80000000);
+							paletteSelect.fillRect(x * (tsize + 1), y * (tsize + 1), tsize, tsize, colorPalette[v] | 0x80000000);
 						}
 				case TInt, TFloat, TString, TColor, TFile, TDynamic:
 					var k = 0;
@@ -2326,10 +2361,10 @@ class Level {
 							if( p == null ) continue;
 							var v = Reflect.field(p, prop.name);
 							if( v == null || v == def ) continue;
-							paletteSelect.fillRect(x * (tileSize + 1), y * (tileSize + 1), tileSize, 1, 0xFFFFFFFF);
-							paletteSelect.fillRect(x * (tileSize + 1), y * (tileSize + 1), 1, tileSize, 0xFFFFFFFF);
-							paletteSelect.fillRect(x * (tileSize + 1), (y + 1) * (tileSize + 1) - 1, tileSize, 1, 0xFFFFFFFF);
-							paletteSelect.fillRect((x + 1) * (tileSize + 1) - 1, y * (tileSize + 1), 1, tileSize, 0xFFFFFFFF);
+							paletteSelect.fillRect(x * (tsize + 1), y * (tsize + 1), tsize, 1, 0xFFFFFFFF);
+							paletteSelect.fillRect(x * (tsize + 1), y * (tsize + 1), 1, tsize, 0xFFFFFFFF);
+							paletteSelect.fillRect(x * (tsize + 1), (y + 1) * (tsize + 1) - 1, tsize, 1, 0xFFFFFFFF);
+							paletteSelect.fillRect((x + 1) * (tsize + 1) - 1, y * (tsize + 1), 1, tsize, 0xFFFFFFFF);
 						}
 				default:
 					// no per-tile display
@@ -2337,9 +2372,12 @@ class Level {
 			}
 
 			var m = palette.find(".mode");
+			var sel = palette.find(".sel");
 			if( l.tileProps == null ) {
 				m.hide();
+				sel.show();
 			} else {
+				sel.hide();
 
 				var grounds = [];
 
@@ -2366,10 +2404,11 @@ class Level {
 						color = 0xFFFFFF;
 					}
 					color |= 0xFF000000;
-					var px = s.x * (tileSize + 1);
-					var py = s.y * (tileSize + 1);
-					var w = s.w * (tileSize + 1) - 1;
-					var h = s.h * (tileSize + 1) - 1;
+					var tsize = tileSize * paletteZoom;
+					var px = s.x * (tsize + 1);
+					var py = s.y * (tsize + 1);
+					var w = s.w * (tsize + 1) - 1;
+					var h = s.h * (tsize + 1) - 1;
 					paletteSelect.fillRect(px, py, w, 1, color);
 					paletteSelect.fillRect(px, py + h - 1, w, 1, color);
 					paletteSelect.fillRect(px, py, 1, h, color);
