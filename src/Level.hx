@@ -47,7 +47,7 @@ class Level {
 	var cursorImage : lvl.Image;
 	var zoomView = 1.;
 	var curPos : { x : Int, y : Int, xf : Float, yf : Float };
-	var mouseDown : { rx : Int, ry : Int };
+	var mouseDown : { rx : Int, ry : Int, w : Int, h : Int };
 	var deleteMode : { l : LayerData };
 	var needSave : Bool;
 	var smallPalette : Bool = false;
@@ -804,9 +804,13 @@ class Level {
 			}
 			switch( e.which ) {
 			case 1:
-				if( currentLayer == null )
+				var l = currentLayer;
+				if( l == null )
 					return;
-				mouseDown = { rx : curPos == null ? 0 : (curPos.x % currentLayer.currentWidth), ry : curPos == null ? 0 : (curPos.y % currentLayer.currentHeight) };
+				var o = l.getSelObjects()[0];
+				var w = o == null ? currentLayer.currentWidth : o.w;
+				var h = o == null ? currentLayer.currentHeight : o.h;
+				mouseDown = { rx : curPos == null ? 0 : (curPos.x % w), ry : curPos == null ? 0 : (curPos.y % h), w : w, h : h };
 				if( curPos != null ) {
 					set(curPos.x, curPos.y);
 					startPos = Reflect.copy(curPos);
@@ -1044,7 +1048,8 @@ class Level {
 			});
 			curPos = { x : cx, y : cy, xf : cxf, yf : cyf };
 			content.find(".cursorPosition").text(cx + "," + cy);
-			if( mouseDown != null ) set(Std.int(cx/currentLayer.currentWidth)*currentLayer.currentWidth + mouseDown.rx, Std.int(cy/currentLayer.currentHeight)*currentLayer.currentHeight + mouseDown.ry);
+			if( mouseDown != null )
+				set(Std.int(cx/mouseDown.w)*mouseDown.w + mouseDown.rx, Std.int(cy/mouseDown.h)*mouseDown.h + mouseDown.ry);
 			if( deleteMode != null ) doDelete();
 		} else {
 			cursor.hide();
