@@ -94,7 +94,9 @@ class Lz4Reader {
 		if( srcLen == 0 )
 			return 0;
 		#if flash
-		flash.Memory.select(out.getData());
+		var outd = out.getData();
+		if( outd.length < 1024 ) outd.length = 1024;
+		flash.Memory.select(outd);
 		#end
 		while( true ) {
 			var tk = src.get(srcPos++);
