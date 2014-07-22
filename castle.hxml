@@ -3,3 +3,4 @@
 -main Main
 -lib nodejs
 -lib format
+-D lz4js

@@ -534,7 +534,7 @@ class Level {
 			while( n >= 0 ) {
 				var o2 = a[n--];
 				if( o2.data != null ) {
-					var a = cdb.Types.TileLayerData.encode([for( k in 0...width * height ) 0]);
+					var a = cdb.Types.TileLayerData.encode([for( k in 0...width * height ) 0], model.compressionEnabled());
 					o.data = cast { file : o2.data.file, size : o2.data.size, stride : o2.data.stride, data : a };
 					break;
 				}

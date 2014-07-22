@@ -33,7 +33,7 @@ private class FlagsIterator<T> {
 
 }
 
-abstract ArrayRead<T>(Array<T>) {
+abstract ArrayRead<T>(Array<T>) from Array<T> {
 
 	public var length(get, never) : Int;
 
@@ -98,8 +98,15 @@ abstract Layer<T>(String) {
 	}
 
 	public function decode( all : ArrayRead<T> ) : Array<T> {
-		var k = haxe.crypto.Base64.decode(this);
+		var k = Lz4Reader.decodeString(this);
 		return [for( i in 0...k.length ) all[k.get(i)]];
+	}
+
+	public static function encode<T>( a : Array<Int>, compress : Bool ) : Layer<T> {
+		var b = haxe.io.Bytes.alloc(a.length);
+		for( i in 0...a.length )
+			b.set(i, a[i]);
+		return new Layer(cdb.Lz4Reader.encodeBytes(b, compress));
 	}
 
 }
@@ -111,18 +118,18 @@ abstract TileLayerData(String) {
 	}
 
 	public function decode() {
-		var k = haxe.crypto.Base64.decode(this);
+		var k = Lz4Reader.decodeString(this);
 		return [for( i in 0...k.length>>1 ) k.get(i<<1) | (k.get((i<<1)+1) << 8)];
 	}
 
-	public static function encode( a : Array<Int> ) : TileLayerData {
+	public static function encode( a : Array<Int>, compress ) : TileLayerData {
 		var b = haxe.io.Bytes.alloc(a.length * 2);
 		for( i in 0...a.length ) {
 			var v = a[i];
 			b.set(i << 1, v & 0xFF);
 			b.set((i << 1) + 1 , (v>>8) & 0xFF);
 		}
-		return new TileLayerData(haxe.crypto.Base64.encode(b));
+		return new TileLayerData(Lz4Reader.encodeBytes(b, compress));
 	}
 
 }

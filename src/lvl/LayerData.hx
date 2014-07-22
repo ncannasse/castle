@@ -97,7 +97,7 @@ class LayerData extends LayerGfx {
 		if( val == null || val == "" )
 			data = Layer([for( x in 0...level.width * level.height ) 0]);
 		else {
-			var a = haxe.crypto.Base64.decode(val);
+			var a = cdb.Lz4Reader.decodeString(val);
 			if( a.length != level.width * level.height ) throw "Invalid layer data";
 			data = Layer([for( i in 0...level.width * level.height ) a.get(i)]);
 		}
@@ -278,14 +278,14 @@ class LayerData extends LayerGfx {
 					b.set(p, data[p]);
 					p++;
 				}
-			return haxe.crypto.Base64.encode(b);
+			return cdb.Lz4Reader.encodeBytes(b, level.model.compressionEnabled());
 		case Objects(_, objs):
 			return objs;
 		case Tiles(t, data):
 			var b = new haxe.io.BytesOutput();
 			for( r in 0...data.length )
 				b.writeUInt16(data[r]);
-			return t.file == null ? null : { file : t.file, size : t.size, stride : t.stride, data : haxe.crypto.Base64.encode(b.getBytes()) };
+			return t.file == null ? null : { file : t.file, size : t.size, stride : t.stride, data : cdb.Lz4Reader.encodeBytes(b.getBytes(),level.model.compressionEnabled()) };
 		case TileInstances(t, insts):
 			var b = new haxe.io.BytesOutput();
 			b.writeUInt16(0xFFFF);
@@ -294,7 +294,7 @@ class LayerData extends LayerGfx {
 				b.writeUInt16(Std.int(i.y * level.tileSize));
 				b.writeUInt16(i.o);
 			}
-			return t.file == null ? null : { file : t.file, size : t.size, stride : t.stride, data : haxe.crypto.Base64.encode(b.getBytes()) };
+			return t.file == null ? null : { file : t.file, size : t.size, stride : t.stride, data : cdb.Lz4Reader.encodeBytes(b.getBytes(),level.model.compressionEnabled()) };
 		}
 	}
 

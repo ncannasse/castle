@@ -539,6 +539,34 @@ class Model {
 		return null;
 	}
 
+	function setCompressionMode( c ) {
+		data.compress = c;
+		for( s in data.sheets )
+			for( c in s.columns )
+				switch( c.type ) {
+				case TLayer(_):
+					for( obj in getSheetLines(s) ) {
+						var ldat : cdb.Types.Layer<Int> = Reflect.field(obj, c.name);
+						if( ldat == null || ldat == cast "" ) continue;
+						var d = ldat.decode([for( i in 0...256 ) i]);
+						ldat = cdb.Types.Layer.encode(d, data.compress);
+						Reflect.setField(obj, c.name, ldat);
+					}
+				case TTileLayer:
+					for( obj in getSheetLines(s) ) {
+						var ldat : cdb.Types.TileLayer = Reflect.field(obj, c.name);
+						if( ldat == null || ldat == cast "" ) continue;
+						var d = ldat.data.decode();
+						Reflect.setField(ldat,"data",cdb.Types.TileLayerData.encode(d, data.compress));
+					}
+				default:
+				}
+	}
+
+	public function compressionEnabled() {
+		return data.compress;
+	}
+
 	function load(noError = false) {
 		history = [];
 		redo = [];
@@ -551,6 +579,7 @@ class Model {
 			data = {
 				sheets : [],
 				customTypes : [],
+				compress : false,
 			};
 		}
 		try {
@@ -998,15 +1027,15 @@ class Model {
 				switch( c.type ) {
 				case TLayer(t) if( t == sheet.name ):
 					for( obj in getSheetLines(s) ) {
-						var ldat = Reflect.field(obj, c.name);
-						if( ldat == null || ldat == "" ) continue;
-						var d = haxe.crypto.Base64.decode(ldat);
+						var ldat : cdb.Types.Layer<Int> = Reflect.field(obj, c.name);
+						if( ldat == null || ldat == cast "" ) continue;
+						var d = ldat.decode([for( i in 0...256 ) i]);
 						for( i in 0...d.length ) {
-							var r = remap[d.get(i)];
+							var r = remap[d[i]];
 							if( r < 0 ) r = 0; // removed
-							d.set(i, r);
+							d[i] = r;
 						}
-						ldat = haxe.crypto.Base64.encode(d);
+						ldat = cdb.Types.Layer.encode(d, data.compress);
 						Reflect.setField(obj, c.name, ldat);
 					}
 				default:

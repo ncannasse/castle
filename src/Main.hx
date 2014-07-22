@@ -52,6 +52,7 @@ class Main extends Model {
 	var colProps : { sheet : String, ref : Column, index : Null<Int> };
 	var levels : Array<Level>;
 	var level : Level;
+	var mcompress : MenuItem;
 
 	function new() {
 		super();
@@ -478,7 +479,7 @@ class Main extends Model {
 						}
 					}
 				}
-				return { file : v.file, size : v.size, stride : v.stride, data : cdb.Types.TileLayerData.encode(ndat) };
+				return { file : v.file, size : v.size, stride : v.stride, data : cdb.Types.TileLayerData.encode(ndat, data.compress) };
 			}
 
 			for( c in sheet.columns ) {
@@ -486,14 +487,15 @@ class Main extends Model {
 				switch( c.type ) {
 				case TLayer(_):
 					if( v == null || v == "" ) continue;
-					var odat = haxe.crypto.Base64.decode(v);
-					var ndat = haxe.io.Bytes.alloc(newW * newH);
+					var v : cdb.Types.Layer<Int> = v;
+					var odat = v.decode([for( i in 0...256 ) i]);
+					var ndat = [];
 					for( y in 0...newH )
 						for( x in 0...newW ) {
-							var k = y < oldH && x < oldW ? odat.get(x + y * oldW) : 0;
-							ndat.set(x + y * newW, k);
+							var k = y < oldH && x < oldW ? odat[x + y * oldW] : 0;
+							ndat.push(k);
 						}
-					v = haxe.crypto.Base64.encode(ndat);
+					v = cdb.Types.Layer.encode(ndat, data.compress);
 					Reflect.setField(obj, c.name, v);
 				case TList:
 					var s = getPseudoSheet(sheet, c);
@@ -2153,6 +2155,11 @@ class Main extends Model {
 		var mopen = new MenuItem( { label : "Open..." } );
 		var msave = new MenuItem( { label : "Save As..." } );
 		var mclean = new MenuItem( { label : "Clean Images" } );
+		mcompress = new MenuItem( { label : "Enable Compression", type : MenuItemType.checkbox } );
+		mcompress.click = function() {
+			setCompressionMode(mcompress.checked);
+			save();
+		};
 		var mabout = new MenuItem( { label : "About" } );
 		var mexit = new MenuItem( { label : "Exit" } );
 		var mdebug = new MenuItem( { label : "Dev" } );
@@ -2202,6 +2209,7 @@ class Main extends Model {
 		mfiles.append(mopen);
 		mfiles.append(msave);
 		mfiles.append(mclean);
+		mfiles.append(mcompress);
 		mfiles.append(mabout);
 		mfiles.append(mexit);
 		mfile.submenu = mfiles;
@@ -2259,6 +2267,7 @@ class Main extends Model {
 	override function load(noError = false) {
 		super.load(noError);
 		lastSave = getFileTime();
+		mcompress.checked = data.compress;
 	}
 
 	override function save( history = true ) {

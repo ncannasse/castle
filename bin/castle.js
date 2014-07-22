@@ -1,5 +1,5 @@
 (function () { "use strict";
-var $hxClasses = {};
+var $hxClasses = {},$estr = function() { return js.Boot.__string_rec(this,''); };
 function $extend(from, fields) {
 	function Inherit() {} Inherit.prototype = from; var proto = new Inherit();
 	for (var name in fields) proto[name] = fields[name];
@@ -155,53 +155,6 @@ Lambda.find = function(it,f) {
 		if(f(v)) return v;
 	}
 	return null;
-};
-var IMap = function() { };
-$hxClasses["IMap"] = IMap;
-IMap.__name__ = ["IMap"];
-IMap.prototype = {
-	__class__: IMap
-};
-var haxe = {};
-haxe.ds = {};
-haxe.ds.StringMap = function() {
-	this.h = { };
-};
-$hxClasses["haxe.ds.StringMap"] = haxe.ds.StringMap;
-haxe.ds.StringMap.__name__ = ["haxe","ds","StringMap"];
-haxe.ds.StringMap.__interfaces__ = [IMap];
-haxe.ds.StringMap.prototype = {
-	set: function(key,value) {
-		this.h["$" + key] = value;
-	}
-	,get: function(key) {
-		return this.h["$" + key];
-	}
-	,exists: function(key) {
-		return this.h.hasOwnProperty("$" + key);
-	}
-	,remove: function(key) {
-		key = "$" + key;
-		if(!this.h.hasOwnProperty(key)) return false;
-		delete(this.h[key]);
-		return true;
-	}
-	,keys: function() {
-		var a = [];
-		for( var key in this.h ) {
-		if(this.h.hasOwnProperty(key)) a.push(key.substr(1));
-		}
-		return HxOverrides.iter(a);
-	}
-	,iterator: function() {
-		return { ref : this.h, it : this.keys(), hasNext : function() {
-			return this.it.hasNext();
-		}, next : function() {
-			var i = this.it.next();
-			return this.ref["$" + i];
-		}};
-	}
-	,__class__: haxe.ds.StringMap
 };
 var Level = function(model,sheet,index) {
 	this.reloading = false;
@@ -808,7 +761,7 @@ Level.prototype = {
 						}
 						$r = _g11;
 						return $r;
-					}(this)));
+					}(this)),this.model.compressionEnabled());
 					o.data = { file : o2.data.file, size : o2.data.size, stride : o2.data.stride, data : a1};
 					break;
 				}
@@ -4687,6 +4640,67 @@ Model.prototype = {
 		this.makeSheet(sheet);
 		return null;
 	}
+	,setCompressionMode: function(c) {
+		this.data.compress = c;
+		var _g = 0;
+		var _g1 = this.data.sheets;
+		while(_g < _g1.length) {
+			var s = _g1[_g];
+			++_g;
+			var _g2 = 0;
+			var _g3 = s.columns;
+			while(_g2 < _g3.length) {
+				var c1 = _g3[_g2];
+				++_g2;
+				{
+					var _g4 = c1.type;
+					switch(_g4[1]) {
+					case 12:
+						var _g5 = 0;
+						var _g6 = this.getSheetLines(s);
+						while(_g5 < _g6.length) {
+							var obj = _g6[_g5];
+							++_g5;
+							var ldat = Reflect.field(obj,c1.name);
+							if(ldat == null || ldat == "") continue;
+							var d = cdb._Types.Layer_Impl_.decode(ldat,(function($this) {
+								var $r;
+								var _g7 = [];
+								{
+									var _g8 = 0;
+									while(_g8 < 256) {
+										var i = _g8++;
+										_g7.push(i);
+									}
+								}
+								$r = _g7;
+								return $r;
+							}(this)));
+							ldat = cdb._Types.Layer_Impl_.encode(d,this.data.compress);
+							obj[c1.name] = ldat;
+						}
+						break;
+					case 15:
+						var _g51 = 0;
+						var _g61 = this.getSheetLines(s);
+						while(_g51 < _g61.length) {
+							var obj1 = _g61[_g51];
+							++_g51;
+							var ldat1 = Reflect.field(obj1,c1.name);
+							if(ldat1 == null || ldat1 == "") continue;
+							var d1 = cdb._Types.TileLayerData_Impl_.decode(ldat1.data);
+							Reflect.setField(ldat1,"data",cdb._Types.TileLayerData_Impl_.encode(d1,this.data.compress));
+						}
+						break;
+					default:
+					}
+				}
+			}
+		}
+	}
+	,compressionEnabled: function() {
+		return this.data.compress;
+	}
 	,load: function(noError) {
 		if(noError == null) noError = false;
 		this.history = [];
@@ -4697,7 +4711,7 @@ Model.prototype = {
 			if(!noError) js.Lib.alert(e);
 			this.prefs.curFile = null;
 			this.prefs.curSheet = 0;
-			this.data = { sheets : [], customTypes : []};
+			this.data = { sheets : [], customTypes : [], compress : false};
 		}
 		try {
 			var img = this.prefs.curFile.split(".");
@@ -5284,16 +5298,28 @@ Model.prototype = {
 								++_g5;
 								var ldat = Reflect.field(obj,c.name);
 								if(ldat == null || ldat == "") continue;
-								var d = haxe.crypto.Base64.decode(ldat);
-								var _g8 = 0;
-								var _g7 = d.length;
-								while(_g8 < _g7) {
-									var i = _g8++;
-									var r = remap[d.b[i]];
+								var d = cdb._Types.Layer_Impl_.decode(ldat,(function($this) {
+									var $r;
+									var _g7 = [];
+									{
+										var _g8 = 0;
+										while(_g8 < 256) {
+											var i = _g8++;
+											_g7.push(i);
+										}
+									}
+									$r = _g7;
+									return $r;
+								}(this)));
+								var _g9 = 0;
+								var _g81 = d.length;
+								while(_g9 < _g81) {
+									var i1 = _g9++;
+									var r = remap[d[i1]];
 									if(r < 0) r = 0;
-									d.b[i] = r;
+									d[i1] = r;
 								}
-								ldat = haxe.crypto.Base64.encode(d);
+								ldat = cdb._Types.Layer_Impl_.encode(d,this.data.compress);
 								obj[c.name] = ldat;
 							}
 						} else {
@@ -6067,6 +6093,7 @@ Main.prototype = $extend(Model.prototype,{
 		return index1;
 	}
 	,changed: function(sheet,c,index,old) {
+		var _g1 = this;
 		var _g = c.type;
 		switch(_g[1]) {
 		case 0:
@@ -6089,9 +6116,9 @@ Main.prototype = $extend(Model.prototype,{
 					var ndat = [];
 					if(odat[0] == 65535) ndat = odat; else {
 						var pos = 0;
-						var _g1 = 0;
-						while(_g1 < newH) {
-							var y = _g1++;
+						var _g11 = 0;
+						while(_g11 < newH) {
+							var y = _g11++;
 							if(y >= oldH) {
 								var _g2 = 0;
 								while(_g2 < newW) {
@@ -6119,43 +6146,56 @@ Main.prototype = $extend(Model.prototype,{
 							}
 						}
 					}
-					return { file : v.file, size : v.size, stride : v.stride, data : cdb._Types.TileLayerData_Impl_.encode(ndat)};
+					return { file : v.file, size : v.size, stride : v.stride, data : cdb._Types.TileLayerData_Impl_.encode(ndat,_g1.data.compress)};
 				};
-				var _g11 = 0;
+				var _g12 = 0;
 				var _g24 = sheet.columns;
-				while(_g11 < _g24.length) {
-					var c1 = _g24[_g11];
-					++_g11;
+				while(_g12 < _g24.length) {
+					var c1 = _g24[_g12];
+					++_g12;
 					var v1 = Reflect.field(obj,c1.name);
 					{
 						var _g3 = c1.type;
 						switch(_g3[1]) {
 						case 12:
 							if(v1 == null || v1 == "") continue;
-							var odat1 = haxe.crypto.Base64.decode(v1);
-							var ndat1 = haxe.io.Bytes.alloc(newW * newH);
-							var _g4 = 0;
-							while(_g4 < newH) {
-								var y1 = _g4++;
-								var _g5 = 0;
-								while(_g5 < newW) {
-									var x4 = _g5++;
+							var v2 = v1;
+							var odat1 = cdb._Types.Layer_Impl_.decode(v2,(function($this) {
+								var $r;
+								var _g4 = [];
+								{
+									var _g5 = 0;
+									while(_g5 < 256) {
+										var i = _g5++;
+										_g4.push(i);
+									}
+								}
+								$r = _g4;
+								return $r;
+							}(this)));
+							var ndat1 = [];
+							var _g51 = 0;
+							while(_g51 < newH) {
+								var y1 = _g51++;
+								var _g6 = 0;
+								while(_g6 < newW) {
+									var x4 = _g6++;
 									var k;
-									if(y1 < oldH && x4 < oldW) k = odat1.b[x4 + y1 * oldW]; else k = 0;
-									ndat1.b[x4 + y1 * newW] = k;
+									if(y1 < oldH && x4 < oldW) k = odat1[x4 + y1 * oldW]; else k = 0;
+									ndat1.push(k);
 								}
 							}
-							v1 = haxe.crypto.Base64.encode(ndat1);
-							obj[c1.name] = v1;
+							v2 = cdb._Types.Layer_Impl_.encode(ndat1,this.data.compress);
+							obj[c1.name] = v2;
 							break;
 						case 8:
 							var s = this.smap.get(sheet.name + "@" + c1.name).s;
 							if(this.hasColumn(s,"x",[cdb.ColumnType.TInt,cdb.ColumnType.TFloat]) && this.hasColumn(s,"y",[cdb.ColumnType.TInt,cdb.ColumnType.TFloat])) {
 								var elts = Reflect.field(obj,c1.name);
 								var _g41 = 0;
-								var _g51 = elts.slice();
-								while(_g41 < _g51.length) {
-									var e = _g51[_g41];
+								var _g52 = elts.slice();
+								while(_g41 < _g52.length) {
+									var e = _g52[_g41];
 									++_g41;
 									if(e.x >= newW || e.y >= newH) HxOverrides.remove(elts,e);
 								}
@@ -6179,11 +6219,11 @@ Main.prototype = $extend(Model.prototype,{
 			} else if(sheet.props.displayColumn == c.name) {
 				var obj1 = sheet.lines[index];
 				var s1 = this.smap.get(sheet.name);
-				var _g12 = 0;
+				var _g13 = 0;
 				var _g25 = sheet.columns;
-				while(_g12 < _g25.length) {
-					var cid = _g25[_g12];
-					++_g12;
+				while(_g13 < _g25.length) {
+					var cid = _g25[_g13];
+					++_g13;
 					if(cid.type == cdb.ColumnType.TId) {
 						var id = Reflect.field(obj1,cid.name);
 						if(id != null) {
@@ -6202,10 +6242,10 @@ Main.prototype = $extend(Model.prototype,{
 			if(newV != null && oldV != null && oldV.file != newV.file && !sys.FileSystem.exists(this.getAbsPath(oldV.file)) && sys.FileSystem.exists(this.getAbsPath(newV.file))) {
 				var change = false;
 				var _g26 = 0;
-				var _g13 = sheet.lines.length;
-				while(_g26 < _g13) {
-					var i = _g26++;
-					var t = Reflect.field(sheet.lines[i],c.name);
+				var _g14 = sheet.lines.length;
+				while(_g26 < _g14) {
+					var i1 = _g26++;
+					var t = Reflect.field(sheet.lines[i1],c.name);
 					if(t != null && t.file == oldV.file) {
 						t.file = newV.file;
 						change = true;
@@ -6218,11 +6258,11 @@ Main.prototype = $extend(Model.prototype,{
 			if(sheet.props.displayColumn == c.name) {
 				var obj1 = sheet.lines[index];
 				var s1 = this.smap.get(sheet.name);
-				var _g12 = 0;
+				var _g13 = 0;
 				var _g25 = sheet.columns;
-				while(_g12 < _g25.length) {
-					var cid = _g25[_g12];
-					++_g12;
+				while(_g13 < _g25.length) {
+					var cid = _g25[_g13];
+					++_g13;
 					if(cid.type == cdb.ColumnType.TId) {
 						var id = Reflect.field(obj1,cid.name);
 						if(id != null) {
@@ -8226,6 +8266,11 @@ Main.prototype = $extend(Model.prototype,{
 		var mopen = new nodejs.webkit.MenuItem({ label : "Open..."});
 		var msave = new nodejs.webkit.MenuItem({ label : "Save As..."});
 		var mclean = new nodejs.webkit.MenuItem({ label : "Clean Images"});
+		this.mcompress = new nodejs.webkit.MenuItem({ label : "Enable Compression", type : "checkbox"});
+		this.mcompress.click = function() {
+			_g.setCompressionMode(_g.mcompress.checked);
+			_g.save();
+		};
 		var mabout = new nodejs.webkit.MenuItem({ label : "About"});
 		var mexit = new nodejs.webkit.MenuItem({ label : "Exit"});
 		var mdebug = new nodejs.webkit.MenuItem({ label : "Dev"});
@@ -8279,6 +8324,7 @@ Main.prototype = $extend(Model.prototype,{
 		mfiles.append(mopen);
 		mfiles.append(msave);
 		mfiles.append(mclean);
+		mfiles.append(this.mcompress);
 		mfiles.append(mabout);
 		mfiles.append(mexit);
 		mfile.submenu = mfiles;
@@ -8328,6 +8374,7 @@ Main.prototype = $extend(Model.prototype,{
 		if(noError == null) noError = false;
 		Model.prototype.load.call(this,noError);
 		this.lastSave = this.getFileTime();
+		this.mcompress.checked = this.data.compress;
 	}
 	,save: function(history) {
 		if(history == null) history = true;
@@ -8336,6 +8383,12 @@ Main.prototype = $extend(Model.prototype,{
 	}
 	,__class__: Main
 });
+var IMap = function() { };
+$hxClasses["IMap"] = IMap;
+IMap.__name__ = ["IMap"];
+IMap.prototype = {
+	__class__: IMap
+};
 Math.__name__ = ["Math"];
 var Reflect = function() { };
 $hxClasses["Reflect"] = Reflect;
@@ -8484,20 +8537,27 @@ Sys.time = function() {
 };
 var ValueType = $hxClasses["ValueType"] = { __ename__ : ["ValueType"], __constructs__ : ["TNull","TInt","TFloat","TBool","TObject","TFunction","TClass","TEnum","TUnknown"] };
 ValueType.TNull = ["TNull",0];
+ValueType.TNull.toString = $estr;
 ValueType.TNull.__enum__ = ValueType;
 ValueType.TInt = ["TInt",1];
+ValueType.TInt.toString = $estr;
 ValueType.TInt.__enum__ = ValueType;
 ValueType.TFloat = ["TFloat",2];
+ValueType.TFloat.toString = $estr;
 ValueType.TFloat.__enum__ = ValueType;
 ValueType.TBool = ["TBool",3];
+ValueType.TBool.toString = $estr;
 ValueType.TBool.__enum__ = ValueType;
 ValueType.TObject = ["TObject",4];
+ValueType.TObject.toString = $estr;
 ValueType.TObject.__enum__ = ValueType;
 ValueType.TFunction = ["TFunction",5];
+ValueType.TFunction.toString = $estr;
 ValueType.TFunction.__enum__ = ValueType;
-ValueType.TClass = function(c) { var $x = ["TClass",6,c]; $x.__enum__ = ValueType; return $x; };
-ValueType.TEnum = function(e) { var $x = ["TEnum",7,e]; $x.__enum__ = ValueType; return $x; };
+ValueType.TClass = function(c) { var $x = ["TClass",6,c]; $x.__enum__ = ValueType; $x.toString = $estr; return $x; };
+ValueType.TEnum = function(e) { var $x = ["TEnum",7,e]; $x.__enum__ = ValueType; $x.toString = $estr; return $x; };
 ValueType.TUnknown = ["TUnknown",8];
+ValueType.TUnknown.toString = $estr;
 ValueType.TUnknown.__enum__ = ValueType;
 var Type = function() { };
 $hxClasses["Type"] = Type;
@@ -8585,33 +8645,45 @@ Type.enumEq = function(a,b) {
 var cdb = {};
 cdb.ColumnType = $hxClasses["cdb.ColumnType"] = { __ename__ : ["cdb","ColumnType"], __constructs__ : ["TId","TString","TBool","TInt","TFloat","TEnum","TRef","TImage","TList","TCustom","TFlags","TColor","TLayer","TFile","TTilePos","TTileLayer","TDynamic"] };
 cdb.ColumnType.TId = ["TId",0];
+cdb.ColumnType.TId.toString = $estr;
 cdb.ColumnType.TId.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TString = ["TString",1];
+cdb.ColumnType.TString.toString = $estr;
 cdb.ColumnType.TString.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TBool = ["TBool",2];
+cdb.ColumnType.TBool.toString = $estr;
 cdb.ColumnType.TBool.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TInt = ["TInt",3];
+cdb.ColumnType.TInt.toString = $estr;
 cdb.ColumnType.TInt.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TFloat = ["TFloat",4];
+cdb.ColumnType.TFloat.toString = $estr;
 cdb.ColumnType.TFloat.__enum__ = cdb.ColumnType;
-cdb.ColumnType.TEnum = function(values) { var $x = ["TEnum",5,values]; $x.__enum__ = cdb.ColumnType; return $x; };
-cdb.ColumnType.TRef = function(sheet) { var $x = ["TRef",6,sheet]; $x.__enum__ = cdb.ColumnType; return $x; };
+cdb.ColumnType.TEnum = function(values) { var $x = ["TEnum",5,values]; $x.__enum__ = cdb.ColumnType; $x.toString = $estr; return $x; };
+cdb.ColumnType.TRef = function(sheet) { var $x = ["TRef",6,sheet]; $x.__enum__ = cdb.ColumnType; $x.toString = $estr; return $x; };
 cdb.ColumnType.TImage = ["TImage",7];
+cdb.ColumnType.TImage.toString = $estr;
 cdb.ColumnType.TImage.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TList = ["TList",8];
+cdb.ColumnType.TList.toString = $estr;
 cdb.ColumnType.TList.__enum__ = cdb.ColumnType;
-cdb.ColumnType.TCustom = function(name) { var $x = ["TCustom",9,name]; $x.__enum__ = cdb.ColumnType; return $x; };
-cdb.ColumnType.TFlags = function(values) { var $x = ["TFlags",10,values]; $x.__enum__ = cdb.ColumnType; return $x; };
+cdb.ColumnType.TCustom = function(name) { var $x = ["TCustom",9,name]; $x.__enum__ = cdb.ColumnType; $x.toString = $estr; return $x; };
+cdb.ColumnType.TFlags = function(values) { var $x = ["TFlags",10,values]; $x.__enum__ = cdb.ColumnType; $x.toString = $estr; return $x; };
 cdb.ColumnType.TColor = ["TColor",11];
+cdb.ColumnType.TColor.toString = $estr;
 cdb.ColumnType.TColor.__enum__ = cdb.ColumnType;
-cdb.ColumnType.TLayer = function(type) { var $x = ["TLayer",12,type]; $x.__enum__ = cdb.ColumnType; return $x; };
+cdb.ColumnType.TLayer = function(type) { var $x = ["TLayer",12,type]; $x.__enum__ = cdb.ColumnType; $x.toString = $estr; return $x; };
 cdb.ColumnType.TFile = ["TFile",13];
+cdb.ColumnType.TFile.toString = $estr;
 cdb.ColumnType.TFile.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TTilePos = ["TTilePos",14];
+cdb.ColumnType.TTilePos.toString = $estr;
 cdb.ColumnType.TTilePos.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TTileLayer = ["TTileLayer",15];
+cdb.ColumnType.TTileLayer.toString = $estr;
 cdb.ColumnType.TTileLayer.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TDynamic = ["TDynamic",16];
+cdb.ColumnType.TDynamic.toString = $estr;
 cdb.ColumnType.TDynamic.__enum__ = cdb.ColumnType;
 cdb._Data = {};
 cdb._Data.TileMode_Impl_ = function() { };
@@ -8625,6 +8697,179 @@ cdb._Data.TileMode_Impl_.ofString = function(s) {
 };
 cdb._Data.TileMode_Impl_.toString = function(this1) {
 	return this1;
+};
+cdb.Lz4Reader = function() {
+};
+$hxClasses["cdb.Lz4Reader"] = cdb.Lz4Reader;
+cdb.Lz4Reader.__name__ = ["cdb","Lz4Reader"];
+cdb.Lz4Reader.uncompress = function(src,srcPos,srcLen,out,outPos) {
+	var outSave = outPos;
+	var srcEnd = srcPos + srcLen;
+	if(srcLen == 0) return 0;
+	while(true) {
+		var tk = src.get(srcPos++);
+		var litLen = tk >> 4;
+		var matchLen = tk & 15;
+		if(litLen == 15) {
+			var b;
+			do {
+				b = src.get(srcPos++);
+				litLen += b;
+			} while(b == 255);
+		}
+		switch(litLen) {
+		case 0:
+			break;
+		case 1:
+			var v = src.get(srcPos++);
+			out.b[outPos] = v;
+			outPos++;
+			break;
+		case 2:
+			var v1 = src.get(srcPos++);
+			out.b[outPos] = v1;
+			outPos++;
+			var v2 = src.get(srcPos++);
+			out.b[outPos] = v2;
+			outPos++;
+			break;
+		case 3:
+			var v3 = src.get(srcPos++);
+			out.b[outPos] = v3;
+			outPos++;
+			var v4 = src.get(srcPos++);
+			out.b[outPos] = v4;
+			outPos++;
+			var v5 = src.get(srcPos++);
+			out.b[outPos] = v5;
+			outPos++;
+			break;
+		default:
+			out.blit(outPos,src,srcPos,litLen);
+			outPos += litLen;
+			srcPos += litLen;
+		}
+		if(srcPos >= srcEnd) break;
+		var offset = src.get(srcPos++);
+		offset |= src.get(srcPos++) << 8;
+		if(matchLen == 15) {
+			var b1;
+			do {
+				b1 = src.get(srcPos++);
+				matchLen += b1;
+			} while(b1 == 255);
+		}
+		matchLen += 4;
+		if(matchLen >= 64 && matchLen <= offset) {
+			out.blit(outPos,out,outPos - offset,matchLen);
+			outPos += matchLen;
+		} else {
+			var copyEnd = outPos + matchLen;
+			while(outPos < copyEnd) {
+				out.b[outPos] = out.b[outPos - offset];
+				outPos++;
+			}
+		}
+	}
+	if(srcPos != srcEnd) throw "Read too much data " + (srcPos - srcLen);
+	return outPos - outSave;
+};
+cdb.Lz4Reader.decodeString = function(s) {
+	var k = haxe.crypto.Base64.decode(s);
+	if(k.b[0] != 4 || k.b[1] != 34 || k.b[2] != 77 || k.b[3] != 24) return k;
+	var tmp = new Uint8Array(k.length);
+	var _g1 = 0;
+	var _g = k.length;
+	while(_g1 < _g) {
+		var i = _g1++;
+		tmp[i] = k.b[i];
+	}
+	var k1 = lz4.decompress(tmp);
+	var b = haxe.io.Bytes.alloc(k1.length);
+	var _g11 = 0;
+	var _g2 = k1.length;
+	while(_g11 < _g2) {
+		var i1 = _g11++;
+		b.b[i1] = k1[i1];
+	}
+	return b;
+};
+cdb.Lz4Reader.encodeBytes = function(b,compress) {
+	if(compress) {
+		var tmp = new Uint8Array(b.length);
+		var _g1 = 0;
+		var _g = b.length;
+		while(_g1 < _g) {
+			var i = _g1++;
+			tmp[i] = b.b[i];
+		}
+		tmp = lz4.compress(tmp,65536);
+		b = haxe.io.Bytes.alloc(tmp.length);
+		var _g11 = 0;
+		var _g2 = tmp.length;
+		while(_g11 < _g2) {
+			var i1 = _g11++;
+			b.b[i1] = tmp[i1];
+		}
+	}
+	return haxe.crypto.Base64.encode(b);
+};
+cdb.Lz4Reader.prototype = {
+	b: function() {
+		return this.bytes.get(this.pos++);
+	}
+	,grow: function(out,pos,len) {
+		var size = out.length;
+		do size = size * 3 >> 1; while(size < pos + len);
+		var out2 = haxe.io.Bytes.alloc(size);
+		out2.blit(0,out,0,pos);
+		return out2;
+	}
+	,read: function(bytes) {
+		this.bytes = bytes;
+		this.pos = 0;
+		if(this.bytes.get(this.pos++) != 4 || this.bytes.get(this.pos++) != 34 || this.bytes.get(this.pos++) != 77 || this.bytes.get(this.pos++) != 24) throw "Invalid header";
+		var flags = this.bytes.get(this.pos++);
+		if(flags >> 6 != 1) throw "Invalid version " + (flags >> 6);
+		var blockChecksum = (flags & 16) != 0;
+		var streamSize = (flags & 8) != 0;
+		var streamChecksum = (flags & 4) != 0;
+		if((flags & 2) != 0) throw "assert";
+		var presetDict = (flags & 1) != 0;
+		var bd = this.bytes.get(this.pos++);
+		if((bd & 128) != 0) throw "assert";
+		var maxBlockSize = [0,0,0,0,65536,262144,1048576,4194304][bd >> 4 & 7];
+		if(maxBlockSize == 0) throw "assert";
+		if((bd & 15) != 0) throw "assert";
+		if(streamSize) this.pos += 8;
+		if(presetDict) throw "Preset dictionary not supported";
+		var headerChk = this.bytes.get(this.pos++);
+		var out = haxe.io.Bytes.alloc(128);
+		var outPos = 0;
+		while(true) {
+			var size = this.bytes.get(this.pos++) | this.bytes.get(this.pos++) << 8 | this.bytes.get(this.pos++) << 16 | this.bytes.get(this.pos++) << 24;
+			if(size == 0) break;
+			if((size & -16) == 407710288) {
+				var dataSize = this.bytes.get(this.pos++) | this.bytes.get(this.pos++) << 8 | this.bytes.get(this.pos++) << 16 | this.bytes.get(this.pos++) << 24;
+				this.pos += dataSize;
+				continue;
+			}
+			if((size & -2147483648) != 0) {
+				size &= 2147483647;
+				if(outPos + out.length < size) out = this.grow(out,outPos,size);
+				out.blit(outPos,bytes,this.pos,size);
+				outPos += size;
+				this.pos += size;
+			} else {
+				if(outPos + out.length < size) out = this.grow(out,outPos,3000000);
+				outPos += cdb.Lz4Reader.uncompress(bytes,this.pos,size,out,outPos);
+				this.pos += size;
+			}
+			if(blockChecksum) this.pos += 4;
+		}
+		return out.sub(0,outPos);
+	}
+	,__class__: cdb.Lz4Reader
 };
 cdb.Parser = function() { };
 $hxClasses["cdb.Parser"] = cdb.Parser;
@@ -9385,7 +9630,7 @@ cdb._Types.Layer_Impl_._new = function(x) {
 	return x;
 };
 cdb._Types.Layer_Impl_.decode = function(this1,all) {
-	var k = haxe.crypto.Base64.decode(this1);
+	var k = cdb.Lz4Reader.decodeString(this1);
 	var _g = [];
 	var _g2 = 0;
 	var _g1 = k.length;
@@ -9395,6 +9640,17 @@ cdb._Types.Layer_Impl_.decode = function(this1,all) {
 	}
 	return _g;
 };
+cdb._Types.Layer_Impl_.encode = function(a,compress) {
+	var b = haxe.io.Bytes.alloc(a.length);
+	var _g1 = 0;
+	var _g = a.length;
+	while(_g1 < _g) {
+		var i = _g1++;
+		b.b[i] = a[i];
+	}
+	var x = cdb.Lz4Reader.encodeBytes(b,compress);
+	return x;
+};
 cdb._Types.TileLayerData_Impl_ = function() { };
 $hxClasses["cdb._Types.TileLayerData_Impl_"] = cdb._Types.TileLayerData_Impl_;
 cdb._Types.TileLayerData_Impl_.__name__ = ["cdb","_Types","TileLayerData_Impl_"];
@@ -9402,7 +9658,7 @@ cdb._Types.TileLayerData_Impl_._new = function(v) {
 	return v;
 };
 cdb._Types.TileLayerData_Impl_.decode = function(this1) {
-	var k = haxe.crypto.Base64.decode(this1);
+	var k = cdb.Lz4Reader.decodeString(this1);
 	var _g = [];
 	var _g2 = 0;
 	var _g1 = k.length >> 1;
@@ -9412,7 +9668,7 @@ cdb._Types.TileLayerData_Impl_.decode = function(this1) {
 	}
 	return _g;
 };
-cdb._Types.TileLayerData_Impl_.encode = function(a) {
+cdb._Types.TileLayerData_Impl_.encode = function(a,compress) {
 	var b = haxe.io.Bytes.alloc(a.length * 2);
 	var _g1 = 0;
 	var _g = a.length;
@@ -9422,7 +9678,7 @@ cdb._Types.TileLayerData_Impl_.encode = function(a) {
 		b.b[i << 1] = v & 255;
 		b.b[(i << 1) + 1] = v >> 8 & 255;
 	}
-	return cdb._Types.TileLayerData_Impl_._new(haxe.crypto.Base64.encode(b));
+	return cdb._Types.TileLayerData_Impl_._new(cdb.Lz4Reader.encodeBytes(b,compress));
 };
 cdb._Types.LevelPropsAccess_Impl_ = function() { };
 $hxClasses["cdb._Types.LevelPropsAccess_Impl_"] = cdb._Types.LevelPropsAccess_Impl_;
@@ -9511,6 +9767,7 @@ cdb.IndexId.prototype = $extend(cdb.Index.prototype,{
 	}
 	,__class__: cdb.IndexId
 });
+var haxe = {};
 haxe.Json = function() { };
 $hxClasses["haxe.Json"] = haxe.Json;
 haxe.Json.__name__ = ["haxe","Json"];
@@ -10442,6 +10699,7 @@ haxe.crypto.Md5.prototype = {
 	}
 	,__class__: haxe.crypto.Md5
 };
+haxe.ds = {};
 haxe.ds.IntMap = function() {
 	this.h = { };
 };
@@ -10488,6 +10746,45 @@ haxe.ds.ObjectMap.prototype = {
 		return HxOverrides.iter(a);
 	}
 	,__class__: haxe.ds.ObjectMap
+};
+haxe.ds.StringMap = function() {
+	this.h = { };
+};
+$hxClasses["haxe.ds.StringMap"] = haxe.ds.StringMap;
+haxe.ds.StringMap.__name__ = ["haxe","ds","StringMap"];
+haxe.ds.StringMap.__interfaces__ = [IMap];
+haxe.ds.StringMap.prototype = {
+	set: function(key,value) {
+		this.h["$" + key] = value;
+	}
+	,get: function(key) {
+		return this.h["$" + key];
+	}
+	,exists: function(key) {
+		return this.h.hasOwnProperty("$" + key);
+	}
+	,remove: function(key) {
+		key = "$" + key;
+		if(!this.h.hasOwnProperty(key)) return false;
+		delete(this.h[key]);
+		return true;
+	}
+	,keys: function() {
+		var a = [];
+		for( var key in this.h ) {
+		if(this.h.hasOwnProperty(key)) a.push(key.substr(1));
+		}
+		return HxOverrides.iter(a);
+	}
+	,iterator: function() {
+		return { ref : this.h, it : this.keys(), hasNext : function() {
+			return this.it.hasNext();
+		}, next : function() {
+			var i = this.it.next();
+			return this.ref["$" + i];
+		}};
+	}
+	,__class__: haxe.ds.StringMap
 };
 haxe.io.BytesBuffer = function() {
 	this.b = new Array();
@@ -10575,12 +10872,15 @@ haxe.io.Eof.prototype = {
 };
 haxe.io.Error = $hxClasses["haxe.io.Error"] = { __ename__ : ["haxe","io","Error"], __constructs__ : ["Blocked","Overflow","OutsideBounds","Custom"] };
 haxe.io.Error.Blocked = ["Blocked",0];
+haxe.io.Error.Blocked.toString = $estr;
 haxe.io.Error.Blocked.__enum__ = haxe.io.Error;
 haxe.io.Error.Overflow = ["Overflow",1];
+haxe.io.Error.Overflow.toString = $estr;
 haxe.io.Error.Overflow.__enum__ = haxe.io.Error;
 haxe.io.Error.OutsideBounds = ["OutsideBounds",2];
+haxe.io.Error.OutsideBounds.toString = $estr;
 haxe.io.Error.OutsideBounds.__enum__ = haxe.io.Error;
-haxe.io.Error.Custom = function(e) { var $x = ["Custom",3,e]; $x.__enum__ = haxe.io.Error; return $x; };
+haxe.io.Error.Custom = function(e) { var $x = ["Custom",3,e]; $x.__enum__ = haxe.io.Error; $x.toString = $estr; return $x; };
 haxe.io.Path = function(path) {
 	switch(path) {
 	case ".":case "..":
@@ -11288,10 +11588,10 @@ lvl.Image3D.prototype = $extend(lvl.Image.prototype,{
 	,__class__: lvl.Image3D
 });
 lvl.LayerInnerData = $hxClasses["lvl.LayerInnerData"] = { __ename__ : ["lvl","LayerInnerData"], __constructs__ : ["Layer","Objects","Tiles","TileInstances"] };
-lvl.LayerInnerData.Layer = function(a) { var $x = ["Layer",0,a]; $x.__enum__ = lvl.LayerInnerData; return $x; };
-lvl.LayerInnerData.Objects = function(idCol,objs) { var $x = ["Objects",1,idCol,objs]; $x.__enum__ = lvl.LayerInnerData; return $x; };
-lvl.LayerInnerData.Tiles = function(t,data) { var $x = ["Tiles",2,t,data]; $x.__enum__ = lvl.LayerInnerData; return $x; };
-lvl.LayerInnerData.TileInstances = function(t,insts) { var $x = ["TileInstances",3,t,insts]; $x.__enum__ = lvl.LayerInnerData; return $x; };
+lvl.LayerInnerData.Layer = function(a) { var $x = ["Layer",0,a]; $x.__enum__ = lvl.LayerInnerData; $x.toString = $estr; return $x; };
+lvl.LayerInnerData.Objects = function(idCol,objs) { var $x = ["Objects",1,idCol,objs]; $x.__enum__ = lvl.LayerInnerData; $x.toString = $estr; return $x; };
+lvl.LayerInnerData.Tiles = function(t,data) { var $x = ["Tiles",2,t,data]; $x.__enum__ = lvl.LayerInnerData; $x.toString = $estr; return $x; };
+lvl.LayerInnerData.TileInstances = function(t,insts) { var $x = ["TileInstances",3,t,insts]; $x.__enum__ = lvl.LayerInnerData; $x.toString = $estr; return $x; };
 lvl.LayerGfx = function(level) {
 	this.height = 0;
 	this.stride = 0;
@@ -11502,7 +11802,7 @@ lvl.LayerData.prototype = $extend(lvl.LayerGfx.prototype,{
 			$r = _g;
 			return $r;
 		}(this))); else {
-			var a = haxe.crypto.Base64.decode(val);
+			var a = cdb.Lz4Reader.decodeString(val);
 			if(a.length != this.level.width * this.level.height) throw "Invalid layer data";
 			this.data = lvl.LayerInnerData.Layer((function($this) {
 				var $r;
@@ -11770,7 +12070,7 @@ lvl.LayerData.prototype = $extend(lvl.LayerGfx.prototype,{
 						p++;
 					}
 				}
-				return haxe.crypto.Base64.encode(b);
+				return cdb.Lz4Reader.encodeBytes(b,this.level.model.compressionEnabled());
 			case 1:
 				var objs = _g[3];
 				return objs;
@@ -11784,7 +12084,7 @@ lvl.LayerData.prototype = $extend(lvl.LayerGfx.prototype,{
 					var r = _g21++;
 					b1.writeUInt16(data1[r]);
 				}
-				if(t.file == null) return null; else return { file : t.file, size : t.size, stride : t.stride, data : haxe.crypto.Base64.encode(b1.getBytes())};
+				if(t.file == null) return null; else return { file : t.file, size : t.size, stride : t.stride, data : cdb.Lz4Reader.encodeBytes(b1.getBytes(),this.level.model.compressionEnabled())};
 				break;
 			case 3:
 				var insts = _g[3];
@@ -11799,7 +12099,7 @@ lvl.LayerData.prototype = $extend(lvl.LayerGfx.prototype,{
 					b2.writeUInt16(i.y * this.level.tileSize | 0);
 					b2.writeUInt16(i.o);
 				}
-				if(t1.file == null) return null; else return { file : t1.file, size : t1.size, stride : t1.stride, data : haxe.crypto.Base64.encode(b2.getBytes())};
+				if(t1.file == null) return null; else return { file : t1.file, size : t1.size, stride : t1.stride, data : cdb.Lz4Reader.encodeBytes(b2.getBytes(),this.level.model.compressionEnabled())};
 				break;
 			}
 		}

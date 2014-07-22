@@ -124,4 +124,5 @@ typedef CustomType = {
 typedef Data = {
 	sheets : Array<Sheet>,
 	customTypes : Array<CustomType>,
+	compress : Bool,
 }
