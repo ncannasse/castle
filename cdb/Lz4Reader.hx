@@ -73,14 +73,20 @@ class Lz4Reader {
 			if( size & 0x80000000 != 0 ) {
 				// uncompressed block
 				size &= 0x7FFFFFFF;
-				if( outPos + out.length < size ) out = grow(out,outPos, size);
+				if( outPos + out.length < size ) out = grow(out, outPos, size);
 				out.blit(outPos, bytes, pos, size);
 				outPos += size;
 				pos += size;
 			} else {
-				if( outPos + out.length < size ) out = grow(out, outPos, 3000000);
-				outPos += uncompress(bytes, pos, size, out, outPos);
-				pos += size;
+				var srcEnd = pos + size;
+				while( pos < srcEnd ) {
+					var r = uncompress(bytes, pos, srcEnd - pos, out, outPos);
+					pos = r[0];
+					outPos = r[1];
+					var req = r[2];
+					if( req > 0 )
+						out = grow(out, outPos, req);
+				}
 			}
 			if( blockChecksum ) pos += 4;
 		}
@@ -92,13 +98,15 @@ class Lz4Reader {
 		var outSave = outPos;
 		var srcEnd = srcPos + srcLen;
 		if( srcLen == 0 )
-			return 0;
+			return [srcPos,outPos, 0];
+		var outLen = out.length;
 		#if flash
 		var outd = out.getData();
 		if( outd.length < 1024 ) outd.length = 1024;
 		flash.Memory.select(outd);
 		#end
 		while( true ) {
+			var start = srcPos;
 			var tk = src.get(srcPos++);
 			var litLen = tk >> 4;
 			var matchLen = tk & 15;
@@ -117,6 +125,9 @@ class Lz4Reader {
 				#end
 				outPos++;
 			}
+			if( outPos + litLen > outLen )
+				return [start, outPos, litLen + matchLen];
+
 			switch( litLen ) {
 			case 0:
 			case 1:
@@ -144,6 +155,10 @@ class Lz4Reader {
 				} while( b == 0xFF );
 			}
 			matchLen += 4;
+
+			if( outPos + matchLen > outLen )
+				return [start, outPos - litLen, litLen + matchLen];
+
 			if( matchLen >= 64 && matchLen <= offset ) {
 				out.blit(outPos, out, outPos - offset, matchLen);
 				outPos += matchLen;
@@ -154,7 +169,7 @@ class Lz4Reader {
 			}
 		}
 		if( srcPos != srcEnd ) throw "Read too much data " + (srcPos - srcLen);
-		return outPos - outSave;
+		return [srcPos, outPos, 0];
 	}
 
 	public static function decodeString( s : String ) : haxe.io.Bytes {
