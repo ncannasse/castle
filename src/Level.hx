@@ -810,6 +810,8 @@ class Level {
 				var o = l.getSelObjects()[0];
 				var w = o == null ? currentLayer.currentWidth : o.w;
 				var h = o == null ? currentLayer.currentHeight : o.h;
+				if( o == null && randomMode )
+					w = h = 1;
 				mouseDown = { rx : curPos == null ? 0 : (curPos.x % w), ry : curPos == null ? 0 : (curPos.y % h), w : w, h : h };
 				if( curPos != null ) {
 					set(curPos.x, curPos.y);
