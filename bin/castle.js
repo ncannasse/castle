@@ -1,5 +1,5 @@
 (function () { "use strict";
-var $hxClasses = {},$estr = function() { return js.Boot.__string_rec(this,''); };
+var $hxClasses = {};
 function $extend(from, fields) {
 	function Inherit() {} Inherit.prototype = from; var proto = new Inherit();
 	for (var name in fields) proto[name] = fields[name];
@@ -1156,6 +1156,7 @@ Level.prototype = {
 				if(o == null) w = _g3.currentLayer.currentWidth; else w = o.w;
 				var h;
 				if(o == null) h = _g3.currentLayer.currentHeight; else h = o.h;
+				if(o == null && _g3.randomMode) w = h = 1;
 				_g3.mouseDown = { rx : _g3.curPos == null?0:_g3.curPos.x % w, ry : _g3.curPos == null?0:_g3.curPos.y % h, w : w, h : h};
 				if(_g3.curPos != null) {
 					_g3.set(_g3.curPos.x,_g3.curPos.y);
@@ -8537,27 +8538,20 @@ Sys.time = function() {
 };
 var ValueType = $hxClasses["ValueType"] = { __ename__ : ["ValueType"], __constructs__ : ["TNull","TInt","TFloat","TBool","TObject","TFunction","TClass","TEnum","TUnknown"] };
 ValueType.TNull = ["TNull",0];
-ValueType.TNull.toString = $estr;
 ValueType.TNull.__enum__ = ValueType;
 ValueType.TInt = ["TInt",1];
-ValueType.TInt.toString = $estr;
 ValueType.TInt.__enum__ = ValueType;
 ValueType.TFloat = ["TFloat",2];
-ValueType.TFloat.toString = $estr;
 ValueType.TFloat.__enum__ = ValueType;
 ValueType.TBool = ["TBool",3];
-ValueType.TBool.toString = $estr;
 ValueType.TBool.__enum__ = ValueType;
 ValueType.TObject = ["TObject",4];
-ValueType.TObject.toString = $estr;
 ValueType.TObject.__enum__ = ValueType;
 ValueType.TFunction = ["TFunction",5];
-ValueType.TFunction.toString = $estr;
 ValueType.TFunction.__enum__ = ValueType;
-ValueType.TClass = function(c) { var $x = ["TClass",6,c]; $x.__enum__ = ValueType; $x.toString = $estr; return $x; };
-ValueType.TEnum = function(e) { var $x = ["TEnum",7,e]; $x.__enum__ = ValueType; $x.toString = $estr; return $x; };
+ValueType.TClass = function(c) { var $x = ["TClass",6,c]; $x.__enum__ = ValueType; return $x; };
+ValueType.TEnum = function(e) { var $x = ["TEnum",7,e]; $x.__enum__ = ValueType; return $x; };
 ValueType.TUnknown = ["TUnknown",8];
-ValueType.TUnknown.toString = $estr;
 ValueType.TUnknown.__enum__ = ValueType;
 var Type = function() { };
 $hxClasses["Type"] = Type;
@@ -8645,45 +8639,33 @@ Type.enumEq = function(a,b) {
 var cdb = {};
 cdb.ColumnType = $hxClasses["cdb.ColumnType"] = { __ename__ : ["cdb","ColumnType"], __constructs__ : ["TId","TString","TBool","TInt","TFloat","TEnum","TRef","TImage","TList","TCustom","TFlags","TColor","TLayer","TFile","TTilePos","TTileLayer","TDynamic"] };
 cdb.ColumnType.TId = ["TId",0];
-cdb.ColumnType.TId.toString = $estr;
 cdb.ColumnType.TId.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TString = ["TString",1];
-cdb.ColumnType.TString.toString = $estr;
 cdb.ColumnType.TString.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TBool = ["TBool",2];
-cdb.ColumnType.TBool.toString = $estr;
 cdb.ColumnType.TBool.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TInt = ["TInt",3];
-cdb.ColumnType.TInt.toString = $estr;
 cdb.ColumnType.TInt.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TFloat = ["TFloat",4];
-cdb.ColumnType.TFloat.toString = $estr;
 cdb.ColumnType.TFloat.__enum__ = cdb.ColumnType;
-cdb.ColumnType.TEnum = function(values) { var $x = ["TEnum",5,values]; $x.__enum__ = cdb.ColumnType; $x.toString = $estr; return $x; };
-cdb.ColumnType.TRef = function(sheet) { var $x = ["TRef",6,sheet]; $x.__enum__ = cdb.ColumnType; $x.toString = $estr; return $x; };
+cdb.ColumnType.TEnum = function(values) { var $x = ["TEnum",5,values]; $x.__enum__ = cdb.ColumnType; return $x; };
+cdb.ColumnType.TRef = function(sheet) { var $x = ["TRef",6,sheet]; $x.__enum__ = cdb.ColumnType; return $x; };
 cdb.ColumnType.TImage = ["TImage",7];
-cdb.ColumnType.TImage.toString = $estr;
 cdb.ColumnType.TImage.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TList = ["TList",8];
-cdb.ColumnType.TList.toString = $estr;
 cdb.ColumnType.TList.__enum__ = cdb.ColumnType;
-cdb.ColumnType.TCustom = function(name) { var $x = ["TCustom",9,name]; $x.__enum__ = cdb.ColumnType; $x.toString = $estr; return $x; };
-cdb.ColumnType.TFlags = function(values) { var $x = ["TFlags",10,values]; $x.__enum__ = cdb.ColumnType; $x.toString = $estr; return $x; };
+cdb.ColumnType.TCustom = function(name) { var $x = ["TCustom",9,name]; $x.__enum__ = cdb.ColumnType; return $x; };
+cdb.ColumnType.TFlags = function(values) { var $x = ["TFlags",10,values]; $x.__enum__ = cdb.ColumnType; return $x; };
 cdb.ColumnType.TColor = ["TColor",11];
-cdb.ColumnType.TColor.toString = $estr;
 cdb.ColumnType.TColor.__enum__ = cdb.ColumnType;
-cdb.ColumnType.TLayer = function(type) { var $x = ["TLayer",12,type]; $x.__enum__ = cdb.ColumnType; $x.toString = $estr; return $x; };
+cdb.ColumnType.TLayer = function(type) { var $x = ["TLayer",12,type]; $x.__enum__ = cdb.ColumnType; return $x; };
 cdb.ColumnType.TFile = ["TFile",13];
-cdb.ColumnType.TFile.toString = $estr;
 cdb.ColumnType.TFile.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TTilePos = ["TTilePos",14];
-cdb.ColumnType.TTilePos.toString = $estr;
 cdb.ColumnType.TTilePos.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TTileLayer = ["TTileLayer",15];
-cdb.ColumnType.TTileLayer.toString = $estr;
 cdb.ColumnType.TTileLayer.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TDynamic = ["TDynamic",16];
-cdb.ColumnType.TDynamic.toString = $estr;
 cdb.ColumnType.TDynamic.__enum__ = cdb.ColumnType;
 cdb._Data = {};
 cdb._Data.TileMode_Impl_ = function() { };
@@ -8705,8 +8687,10 @@ cdb.Lz4Reader.__name__ = ["cdb","Lz4Reader"];
 cdb.Lz4Reader.uncompress = function(src,srcPos,srcLen,out,outPos) {
 	var outSave = outPos;
 	var srcEnd = srcPos + srcLen;
-	if(srcLen == 0) return 0;
+	if(srcLen == 0) return [srcPos,outPos,0];
+	var outLen = out.length;
 	while(true) {
+		var start = srcPos;
 		var tk = src.get(srcPos++);
 		var litLen = tk >> 4;
 		var matchLen = tk & 15;
@@ -8717,6 +8701,7 @@ cdb.Lz4Reader.uncompress = function(src,srcPos,srcLen,out,outPos) {
 				litLen += b;
 			} while(b == 255);
 		}
+		if(outPos + litLen > outLen) return [start,outPos,litLen + matchLen];
 		switch(litLen) {
 		case 0:
 			break;
@@ -8760,6 +8745,7 @@ cdb.Lz4Reader.uncompress = function(src,srcPos,srcLen,out,outPos) {
 			} while(b1 == 255);
 		}
 		matchLen += 4;
+		if(outPos + matchLen > outLen) return [start,outPos - litLen,litLen + matchLen];
 		if(matchLen >= 64 && matchLen <= offset) {
 			out.blit(outPos,out,outPos - offset,matchLen);
 			outPos += matchLen;
@@ -8772,7 +8758,7 @@ cdb.Lz4Reader.uncompress = function(src,srcPos,srcLen,out,outPos) {
 		}
 	}
 	if(srcPos != srcEnd) throw "Read too much data " + (srcPos - srcLen);
-	return outPos - outSave;
+	return [srcPos,outPos,0];
 };
 cdb.Lz4Reader.decodeString = function(s) {
 	var k = haxe.crypto.Base64.decode(s);
@@ -8861,9 +8847,14 @@ cdb.Lz4Reader.prototype = {
 				outPos += size;
 				this.pos += size;
 			} else {
-				if(outPos + out.length < size) out = this.grow(out,outPos,3000000);
-				outPos += cdb.Lz4Reader.uncompress(bytes,this.pos,size,out,outPos);
-				this.pos += size;
+				var srcEnd = this.pos + size;
+				while(this.pos < srcEnd) {
+					var r = cdb.Lz4Reader.uncompress(bytes,this.pos,srcEnd - this.pos,out,outPos);
+					this.pos = r[0];
+					outPos = r[1];
+					var req = r[2];
+					if(req > 0) out = this.grow(out,outPos,req);
+				}
 			}
 			if(blockChecksum) this.pos += 4;
 		}
@@ -10872,15 +10863,12 @@ haxe.io.Eof.prototype = {
 };
 haxe.io.Error = $hxClasses["haxe.io.Error"] = { __ename__ : ["haxe","io","Error"], __constructs__ : ["Blocked","Overflow","OutsideBounds","Custom"] };
 haxe.io.Error.Blocked = ["Blocked",0];
-haxe.io.Error.Blocked.toString = $estr;
 haxe.io.Error.Blocked.__enum__ = haxe.io.Error;
 haxe.io.Error.Overflow = ["Overflow",1];
-haxe.io.Error.Overflow.toString = $estr;
 haxe.io.Error.Overflow.__enum__ = haxe.io.Error;
 haxe.io.Error.OutsideBounds = ["OutsideBounds",2];
-haxe.io.Error.OutsideBounds.toString = $estr;
 haxe.io.Error.OutsideBounds.__enum__ = haxe.io.Error;
-haxe.io.Error.Custom = function(e) { var $x = ["Custom",3,e]; $x.__enum__ = haxe.io.Error; $x.toString = $estr; return $x; };
+haxe.io.Error.Custom = function(e) { var $x = ["Custom",3,e]; $x.__enum__ = haxe.io.Error; return $x; };
 haxe.io.Path = function(path) {
 	switch(path) {
 	case ".":case "..":
@@ -11588,10 +11576,10 @@ lvl.Image3D.prototype = $extend(lvl.Image.prototype,{
 	,__class__: lvl.Image3D
 });
 lvl.LayerInnerData = $hxClasses["lvl.LayerInnerData"] = { __ename__ : ["lvl","LayerInnerData"], __constructs__ : ["Layer","Objects","Tiles","TileInstances"] };
-lvl.LayerInnerData.Layer = function(a) { var $x = ["Layer",0,a]; $x.__enum__ = lvl.LayerInnerData; $x.toString = $estr; return $x; };
-lvl.LayerInnerData.Objects = function(idCol,objs) { var $x = ["Objects",1,idCol,objs]; $x.__enum__ = lvl.LayerInnerData; $x.toString = $estr; return $x; };
-lvl.LayerInnerData.Tiles = function(t,data) { var $x = ["Tiles",2,t,data]; $x.__enum__ = lvl.LayerInnerData; $x.toString = $estr; return $x; };
-lvl.LayerInnerData.TileInstances = function(t,insts) { var $x = ["TileInstances",3,t,insts]; $x.__enum__ = lvl.LayerInnerData; $x.toString = $estr; return $x; };
+lvl.LayerInnerData.Layer = function(a) { var $x = ["Layer",0,a]; $x.__enum__ = lvl.LayerInnerData; return $x; };
+lvl.LayerInnerData.Objects = function(idCol,objs) { var $x = ["Objects",1,idCol,objs]; $x.__enum__ = lvl.LayerInnerData; return $x; };
+lvl.LayerInnerData.Tiles = function(t,data) { var $x = ["Tiles",2,t,data]; $x.__enum__ = lvl.LayerInnerData; return $x; };
+lvl.LayerInnerData.TileInstances = function(t,insts) { var $x = ["TileInstances",3,t,insts]; $x.__enum__ = lvl.LayerInnerData; return $x; };
 lvl.LayerGfx = function(level) {
 	this.height = 0;
 	this.stride = 0;
@@ -11908,7 +11896,7 @@ lvl.LayerData.prototype = $extend(lvl.LayerGfx.prototype,{
 					var vx = v % stride;
 					var vy = v / stride | 0;
 					var v2 = vx + vy * w;
-					if(vx >= w || vy >= h || blanks[v]) v2 = -1;
+					if(vx >= w || vy >= h || blanks[v2]) v2 = -1;
 					if(v != v2) {
 						data[i2] = v2 + 1;
 						_g1.dirty = true;
@@ -11926,7 +11914,7 @@ lvl.LayerData.prototype = $extend(lvl.LayerGfx.prototype,{
 					var vx = v % stride;
 					var vy = v / stride | 0;
 					var v2 = vx + vy * w;
-					if(vx >= w || vy >= h || blanks[v]) v2 = -1;
+					if(vx >= w || vy >= h || blanks[v2]) v2 = -1;
 					if(v != v2) {
 						data[i2] = v2 + 1;
 						_g1.dirty = true;

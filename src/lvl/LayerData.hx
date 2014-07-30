@@ -154,6 +154,7 @@ class LayerData extends LayerGfx {
 		}
 		level.wait();
 		level.loadAndSplit(file, size, function(w, h, images, blanks) {
+
 			this.images = images;
 			this.blanks = blanks;
 
@@ -169,7 +170,7 @@ class LayerData extends LayerGfx {
 					var vx = v % stride;
 					var vy = Std.int(v / stride);
 					var v2 = vx + vy * w;
-					if( vx >= w || vy >= h || blanks[v] )
+					if( vx >= w || vy >= h || blanks[v2] )
 						v2 = -1;
 					if( v != v2 ) {
 						data[i] = v2 + 1;
