@@ -493,7 +493,11 @@ class Module {
 		var mpath = Context.getLocalModule();
 		Context.defineModule(mpath, types);
 		Context.registerModuleDependency(mpath, path);
+		#if (haxe_ver >= 3.2)
 		return macro : Void;
+		#else
+		return Context.getType("Void");
+		#end
 		#end
 	}
 
