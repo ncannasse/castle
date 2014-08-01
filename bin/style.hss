@@ -218,8 +218,8 @@ div#menu {
 		border-spacing : 0;
 	}
 
-	table.sheet {
-		padding-bottom : 300px;
+	.tableBottom {
+		margin-top : 300px;
 	}
 
 	td {

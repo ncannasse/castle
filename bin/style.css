@@ -200,8 +200,8 @@ div#menu ul.sheets li.active {
 	border-collapse : collapse;
 	border-spacing : 0;
 }
-.castle table.sheet {
-	padding-bottom : 300px;
+.castle .tableBottom {
+	margin-top : 300px;
 }
 .castle td {
 	padding : 2px 4px;

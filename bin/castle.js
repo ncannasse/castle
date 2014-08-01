@@ -7166,6 +7166,7 @@ Main.prototype = $extend(Model.prototype,{
 		var content = new js.JQuery("#content");
 		content.empty();
 		t.appendTo(content);
+		new js.JQuery("<div>").appendTo(content).addClass("tableBottom");
 		this.updateCursor();
 	}
 	,chooseFile: function(callb,cancel) {

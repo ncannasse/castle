@@ -1285,6 +1285,7 @@ class Main extends Model {
 		var content = J("#content");
 		content.empty();
 		t.appendTo(content);
+		J("<div>").appendTo(content).addClass("tableBottom");
 		updateCursor();
 	}
 
