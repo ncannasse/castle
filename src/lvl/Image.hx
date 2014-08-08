@@ -4,6 +4,7 @@ class Image {
 	public var width(default, null) : Int;
 	public var height(default, null) : Int;
 	public var alpha(get, set) : Float;
+	public var smooth(get, set) : Bool;
 
 	var ctx : js.html.CanvasRenderingContext2D;
 	var canvas : js.html.CanvasElement;
@@ -23,6 +24,14 @@ class Image {
 		init();
 	}
 
+	function get_smooth() {
+		return ctx.imageSmoothingEnabled;
+	}
+
+	function set_smooth(v) {
+		return ctx.imageSmoothingEnabled = v;
+	}
+
 	function get_alpha() {
 		return ctx.globalAlpha;
 	}
@@ -33,6 +42,7 @@ class Image {
 
 	function init() {
 		ctx = canvas.getContext2d();
+		ctx.imageSmoothingEnabled = false;
 	}
 
 	function getColor( color : Int ) {
@@ -98,18 +108,16 @@ class Image {
 		invalidate();
 	}
 
-	public function drawSub( i : Image, srcX : Int, srcY : Int, srcW : Int, srcH : Int, x : Int, y : Int, dstW : Int = -1, dstH : Int = -1, smooth = false ) {
+	public function drawSub( i : Image, srcX : Int, srcY : Int, srcW : Int, srcH : Int, x : Int, y : Int, dstW : Int = -1, dstH : Int = -1 ) {
 		if( dstW < 0 ) dstW = srcW;
 		if( dstH < 0 ) dstH = srcH;
-		ctx.imageSmoothingEnabled = smooth;
 		ctx.drawImage(i.origin, srcX + i.originX, srcY + i.originY, srcW, srcH, x, y, dstW, dstH);
 		invalidate();
 	}
 
-	public function copyFrom( i : Image, smooth = false ) {
+	public function copyFrom( i : Image ) {
 		ctx.fillStyle = "rgba(0,0,0,0)";
 		ctx.fillRect(0, 0, width, height);
-		ctx.imageSmoothingEnabled = smooth;
 		ctx.drawImage(i.origin, i.originX, i.originY, i.width, i.height, 0, 0, width, height);
 		invalidate();
 	}
@@ -139,16 +147,14 @@ class Image {
 		invalidate();
 	}
 
-	public function resize( width : Int, height : Int, ?smooth : Bool ) {
+	public function resize( width : Int, height : Int ) {
 		if( width == this.width && height == this.height )
 			return;
-		if( smooth == null )
-			smooth = width < this.width || height < this.height;
 		var c = js.Browser.document.createCanvasElement();
 		c.width = width;
 		c.height = height;
 		var ctx2 = c.getContext2d();
-		ctx2.imageSmoothingEnabled = smooth;
+		ctx2.imageSmoothingEnabled = ctx.imageSmoothingEnabled;
 		ctx2.drawImage(canvas, 0, 0, this.width, this.height, 0, 0, width, height);
 		ctx = ctx2;
 		canvas = c;

@@ -394,6 +394,16 @@ class Level {
 		return "#" + StringTools.hex(v, 6);
 	}
 
+	function hasHole( i : lvl.Image, x : Int, y : Int ) {
+		for( dx in -1...2 )
+			for( dy in -1...2 ) {
+				var x = x + dx, y = y + dy;
+				if( x >= 0 && y >= 0 && x < i.width && y < i.height && i.getPixel(x, y) >>> 24 != 0 )
+					return false;
+			}
+		return true;
+	}
+
 	function pick( ?filter ) {
 		if( curPos == null ) return null;
 		var i = layers.length - 1;
@@ -411,25 +421,32 @@ class Level {
 				if( k == 0 && i >= 0 ) continue;
 				if( l.images != null ) {
 					var i = l.images[k];
-					if( i.getPixel(ix + ((i.width - tileSize)>>1), iy + (i.height - tileSize)) >>> 24 == 0 ) continue;
+					if( hasHole(i, ix + ((i.width - tileSize)>>1), iy + (i.height - tileSize)) ) continue;
 				}
 				return { k : k, layer : l, index : idx };
 			case Objects(idCol, objs):
-				for( i in 0...objs.length ) {
-					var o = objs[i];
-					var w = l.hasSize ? o.width : 1;
-					var h = l.hasSize ? o.height : 1;
-					if( x >= o.x && y >= o.y && x < o.x + w && y < o.y + h ) {
-						if( l.idToIndex == null )
-							return { k : 0, layer : l, index : i };
-						var k = l.idToIndex.get(Reflect.field(o, idCol));
-						if( k != null ) {
-							if( l.images != null ) {
-								var i = l.images[k];
-								if( i.getPixel(ix + ((i.width - tileSize)>>1), iy + (i.height - tileSize)) >>> 24 == 0 ) continue;
-							}
-							return { k : k, layer : l, index : i };
+				if( l.images == null ) {
+					for( i in 0...objs.length ) {
+						var o = objs[i];
+						var w = l.hasSize ? o.width : 1;
+						var h = l.hasSize ? o.height : 1;
+						if( x >= o.x && y >= o.y && x < o.x + w && y < o.y + h ) {
+							if( l.idToIndex == null )
+								return { k : 0, layer : l, index : i };
+							return { k : l.idToIndex.get(Reflect.field(o, idCol)), layer : l, index : i };
 						}
+					}
+				} else {
+					for( i in 0...objs.length ) {
+						var o = objs[i];
+						var k = l.idToIndex.get(Reflect.field(o, idCol));
+						if( k == null ) continue;
+						var img = l.images[k];
+						var w = img.width / tileSize, h = img.height / tileSize;
+						var ox = o.x - (w - 1) * 0.5;
+						var oy = o.y - (h - 1);
+						if( x >= ox && y >= oy && x < ox + w && y < oy + h && !hasHole(img, Std.int((x - ox) * tileSize), Std.int((y - oy) * tileSize)) )
+							return { k : k, layer : l, index : i };
 					}
 				}
 			case Tiles(_,data):
@@ -447,7 +464,7 @@ class Level {
 					var o = objs.get(i.o);
 					if( x >= i.x && y >= i.y && x < i.x + (o == null ? 1 : o.w) && y < i.y + (o == null ? 1 : o.h) ) {
 						var im = l.images[i.o + Std.int(x-i.x) + Std.int(y - i.y) * l.stride];
-						if( im.getPixel(ix, iy) >>> 24 == 0 ) continue;
+						if( hasHole(im, ix, iy) ) continue;
 						return { k : i.o, layer : l, index : idx };
 					}
 				}
@@ -787,6 +804,7 @@ class Level {
 
 		cursor = content.find("#cursor");
 		cursorImage = new lvl.Image(0, 0);
+		cursorImage.smooth = false;
 		tmpImage = new lvl.Image(0, 0);
 		cursor[0].appendChild(cursorImage.getCanvas());
 		cursor.hide();
@@ -852,6 +870,8 @@ class Level {
 				startPos = null;
 				return;
 			}
+			if( e.which != 1 )
+				return;
 			switch( currentLayer.data ) {
 			case Objects(idCol, objs) if( currentLayer.enabled() && curPos.x >= 0 && curPos.y >= 0 ):
 				var l = currentLayer;
@@ -1638,26 +1658,6 @@ class Level {
 		}
 	}
 
-	function drawTiles( l : LayerData, data : Array<Int> ) {
-		for( y in 0...height )
-			for( x in 0...width ) {
-				var k = data[x + y * width] - 1;
-				if( k < 0 ) continue;
-				view.draw(l.images[k], x * tileSize, y * tileSize);
-			}
-		if( l.props.mode == Ground ) {
-			var b = new cdb.TileBuilder(l.tileProps, l.stride, l.images.length);
-			var a = b.buildGrounds(data, width);
-			var p = 0, max = a.length;
-			while( p < max ) {
-				var x = a[p++];
-				var y = a[p++];
-				var id = a[p++];
-				view.draw(l.images[id], x * tileSize, y * tileSize);
-			}
-		}
-	}
-
 	inline function initMatrix( m : { a : Float, b : Float, c : Float, d : Float, x : Float, y : Float }, w : Int, h : Int, rot : Int, flip : Bool ) {
 		m.a = 1;
 		m.b = 0;
@@ -1709,7 +1709,23 @@ class Level {
 						view.fillRect(x * tileSize, y * tileSize, tileSize, tileSize, l.colors[k] | 0xFF000000);
 					}
 			case Tiles(t, data):
-				drawTiles(l, data);
+				for( y in 0...height )
+					for( x in 0...width ) {
+						var k = data[x + y * width] - 1;
+						if( k < 0 ) continue;
+						view.draw(l.images[k], x * tileSize, y * tileSize);
+					}
+				if( l.props.mode == Ground ) {
+					var b = new cdb.TileBuilder(l.tileProps, l.stride, l.images.length);
+					var a = b.buildGrounds(data, width);
+					var p = 0, max = a.length;
+					while( p < max ) {
+						var x = a[p++];
+						var y = a[p++];
+						var id = a[p++];
+						view.draw(l.images[id], x * tileSize, y * tileSize);
+					}
+				}
 			case TileInstances(_, insts):
 				var objs = l.getTileObjects();
 				var mat = { a : 1., b : 0., c : 0., d : 1., x : 0., y : 0. };
@@ -2319,7 +2335,7 @@ class Level {
 				curPreview = id;
 				jpreview.show();
 				ipreview.fill(0xFF400040);
-				ipreview.copyFrom(l.images[id], false);
+				ipreview.copyFrom(l.images[id]);
 			}
 
 			if( !start.down ) return;
@@ -2608,27 +2624,39 @@ class Level {
 				h = o[0].h;
 			}
 		}
-		cursorImage.setSize(size * w,size * h);
+		cursorImage.setSize(size * w, size * h);
+		var px = 0, py = 0;
 		if( l.images != null ) {
-			cursorImage.clear();
-			for( y in 0...h )
-				for( x in 0...w ) {
-					var i = l.images[cur + x + y * l.stride];
-					cursorImage.drawSub(i, 0, 0, i.width, i.height, x * size, y * size, size, size);
-				}
-			cursor.css( { border : "none" } );
-			if( flipMode || rotation != 0 ) {
-				var tw = size * w, th = size * h;
-				tmpImage.setSize(tw, th);
-				var m = { a : 0., b : 0., c : 0., d : 0., x : 0., y : 0. };
-				initMatrix(m, tw, th, rotation, flipMode);
-				trace(tw, th, m);
-				tmpImage.draw(cursorImage, 0, 0);
-				var cw = Std.int(tw * m.a + th * m.c);
-				var ch = Std.int(tw * m.b + th * m.d);
-				cursorImage.setSize(cw < 0 ? -cw : cw, ch < 0 ? -ch : ch);
+			switch( l.data ) {
+			case Objects(_):
+				var i = l.images[cur];
+				var w = Math.ceil(i.width * zoomView);
+				var h = Math.ceil(i.height * zoomView);
+				cursorImage.setSize(w, h);
 				cursorImage.clear();
-				cursorImage.drawMat(tmpImage, m);
+				cursorImage.drawScaled(i, 0, 0, w, h);
+				px = (w - size) >> 1;
+				py = h - size;
+			default:
+				cursorImage.clear();
+				for( y in 0...h )
+					for( x in 0...w ) {
+						var i = l.images[cur + x + y * l.stride];
+						cursorImage.drawSub(i, 0, 0, i.width, i.height, x * size, y * size, size, size);
+					}
+				cursor.css( { border : "none" } );
+				if( flipMode || rotation != 0 ) {
+					var tw = size * w, th = size * h;
+					tmpImage.setSize(tw, th);
+					var m = { a : 0., b : 0., c : 0., d : 0., x : 0., y : 0. };
+					initMatrix(m, tw, th, rotation, flipMode);
+					tmpImage.draw(cursorImage, 0, 0);
+					var cw = Std.int(tw * m.a + th * m.c);
+					var ch = Std.int(tw * m.b + th * m.d);
+					cursorImage.setSize(cw < 0 ? -cw : cw, ch < 0 ? -ch : ch);
+					cursorImage.clear();
+					cursorImage.drawMat(tmpImage, m);
+				}
 			}
 			cursorImage.fill(0x605BA1FB);
 		} else {
@@ -2637,6 +2665,9 @@ class Level {
 			cursorImage.fill(c | 0xFF000000);
 			cursor.css( { border : "1px solid " + (lum < 0.25 ? "white":"black") } );
 		}
+		var canvas = cursorImage.getCanvas();
+		canvas.style.marginLeft = -px + "px";
+		canvas.style.marginTop = -py + "px";
 	}
 
 }

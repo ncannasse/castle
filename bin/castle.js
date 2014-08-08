@@ -156,53 +156,6 @@ Lambda.find = function(it,f) {
 	}
 	return null;
 };
-var IMap = function() { };
-$hxClasses["IMap"] = IMap;
-IMap.__name__ = ["IMap"];
-IMap.prototype = {
-	__class__: IMap
-};
-var haxe = {};
-haxe.ds = {};
-haxe.ds.StringMap = function() {
-	this.h = { };
-};
-$hxClasses["haxe.ds.StringMap"] = haxe.ds.StringMap;
-haxe.ds.StringMap.__name__ = ["haxe","ds","StringMap"];
-haxe.ds.StringMap.__interfaces__ = [IMap];
-haxe.ds.StringMap.prototype = {
-	set: function(key,value) {
-		this.h["$" + key] = value;
-	}
-	,get: function(key) {
-		return this.h["$" + key];
-	}
-	,exists: function(key) {
-		return this.h.hasOwnProperty("$" + key);
-	}
-	,remove: function(key) {
-		key = "$" + key;
-		if(!this.h.hasOwnProperty(key)) return false;
-		delete(this.h[key]);
-		return true;
-	}
-	,keys: function() {
-		var a = [];
-		for( var key in this.h ) {
-		if(this.h.hasOwnProperty(key)) a.push(key.substr(1));
-		}
-		return HxOverrides.iter(a);
-	}
-	,iterator: function() {
-		return { ref : this.h, it : this.keys(), hasNext : function() {
-			return this.it.hasNext();
-		}, next : function() {
-			var i = this.it.next();
-			return this.ref["$" + i];
-		}};
-	}
-	,__class__: haxe.ds.StringMap
-};
 var Level = function(model,sheet,index) {
 	this.reloading = false;
 	this.rotation = 0;
@@ -614,6 +567,20 @@ Level.prototype = {
 	,toColor: function(v) {
 		return "#" + StringTools.hex(v,6);
 	}
+	,hasHole: function(i,x,y) {
+		var _g = -1;
+		while(_g < 2) {
+			var dx = _g++;
+			var _g1 = -1;
+			while(_g1 < 2) {
+				var dy = _g1++;
+				var x1 = x + dx;
+				var y1 = y + dy;
+				if(x1 >= 0 && y1 >= 0 && x1 < i.width && y1 < i.height && i.getPixel(x1,y1) >>> 24 != 0) return false;
+			}
+		}
+		return true;
+	}
 	,pick: function(filter) {
 		if(this.curPos == null) return null;
 		var i = this.layers.length - 1;
@@ -634,33 +601,48 @@ Level.prototype = {
 					if(k == 0 && i >= 0) continue;
 					if(l.images != null) {
 						var i1 = l.images[k];
-						if(i1.getPixel(ix + (i1.width - this.tileSize >> 1),iy + (i1.height - this.tileSize)) >>> 24 == 0) continue;
+						if(this.hasHole(i1,ix + (i1.width - this.tileSize >> 1),iy + (i1.height - this.tileSize))) continue;
 					}
 					return { k : k, layer : l, index : idx};
 				case 1:
 					var objs = _g[3];
 					var idCol = _g[2];
-					var _g2 = 0;
-					var _g1 = objs.length;
-					while(_g2 < _g1) {
-						var i2 = _g2++;
-						var o = objs[i2];
-						var w;
-						if(l.hasSize) w = o.width; else w = 1;
-						var h;
-						if(l.hasSize) h = o.height; else h = 1;
-						if(x >= o.x && y >= o.y && x < o.x + w && y < o.y + h) {
-							if(l.idToIndex == null) return { k : 0, layer : l, index : i2};
-							var k1;
-							var key = Reflect.field(o,idCol);
-							k1 = l.idToIndex.get(key);
-							if(k1 != null) {
-								if(l.images != null) {
-									var i3 = l.images[k1];
-									if(i3.getPixel(ix + (i3.width - this.tileSize >> 1),iy + (i3.height - this.tileSize)) >>> 24 == 0) continue;
-								}
-								return { k : k1, layer : l, index : i2};
+					if(l.images == null) {
+						var _g2 = 0;
+						var _g1 = objs.length;
+						while(_g2 < _g1) {
+							var i2 = _g2++;
+							var o = objs[i2];
+							var w;
+							if(l.hasSize) w = o.width; else w = 1;
+							var h;
+							if(l.hasSize) h = o.height; else h = 1;
+							if(x >= o.x && y >= o.y && x < o.x + w && y < o.y + h) {
+								if(l.idToIndex == null) return { k : 0, layer : l, index : i2};
+								return { k : (function($this) {
+									var $r;
+									var key = Reflect.field(o,idCol);
+									$r = l.idToIndex.get(key);
+									return $r;
+								}(this)), layer : l, index : i2};
 							}
+						}
+					} else {
+						var _g21 = 0;
+						var _g11 = objs.length;
+						while(_g21 < _g11) {
+							var i3 = _g21++;
+							var o1 = objs[i3];
+							var k1;
+							var key1 = Reflect.field(o1,idCol);
+							k1 = l.idToIndex.get(key1);
+							if(k1 == null) continue;
+							var img = l.images[k1];
+							var w1 = img.width / this.tileSize;
+							var h1 = img.height / this.tileSize;
+							var ox = o1.x - (w1 - 1) * 0.5;
+							var oy = o1.y - (h1 - 1);
+							if(x >= ox && y >= oy && x < ox + w1 && y < oy + h1 && !this.hasHole(img,(x - ox) * this.tileSize | 0,(y - oy) * this.tileSize | 0)) return { k : k1, layer : l, index : i3};
 						}
 					}
 					break;
@@ -678,10 +660,10 @@ Level.prototype = {
 					var idx2 = insts.length;
 					while(idx2 > 0) {
 						var i5 = insts[--idx2];
-						var o1 = objs1.get(i5.o);
-						if(x >= i5.x && y >= i5.y && x < i5.x + (o1 == null?1:o1.w) && y < i5.y + (o1 == null?1:o1.h)) {
+						var o2 = objs1.get(i5.o);
+						if(x >= i5.x && y >= i5.y && x < i5.x + (o2 == null?1:o2.w) && y < i5.y + (o2 == null?1:o2.h)) {
 							var im = l.images[i5.o + (x - i5.x | 0) + (y - i5.y | 0) * l.stride];
-							if(im.getPixel(ix,iy) >>> 24 == 0) continue;
+							if(this.hasHole(im,ix,iy)) continue;
 							return { k : i5.o, layer : l, index : idx2};
 						}
 					}
@@ -1176,6 +1158,7 @@ Level.prototype = {
 		this.onResize();
 		this.cursor = this.content.find("#cursor");
 		this.cursorImage = new lvl.Image(0,0);
+		this.cursorImage.set_smooth(false);
 		this.tmpImage = new lvl.Image(0,0);
 		this.cursor[0].appendChild(this.cursorImage.getCanvas());
 		this.cursor.hide();
@@ -1249,6 +1232,7 @@ Level.prototype = {
 				_g3.startPos = null;
 				return;
 			}
+			if(e5.which != 1) return;
 			{
 				var _g7 = _g3.currentLayer.data;
 				switch(_g7[1]) {
@@ -2388,33 +2372,6 @@ Level.prototype = {
 			}
 		}
 	}
-	,drawTiles: function(l,data) {
-		var _g1 = 0;
-		var _g = this.height;
-		while(_g1 < _g) {
-			var y = _g1++;
-			var _g3 = 0;
-			var _g2 = this.width;
-			while(_g3 < _g2) {
-				var x = _g3++;
-				var k = data[x + y * this.width] - 1;
-				if(k < 0) continue;
-				this.view.draw(l.images[k],x * this.tileSize,y * this.tileSize);
-			}
-		}
-		if(l.props.mode == "ground") {
-			var b = new cdb.TileBuilder(l.tileProps,l.stride,l.images.length);
-			var a = b.buildGrounds(data,this.width);
-			var p = 0;
-			var max = a.length;
-			while(p < max) {
-				var x1 = a[p++];
-				var y1 = a[p++];
-				var id = a[p++];
-				this.view.draw(l.images[id],x1 * this.tileSize,y1 * this.tileSize);
-			}
-		}
-	}
 	,initMatrix: function(m,w,h,rot,flip) {
 		m.a = 1;
 		m.b = 0;
@@ -2480,39 +2437,63 @@ Level.prototype = {
 				case 2:
 					var data1 = _g2[3];
 					var t = _g2[2];
-					this.drawTiles(l,data1);
+					var _g41 = 0;
+					var _g31 = this.height;
+					while(_g41 < _g31) {
+						var y1 = _g41++;
+						var _g61 = 0;
+						var _g51 = this.width;
+						while(_g61 < _g51) {
+							var x1 = _g61++;
+							var k1 = data1[x1 + y1 * this.width] - 1;
+							if(k1 < 0) continue;
+							this.view.draw(l.images[k1],x1 * this.tileSize,y1 * this.tileSize);
+						}
+					}
+					if(l.props.mode == "ground") {
+						var b = new cdb.TileBuilder(l.tileProps,l.stride,l.images.length);
+						var a = b.buildGrounds(data1,this.width);
+						var p = 0;
+						var max = a.length;
+						while(p < max) {
+							var x2 = a[p++];
+							var y2 = a[p++];
+							var id = a[p++];
+							this.view.draw(l.images[id],x2 * this.tileSize,y2 * this.tileSize);
+						}
+					}
 					break;
 				case 3:
 					var insts = _g2[3];
 					var objs = l.getTileObjects();
 					var mat = { a : 1., b : 0., c : 0., d : 1., x : 0., y : 0.};
-					var _g31 = 0;
-					while(_g31 < insts.length) {
-						var i1 = insts[_g31];
-						++_g31;
-						var x1 = i1.x * this.tileSize | 0;
-						var y1 = i1.y * this.tileSize | 0;
+					var _g32 = 0;
+					while(_g32 < insts.length) {
+						var i1 = insts[_g32];
+						++_g32;
+						var x3 = i1.x * this.tileSize | 0;
+						var y3 = i1.y * this.tileSize | 0;
 						var obj = objs.get(i1.o);
 						var w;
 						if(obj == null) w = 1; else w = obj.w;
 						var h;
 						if(obj == null) h = 1; else h = obj.h;
 						this.initMatrix(mat,w * this.tileSize,h * this.tileSize,i1.rot,i1.flip);
-						mat.x += x1;
-						mat.y += y1;
+						mat.x += x3;
+						mat.y += y3;
 						if(obj == null) {
 							this.view.drawMat(l.images[i1.o],mat);
-							this.view.fillRect(x1,y1,this.tileSize,this.tileSize,-2130771968);
+							this.view.fillRect(x3,y3,this.tileSize,this.tileSize,-2130771968);
 						} else {
 							var px = mat.x;
 							var py = mat.y;
-							var _g51 = 0;
-							var _g41 = obj.h;
-							while(_g51 < _g41) {
-								var dy = _g51++;
+							var _g52 = 0;
+							var _g42 = obj.h;
+							while(_g52 < _g42) {
+								var dy = _g52++;
 								var _g7 = 0;
-								var _g61 = obj.w;
-								while(_g7 < _g61) {
+								var _g62 = obj.w;
+								while(_g7 < _g62) {
 									var dx = _g7++;
 									mat.x = px + dx * this.tileSize * mat.a + dy * this.tileSize * mat.c;
 									mat.y = py + dx * this.tileSize * mat.b + dy * this.tileSize * mat.d;
@@ -2527,10 +2508,10 @@ Level.prototype = {
 					var idCol = _g2[2];
 					if(idCol == null) {
 						var col = l.props.color | -1610612736;
-						var _g32 = 0;
-						while(_g32 < objs1.length) {
-							var o = objs1[_g32];
-							++_g32;
+						var _g33 = 0;
+						while(_g33 < objs1.length) {
+							var o = objs1[_g33];
+							++_g33;
 							var w1;
 							if(l.hasSize) w1 = o.width * this.tileSize; else w1 = this.tileSize;
 							var h1;
@@ -2538,10 +2519,10 @@ Level.prototype = {
 							this.view.fillRect(o.x * this.tileSize | 0,o.y * this.tileSize | 0,w1 | 0,h1 | 0,col);
 						}
 						var col1 = l.props.color | -16777216;
-						var _g33 = 0;
-						while(_g33 < objs1.length) {
-							var o1 = objs1[_g33];
-							++_g33;
+						var _g34 = 0;
+						while(_g34 < objs1.length) {
+							var o1 = objs1[_g34];
+							++_g34;
 							var w2;
 							if(l.hasSize) w2 = o1.width * this.tileSize | 0; else w2 = this.tileSize;
 							var h2;
@@ -2554,13 +2535,13 @@ Level.prototype = {
 							this.view.fillRect(px1 + w2 - 1,py1 + 1,1,h2 - 2,col1);
 						}
 					} else {
-						var _g34 = 0;
-						while(_g34 < objs1.length) {
-							var o2 = objs1[_g34];
-							++_g34;
-							var id = Reflect.field(o2,idCol);
-							var k1 = l.idToIndex.get(id);
-							if(k1 == null) {
+						var _g35 = 0;
+						while(_g35 < objs1.length) {
+							var o2 = objs1[_g35];
+							++_g35;
+							var id1 = Reflect.field(o2,idCol);
+							var k2 = l.idToIndex.get(id1);
+							if(k2 == null) {
 								var w3;
 								if(l.hasSize) w3 = o2.width * this.tileSize; else w3 = this.tileSize;
 								var h3;
@@ -2569,7 +2550,7 @@ Level.prototype = {
 								continue;
 							}
 							if(l.images != null) {
-								var i2 = l.images[k1];
+								var i2 = l.images[k2];
 								this.view.draw(i2,(o2.x * this.tileSize | 0) - (i2.width - this.tileSize >> 1),(o2.y * this.tileSize | 0) - (i2.height - this.tileSize));
 								continue;
 							}
@@ -2577,7 +2558,7 @@ Level.prototype = {
 							if(l.hasSize) w4 = o2.width * this.tileSize; else w4 = this.tileSize;
 							var h4;
 							if(l.hasSize) h4 = o2.height * this.tileSize; else h4 = this.tileSize;
-							this.view.fillRect(o2.x * this.tileSize | 0,o2.y * this.tileSize | 0,w4 | 0,h4 | 0,l.colors[k1] | -16777216);
+							this.view.fillRect(o2.x * this.tileSize | 0,o2.y * this.tileSize | 0,w4 | 0,h4 | 0,l.colors[k2] | -16777216);
 						}
 					}
 					break;
@@ -3398,7 +3379,7 @@ Level.prototype = {
 				curPreview = id;
 				jpreview.show();
 				ipreview.fill(-12582848);
-				ipreview.copyFrom(l.images[id],false);
+				ipreview.copyFrom(l.images[id]);
 			}
 			if(!start_down) return;
 			var x01;
@@ -3848,32 +3829,49 @@ Level.prototype = {
 			}
 		}
 		this.cursorImage.setSize(size * w1,size * h1);
+		var px1 = 0;
+		var py1 = 0;
 		if(l.images != null) {
-			this.cursorImage.clear();
-			var _g40 = 0;
-			while(_g40 < h1) {
-				var y4 = _g40++;
-				var _g112 = 0;
-				while(_g112 < w1) {
-					var x4 = _g112++;
-					var i4 = l.images[cur + x4 + y4 * l.stride];
-					this.cursorImage.drawSub(i4,0,0,i4.width,i4.height,x4 * size,y4 * size,size,size);
+			{
+				var _g40 = l.data;
+				switch(_g40[1]) {
+				case 1:
+					var i4 = l.images[cur];
+					var w2 = Math.ceil(i4.width * this.zoomView);
+					var h2 = Math.ceil(i4.height * this.zoomView);
+					this.cursorImage.setSize(w2,h2);
+					this.cursorImage.clear();
+					this.cursorImage.drawScaled(i4,0,0,w2,h2);
+					px1 = w2 - size >> 1;
+					py1 = h2 - size;
+					break;
+				default:
+					this.cursorImage.clear();
+					var _g112 = 0;
+					while(_g112 < h1) {
+						var y4 = _g112++;
+						var _g210 = 0;
+						while(_g210 < w1) {
+							var x4 = _g210++;
+							var i5 = l.images[cur + x4 + y4 * l.stride];
+							this.cursorImage.drawSub(i5,0,0,i5.width,i5.height,x4 * size,y4 * size,size,size);
+						}
+					}
+					this.cursor.css({ border : "none"});
+					if(this.flipMode || this.rotation != 0) {
+						var tw = size * w1;
+						var th = size * h1;
+						this.tmpImage.setSize(tw,th);
+						var m2 = { a : 0., b : 0., c : 0., d : 0., x : 0., y : 0.};
+						this.initMatrix(m2,tw,th,this.rotation,this.flipMode);
+						this.tmpImage.draw(this.cursorImage,0,0);
+						var cw = tw * m2.a + th * m2.c | 0;
+						var ch = tw * m2.b + th * m2.d | 0;
+						this.cursorImage.setSize(cw < 0?-cw:cw,ch < 0?-ch:ch);
+						this.cursorImage.clear();
+						this.cursorImage.drawMat(this.tmpImage,m2);
+					}
 				}
-			}
-			this.cursor.css({ border : "none"});
-			if(this.flipMode || this.rotation != 0) {
-				var tw = size * w1;
-				var th = size * h1;
-				this.tmpImage.setSize(tw,th);
-				var m2 = { a : 0., b : 0., c : 0., d : 0., x : 0., y : 0.};
-				this.initMatrix(m2,tw,th,this.rotation,this.flipMode);
-				haxe.Log.trace(tw,{ fileName : "Level.hx", lineNumber : 2625, className : "Level", methodName : "setCursor", customParams : [th,m2]});
-				this.tmpImage.draw(this.cursorImage,0,0);
-				var cw = tw * m2.a + th * m2.c | 0;
-				var ch = tw * m2.b + th * m2.d | 0;
-				this.cursorImage.setSize(cw < 0?-cw:cw,ch < 0?-ch:ch);
-				this.cursorImage.clear();
-				this.cursorImage.drawMat(this.tmpImage,m2);
 			}
 			this.cursorImage.fill(1616617979);
 		} else {
@@ -3882,6 +3880,9 @@ Level.prototype = {
 			this.cursorImage.fill(c | -16777216);
 			this.cursor.css({ border : "1px solid " + (lum < 0.25?"white":"black")});
 		}
+		var canvas = this.cursorImage.getCanvas();
+		canvas.style.marginLeft = -px1 + "px";
+		canvas.style.marginTop = -py1 + "px";
 	}
 	,__class__: Level
 };
@@ -8510,6 +8511,12 @@ Main.prototype = $extend(Model.prototype,{
 	}
 	,__class__: Main
 });
+var IMap = function() { };
+$hxClasses["IMap"] = IMap;
+IMap.__name__ = ["IMap"];
+IMap.prototype = {
+	__class__: IMap
+};
 Math.__name__ = ["Math"];
 var Reflect = function() { };
 $hxClasses["Reflect"] = Reflect;
@@ -9878,6 +9885,7 @@ cdb.IndexId.prototype = $extend(cdb.Index.prototype,{
 	}
 	,__class__: cdb.IndexId
 });
+var haxe = {};
 haxe.Json = function() { };
 $hxClasses["haxe.Json"] = haxe.Json;
 haxe.Json.__name__ = ["haxe","Json"];
@@ -10809,6 +10817,7 @@ haxe.crypto.Md5.prototype = {
 	}
 	,__class__: haxe.crypto.Md5
 };
+haxe.ds = {};
 haxe.ds.IntMap = function() {
 	this.h = { };
 };
@@ -10855,6 +10864,45 @@ haxe.ds.ObjectMap.prototype = {
 		return HxOverrides.iter(a);
 	}
 	,__class__: haxe.ds.ObjectMap
+};
+haxe.ds.StringMap = function() {
+	this.h = { };
+};
+$hxClasses["haxe.ds.StringMap"] = haxe.ds.StringMap;
+haxe.ds.StringMap.__name__ = ["haxe","ds","StringMap"];
+haxe.ds.StringMap.__interfaces__ = [IMap];
+haxe.ds.StringMap.prototype = {
+	set: function(key,value) {
+		this.h["$" + key] = value;
+	}
+	,get: function(key) {
+		return this.h["$" + key];
+	}
+	,exists: function(key) {
+		return this.h.hasOwnProperty("$" + key);
+	}
+	,remove: function(key) {
+		key = "$" + key;
+		if(!this.h.hasOwnProperty(key)) return false;
+		delete(this.h[key]);
+		return true;
+	}
+	,keys: function() {
+		var a = [];
+		for( var key in this.h ) {
+		if(this.h.hasOwnProperty(key)) a.push(key.substr(1));
+		}
+		return HxOverrides.iter(a);
+	}
+	,iterator: function() {
+		return { ref : this.h, it : this.keys(), hasNext : function() {
+			return this.it.hasNext();
+		}, next : function() {
+			var i = this.it.next();
+			return this.ref["$" + i];
+		}};
+	}
+	,__class__: haxe.ds.StringMap
 };
 haxe.io.BytesBuffer = function() {
 	this.b = new Array();
@@ -11322,7 +11370,13 @@ lvl.Image.fromCanvas = function(c) {
 	return i;
 };
 lvl.Image.prototype = {
-	get_alpha: function() {
+	get_smooth: function() {
+		return this.ctx.imageSmoothingEnabled;
+	}
+	,set_smooth: function(v) {
+		return this.ctx.imageSmoothingEnabled = v;
+	}
+	,get_alpha: function() {
 		return this.ctx.globalAlpha;
 	}
 	,set_alpha: function(v) {
@@ -11330,6 +11384,7 @@ lvl.Image.prototype = {
 	}
 	,init: function() {
 		this.ctx = this.canvas.getContext("2d");
+		this.ctx.imageSmoothingEnabled = false;
 	}
 	,getColor: function(color) {
 		if(color >>> 24 == 255) return "#" + StringTools.hex(color & 16777215,6); else return "rgba(" + (color >> 16 & 255) + "," + (color >> 8 & 255) + "," + (color & 255) + "," + (color >>> 24) / 255 + ")";
@@ -11384,21 +11439,17 @@ lvl.Image.prototype = {
 		this.ctx.drawImage(i.origin,i.originX,i.originY,i.width,i.height,x,y,width,height);
 		this.invalidate();
 	}
-	,drawSub: function(i,srcX,srcY,srcW,srcH,x,y,dstW,dstH,smooth) {
-		if(smooth == null) smooth = false;
+	,drawSub: function(i,srcX,srcY,srcW,srcH,x,y,dstW,dstH) {
 		if(dstH == null) dstH = -1;
 		if(dstW == null) dstW = -1;
 		if(dstW < 0) dstW = srcW;
 		if(dstH < 0) dstH = srcH;
-		this.ctx.imageSmoothingEnabled = smooth;
 		this.ctx.drawImage(i.origin,srcX + i.originX,srcY + i.originY,srcW,srcH,x,y,dstW,dstH);
 		this.invalidate();
 	}
-	,copyFrom: function(i,smooth) {
-		if(smooth == null) smooth = false;
+	,copyFrom: function(i) {
 		this.ctx.fillStyle = "rgba(0,0,0,0)";
 		this.ctx.fillRect(0,0,this.width,this.height);
-		this.ctx.imageSmoothingEnabled = smooth;
 		this.ctx.drawImage(i.origin,i.originX,i.originY,i.width,i.height,0,0,this.width,this.height);
 		this.invalidate();
 	}
@@ -11427,16 +11478,15 @@ lvl.Image.prototype = {
 		this.init();
 		this.invalidate();
 	}
-	,resize: function(width,height,smooth) {
+	,resize: function(width,height) {
 		if(width == this.width && height == this.height) return;
-		if(smooth == null) smooth = width < this.width || height < this.height;
 		var c;
 		var _this = window.document;
 		c = _this.createElement("canvas");
 		c.width = width;
 		c.height = height;
 		var ctx2 = c.getContext("2d");
-		ctx2.imageSmoothingEnabled = smooth;
+		ctx2.imageSmoothingEnabled = this.ctx.imageSmoothingEnabled;
 		ctx2.drawImage(this.canvas,0,0,this.width,this.height,0,0,width,height);
 		this.ctx = ctx2;
 		this.canvas = c;
