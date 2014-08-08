@@ -147,7 +147,6 @@ class Model {
 						id = Reflect.field(l, c.name);
 						break;
 					}
-			trace(l, id);
 			id;
 		case TBool: false;
 		case TList: [];
