@@ -2083,7 +2083,7 @@ class Level {
 				case TInt: Std.parseInt(val);
 				case TFloat: Std.parseFloat(val);
 				case TString: val;
-				case TDynamic: try haxe.Json.parse(val) catch( e : Dynamic ) null;
+				case TDynamic: try model.parseDynamic(val) catch( e : Dynamic ) null;
 				default: throw "assert";
 				}
 				if( v == null )
@@ -2095,7 +2095,7 @@ class Level {
 			}
 			var s = l.getTileProp(m);
 			if( s != null ) {
-				var v = try haxe.Json.parse(val) catch( e : Dynamic ) null;
+				var v = try model.parseDynamic(val) catch( e : Dynamic ) null;
 				if( v == null )
 					Reflect.deleteField(s.opts, "value");
 				else

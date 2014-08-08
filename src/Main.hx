@@ -1044,7 +1044,7 @@ class Main extends Model {
 					case TCustom(t):
 						try parseTypeVal(tmap.get(t), nv) catch( e : Dynamic ) null;
 					case TDynamic:
-						try haxe.Json.parse(nv) catch( e : Dynamic ) null;
+						try parseDynamic(nv) catch( e : Dynamic ) null;
 					default:
 						nv;
 					}

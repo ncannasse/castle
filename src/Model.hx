@@ -155,6 +155,11 @@ class Model {
 		}
 	}
 
+	public function parseDynamic( s : String ) : Dynamic {
+		s = ~/([{,]) *([a-zA-Z_][a-zA-Z0-9_]*) *:/g.replace(s, "$1\"$2\":");
+		return haxe.Json.parse(s);
+	}
+
 	public function hasColumn( s : Sheet, name : String, ?types : Array<ColumnType> ) {
 		for( c in s.columns )
 			if( c.name == name ) {

@@ -3128,7 +3128,7 @@ Level.prototype = {
 					break;
 				case 16:
 					try {
-						v = js.Node.parse(val);
+						v = this.model.parseDynamic(val);
 					} catch( e ) {
 						v = null;
 					}
@@ -3144,7 +3144,7 @@ Level.prototype = {
 			if(s2 != null) {
 				var v1;
 				try {
-					v1 = js.Node.parse(val);
+					v1 = this.model.parseDynamic(val);
 				} catch( e1 ) {
 					v1 = null;
 				}
@@ -4174,6 +4174,10 @@ Model.prototype = {
 				return null;
 			}
 		}
+	}
+	,parseDynamic: function(s) {
+		s = new EReg("([{,]) *([a-zA-Z_][a-zA-Z0-9_]*) *:","g").replace(s,"$1\"$2\":");
+		return js.Node.parse(s);
 	}
 	,hasColumn: function(s,name,types) {
 		var _g = 0;
@@ -7077,7 +7081,7 @@ Main.prototype = $extend(Model.prototype,{
 								break;
 							case 16:
 								try {
-									val2 = js.Node.parse(nv);
+									val2 = _g.parseDynamic(nv);
 								} catch( e3 ) {
 									val2 = null;
 								}
