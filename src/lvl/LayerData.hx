@@ -12,11 +12,13 @@ typedef LayerState = {
 
 typedef TileInfos = { file : String, stride : Int, size : Int };
 
+typedef Instance = { x : Float, y : Float, o : Int, rot : Int, flip : Bool };
+
 enum LayerInnerData {
 	Layer( a : Array<Int> );
 	Objects( idCol : String, objs : Array<{ x : Float, y : Float, ?width : Float, ?height : Float }> );
 	Tiles( t : TileInfos, data : Array<Int> );
-	TileInstances( t : TileInfos, insts : Array<{ x : Float, y : Float, o : Int }> );
+	TileInstances( t : TileInfos, insts : Array<Instance> );
 }
 
 class LayerData extends LayerGfx {
@@ -37,6 +39,7 @@ class LayerData extends LayerGfx {
 
 	public var baseSheet : Sheet;
 	public var floatCoord : Bool;
+	public var hasRotFlip : Bool;
 
 	public var targetObj : { o : Dynamic, f : String };
 	public var listColumnn : Column;
@@ -182,9 +185,14 @@ class LayerData extends LayerGfx {
 				var p = 1;
 				if( data[0] != 0xFFFF ) throw "assert";
 				while( p < data.length ) {
-					var x = data[p++]/level.tileSize;
-					var y = data[p++]/level.tileSize;
+					var x = data[p++];
+					var y = data[p++];
 					var v = data[p++];
+					var flip = v & 0x8000 != 0;
+					var rot = (x >> 15) | ((y >> 15) << 1);
+					v &= 0x7FFF;
+					var x = (x&0x7FFF)/level.tileSize;
+					var y = (y&0x7FFF)/level.tileSize;
 					var vx = v % stride;
 					var vy = Std.int(v / stride);
 					var v2 = vx + vy * w;
@@ -193,9 +201,10 @@ class LayerData extends LayerGfx {
 						continue;
 					}
 					if( v != v2 ) dirty = true;
-					insts.push({ x : x, y : y, o : v });
+					insts.push({ x : x, y : y, o : v, flip : flip, rot : rot });
 				}
 				this.data = TileInstances(d, insts);
+				hasRotFlip = true;
 				hasFloatCoord = floatCoord = true;
 			}
 			this.stride = d.stride = w;
@@ -291,9 +300,9 @@ class LayerData extends LayerGfx {
 			var b = new haxe.io.BytesOutput();
 			b.writeUInt16(0xFFFF);
 			for( i in insts ) {
-				b.writeUInt16(Std.int(i.x * level.tileSize));
-				b.writeUInt16(Std.int(i.y * level.tileSize));
-				b.writeUInt16(i.o);
+				b.writeUInt16(Std.int(i.x * level.tileSize) | ((i.rot&1) << 15));
+				b.writeUInt16(Std.int(i.y * level.tileSize) | ((i.rot>>1) << 15));
+				b.writeUInt16(i.o | ((i.flip?1:0)<<15));
 			}
 			return t.file == null ? null : { file : t.file, size : t.size, stride : t.stride, data : cdb.Lz4Reader.encodeBytes(b.getBytes(),level.model.compressionEnabled()) };
 		}

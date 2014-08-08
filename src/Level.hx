@@ -17,6 +17,8 @@ typedef LevelState = {
 	var randomMode : Bool;
 	var paletteMode : Null<String>;
 	var paletteModeCursor : Int;
+	var flipMode : Bool;
+	var rotation : Int;
 }
 
 class Level {
@@ -45,6 +47,7 @@ class Level {
 	var currentLayer : LayerData;
 	var cursor : js.JQuery;
 	var cursorImage : lvl.Image;
+	var tmpImage : lvl.Image;
 	var zoomView = 1.;
 	var curPos : { x : Int, y : Int, xf : Float, yf : Float };
 	var mouseDown : { rx : Int, ry : Int, w : Int, h : Int };
@@ -67,6 +70,9 @@ class Level {
 	var paletteMode : Null<String> = null;
 	var paletteModeCursor : Int = 0;
 	var spaceDown : Bool;
+
+	var flipMode : Bool = false;
+	var rotation = 0;
 
 	var perTileProps : Array<Column>;
 	var perTileGfx : Map<String, lvl.LayerGfx>;
@@ -368,6 +374,9 @@ class Level {
 			paletteMode = state.paletteMode;
 			paletteModeCursor = state.paletteModeCursor;
 			smallPalette = state.smallPalette;
+			flipMode = state.flipMode;
+			rotation = state.rotation;
+			if( rotation == null ) rotation = 0;
 			if( smallPalette == null ) smallPalette = false;
 		}
 
@@ -599,7 +608,7 @@ class Level {
 		};
 		nrename.click = function() {
 			l.comp.find("span").remove();
-			l.comp.prepend(J("<input>").val(l.name).focus().blur(function(_) {
+			l.comp.prepend(J("<input type='text'>").val(l.name).focus().blur(function(_) {
 				var n = StringTools.trim(JTHIS.val());
 				for( p in props.layers )
 					if( p.l == n ) {
@@ -778,6 +787,7 @@ class Level {
 
 		cursor = content.find("#cursor");
 		cursorImage = new lvl.Image(0, 0);
+		tmpImage = new lvl.Image(0, 0);
 		cursor[0].appendChild(cursorImage.getCanvas());
 		cursor.hide();
 
@@ -1290,6 +1300,19 @@ class Level {
 				action("lockGrid", l.floatCoord);
 				content.find("[name=lockGrid]").prop("checked", !l.floatCoord);
 			}
+		case "F".code:
+			if( currentLayer.hasRotFlip ) {
+				flipMode = !flipMode;
+				savePrefs();
+			}
+			setCursor();
+		case "D".code:
+			if( currentLayer.hasRotFlip ) {
+				rotation++;
+				rotation %= 4;
+				savePrefs();
+			}
+			setCursor();
 		case "O".code:
 			if( palette != null && l.tileProps != null ) {
 				var mode = Object;
@@ -1594,11 +1617,11 @@ class Level {
 				}
 			}
 			if( putObj != null )
-				insts.push( { x : x, y : y, o : putObj.x + putObj.y * l.stride } );
+				insts.push( { x : x, y : y, o : putObj.x + putObj.y * l.stride, rot : rotation, flip : flipMode } );
 			else
 				for( dy in 0...l.currentHeight )
 					for( dx in 0...l.currentWidth )
-						insts.push( { x : x+dx, y : y+dy, o : l.current + dx + dy * l.stride } );
+						insts.push( { x : x+dx, y : y+dy, o : l.current + dx + dy * l.stride, rot : rotation, flip : flipMode } );
 			inline function getY(i) {
 				var o = objs.get(i.o);
 				return Std.int( (i.y + (o == null ? 1 : o.h)) * tileSize);
@@ -1635,6 +1658,35 @@ class Level {
 		}
 	}
 
+	inline function initMatrix( m : { a : Float, b : Float, c : Float, d : Float, x : Float, y : Float }, w : Int, h : Int, rot : Int, flip : Bool ) {
+		m.a = 1;
+		m.b = 0;
+		m.c = 0;
+		m.d = 1;
+		m.x = -w * 0.5;
+		m.y = -h * 0.5;
+		if( rot != 0 ) {
+			var a = Math.PI * rot / 2;
+			var c = Math.cos(a);
+			var s = Math.sin(a);
+			var x = m.x, y = m.y;
+			m.a = c;
+			m.b = s;
+			m.c = -s;
+			m.d = c;
+			m.x = x * c - y * s;
+			m.y = x * s + y * c;
+		}
+		if( flip ) {
+			m.a = -m.a;
+			m.c = -m.c;
+			m.x = -m.x;
+		}
+		m.x += Math.abs(m.a * w * 0.5 + m.c * h * 0.5);
+		m.y += Math.abs(m.b * w * 0.5 + m.d * h * 0.5);
+	}
+
+
 	public function draw() {
 		view.fill(0xFF909090);
 		for( index in 0...layers.length ) {
@@ -1660,16 +1712,27 @@ class Level {
 				drawTiles(l, data);
 			case TileInstances(_, insts):
 				var objs = l.getTileObjects();
+				var mat = { a : 1., b : 0., c : 0., d : 1., x : 0., y : 0. };
 				for( i in insts ) {
 					var x = Std.int(i.x * tileSize), y = Std.int(i.y * tileSize);
 					var obj = objs.get(i.o);
+					var w = obj == null ? 1 : obj.w;
+					var h = obj == null ? 1 : obj.h;
+					initMatrix(mat, w * tileSize, h * tileSize, i.rot, i.flip);
+					mat.x += x;
+					mat.y += y;
 					if( obj == null ) {
-						view.draw(l.images[i.o], x, y);
+						view.drawMat(l.images[i.o], mat);
 						view.fillRect(x, y, tileSize, tileSize, 0x80FF0000);
 					} else {
+						var px = mat.x;
+						var py = mat.y;
 						for( dy in 0...obj.h )
-							for( dx in 0...obj.w )
-								view.draw(l.images[i.o + dx + dy * l.stride], x + dx * tileSize, y + dy * tileSize);
+							for( dx in 0...obj.w ) {
+								mat.x = px + dx * tileSize * mat.a + dy * tileSize * mat.c;
+								mat.y = py + dx * tileSize * mat.b + dy * tileSize * mat.d;
+								view.drawMat(l.images[i.o + dx + dy * l.stride], mat);
+							}
 					}
 				}
 			case Objects(idCol, objs):
@@ -1739,6 +1802,8 @@ class Level {
 			paletteMode : paletteMode,
 			paletteModeCursor : paletteModeCursor,
 			smallPalette : smallPalette,
+			rotation : rotation,
+			flipMode : flipMode,
 		};
 		js.Browser.getLocalStorage().setItem(sheetPath, haxe.Serializer.run(state));
 	}
@@ -1859,7 +1924,7 @@ class Level {
 		var old = l.props.mode;
 		if( old == null ) old = Tiles;
 		switch( [old, mode] ) {
-		case [(Ground | Tiles), (Tiles | Ground)]:
+		case [(Ground | Tiles), (Tiles | Ground)], [Objects, Objects]:
 			// nothing
 		case [(Ground | Tiles), Objects]:
 			switch( l.data ) {
@@ -1902,7 +1967,7 @@ class Level {
 						}
 					}
 				objs.sort(function(o1,o2) return o1.b - o2.b);
-				l.data = TileInstances(td, [for( o in objs ) { x : o.x, y : o.y, o : o.id }]);
+				l.data = TileInstances(td, [for( o in objs ) { x : o.x, y : o.y, o : o.id, flip : false, rot : 0 }]);
 				l.dirty = true;
 			default:
 				throw "assert0";
@@ -1931,9 +1996,6 @@ class Level {
 			default:
 				throw "assert1";
 			}
-		default:
-			js.Lib.alert("Cannot convert from "+old+" to "+mode);
-			return;
 		}
 		l.props.mode = mode;
 		if( mode == Tiles ) Reflect.deleteField(currentLayer.props, "mode");
@@ -2099,6 +2161,10 @@ class Level {
 			return;
 		}
 		currentLayer = l;
+		if( !l.hasRotFlip ) {
+			flipMode = false;
+			rotation = 0;
+		}
 
 		savePrefs();
 		content.find("[name=alpha]").val(Std.string(Std.int(l.props.alpha * 100)));
@@ -2550,8 +2616,21 @@ class Level {
 					var i = l.images[cur + x + y * l.stride];
 					cursorImage.drawSub(i, 0, 0, i.width, i.height, x * size, y * size, size, size);
 				}
-			cursorImage.fill(0x605BA1FB);
 			cursor.css( { border : "none" } );
+			if( flipMode || rotation != 0 ) {
+				var tw = size * w, th = size * h;
+				tmpImage.setSize(tw, th);
+				var m = { a : 0., b : 0., c : 0., d : 0., x : 0., y : 0. };
+				initMatrix(m, tw, th, rotation, flipMode);
+				trace(tw, th, m);
+				tmpImage.draw(cursorImage, 0, 0);
+				var cw = Std.int(tw * m.a + th * m.c);
+				var ch = Std.int(tw * m.b + th * m.d);
+				cursorImage.setSize(cw < 0 ? -cw : cw, ch < 0 ? -ch : ch);
+				cursorImage.clear();
+				cursorImage.drawMat(tmpImage, m);
+			}
+			cursorImage.fill(0x605BA1FB);
 		} else {
 			var c = l.colors[cur];
 			var lum = ((c & 0xFF) + ((c >> 8) & 0xFF) + ((c >> 16) & 0xFF)) / (255 * 3);

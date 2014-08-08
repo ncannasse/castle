@@ -151,6 +151,63 @@ class Image3D extends Image {
 		return t;
 	}
 
+	override function drawMat( i : Image, m : { a : Float, b : Float, c : Float, d : Float, x : Float, y : Float } ) {
+
+		beginDraw(getTexture(i));
+
+		var w = i.width;
+		var h = i.height;
+
+		inline function px(x:Int,y:Int,h) {
+			var t = (x * m.a + y * m.c + m.x) * scaleX;
+			var rt = Std.int(t * width) / width;
+			return rt;
+		}
+
+		inline function py(x:Int, y:Int, h) {
+			var t = (x * m.b + y * m.d + m.y) * scaleY;
+			var rt = Std.int(t * height) / height;
+			return rt;
+		}
+
+		inline function tu(v:Int,h) {
+			return (v + (h ? 0 : 0.001)) / untyped curTexture.width;
+		}
+		inline function tv(v:Int,h) {
+			return (v + (h ? -0.01 : 0)) / untyped curTexture.height;
+		}
+
+		var pos = drawPos >> 2;
+		curDraw[drawPos++] = px(0,0,false);
+		curDraw[drawPos++] = py(0,0,false);
+		curDraw[drawPos++] = tu(i.originX,false);
+		curDraw[drawPos++] = tv(i.originY,false);
+
+		curDraw[drawPos++] = px(w, 0, true);
+		curDraw[drawPos++] = py(w, 0,false);
+		curDraw[drawPos++] = tu(i.originX + i.width,true);
+		curDraw[drawPos++] = tv(i.originY,false);
+
+		curDraw[drawPos++] = px(0, h, false);
+		curDraw[drawPos++] = py(0, h, true);
+		curDraw[drawPos++] = tu(i.originX,false);
+		curDraw[drawPos++] = tv(i.originY + i.height,true);
+
+		curDraw[drawPos++] = px(w, h, true);
+		curDraw[drawPos++] = py(w, h, true);
+		curDraw[drawPos++] = tu(i.originX + i.width,true);
+		curDraw[drawPos++] = tv(i.originY + i.height, true);
+
+		curIndex[indexPos++] = pos;
+		curIndex[indexPos++] = pos + 1;
+		curIndex[indexPos++] = pos + 2;
+		curIndex[indexPos++] = pos + 1;
+		curIndex[indexPos++] = pos + 3;
+		curIndex[indexPos++] = pos + 2;
+
+		if( indexPos > 65500 ) endDraw();
+	}
+
 	override function draw( i : Image, x : Int, y : Int ) {
 
 		beginDraw(getTexture(i));

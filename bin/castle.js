@@ -156,8 +156,57 @@ Lambda.find = function(it,f) {
 	}
 	return null;
 };
+var IMap = function() { };
+$hxClasses["IMap"] = IMap;
+IMap.__name__ = ["IMap"];
+IMap.prototype = {
+	__class__: IMap
+};
+var haxe = {};
+haxe.ds = {};
+haxe.ds.StringMap = function() {
+	this.h = { };
+};
+$hxClasses["haxe.ds.StringMap"] = haxe.ds.StringMap;
+haxe.ds.StringMap.__name__ = ["haxe","ds","StringMap"];
+haxe.ds.StringMap.__interfaces__ = [IMap];
+haxe.ds.StringMap.prototype = {
+	set: function(key,value) {
+		this.h["$" + key] = value;
+	}
+	,get: function(key) {
+		return this.h["$" + key];
+	}
+	,exists: function(key) {
+		return this.h.hasOwnProperty("$" + key);
+	}
+	,remove: function(key) {
+		key = "$" + key;
+		if(!this.h.hasOwnProperty(key)) return false;
+		delete(this.h[key]);
+		return true;
+	}
+	,keys: function() {
+		var a = [];
+		for( var key in this.h ) {
+		if(this.h.hasOwnProperty(key)) a.push(key.substr(1));
+		}
+		return HxOverrides.iter(a);
+	}
+	,iterator: function() {
+		return { ref : this.h, it : this.keys(), hasNext : function() {
+			return this.it.hasNext();
+		}, next : function() {
+			var i = this.it.next();
+			return this.ref["$" + i];
+		}};
+	}
+	,__class__: haxe.ds.StringMap
+};
 var Level = function(model,sheet,index) {
 	this.reloading = false;
+	this.rotation = 0;
+	this.flipMode = false;
 	this.paletteModeCursor = 0;
 	this.paletteMode = null;
 	this.randomMode = false;
@@ -549,6 +598,9 @@ Level.prototype = {
 			this.paletteMode = state.paletteMode;
 			this.paletteModeCursor = state.paletteModeCursor;
 			this.smallPalette = state.smallPalette;
+			this.flipMode = state.flipMode;
+			this.rotation = state.rotation;
+			if(this.rotation == null) this.rotation = 0;
 			if(this.smallPalette == null) this.smallPalette = false;
 		}
 		this.setLayer(layer);
@@ -859,7 +911,7 @@ Level.prototype = {
 		};
 		nrename.click = function() {
 			l.comp.find("span").remove();
-			l.comp.prepend(new js.JQuery("<input>").val(l.name).focus().blur(function(_) {
+			l.comp.prepend(new js.JQuery("<input type='text'>").val(l.name).focus().blur(function(_) {
 				var n1 = StringTools.trim($(this).val());
 				var _g16 = 0;
 				var _g25 = _g.props.layers;
@@ -1124,6 +1176,7 @@ Level.prototype = {
 		this.onResize();
 		this.cursor = this.content.find("#cursor");
 		this.cursorImage = new lvl.Image(0,0);
+		this.tmpImage = new lvl.Image(0,0);
 		this.cursor[0].appendChild(this.cursorImage.getCanvas());
 		this.cursor.hide();
 		scont.mouseleave(function(_5) {
@@ -1827,6 +1880,21 @@ Level.prototype = {
 				this.content.find("[name=lockGrid]").prop("checked",!l1.floatCoord);
 			}
 			break;
+		case 70:
+			if(this.currentLayer.hasRotFlip) {
+				this.flipMode = !this.flipMode;
+				this.savePrefs();
+			}
+			this.setCursor();
+			break;
+		case 68:
+			if(this.currentLayer.hasRotFlip) {
+				this.rotation++;
+				this.rotation %= 4;
+				this.savePrefs();
+			}
+			this.setCursor();
+			break;
 		case 79:
 			if(this.palette != null && l1.tileProps != null) {
 				var mode = "object";
@@ -2273,7 +2341,7 @@ Level.prototype = {
 						HxOverrides.remove(insts,i);
 					}
 				}
-				if(putObj1 != null) insts.push({ x : x1, y : y1, o : putObj1.x + putObj1.y * l.stride}); else {
+				if(putObj1 != null) insts.push({ x : x1, y : y1, o : putObj1.x + putObj1.y * l.stride, rot : this.rotation, flip : this.flipMode}); else {
 					var _g22 = 0;
 					var _g14 = l.currentHeight;
 					while(_g22 < _g14) {
@@ -2282,7 +2350,7 @@ Level.prototype = {
 						var _g32 = l.currentWidth;
 						while(_g42 < _g32) {
 							var dx3 = _g42++;
-							insts.push({ x : x1 + dx3, y : y1 + dy3, o : l.current + dx3 + dy3 * l.stride});
+							insts.push({ x : x1 + dx3, y : y1 + dy3, o : l.current + dx3 + dy3 * l.stride, rot : this.rotation, flip : this.flipMode});
 						}
 					}
 				}
@@ -2347,6 +2415,34 @@ Level.prototype = {
 			}
 		}
 	}
+	,initMatrix: function(m,w,h,rot,flip) {
+		m.a = 1;
+		m.b = 0;
+		m.c = 0;
+		m.d = 1;
+		m.x = -w * 0.5;
+		m.y = -h * 0.5;
+		if(rot != 0) {
+			var a = Math.PI * rot / 2;
+			var c = Math.cos(a);
+			var s = Math.sin(a);
+			var x = m.x;
+			var y = m.y;
+			m.a = c;
+			m.b = s;
+			m.c = -s;
+			m.d = c;
+			m.x = x * c - y * s;
+			m.y = x * s + y * c;
+		}
+		if(flip) {
+			m.a = -m.a;
+			m.c = -m.c;
+			m.x = -m.x;
+		}
+		m.x += Math.abs(m.a * w * 0.5 + m.c * h * 0.5);
+		m.y += Math.abs(m.b * w * 0.5 + m.d * h * 0.5);
+	}
 	,draw: function() {
 		this.view.fill(-7303024);
 		var _g1 = 0;
@@ -2389,6 +2485,7 @@ Level.prototype = {
 				case 3:
 					var insts = _g2[3];
 					var objs = l.getTileObjects();
+					var mat = { a : 1., b : 0., c : 0., d : 1., x : 0., y : 0.};
 					var _g31 = 0;
 					while(_g31 < insts.length) {
 						var i1 = insts[_g31];
@@ -2396,10 +2493,19 @@ Level.prototype = {
 						var x1 = i1.x * this.tileSize | 0;
 						var y1 = i1.y * this.tileSize | 0;
 						var obj = objs.get(i1.o);
+						var w;
+						if(obj == null) w = 1; else w = obj.w;
+						var h;
+						if(obj == null) h = 1; else h = obj.h;
+						this.initMatrix(mat,w * this.tileSize,h * this.tileSize,i1.rot,i1.flip);
+						mat.x += x1;
+						mat.y += y1;
 						if(obj == null) {
-							this.view.draw(l.images[i1.o],x1,y1);
+							this.view.drawMat(l.images[i1.o],mat);
 							this.view.fillRect(x1,y1,this.tileSize,this.tileSize,-2130771968);
 						} else {
+							var px = mat.x;
+							var py = mat.y;
 							var _g51 = 0;
 							var _g41 = obj.h;
 							while(_g51 < _g41) {
@@ -2408,7 +2514,9 @@ Level.prototype = {
 								var _g61 = obj.w;
 								while(_g7 < _g61) {
 									var dx = _g7++;
-									this.view.draw(l.images[i1.o + dx + dy * l.stride],x1 + dx * this.tileSize,y1 + dy * this.tileSize);
+									mat.x = px + dx * this.tileSize * mat.a + dy * this.tileSize * mat.c;
+									mat.y = py + dx * this.tileSize * mat.b + dy * this.tileSize * mat.d;
+									this.view.drawMat(l.images[i1.o + dx + dy * l.stride],mat);
 								}
 							}
 						}
@@ -2423,27 +2531,27 @@ Level.prototype = {
 						while(_g32 < objs1.length) {
 							var o = objs1[_g32];
 							++_g32;
-							var w;
-							if(l.hasSize) w = o.width * this.tileSize; else w = this.tileSize;
-							var h;
-							if(l.hasSize) h = o.height * this.tileSize; else h = this.tileSize;
-							this.view.fillRect(o.x * this.tileSize | 0,o.y * this.tileSize | 0,w | 0,h | 0,col);
+							var w1;
+							if(l.hasSize) w1 = o.width * this.tileSize; else w1 = this.tileSize;
+							var h1;
+							if(l.hasSize) h1 = o.height * this.tileSize; else h1 = this.tileSize;
+							this.view.fillRect(o.x * this.tileSize | 0,o.y * this.tileSize | 0,w1 | 0,h1 | 0,col);
 						}
 						var col1 = l.props.color | -16777216;
 						var _g33 = 0;
 						while(_g33 < objs1.length) {
 							var o1 = objs1[_g33];
 							++_g33;
-							var w1;
-							if(l.hasSize) w1 = o1.width * this.tileSize | 0; else w1 = this.tileSize;
-							var h1;
-							if(l.hasSize) h1 = o1.height * this.tileSize | 0; else h1 = this.tileSize;
-							var px = o1.x * this.tileSize | 0;
-							var py = o1.y * this.tileSize | 0;
-							this.view.fillRect(px,py,w1,1,col1);
-							this.view.fillRect(px,py + h1 - 1,w1,1,col1);
-							this.view.fillRect(px,py + 1,1,h1 - 2,col1);
-							this.view.fillRect(px + w1 - 1,py + 1,1,h1 - 2,col1);
+							var w2;
+							if(l.hasSize) w2 = o1.width * this.tileSize | 0; else w2 = this.tileSize;
+							var h2;
+							if(l.hasSize) h2 = o1.height * this.tileSize | 0; else h2 = this.tileSize;
+							var px1 = o1.x * this.tileSize | 0;
+							var py1 = o1.y * this.tileSize | 0;
+							this.view.fillRect(px1,py1,w2,1,col1);
+							this.view.fillRect(px1,py1 + h2 - 1,w2,1,col1);
+							this.view.fillRect(px1,py1 + 1,1,h2 - 2,col1);
+							this.view.fillRect(px1 + w2 - 1,py1 + 1,1,h2 - 2,col1);
 						}
 					} else {
 						var _g34 = 0;
@@ -2453,11 +2561,11 @@ Level.prototype = {
 							var id = Reflect.field(o2,idCol);
 							var k1 = l.idToIndex.get(id);
 							if(k1 == null) {
-								var w2;
-								if(l.hasSize) w2 = o2.width * this.tileSize; else w2 = this.tileSize;
-								var h2;
-								if(l.hasSize) h2 = o2.height * this.tileSize; else h2 = this.tileSize;
-								this.view.fillRect(o2.x * this.tileSize | 0,o2.y * this.tileSize | 0,w2 | 0,h2 | 0,-65281);
+								var w3;
+								if(l.hasSize) w3 = o2.width * this.tileSize; else w3 = this.tileSize;
+								var h3;
+								if(l.hasSize) h3 = o2.height * this.tileSize; else h3 = this.tileSize;
+								this.view.fillRect(o2.x * this.tileSize | 0,o2.y * this.tileSize | 0,w3 | 0,h3 | 0,-65281);
 								continue;
 							}
 							if(l.images != null) {
@@ -2465,11 +2573,11 @@ Level.prototype = {
 								this.view.draw(i2,(o2.x * this.tileSize | 0) - (i2.width - this.tileSize >> 1),(o2.y * this.tileSize | 0) - (i2.height - this.tileSize));
 								continue;
 							}
-							var w3;
-							if(l.hasSize) w3 = o2.width * this.tileSize; else w3 = this.tileSize;
-							var h3;
-							if(l.hasSize) h3 = o2.height * this.tileSize; else h3 = this.tileSize;
-							this.view.fillRect(o2.x * this.tileSize | 0,o2.y * this.tileSize | 0,w3 | 0,h3 | 0,l.colors[k1] | -16777216);
+							var w4;
+							if(l.hasSize) w4 = o2.width * this.tileSize; else w4 = this.tileSize;
+							var h4;
+							if(l.hasSize) h4 = o2.height * this.tileSize; else h4 = this.tileSize;
+							this.view.fillRect(o2.x * this.tileSize | 0,o2.y * this.tileSize | 0,w4 | 0,h4 | 0,l.colors[k1] | -16777216);
 						}
 					}
 					break;
@@ -2495,7 +2603,7 @@ Level.prototype = {
 	}
 	,savePrefs: function() {
 		var sc = this.content.find(".scroll");
-		var state = { zoomView : this.zoomView, curLayer : this.currentLayer == null?null:this.currentLayer.name, scrollX : sc.scrollLeft(), scrollY : sc.scrollTop(), paintMode : this.paintMode, randomMode : this.randomMode, paletteMode : this.paletteMode, paletteModeCursor : this.paletteModeCursor, smallPalette : this.smallPalette};
+		var state = { zoomView : this.zoomView, curLayer : this.currentLayer == null?null:this.currentLayer.name, scrollX : sc.scrollLeft(), scrollY : sc.scrollTop(), paintMode : this.paintMode, randomMode : this.randomMode, paletteMode : this.paletteMode, paletteModeCursor : this.paletteModeCursor, smallPalette : this.smallPalette, rotation : this.rotation, flipMode : this.flipMode};
 		js.Browser.getLocalStorage().setItem(this.sheetPath,haxe.Serializer.run(state));
 	}
 	,scale: function(s) {
@@ -2813,7 +2921,7 @@ Level.prototype = {
 								while(_g22 < objs.length) {
 									var o3 = objs[_g22];
 									++_g22;
-									_g12.push({ x : o3.x, y : o3.y, o : o3.id});
+									_g12.push({ x : o3.x, y : o3.y, o : o3.id, flip : false, rot : 0});
 								}
 							}
 							$r = _g12;
@@ -2830,6 +2938,8 @@ Level.prototype = {
 			break;
 		case "objects":
 			switch(mode) {
+			case "objects":
+				break;
 			case "ground":case "tiles":
 				{
 					var _g9 = l.data;
@@ -2878,9 +2988,6 @@ Level.prototype = {
 					}
 				}
 				break;
-			default:
-				js.Lib.alert("Cannot convert from " + old + " to " + mode);
-				return;
 			}
 			break;
 		}
@@ -3095,6 +3202,10 @@ Level.prototype = {
 			return;
 		}
 		this.currentLayer = l;
+		if(!l.hasRotFlip) {
+			this.flipMode = false;
+			this.rotation = 0;
+		}
 		this.savePrefs();
 		this.content.find("[name=alpha]").val(Std.string(l.props.alpha * 100 | 0));
 		this.content.find("[name=visible]").prop("checked",l.visible);
@@ -3749,8 +3860,22 @@ Level.prototype = {
 					this.cursorImage.drawSub(i4,0,0,i4.width,i4.height,x4 * size,y4 * size,size,size);
 				}
 			}
-			this.cursorImage.fill(1616617979);
 			this.cursor.css({ border : "none"});
+			if(this.flipMode || this.rotation != 0) {
+				var tw = size * w1;
+				var th = size * h1;
+				this.tmpImage.setSize(tw,th);
+				var m2 = { a : 0., b : 0., c : 0., d : 0., x : 0., y : 0.};
+				this.initMatrix(m2,tw,th,this.rotation,this.flipMode);
+				haxe.Log.trace(tw,{ fileName : "Level.hx", lineNumber : 2625, className : "Level", methodName : "setCursor", customParams : [th,m2]});
+				this.tmpImage.draw(this.cursorImage,0,0);
+				var cw = tw * m2.a + th * m2.c | 0;
+				var ch = tw * m2.b + th * m2.d | 0;
+				this.cursorImage.setSize(cw < 0?-cw:cw,ch < 0?-ch:ch);
+				this.cursorImage.clear();
+				this.cursorImage.drawMat(this.tmpImage,m2);
+			}
+			this.cursorImage.fill(1616617979);
 		} else {
 			var c = l.colors[cur];
 			var lum = ((c & 255) + (c >> 8 & 255) + (c >> 16 & 255)) / 765;
@@ -4054,7 +4179,7 @@ Model.prototype = {
 				if(this.curSavedData != null) {
 					this.history.push(this.curSavedData);
 					this.redo = [];
-					if(this.history.length > 200) this.history.shift();
+					if(this.history.length > 100) this.history.shift();
 				}
 				this.curSavedData = sdata;
 			}
@@ -8385,12 +8510,6 @@ Main.prototype = $extend(Model.prototype,{
 	}
 	,__class__: Main
 });
-var IMap = function() { };
-$hxClasses["IMap"] = IMap;
-IMap.__name__ = ["IMap"];
-IMap.prototype = {
-	__class__: IMap
-};
 Math.__name__ = ["Math"];
 var Reflect = function() { };
 $hxClasses["Reflect"] = Reflect;
@@ -9759,7 +9878,6 @@ cdb.IndexId.prototype = $extend(cdb.Index.prototype,{
 	}
 	,__class__: cdb.IndexId
 });
-var haxe = {};
 haxe.Json = function() { };
 $hxClasses["haxe.Json"] = haxe.Json;
 haxe.Json.__name__ = ["haxe","Json"];
@@ -10691,7 +10809,6 @@ haxe.crypto.Md5.prototype = {
 	}
 	,__class__: haxe.crypto.Md5
 };
-haxe.ds = {};
 haxe.ds.IntMap = function() {
 	this.h = { };
 };
@@ -10738,45 +10855,6 @@ haxe.ds.ObjectMap.prototype = {
 		return HxOverrides.iter(a);
 	}
 	,__class__: haxe.ds.ObjectMap
-};
-haxe.ds.StringMap = function() {
-	this.h = { };
-};
-$hxClasses["haxe.ds.StringMap"] = haxe.ds.StringMap;
-haxe.ds.StringMap.__name__ = ["haxe","ds","StringMap"];
-haxe.ds.StringMap.__interfaces__ = [IMap];
-haxe.ds.StringMap.prototype = {
-	set: function(key,value) {
-		this.h["$" + key] = value;
-	}
-	,get: function(key) {
-		return this.h["$" + key];
-	}
-	,exists: function(key) {
-		return this.h.hasOwnProperty("$" + key);
-	}
-	,remove: function(key) {
-		key = "$" + key;
-		if(!this.h.hasOwnProperty(key)) return false;
-		delete(this.h[key]);
-		return true;
-	}
-	,keys: function() {
-		var a = [];
-		for( var key in this.h ) {
-		if(this.h.hasOwnProperty(key)) a.push(key.substr(1));
-		}
-		return HxOverrides.iter(a);
-	}
-	,iterator: function() {
-		return { ref : this.h, it : this.keys(), hasNext : function() {
-			return this.it.hasNext();
-		}, next : function() {
-			var i = this.it.next();
-			return this.ref["$" + i];
-		}};
-	}
-	,__class__: haxe.ds.StringMap
 };
 haxe.io.BytesBuffer = function() {
 	this.b = new Array();
@@ -11297,6 +11375,11 @@ lvl.Image.prototype = {
 		this.ctx.drawImage(i.origin,i.originX,i.originY,i.width,i.height,x,y,i.width,i.height);
 		this.invalidate();
 	}
+	,drawMat: function(i,m) {
+		this.ctx.setTransform(m.a,m.b,m.c,m.d,m.x,m.y);
+		this.draw(i,0,0);
+		this.ctx.setTransform(1,0,0,1,0,0);
+	}
 	,drawScaled: function(i,x,y,width,height) {
 		this.ctx.drawImage(i.origin,i.originX,i.originY,i.width,i.height,x,y,width,height);
 		this.invalidate();
@@ -11475,6 +11558,52 @@ lvl.Image3D.prototype = $extend(lvl.Image.prototype,{
 		t.width = i.origin.width;
 		t.height = i.origin.height;
 		return t;
+	}
+	,drawMat: function(i,m) {
+		var _g = this;
+		this.beginDraw(this.getTexture(i));
+		var w = i.width;
+		var h = i.height;
+		var pos = this.drawPos >> 2;
+		var t = (0 * m.a + 0 * m.c + m.x) * _g.scaleX;
+		var rt = (t * _g.width | 0) / _g.width;
+		this.curDraw[this.drawPos++] = rt;
+		var t1 = (0 * m.b + 0 * m.d + m.y) * _g.scaleY;
+		var rt1 = (t1 * _g.height | 0) / _g.height;
+		this.curDraw[this.drawPos++] = rt1;
+		this.curDraw[this.drawPos++] = (i.originX + 0.001) / _g.curTexture.width;
+		this.curDraw[this.drawPos++] = i.originY / _g.curTexture.height;
+		var t2 = (w * m.a + 0 * m.c + m.x) * _g.scaleX;
+		var rt2 = (t2 * _g.width | 0) / _g.width;
+		this.curDraw[this.drawPos++] = rt2;
+		var t3 = (w * m.b + 0 * m.d + m.y) * _g.scaleY;
+		var rt3 = (t3 * _g.height | 0) / _g.height;
+		this.curDraw[this.drawPos++] = rt3;
+		this.curDraw[this.drawPos++] = (i.originX + i.width) / _g.curTexture.width;
+		this.curDraw[this.drawPos++] = i.originY / _g.curTexture.height;
+		var t4 = (0 * m.a + h * m.c + m.x) * _g.scaleX;
+		var rt4 = (t4 * _g.width | 0) / _g.width;
+		this.curDraw[this.drawPos++] = rt4;
+		var t5 = (0 * m.b + h * m.d + m.y) * _g.scaleY;
+		var rt5 = (t5 * _g.height | 0) / _g.height;
+		this.curDraw[this.drawPos++] = rt5;
+		this.curDraw[this.drawPos++] = (i.originX + 0.001) / _g.curTexture.width;
+		this.curDraw[this.drawPos++] = (i.originY + i.height + -0.01) / _g.curTexture.height;
+		var t6 = (w * m.a + h * m.c + m.x) * _g.scaleX;
+		var rt6 = (t6 * _g.width | 0) / _g.width;
+		this.curDraw[this.drawPos++] = rt6;
+		var t7 = (w * m.b + h * m.d + m.y) * _g.scaleY;
+		var rt7 = (t7 * _g.height | 0) / _g.height;
+		this.curDraw[this.drawPos++] = rt7;
+		this.curDraw[this.drawPos++] = (i.originX + i.width) / _g.curTexture.width;
+		this.curDraw[this.drawPos++] = (i.originY + i.height + -0.01) / _g.curTexture.height;
+		this.curIndex[this.indexPos++] = pos;
+		this.curIndex[this.indexPos++] = pos + 1;
+		this.curIndex[this.indexPos++] = pos + 2;
+		this.curIndex[this.indexPos++] = pos + 1;
+		this.curIndex[this.indexPos++] = pos + 3;
+		this.curIndex[this.indexPos++] = pos + 2;
+		if(this.indexPos > 65500) this.endDraw();
 	}
 	,draw: function(i,x,y) {
 		var _g = this;
@@ -11927,20 +12056,26 @@ lvl.LayerData.prototype = $extend(lvl.LayerGfx.prototype,{
 				var p = 1;
 				if(data[0] != 65535) throw "assert";
 				while(p < data.length) {
-					var x = data[p++] / _g1.level.tileSize;
-					var y = data[p++] / _g1.level.tileSize;
+					var x = data[p++];
+					var y = data[p++];
 					var v1 = data[p++];
+					var flip = (v1 & 32768) != 0;
+					var rot = x >> 15 | y >> 15 << 1;
+					v1 &= 32767;
+					var x1 = (x & 32767) / _g1.level.tileSize;
+					var y1 = (y & 32767) / _g1.level.tileSize;
 					var vx1 = v1 % stride;
 					var vy1 = v1 / stride | 0;
 					var v21 = vx1 + vy1 * w;
-					if(vx1 >= w || vy1 >= h || x >= _g1.level.width || y >= _g1.level.height) {
+					if(vx1 >= w || vy1 >= h || x1 >= _g1.level.width || y1 >= _g1.level.height) {
 						_g1.dirty = true;
 						continue;
 					}
 					if(v1 != v21) _g1.dirty = true;
-					insts.push({ x : x, y : y, o : v1});
+					insts.push({ x : x1, y : y1, o : v1, flip : flip, rot : rot});
 				}
 				_g1.data = lvl.LayerInnerData.TileInstances(d,insts);
+				_g1.hasRotFlip = true;
 				_g1.hasFloatCoord = _g1.floatCoord = true;
 				break;
 			}
@@ -12084,9 +12219,9 @@ lvl.LayerData.prototype = $extend(lvl.LayerGfx.prototype,{
 				while(_g12 < insts.length) {
 					var i = insts[_g12];
 					++_g12;
-					b2.writeUInt16(i.x * this.level.tileSize | 0);
-					b2.writeUInt16(i.y * this.level.tileSize | 0);
-					b2.writeUInt16(i.o);
+					b2.writeUInt16(i.x * this.level.tileSize | 0 | (i.rot & 1) << 15);
+					b2.writeUInt16(i.y * this.level.tileSize | 0 | i.rot >> 1 << 15);
+					b2.writeUInt16(i.o | (i.flip?1:0) << 15);
 				}
 				if(t1.file == null) return null; else return { file : t1.file, size : t1.size, stride : t1.stride, data : cdb.Lz4Reader.encodeBytes(b2.getBytes(),this.level.model.compressionEnabled())};
 				break;
@@ -12247,6 +12382,7 @@ if(Array.prototype.filter == null) Array.prototype.filter = function(f1) {
 	return a1;
 };
 var q = window.jQuery;
+var js = js || {}
 js.JQuery = q;
 q.fn.iterator = function() {
 	return { pos : 0, j : this, hasNext : function() {

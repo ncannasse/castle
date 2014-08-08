@@ -87,6 +87,12 @@ class Image {
 		invalidate();
 	}
 
+	public function drawMat( i : Image, m : { a : Float, b : Float, c : Float, d : Float, x : Float, y : Float } ) {
+		ctx.setTransform(m.a, m.b, m.c, m.d, m.x, m.y);
+		draw(i, 0, 0);
+		ctx.setTransform(1, 0, 0, 1, 0, 0);
+	}
+
 	public function drawScaled( i : Image, x : Int, y : Int, width : Int, height : Int ) {
 		ctx.drawImage(i.origin, i.originX, i.originY, i.width, i.height, x, y, width, height);
 		invalidate();
