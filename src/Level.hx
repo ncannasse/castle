@@ -858,6 +858,8 @@ class Level {
 							p.layer.currentHeight = obj.h;
 							p.layer.saveState();
 						}
+						flipMode = i.flip;
+						rotation = i.rot;
 					default:
 					}
 					setLayer(p.layer);
@@ -1651,7 +1653,7 @@ class Level {
 				var ox = i.x + (o == null ? 0.5 : o.w * 0.5);
 				var oy = i.y + (o == null ? 0.5 : o.h - 0.5);
 				if( x + dx >= ox - 0.5 && y + dy >= oy - 0.5 && x + dx < ox + 0.5 && y + dy < oy + 0.5 ) {
-					if( i.o == l.current && i.x == x && i.y == y ) return;
+					if( i.o == l.current && i.x == x && i.y == y && i.flip == flipMode && i.rot == rotation ) return;
 					insts.remove(i);
 				}
 			}
@@ -2669,6 +2671,7 @@ class Level {
 					tmpImage.setSize(tw, th);
 					var m = { a : 0., b : 0., c : 0., d : 0., x : 0., y : 0. };
 					initMatrix(m, tw, th, rotation, flipMode);
+					tmpImage.clear();
 					tmpImage.draw(cursorImage, 0, 0);
 					var cw = Std.int(tw * m.a + th * m.c);
 					var ch = Std.int(tw * m.b + th * m.d);

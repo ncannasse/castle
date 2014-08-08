@@ -156,53 +156,6 @@ Lambda.find = function(it,f) {
 	}
 	return null;
 };
-var IMap = function() { };
-$hxClasses["IMap"] = IMap;
-IMap.__name__ = ["IMap"];
-IMap.prototype = {
-	__class__: IMap
-};
-var haxe = {};
-haxe.ds = {};
-haxe.ds.StringMap = function() {
-	this.h = { };
-};
-$hxClasses["haxe.ds.StringMap"] = haxe.ds.StringMap;
-haxe.ds.StringMap.__name__ = ["haxe","ds","StringMap"];
-haxe.ds.StringMap.__interfaces__ = [IMap];
-haxe.ds.StringMap.prototype = {
-	set: function(key,value) {
-		this.h["$" + key] = value;
-	}
-	,get: function(key) {
-		return this.h["$" + key];
-	}
-	,exists: function(key) {
-		return this.h.hasOwnProperty("$" + key);
-	}
-	,remove: function(key) {
-		key = "$" + key;
-		if(!this.h.hasOwnProperty(key)) return false;
-		delete(this.h[key]);
-		return true;
-	}
-	,keys: function() {
-		var a = [];
-		for( var key in this.h ) {
-		if(this.h.hasOwnProperty(key)) a.push(key.substr(1));
-		}
-		return HxOverrides.iter(a);
-	}
-	,iterator: function() {
-		return { ref : this.h, it : this.keys(), hasNext : function() {
-			return this.it.hasNext();
-		}, next : function() {
-			var i = this.it.next();
-			return this.ref["$" + i];
-		}};
-	}
-	,__class__: haxe.ds.StringMap
-};
 var Level = function(model,sheet,index) {
 	this.reloading = false;
 	this.rotation = 0;
@@ -1264,6 +1217,8 @@ Level.prototype = {
 								p.layer.currentHeight = obj.h;
 								p.layer.saveState();
 							}
+							_g3.flipMode = i5.flip;
+							_g3.rotation = i5.rot;
 							break;
 						default:
 						}
@@ -2387,7 +2342,7 @@ Level.prototype = {
 					var oy;
 					oy = i.y + (o == null?0.5:o.h - 0.5);
 					if(x1 + dx2 >= ox - 0.5 && y1 + dy2 >= oy - 0.5 && x1 + dx2 < ox + 0.5 && y1 + dy2 < oy + 0.5) {
-						if(i.o == l.current && i.x == x1 && i.y == y1) return;
+						if(i.o == l.current && i.x == x1 && i.y == y1 && i.flip == this.flipMode && i.rot == this.rotation) return;
 						HxOverrides.remove(insts,i);
 					}
 				}
@@ -3930,6 +3885,7 @@ Level.prototype = {
 						this.tmpImage.setSize(tw,th);
 						var m2 = { a : 0., b : 0., c : 0., d : 0., x : 0., y : 0.};
 						this.initMatrix(m2,tw,th,this.rotation,this.flipMode);
+						this.tmpImage.clear();
 						this.tmpImage.draw(this.cursorImage,0,0);
 						var cw = tw * m2.a + th * m2.c | 0;
 						var ch = tw * m2.b + th * m2.d | 0;
@@ -4164,7 +4120,6 @@ Model.prototype = {
 						}
 					}
 				}
-				haxe.Log.trace(l,{ fileName : "Model.hx", lineNumber : 150, className : "Model", methodName : "getDefault", customParams : [id]});
 				return id;
 			case 2:
 				return false;
@@ -8581,6 +8536,12 @@ Main.prototype = $extend(Model.prototype,{
 	}
 	,__class__: Main
 });
+var IMap = function() { };
+$hxClasses["IMap"] = IMap;
+IMap.__name__ = ["IMap"];
+IMap.prototype = {
+	__class__: IMap
+};
 Math.__name__ = ["Math"];
 var Reflect = function() { };
 $hxClasses["Reflect"] = Reflect;
@@ -9949,6 +9910,7 @@ cdb.IndexId.prototype = $extend(cdb.Index.prototype,{
 	}
 	,__class__: cdb.IndexId
 });
+var haxe = {};
 haxe.Json = function() { };
 $hxClasses["haxe.Json"] = haxe.Json;
 haxe.Json.__name__ = ["haxe","Json"];
@@ -9957,12 +9919,6 @@ haxe.Json.stringify = function(obj,replacer,insertion) {
 };
 haxe.Json.parse = function(jsonString) {
 	return js.Node.parse(jsonString);
-};
-haxe.Log = function() { };
-$hxClasses["haxe.Log"] = haxe.Log;
-haxe.Log.__name__ = ["haxe","Log"];
-haxe.Log.trace = function(v,infos) {
-	js.Boot.__trace(v,infos);
 };
 haxe.Serializer = function() {
 	this.buf = new StringBuf();
@@ -10880,6 +10836,7 @@ haxe.crypto.Md5.prototype = {
 	}
 	,__class__: haxe.crypto.Md5
 };
+haxe.ds = {};
 haxe.ds.IntMap = function() {
 	this.h = { };
 };
@@ -10926,6 +10883,45 @@ haxe.ds.ObjectMap.prototype = {
 		return HxOverrides.iter(a);
 	}
 	,__class__: haxe.ds.ObjectMap
+};
+haxe.ds.StringMap = function() {
+	this.h = { };
+};
+$hxClasses["haxe.ds.StringMap"] = haxe.ds.StringMap;
+haxe.ds.StringMap.__name__ = ["haxe","ds","StringMap"];
+haxe.ds.StringMap.__interfaces__ = [IMap];
+haxe.ds.StringMap.prototype = {
+	set: function(key,value) {
+		this.h["$" + key] = value;
+	}
+	,get: function(key) {
+		return this.h["$" + key];
+	}
+	,exists: function(key) {
+		return this.h.hasOwnProperty("$" + key);
+	}
+	,remove: function(key) {
+		key = "$" + key;
+		if(!this.h.hasOwnProperty(key)) return false;
+		delete(this.h[key]);
+		return true;
+	}
+	,keys: function() {
+		var a = [];
+		for( var key in this.h ) {
+		if(this.h.hasOwnProperty(key)) a.push(key.substr(1));
+		}
+		return HxOverrides.iter(a);
+	}
+	,iterator: function() {
+		return { ref : this.h, it : this.keys(), hasNext : function() {
+			return this.it.hasNext();
+		}, next : function() {
+			var i = this.it.next();
+			return this.ref["$" + i];
+		}};
+	}
+	,__class__: haxe.ds.StringMap
 };
 haxe.io.BytesBuffer = function() {
 	this.b = new Array();
@@ -11054,25 +11050,6 @@ var js = {};
 js.Boot = function() { };
 $hxClasses["js.Boot"] = js.Boot;
 js.Boot.__name__ = ["js","Boot"];
-js.Boot.__unhtml = function(s) {
-	return s.split("&").join("&amp;").split("<").join("&lt;").split(">").join("&gt;");
-};
-js.Boot.__trace = function(v,i) {
-	var msg;
-	if(i != null) msg = i.fileName + ":" + i.lineNumber + ": "; else msg = "";
-	msg += js.Boot.__string_rec(v,"");
-	if(i != null && i.customParams != null) {
-		var _g = 0;
-		var _g1 = i.customParams;
-		while(_g < _g1.length) {
-			var v1 = _g1[_g];
-			++_g;
-			msg += "," + js.Boot.__string_rec(v1,"");
-		}
-	}
-	var d;
-	if(typeof(document) != "undefined" && (d = document.getElementById("haxe:trace")) != null) d.innerHTML += js.Boot.__unhtml(msg) + "<br/>"; else if(typeof console != "undefined" && console.log != null) console.log(msg);
-};
 js.Boot.getClass = function(o) {
 	if((o instanceof Array) && o.__enum__ == null) return Array; else {
 		var cl = o.__class__;
