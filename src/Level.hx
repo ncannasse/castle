@@ -870,58 +870,8 @@ class Level {
 				startPos = null;
 				return;
 			}
-			if( e.which != 1 )
-				return;
-			switch( currentLayer.data ) {
-			case Objects(idCol, objs) if( currentLayer.enabled() && curPos.x >= 0 && curPos.y >= 0 ):
-				var l = currentLayer;
-				var fc = l.floatCoord;
-				var px = fc ? curPos.xf : curPos.x;
-				var py = fc ? curPos.yf : curPos.y;
-				var w = 0., h = 0.;
-				if( l.hasSize ) {
-					if( startPos == null ) return;
-					var sx = fc ? startPos.xf : startPos.x;
-					var sy = fc ? startPos.yf : startPos.y;
-					w = px - sx;
-					h = py - sy;
-					px = sx;
-					py = sy;
-					if( w < 0.5 ) w = fc ? 0.5 : 1;
-					if( h < 0.5 ) h = fc ? 0.5 : 1;
-				}
-				for( i in 0...objs.length ) {
-					var o = objs[i];
-					if( o.x == px && o.y == py && w <= 1 && h <= 1 ) {
-						editProps(l, i);
-						setCursor();
-						return;
-					}
-				}
-				var o : { x : Float, y : Float, ?width : Float, ?height : Float } = { x : px, y : py };
-				objs.push(o);
-				if( idCol != null )
-					Reflect.setField(o, idCol, l.indexToId[currentLayer.current]);
-				for( c in l.baseSheet.columns ) {
-					if( c.opt || c.name == "x" || c.name == "y" || c.name == idCol ) continue;
-					var v = model.getDefault(c);
-					if( v != null ) Reflect.setField(o, c.name, v);
-				}
-				if( l.hasSize ) {
-					o.width = w;
-					o.height = h;
-					setCursor();
-				}
-				objs.sort(function(o1, o2) {
-					var r = Reflect.compare(o1.y, o2.y);
-					return if( r == 0 ) Reflect.compare(o1.x, o2.x) else r;
-				});
-				if( hasProps(l, true) )
-					editProps(l, Lambda.indexOf(objs, o));
-				save();
-				draw();
-			default:
-			}
+			if( e.which == 1 && selection == null && currentLayer.enabled() && curPos.x >= 0 && curPos.y >= 0 )
+				setObject();
 			startPos = null;
 			if( selection != null ) {
 				moveSelection();
@@ -929,6 +879,59 @@ class Level {
 				draw();
 			}
 		});
+	}
+
+	function setObject() {
+		switch( currentLayer.data ) {
+		case Objects(idCol, objs):
+			var l = currentLayer;
+			var fc = l.floatCoord;
+			var px = fc ? curPos.xf : curPos.x;
+			var py = fc ? curPos.yf : curPos.y;
+			var w = 0., h = 0.;
+			if( l.hasSize ) {
+				if( startPos == null ) return;
+				var sx = fc ? startPos.xf : startPos.x;
+				var sy = fc ? startPos.yf : startPos.y;
+				w = px - sx;
+				h = py - sy;
+				px = sx;
+				py = sy;
+				if( w < 0.5 ) w = fc ? 0.5 : 1;
+				if( h < 0.5 ) h = fc ? 0.5 : 1;
+			}
+			for( i in 0...objs.length ) {
+				var o = objs[i];
+				if( o.x == px && o.y == py && w <= 1 && h <= 1 ) {
+					editProps(l, i);
+					setCursor();
+					return;
+				}
+			}
+			var o : { x : Float, y : Float, ?width : Float, ?height : Float } = { x : px, y : py };
+			objs.push(o);
+			if( idCol != null )
+				Reflect.setField(o, idCol, l.indexToId[currentLayer.current]);
+			for( c in l.baseSheet.columns ) {
+				if( c.opt || c.name == "x" || c.name == "y" || c.name == idCol ) continue;
+				var v = model.getDefault(c);
+				if( v != null ) Reflect.setField(o, c.name, v);
+			}
+			if( l.hasSize ) {
+				o.width = w;
+				o.height = h;
+				setCursor();
+			}
+			objs.sort(function(o1, o2) {
+				var r = Reflect.compare(o1.y, o2.y);
+				return if( r == 0 ) Reflect.compare(o1.x, o2.x) else r;
+			});
+			if( hasProps(l, true) )
+				editProps(l, Lambda.indexOf(objs, o));
+			save();
+			draw();
+		default:
+		}
 	}
 
 	function deleteSelection() {
@@ -1166,9 +1169,16 @@ class Level {
 	}
 
 	function updateZoom( ?f ) {
+		var tx = 0, ty = 0;
+		var sc = content.find(".scroll");
 		if( f != null ) {
 			J(".popup").remove();
+			var width = sc.width(), height = sc.height();
+			var cx = (sc.scrollLeft() + width*0.5) / zoomView;
+			var cy = (sc.scrollTop() + height * 0.5) / zoomView;
 			if( f ) zoomView *= 1.2 else zoomView /= 1.2;
+			tx = Math.round(cx * zoomView - width * 0.5);
+			ty = Math.round(cy * zoomView - height * 0.5);
 		}
 		savePrefs();
 		view.setSize(Std.int(width * tileSize * zoomView), Std.int(height * tileSize * zoomView));
@@ -1176,6 +1186,10 @@ class Level {
 		draw();
 		updateCursorPos();
 		setCursor();
+		if( f != null ) {
+			sc.scrollLeft(tx);
+			sc.scrollTop(ty);
+		}
 	}
 
 	function paint(x, y) {
@@ -1312,6 +1326,9 @@ class Level {
 				mousePos.y = e.pageY;
 				e.stopPropagation();
 			});
+		case "V".code:
+			action("visible", !l.visible);
+			content.find("[name=visible]").prop("checked", l.visible);
 		case "L".code:
 			action("lock", !l.lock);
 			content.find("[name=lock]").prop("checked", l.lock);
@@ -1326,6 +1343,8 @@ class Level {
 				savePrefs();
 			}
 			setCursor();
+		case "I".code:
+			paletteOption("small");
 		case "D".code:
 			if( currentLayer.hasRotFlip ) {
 				rotation++;

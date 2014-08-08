@@ -156,6 +156,53 @@ Lambda.find = function(it,f) {
 	}
 	return null;
 };
+var IMap = function() { };
+$hxClasses["IMap"] = IMap;
+IMap.__name__ = ["IMap"];
+IMap.prototype = {
+	__class__: IMap
+};
+var haxe = {};
+haxe.ds = {};
+haxe.ds.StringMap = function() {
+	this.h = { };
+};
+$hxClasses["haxe.ds.StringMap"] = haxe.ds.StringMap;
+haxe.ds.StringMap.__name__ = ["haxe","ds","StringMap"];
+haxe.ds.StringMap.__interfaces__ = [IMap];
+haxe.ds.StringMap.prototype = {
+	set: function(key,value) {
+		this.h["$" + key] = value;
+	}
+	,get: function(key) {
+		return this.h["$" + key];
+	}
+	,exists: function(key) {
+		return this.h.hasOwnProperty("$" + key);
+	}
+	,remove: function(key) {
+		key = "$" + key;
+		if(!this.h.hasOwnProperty(key)) return false;
+		delete(this.h[key]);
+		return true;
+	}
+	,keys: function() {
+		var a = [];
+		for( var key in this.h ) {
+		if(this.h.hasOwnProperty(key)) a.push(key.substr(1));
+		}
+		return HxOverrides.iter(a);
+	}
+	,iterator: function() {
+		return { ref : this.h, it : this.keys(), hasNext : function() {
+			return this.it.hasNext();
+		}, next : function() {
+			var i = this.it.next();
+			return this.ref["$" + i];
+		}};
+	}
+	,__class__: haxe.ds.StringMap
+};
 var Level = function(model,sheet,index) {
 	this.reloading = false;
 	this.rotation = 0;
@@ -1232,76 +1279,7 @@ Level.prototype = {
 				_g3.startPos = null;
 				return;
 			}
-			if(e5.which != 1) return;
-			{
-				var _g7 = _g3.currentLayer.data;
-				switch(_g7[1]) {
-				case 1:
-					var objs1 = _g7[3];
-					var idCol = _g7[2];
-					if(_g3.currentLayer.enabled() && _g3.curPos.x >= 0 && _g3.curPos.y >= 0) {
-						var l4 = _g3.currentLayer;
-						var fc = l4.floatCoord;
-						var px;
-						if(fc) px = _g3.curPos.xf; else px = _g3.curPos.x;
-						var py;
-						if(fc) py = _g3.curPos.yf; else py = _g3.curPos.y;
-						var w1 = 0.;
-						var h1 = 0.;
-						if(l4.hasSize) {
-							if(_g3.startPos == null) return;
-							var sx;
-							if(fc) sx = _g3.startPos.xf; else sx = _g3.startPos.x;
-							var sy;
-							if(fc) sy = _g3.startPos.yf; else sy = _g3.startPos.y;
-							w1 = px - sx;
-							h1 = py - sy;
-							px = sx;
-							py = sy;
-							if(w1 < 0.5) if(fc) w1 = 0.5; else w1 = 1;
-							if(h1 < 0.5) if(fc) h1 = 0.5; else h1 = 1;
-						}
-						var _g27 = 0;
-						var _g16 = objs1.length;
-						while(_g27 < _g16) {
-							var i6 = _g27++;
-							var o1 = objs1[i6];
-							if(o1.x == px && o1.y == py && w1 <= 1 && h1 <= 1) {
-								_g3.editProps(l4,i6);
-								_g3.setCursor();
-								return;
-							}
-						}
-						var o2 = { x : px, y : py};
-						objs1.push(o2);
-						if(idCol != null) o2[idCol] = l4.indexToId[_g3.currentLayer.current];
-						var _g17 = 0;
-						var _g28 = l4.baseSheet.columns;
-						while(_g17 < _g28.length) {
-							var c2 = _g28[_g17];
-							++_g17;
-							if(c2.opt || c2.name == "x" || c2.name == "y" || c2.name == idCol) continue;
-							var v = _g3.model.getDefault(c2);
-							if(v != null) o2[c2.name] = v;
-						}
-						if(l4.hasSize) {
-							o2.width = w1;
-							o2.height = h1;
-							_g3.setCursor();
-						}
-						objs1.sort(function(o11,o21) {
-							var r = Reflect.compare(o11.y,o21.y);
-							if(r == 0) return Reflect.compare(o11.x,o21.x); else return r;
-						});
-						if(_g3.hasProps(l4,true)) _g3.editProps(l4,Lambda.indexOf(objs1,o2));
-						_g3.save();
-						_g3.draw();
-					} else {
-					}
-					break;
-				default:
-				}
-			}
+			if(e5.which == 1 && _g3.selection == null && _g3.currentLayer.enabled() && _g3.curPos.x >= 0 && _g3.curPos.y >= 0) _g3.setObject();
 			_g3.startPos = null;
 			if(_g3.selection != null) {
 				_g3.moveSelection();
@@ -1309,6 +1287,74 @@ Level.prototype = {
 				_g3.draw();
 			}
 		});
+	}
+	,setObject: function() {
+		{
+			var _g = this.currentLayer.data;
+			switch(_g[1]) {
+			case 1:
+				var objs = _g[3];
+				var idCol = _g[2];
+				var l = this.currentLayer;
+				var fc = l.floatCoord;
+				var px;
+				if(fc) px = this.curPos.xf; else px = this.curPos.x;
+				var py;
+				if(fc) py = this.curPos.yf; else py = this.curPos.y;
+				var w = 0.;
+				var h = 0.;
+				if(l.hasSize) {
+					if(this.startPos == null) return;
+					var sx;
+					if(fc) sx = this.startPos.xf; else sx = this.startPos.x;
+					var sy;
+					if(fc) sy = this.startPos.yf; else sy = this.startPos.y;
+					w = px - sx;
+					h = py - sy;
+					px = sx;
+					py = sy;
+					if(w < 0.5) if(fc) w = 0.5; else w = 1;
+					if(h < 0.5) if(fc) h = 0.5; else h = 1;
+				}
+				var _g2 = 0;
+				var _g1 = objs.length;
+				while(_g2 < _g1) {
+					var i = _g2++;
+					var o = objs[i];
+					if(o.x == px && o.y == py && w <= 1 && h <= 1) {
+						this.editProps(l,i);
+						this.setCursor();
+						return;
+					}
+				}
+				var o1 = { x : px, y : py};
+				objs.push(o1);
+				if(idCol != null) o1[idCol] = l.indexToId[this.currentLayer.current];
+				var _g11 = 0;
+				var _g21 = l.baseSheet.columns;
+				while(_g11 < _g21.length) {
+					var c = _g21[_g11];
+					++_g11;
+					if(c.opt || c.name == "x" || c.name == "y" || c.name == idCol) continue;
+					var v = this.model.getDefault(c);
+					if(v != null) o1[c.name] = v;
+				}
+				if(l.hasSize) {
+					o1.width = w;
+					o1.height = h;
+					this.setCursor();
+				}
+				objs.sort(function(o11,o2) {
+					var r = Reflect.compare(o11.y,o2.y);
+					if(r == 0) return Reflect.compare(o11.x,o2.x); else return r;
+				});
+				if(this.hasProps(l,true)) this.editProps(l,Lambda.indexOf(objs,o1));
+				this.save();
+				this.draw();
+				break;
+			default:
+			}
+		}
 	}
 	,deleteSelection: function() {
 		var _g = 0;
@@ -1683,9 +1729,18 @@ Level.prototype = {
 		popup.css({ marginLeft : ((o.x + 1) * this.tileSize * this.zoomView | 0) + "px", marginTop : ((o.y + 1) * this.tileSize * this.zoomView | 0) + "px"});
 	}
 	,updateZoom: function(f) {
+		var tx = 0;
+		var ty = 0;
+		var sc = this.content.find(".scroll");
 		if(f != null) {
 			new js.JQuery(".popup").remove();
+			var width = sc.width();
+			var height = sc.height();
+			var cx = (sc.scrollLeft() + width * 0.5) / this.zoomView;
+			var cy = (sc.scrollTop() + height * 0.5) / this.zoomView;
 			if(f) this.zoomView *= 1.2; else this.zoomView /= 1.2;
+			tx = Math.round(cx * this.zoomView - width * 0.5);
+			ty = Math.round(cy * this.zoomView - height * 0.5);
 		}
 		this.savePrefs();
 		this.view.setSize(this.width * this.tileSize * this.zoomView | 0,this.height * this.tileSize * this.zoomView | 0);
@@ -1693,6 +1748,10 @@ Level.prototype = {
 		this.draw();
 		this.updateCursorPos();
 		this.setCursor();
+		if(f != null) {
+			sc.scrollLeft(tx);
+			sc.scrollTop(ty);
+		}
 	}
 	,paint: function(x,y) {
 		var l = this.currentLayer;
@@ -1854,6 +1913,10 @@ Level.prototype = {
 				e1.stopPropagation();
 			});
 			break;
+		case 86:
+			this.action("visible",!l1.visible);
+			this.content.find("[name=visible]").prop("checked",l1.visible);
+			break;
 		case 76:
 			this.action("lock",!l1.lock);
 			this.content.find("[name=lock]").prop("checked",l1.lock);
@@ -1870,6 +1933,9 @@ Level.prototype = {
 				this.savePrefs();
 			}
 			this.setCursor();
+			break;
+		case 73:
+			this.paletteOption("small");
 			break;
 		case 68:
 			if(this.currentLayer.hasRotFlip) {
@@ -8511,12 +8577,6 @@ Main.prototype = $extend(Model.prototype,{
 	}
 	,__class__: Main
 });
-var IMap = function() { };
-$hxClasses["IMap"] = IMap;
-IMap.__name__ = ["IMap"];
-IMap.prototype = {
-	__class__: IMap
-};
 Math.__name__ = ["Math"];
 var Reflect = function() { };
 $hxClasses["Reflect"] = Reflect;
@@ -9885,7 +9945,6 @@ cdb.IndexId.prototype = $extend(cdb.Index.prototype,{
 	}
 	,__class__: cdb.IndexId
 });
-var haxe = {};
 haxe.Json = function() { };
 $hxClasses["haxe.Json"] = haxe.Json;
 haxe.Json.__name__ = ["haxe","Json"];
@@ -10817,7 +10876,6 @@ haxe.crypto.Md5.prototype = {
 	}
 	,__class__: haxe.crypto.Md5
 };
-haxe.ds = {};
 haxe.ds.IntMap = function() {
 	this.h = { };
 };
@@ -10864,45 +10922,6 @@ haxe.ds.ObjectMap.prototype = {
 		return HxOverrides.iter(a);
 	}
 	,__class__: haxe.ds.ObjectMap
-};
-haxe.ds.StringMap = function() {
-	this.h = { };
-};
-$hxClasses["haxe.ds.StringMap"] = haxe.ds.StringMap;
-haxe.ds.StringMap.__name__ = ["haxe","ds","StringMap"];
-haxe.ds.StringMap.__interfaces__ = [IMap];
-haxe.ds.StringMap.prototype = {
-	set: function(key,value) {
-		this.h["$" + key] = value;
-	}
-	,get: function(key) {
-		return this.h["$" + key];
-	}
-	,exists: function(key) {
-		return this.h.hasOwnProperty("$" + key);
-	}
-	,remove: function(key) {
-		key = "$" + key;
-		if(!this.h.hasOwnProperty(key)) return false;
-		delete(this.h[key]);
-		return true;
-	}
-	,keys: function() {
-		var a = [];
-		for( var key in this.h ) {
-		if(this.h.hasOwnProperty(key)) a.push(key.substr(1));
-		}
-		return HxOverrides.iter(a);
-	}
-	,iterator: function() {
-		return { ref : this.h, it : this.keys(), hasNext : function() {
-			return this.it.hasNext();
-		}, next : function() {
-			var i = this.it.next();
-			return this.ref["$" + i];
-		}};
-	}
-	,__class__: haxe.ds.StringMap
 };
 haxe.io.BytesBuffer = function() {
 	this.b = new Array();
