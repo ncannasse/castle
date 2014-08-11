@@ -133,8 +133,11 @@ class Level {
 
 		var lprops = new Map();
 		if( props.layers == null ) props.layers = [];
-		for( ld in props.layers )
+		for( ld in props.layers ) {
+			var prev = lprops.get(ld.l);
+			if( prev != null ) props.layers.remove(prev);
 			lprops.set(ld.l, ld);
+		}
 		function getProps( name : String ) {
 			var p = lprops.get(name);
 			if( p == null ) {
