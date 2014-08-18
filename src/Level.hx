@@ -1432,7 +1432,7 @@ class Level {
 			}
 		case K.DOWN:
 			e.preventDefault();
-			if( l.current + l.stride * l.currentHeight < l.images.length ) {
+			if( l.images != null && l.current + l.stride * l.currentHeight < l.images.length ) {
 				var w = l.currentWidth, h = l.currentHeight;
 				l.current += l.stride * h;
 				if( w != 1 || h != 1 ) {

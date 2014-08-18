@@ -268,6 +268,13 @@ class Model {
 
 	function moveLine( sheet : Sheet, index : Int, delta : Int ) : Null<Int> {
 		if( delta < 0 && index > 0 ) {
+
+			for( i in 0...sheet.separators.length )
+				if( sheet.separators[i] == index ) {
+					sheet.separators[i]++;
+					return index;
+				}
+
 			var l = sheet.lines[index];
 			sheet.lines.splice(index, 1);
 			sheet.lines.insert(index - 1, l);
@@ -278,7 +285,15 @@ class Model {
 			changeLineOrder(sheet, arr);
 
 			return index - 1;
-		} else if( delta > 0 && sheet != null && index < sheet.lines.length-1 ) {
+		} else if( delta > 0 && sheet != null && index < sheet.lines.length - 1 ) {
+
+
+			for( i in 0...sheet.separators.length )
+				if( sheet.separators[i] == index + 1 ) {
+					sheet.separators[i]--;
+					return index;
+				}
+
 			var l = sheet.lines[index];
 			sheet.lines.splice(index, 1);
 			sheet.lines.insert(index + 1, l);
