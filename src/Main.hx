@@ -1640,6 +1640,7 @@ class Main extends Model {
 				var c = J("<input type='submit' value='Edit'>");
 				J("<td>").append(c).prependTo(l);
 				c.click(function() {
+					l.click();
 					var found = null;
 					for( l in levels )
 						if( l.sheet == sheet && l.index == index )
