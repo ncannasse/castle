@@ -2218,8 +2218,8 @@ class Main extends Model {
 		menu.append(mfile);
 		menu.append(mdebug);
 		window.menu = menu;
-		window.moveTo(prefs.windowPos.x, prefs.windowPos.y);
-		window.resizeTo(prefs.windowPos.w, prefs.windowPos.h);
+		if( prefs.windowPos.x > 0 && prefs.windowPos.y > 0 ) window.moveTo(prefs.windowPos.x, prefs.windowPos.y);
+		if( prefs.windowPos.w > 50 && prefs.windowPos.h > 50 ) window.resizeTo(prefs.windowPos.w, prefs.windowPos.h);
 		window.show();
 		if( prefs.windowPos.max ) window.maximize();
 		window.on('close', function() {

@@ -8505,8 +8505,8 @@ Main.prototype = $extend(Model.prototype,{
 		menu.append(mfile);
 		menu.append(mdebug);
 		this.window.menu = menu;
-		this.window.moveTo(this.prefs.windowPos.x,this.prefs.windowPos.y);
-		this.window.resizeTo(this.prefs.windowPos.w,this.prefs.windowPos.h);
+		if(this.prefs.windowPos.x > 0 && this.prefs.windowPos.y > 0) this.window.moveTo(this.prefs.windowPos.x,this.prefs.windowPos.y);
+		if(this.prefs.windowPos.w > 50 && this.prefs.windowPos.h > 50) this.window.resizeTo(this.prefs.windowPos.w,this.prefs.windowPos.h);
 		this.window.show();
 		if(this.prefs.windowPos.max) this.window.maximize();
 		this.window.on("close",function() {
