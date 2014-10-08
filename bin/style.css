@@ -395,6 +395,18 @@ div#menu ul.sheets li.active {
 	padding-bottom : 3px;
 	border-top : 1px solid #AAA;
 }
+#content .level .palette .bar .infos {
+	vertical-align : top;
+	display : inline-block;
+	zoom : 1;
+	*display : inline;
+	line-height : 18px;
+}
+#content .level .palette .bar .sel {
+	display : inline-block;
+	zoom : 1;
+	*display : inline;
+}
 #content .level .palette .bar .icon {
 	width : 16px;
 	height : 16px;

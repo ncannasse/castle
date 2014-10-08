@@ -157,6 +157,7 @@
 				<div class="sel">
 					<div class="icon small" onclick="_.level.paletteOption('small')" title="Reduce"></div>
 				</div>
+				<div class="infos"></div>
 				<div class="mode">
 					<select name="mode" onchange="_.level.paletteOption('mode',this.value)" title="Change tile mode">
 						<option value="t_tile">tile</option>
@@ -178,11 +179,11 @@
 					</div>
 					<label class="opt name" title="Name for this group">
 						Name:
-						<input type="text" name="name" onchange="_.level.paletteOption('name',this.value)"/>
+						<input type="text" name="name" onblur="this.onchange()" onchange="_.level.paletteOption('name',this.value)"/>
 					</label>
 					<label class="opt value" title="Custom value">
 						Value:
-						<input type="text" name="value" onchange="_.level.paletteOption('value',this.value)"/>
+						<input type="text" name="value" onblur="this.onchange()" onchange="_.level.paletteOption('value',this.value)"/>
 					</label>
 					<label class="opt priority" title="Priority for this ground (higher is above)">
 						Priority:

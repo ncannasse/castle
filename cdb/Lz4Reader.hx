@@ -173,6 +173,8 @@ class Lz4Reader {
 	}
 
 	public static function decodeString( s : String ) : haxe.io.Bytes {
+		if( s == "" )
+			return haxe.io.Bytes.alloc(0);
 		var k = haxe.crypto.Base64.decode(s);
 		// old format support
 		if( k.get(0) != 0x04 || k.get(1) != 0x22 || k.get(2) != 0x4D || k.get(3) != 0x18 )
@@ -190,7 +192,7 @@ class Lz4Reader {
 	}
 
 	public static function encodeBytes( b : haxe.io.Bytes, compress : Bool ) : String {
-		if( compress ) {
+		if( compress && b.length > 0 ) {
 			#if lz4js
 				var tmp = new js.html.Uint8Array(b.length);
 				for( i in 0...b.length ) tmp[i] = b.get(i);

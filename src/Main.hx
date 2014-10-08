@@ -239,8 +239,12 @@ class Main extends Model {
 					var v : Dynamic = Reflect.field(obj1, c1.name);
 					if( f == null )
 						v = getDefault(c2);
-					else if( f.f != null )
-						v = f.f(v);
+					else {
+						// make a deep copy to erase references
+						v = haxe.Json.parse(haxe.Json.stringify(v));
+						if( f.f != null )
+							v = f.f(v);
+					}
 					if( v == null && !c2.opt )
 						v = getDefault(c2);
 					if( v == null )
@@ -484,9 +488,9 @@ class Main extends Model {
 
 			for( c in sheet.columns ) {
 				var v : Dynamic = Reflect.field(obj, c.name);
+				if( v == null ) continue;
 				switch( c.type ) {
 				case TLayer(_):
-					if( v == null || v == "" ) continue;
 					var v : cdb.Types.Layer<Int> = v;
 					var odat = v.decode([for( i in 0...256 ) i]);
 					var ndat = [];

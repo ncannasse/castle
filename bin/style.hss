@@ -436,6 +436,14 @@ div#menu {
 			padding : 1px 2px;
 			padding-bottom : 3px;
 			border-top : 1px solid #AAA;
+			.infos {
+				vertical-align : top;
+				display : inline-block;
+				line-height : 18px;
+			}
+			.sel {
+				display : inline-block;
+			}
 			.icon {
 				width : 16px;
 				height : 16px;

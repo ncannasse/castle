@@ -55,6 +55,7 @@ class Level {
 	var needSave : Bool;
 	var smallPalette : Bool = false;
 	var waitCount : Int;
+	var mouseCapture(default,set) : js.JQuery;
 
 	var view : lvl.Image3D;
 
@@ -111,6 +112,21 @@ class Level {
 			}
 		}
 		return name;
+	}
+
+	function set_mouseCapture(e) {
+		mouseCapture = e;
+		if( e != null ) {
+			function onUp(_) {
+				js.Browser.document.removeEventListener("mouseup", onUp);
+				if( mouseCapture != null ) {
+					mouseCapture.mouseup();
+					mouseCapture = null;
+				}
+			}
+			js.Browser.document.addEventListener("mouseup", onUp);
+		}
+		return e;
 	}
 
 	public function init() {
@@ -364,7 +380,7 @@ class Level {
 		setup();
 
 		var layer = layers[0];
-		var state : LevelState = try haxe.Unserializer.run(js.Browser.getLocalStorage().getItem(sheetPath)) catch( e : Dynamic ) null;
+		var state : LevelState = try haxe.Unserializer.run(js.Browser.getLocalStorage().getItem(sheetPath+"#"+index)) catch( e : Dynamic ) null;
 		if( state != null ) {
 			for( l in layers )
 				if( l.name == state.curLayer ) {
@@ -428,19 +444,32 @@ class Level {
 				}
 				return { k : k, layer : l, index : idx };
 			case Objects(idCol, objs):
+				var max = objs.length - 1;
 				if( l.images == null ) {
+					var found = [];
 					for( i in 0...objs.length ) {
+						var i = max - i;
 						var o = objs[i];
 						var w = l.hasSize ? o.width : 1;
 						var h = l.hasSize ? o.height : 1;
 						if( x >= o.x && y >= o.y && x < o.x + w && y < o.y + h ) {
 							if( l.idToIndex == null )
-								return { k : 0, layer : l, index : i };
-							return { k : l.idToIndex.get(Reflect.field(o, idCol)), layer : l, index : i };
+								found.push( { k : 0, layer : l, index : i } );
+							else
+								found.push({ k : l.idToIndex.get(Reflect.field(o, idCol)), layer : l, index : i });
 						}
 					}
+					// pick small first in case of overlap
+					if( l.hasSize )
+						found.sort(function(f1, f2) {
+							var o1 = objs[f1.index];
+							var o2 = objs[f2.index];
+							return Reflect.compare(o2.width * o2.height,o1.width * o1.height);
+						});
+					return found.pop();
 				} else {
 					for( i in 0...objs.length ) {
+						var i = max - i;
 						var o = objs[i];
 						var k = l.idToIndex.get(Reflect.field(o, idCol));
 						if( k == null ) continue;
@@ -844,6 +873,7 @@ class Level {
 				if( o == null && randomMode )
 					w = h = 1;
 				mouseDown = { rx : curPos == null ? 0 : (curPos.x % w), ry : curPos == null ? 0 : (curPos.y % h), w : w, h : h };
+				mouseCapture = scroll;
 				if( curPos != null ) {
 					set(curPos.x, curPos.y);
 					startPos = Reflect.copy(curPos);
@@ -870,6 +900,7 @@ class Level {
 			}
 		});
 		content.mouseup(function(e) {
+			mouseCapture = null;
 			onMouseUp(e);
 			if( curPos == null ) {
 				startPos = null;
@@ -902,6 +933,18 @@ class Level {
 				h = py - sy;
 				px = sx;
 				py = sy;
+				if( w < 0 ) {
+					px += w;
+					w = -w;
+				}
+				if( h < 0 ) {
+					py += h;
+					h = -h;
+				}
+				if( !fc ) {
+					w += 1;
+					h += 1;
+				}
 				if( w < 0.5 ) w = fc ? 0.5 : 1;
 				if( h < 0.5 ) h = fc ? 0.5 : 1;
 			}
@@ -1069,11 +1112,32 @@ class Level {
 			var fc = currentLayer.floatCoord;
 			var border = 0;
 			var ccx = fc ? cxf : cx, ccy = fc ? cyf : cy;
+			if( ccx < 0 ) ccx = 0;
+			if( ccy < 0 ) ccy = 0;
+			if( fc ) {
+				if( ccx > width ) ccx = width;
+				if( ccy > height ) ccy = height;
+			} else {
+				if( ccx >= width ) ccx = width - 1;
+				if( ccy >= height ) ccy = height - 1;
+			}
 			if( currentLayer.hasSize && mouseDown != null ) {
 				var px = fc ? startPos.xf : startPos.x;
 				var py = fc ? startPos.yf : startPos.y;
 				var pw = (fc?cxf:cx) - px;
 				var ph = (fc?cyf:cy) - py;
+				if( pw < 0 ) {
+					px += pw;
+					pw = -pw;
+				}
+				if( ph < 0 ) {
+					py += ph;
+					ph = -ph;
+				}
+				if( !fc ) {
+					pw += 1;
+					ph += 1;
+				}
 				if( pw < 0.5 ) pw = fc ? 0.5 : 1;
 				if( ph < 0.5 ) ph = fc ? 0.5 : 1;
 				ccx = px;
@@ -1102,8 +1166,13 @@ class Level {
 			var ccx = fc ? cxf : cx, ccy = fc ? cyf : cy;
 			if( ccx < 0 ) ccx = 0;
 			if( ccy < 0 ) ccy = 0;
-			if( ccx > width ) ccx = width;
-			if( ccy > height ) ccy = height;
+			if( fc ) {
+				if( ccx > width ) ccx = width;
+				if( ccy > height ) ccy = height;
+			} else {
+				if( ccx >= width ) ccx = width - 1;
+				if( ccy >= height ) ccy = height - 1;
+			}
 			if( !selection.down ) {
 				if( startPos != null ) {
 					selection.x = selection.sx + (ccx - startPos.x);
@@ -1123,6 +1192,10 @@ class Level {
 			selection.y = y0;
 			selection.w = x1 - x0;
 			selection.h = y1 - y0;
+			if( !fc ) {
+				selection.w += 1;
+				selection.h += 1;
+			}
 			setCursor();
 		}
 	}
@@ -1138,7 +1211,8 @@ class Level {
 	function editProps( l : LayerData, index : Int ) {
 		if( !hasProps(l) ) return;
 		var o = Reflect.field(obj, l.name)[index];
-		var popup = J("<div>").addClass("popup").prependTo(content.find(".scrollContent"));
+		var scroll = content.find(".scrollContent");
+		var popup = J("<div>").addClass("popup").prependTo(scroll);
 		J(js.Browser.window).bind("mousedown", function(_) {
 			popup.remove();
 			J(js.Browser.window).unbind("mousedown");
@@ -1170,7 +1244,21 @@ class Level {
 			});
 		}
 
-		popup.css( { marginLeft : Std.int((o.x + 1) * tileSize * zoomView) + "px", marginTop : Std.int((o.y + 1) * tileSize * zoomView) + "px" } );
+		var x = (o.x + 1) * tileSize * zoomView;
+		var y = (o.y + 1) * tileSize * zoomView;
+		var cw = width * tileSize * zoomView;
+		var ch = height * tileSize * zoomView;
+
+		if( x > cw - popup.width() - 30 ) x = cw - popup.width() - 30;
+		if( y > ch - popup.height() - 30 ) y = ch - popup.height() - 30;
+
+		var scroll = content.find(".scroll");
+		if( x < scroll.scrollLeft() + 20 ) x = scroll.scrollLeft() + 20;
+		if( y < scroll.scrollTop() + 20 ) y = scroll.scrollTop() + 20;
+		if( x + popup.width() > scroll.scrollLeft() + scroll.width() - 20 ) x = scroll.scrollLeft() + scroll.width() - 20 - popup.width();
+		if( y + popup.height() > scroll.scrollTop() + scroll.height() - 20) y = scroll.scrollTop() + scroll.height() - 20 - popup.height();
+
+		popup.css( { marginLeft : Std.int(x) + "px", marginTop : Std.int(y) + "px" } );
 	}
 
 	function updateZoom( ?f ) {
@@ -1845,7 +1933,7 @@ class Level {
 			rotation : rotation,
 			flipMode : flipMode,
 		};
-		js.Browser.getLocalStorage().setItem(sheetPath, haxe.Serializer.run(state));
+		js.Browser.getLocalStorage().setItem(sheetPath+"#"+index, haxe.Serializer.run(state));
 	}
 
 	@:keep function scale( s : Float ) {
@@ -2100,7 +2188,7 @@ class Level {
 			}
 			var s = l.getTileProp(m);
 			if( s != null ) {
-				var v = try model.parseDynamic(val) catch( e : Dynamic ) null;
+				var v = val == null ? s.opts.value : try model.parseDynamic(val) catch( e : Dynamic ) null;
 				if( v == null )
 					Reflect.deleteField(s.opts, "value");
 				else
@@ -2272,6 +2360,9 @@ class Level {
 		var curPreview = -1;
 		var start = { x : l.current % l.stride, y : Std.int(l.current / l.stride), down : false };
 		jsel.mousedown(function(e) {
+
+			palette.find("input[type=text]:focus").blur();
+
 			var o = jsel.offset();
 			var x = Std.int((e.pageX - o.left) / (tileSize*paletteZoom + 1));
 			var y = Std.int((e.pageY - o.top) / (tileSize*paletteZoom + 1));
@@ -2301,6 +2392,7 @@ class Level {
 							return;
 						}
 				start.down = true;
+				mouseCapture = jsel;
 				l.current = x + y * l.stride;
 				setCursor();
 			}
@@ -2349,18 +2441,26 @@ class Level {
 			var o = jsel.offset();
 			var x = Std.int((e.pageX - o.left) / (tileSize * paletteZoom + 1));
 			var y = Std.int((e.pageY - o.top) / (tileSize * paletteZoom + 1));
-			content.find(".cursorPosition").text(x + "," + y);
+			var infos = x + "," + y;
 
 			var id = x + y * l.stride;
 			if( id >= l.images.length || l.blanks[id] ) {
 				curPreview = -1;
 				jpreview.hide();
-			} else if( curPreview != id ) {
-				curPreview = id;
-				jpreview.show();
-				ipreview.fill(0xFF400040);
-				ipreview.copyFrom(l.images[id]);
+			} else {
+				if( curPreview != id ) {
+					curPreview = id;
+					jpreview.show();
+					ipreview.fill(0xFF400040);
+					ipreview.copyFrom(l.images[id]);
+				}
+				if( l.names != null )
+					infos += " "+l.names[id];
 			}
+			if( l.tileProps != null )
+				content.find(".cursorPosition").text(infos);
+			else
+				palette.find(".infos").text(infos);
 
 			if( !start.down ) return;
 			var x0 = x < start.x ? x : start.x;
@@ -2375,13 +2475,17 @@ class Level {
 		});
 
 		jsel.mouseleave(function(e) {
-			content.find(".cursorPosition").text("");
+			if( l.tileProps != null )
+				content.find(".cursorPosition").text("");
+			else
+				palette.find(".infos").text("");
 			curPreview = -1;
 			jpreview.hide();
 		});
 
 		jsel.mouseup(function(e) {
 			start.down = false;
+			mouseCapture = null;
 		});
 		paletteSelect = select;
 		setCursor();
@@ -2632,7 +2736,7 @@ class Level {
 				marginLeft : Std.int(selection.x * tileSize * zoomView - 1) + "px",
 				marginTop : Std.int(selection.y * tileSize * zoomView) + "px",
 				width : Std.int(selection.w * tileSize * zoomView) + "px",
-				height : Std.int(selection.h * size) + "px"
+				height : Std.int(selection.h * tileSize * zoomView) + "px"
 			});
 			return;
 		}

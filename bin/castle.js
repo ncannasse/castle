@@ -1,4 +1,5 @@
 (function () { "use strict";
+var console = (1,eval)('this').console || {log:function(){}};
 var $hxClasses = {},$estr = function() { return js.Boot.__string_rec(this,''); };
 function $extend(from, fields) {
 	function Inherit() {} Inherit.prototype = from; var proto = new Inherit();
@@ -207,6 +208,24 @@ Level.prototype = {
 			}
 		}
 		return name;
+	}
+	,set_mouseCapture: function(e) {
+		var _g = this;
+		this.mouseCapture = e;
+		if(e != null) {
+			var onUp;
+			var onUp1 = null;
+			onUp1 = function(_) {
+				window.document.removeEventListener("mouseup",onUp1);
+				if(_g.mouseCapture != null) {
+					_g.mouseCapture.mouseup();
+					_g.set_mouseCapture(null);
+				}
+			};
+			onUp = onUp1;
+			window.document.addEventListener("mouseup",onUp);
+		}
+		return e;
 	}
 	,init: function() {
 		var _g = this;
@@ -532,7 +551,7 @@ Level.prototype = {
 		var layer = this.layers[0];
 		var state;
 		try {
-			state = haxe.Unserializer.run(js.Browser.getLocalStorage().getItem(this.sheetPath));
+			state = haxe.Unserializer.run(js.Browser.getLocalStorage().getItem(this.sheetPath + "#" + this.index));
 		} catch( e ) {
 			state = null;
 		}
@@ -607,44 +626,55 @@ Level.prototype = {
 					}
 					return { k : k, layer : l, index : idx};
 				case 1:
-					var objs = _g[3];
+					var objs = [_g[3]];
 					var idCol = _g[2];
+					var max = objs[0].length - 1;
 					if(l.images == null) {
+						var found = [];
 						var _g2 = 0;
-						var _g1 = objs.length;
+						var _g1 = objs[0].length;
 						while(_g2 < _g1) {
 							var i2 = _g2++;
-							var o = objs[i2];
+							var i3 = max - i2;
+							var o = objs[0][i3];
 							var w;
 							if(l.hasSize) w = o.width; else w = 1;
 							var h;
 							if(l.hasSize) h = o.height; else h = 1;
 							if(x >= o.x && y >= o.y && x < o.x + w && y < o.y + h) {
-								if(l.idToIndex == null) return { k : 0, layer : l, index : i2};
-								return { k : (function($this) {
+								if(l.idToIndex == null) found.push({ k : 0, layer : l, index : i3}); else found.push({ k : (function($this) {
 									var $r;
 									var key = Reflect.field(o,idCol);
 									$r = l.idToIndex.get(key);
 									return $r;
-								}(this)), layer : l, index : i2};
+								}(this)), layer : l, index : i3});
 							}
 						}
+						if(l.hasSize) found.sort((function(objs) {
+							return function(f1,f2) {
+								var o1 = objs[0][f1.index];
+								var o2 = objs[0][f2.index];
+								return Reflect.compare(o2.width * o2.height,o1.width * o1.height);
+							};
+						})(objs));
+						return found.pop();
 					} else {
 						var _g21 = 0;
-						var _g11 = objs.length;
+						var _g11 = objs[0].length;
 						while(_g21 < _g11) {
-							var i3 = _g21++;
-							var o1 = objs[i3];
+							var i4 = _g21++;
+							var i5 = max - i4;
+							var o3 = objs[0][i5];
 							var k1;
-							var key1 = Reflect.field(o1,idCol);
+							var key1 = Reflect.field(o3,idCol);
 							k1 = l.idToIndex.get(key1);
 							if(k1 == null) continue;
 							var img = l.images[k1];
 							var w1 = img.width / this.tileSize;
 							var h1 = img.height / this.tileSize;
-							var ox = o1.x - (w1 - 1) * 0.5;
-							var oy = o1.y - (h1 - 1);
-							if(x >= ox && y >= oy && x < ox + w1 && y < oy + h1 && !this.hasHole(img,(x - ox) * this.tileSize | 0,(y - oy) * this.tileSize | 0)) return { k : k1, layer : l, index : i3};
+							var ox = o3.x - (w1 - 1) * 0.5;
+							var oy = o3.y - (h1 - 1);
+							if(x >= ox && y >= oy && x < ox + w1 && y < oy + h1 && !this.hasHole(img,(x - ox) * this.tileSize | 0,(y - oy) * this.tileSize | 0)) return { k : k1, layer : l, index : i5};
 						}
 					}
 					break;
@@ -653,20 +683,20 @@ Level.prototype = {
 					var idx1 = this.curPos.x + this.curPos.y * this.width;
 					var k2 = data1[idx1] - 1;
 					if(k2 < 0) continue;
-					var i4 = l.images[k2];
-					if(i4.getPixel(ix,iy) >>> 24 == 0) continue;
+					var i6 = l.images[k2];
+					if(i6.getPixel(ix,iy) >>> 24 == 0) continue;
 					return { k : k2, layer : l, index : idx1};
 				case 3:
 					var insts = _g[3];
 					var objs1 = l.getTileObjects();
 					var idx2 = insts.length;
 					while(idx2 > 0) {
-						var i5 = insts[--idx2];
-						var o2 = objs1.get(i5.o);
-						if(x >= i5.x && y >= i5.y && x < i5.x + (o2 == null?1:o2.w) && y < i5.y + (o2 == null?1:o2.h)) {
-							var im = l.images[i5.o + (x - i5.x | 0) + (y - i5.y | 0) * l.stride];
+						var i7 = insts[--idx2];
+						var o4 = objs1.get(i7.o);
+						if(x >= i7.x && y >= i7.y && x < i7.x + (o4 == null?1:o4.w) && y < i7.y + (o4 == null?1:o4.h)) {
+							var im = l.images[i7.o + (x - i7.x | 0) + (y - i7.y | 0) * l.stride];
 							if(this.hasHole(im,ix,iy)) continue;
-							return { k : i5.o, layer : l, index : idx2};
+							return { k : i7.o, layer : l, index : idx2};
 						}
 					}
 					break;
@@ -963,54 +993,54 @@ Level.prototype = {
 			return $r;
 		}(this))).appendTo(page);
 		var mlayers = this.content.find(".layers");
-		var _g1 = 0;
-		var _g = this.layers.length;
-		while(_g1 < _g) {
-			var index = _g1++;
-			var l = [this.layers[index]];
+		var _g14 = 0;
+		var _g4 = this.layers.length;
+		while(_g14 < _g4) {
+			var index = _g14++;
+			var l2 = [this.layers[index]];
 			var td = [new js.JQuery("<li class='item layer'>").appendTo(mlayers)];
-			l[0].comp = td[0];
+			l2[0].comp = td[0];
 			td[0].data("index",index);
-			if(!l[0].visible) td[0].addClass("hidden");
-			if(l[0].lock) td[0].addClass("locked");
-			td[0].mousedown((function(l) {
+			if(!l2[0].visible) td[0].addClass("hidden");
+			if(l2[0].lock) td[0].addClass("locked");
+			td[0].mousedown((function(l2) {
 				return function(e) {
-					var _g2 = e.which;
-					switch(_g2) {
+					var _g24 = e.which;
+					switch(_g24) {
 					case 1:
 						_g3.paletteMode = null;
-						_g3.setLayer(l[0]);
+						_g3.setLayer(l2[0]);
 						break;
 					case 3:
-						_g3.popupLayer(l[0],e.pageX,e.pageY);
+						_g3.popupLayer(l2[0],e.pageX,e.pageY);
 						e.preventDefault();
 						break;
 					}
 				};
-			})(l));
-			new js.JQuery("<span>").text(l[0].name).appendTo(td[0]);
-			if(l[0].images != null) {
+			})(l2));
+			new js.JQuery("<span>").text(l2[0].name).appendTo(td[0]);
+			if(l2[0].images != null) {
 				var isel = new js.JQuery("<div class='img'>").appendTo(td[0]);
-				if(l[0].images.length > 0) isel.append((function($this) {
+				if(l2[0].images.length > 0) isel.append((function($this) {
 					var $r;
-					var html1 = l[0].images[l[0].current].getCanvas();
-					$r = new js.JQuery(html1);
+					var html2 = l2[0].images[l2[0].current].getCanvas();
+					$r = new js.JQuery(html2);
 					return $r;
 				}(this)));
-				isel.click((function(td,l) {
+				isel.click((function(td,l2) {
 					return function(e1) {
-						_g3.setLayer(l[0]);
+						_g3.setLayer(l2[0]);
 						var list = new js.JQuery("<div class='imglist'>");
-						var _g4 = 0;
-						var _g21 = l[0].images.length;
-						while(_g4 < _g21) {
-							var i = [_g4++];
-							list.append(new js.JQuery("<img>").attr("src",l[0].images[i[0]].getCanvas().toDataURL()).click((function(i,l) {
-								return function(_) {
-									l[0].set_current(i[0]);
-									_g3.setLayer(l[0]);
+						var _g41 = 0;
+						var _g25 = l2[0].images.length;
+						while(_g41 < _g25) {
+							var i3 = [_g41++];
+							list.append(new js.JQuery("<img>").attr("src",l2[0].images[i3[0]].getCanvas().toDataURL()).click((function(i3,l2) {
+								return function(_2) {
+									l2[0].set_current(i3[0]);
+									_g3.setLayer(l2[0]);
 								};
-							})(i,l)));
+							})(i3,l2)));
 						}
 						td[0].append(list);
 						var remove = (function() {
@@ -1018,69 +1048,69 @@ Level.prototype = {
 								list.detach();
 								((function($this) {
 									var $r;
-									var html2 = window;
-									$r = new js.JQuery(html2);
+									var html3 = window;
+									$r = new js.JQuery(html3);
 									return $r;
 								}(this))).unbind("click");
 							};
 						})();
 						((function($this) {
 							var $r;
-							var html3 = window;
-							$r = new js.JQuery(html3);
+							var html4 = window;
+							$r = new js.JQuery(html4);
 							return $r;
 						}(this))).bind("click",(function() {
-							return function(_1) {
+							return function(_3) {
 								remove();
 							};
 						})());
 						e1.stopPropagation();
 					};
-				})(td,l));
+				})(td,l2));
 				continue;
 			}
 			var id = Level.UID++;
 			var t = ((function($this) {
 				var $r;
-				var html4 = "<input type=\"text\" id=\"_" + Level.UID++ + "\">";
-				$r = new js.JQuery(html4);
+				var html1 = "<input type=\"text\" id=\"_" + Level.UID++ + "\">";
+				$r = new js.JQuery(html1);
 				return $r;
 			}(this))).appendTo(td[0]);
-			this.spectrum(t,{ color : this.toColor(l[0].colors[l[0].current]), clickoutFiresChange : true, showButtons : false, showPaletteOnly : true, showPalette : true, palette : (function($this) {
+			this.spectrum(t,{ color : this.toColor(l2[0].colors[l2[0].current]), clickoutFiresChange : true, showButtons : false, showPaletteOnly : true, showPalette : true, palette : (function($this) {
 				var $r;
-				var _g22 = [];
+				var _g26 = [];
 				{
 					var _g31 = 0;
-					var _g41 = l[0].colors;
-					while(_g31 < _g41.length) {
-						var c = _g41[_g31];
+					var _g42 = l2[0].colors;
+					while(_g31 < _g42.length) {
+						var c = _g42[_g31];
 						++_g31;
-						_g22.push($this.toColor(c));
+						_g26.push($this.toColor(c));
 					}
 				}
-				$r = _g22;
+				$r = _g26;
 				return $r;
-			}(this))},this.allocRef((function(l) {
+			}(this))},this.allocRef((function(l2) {
 				return function(color) {
-					var _g42 = 0;
-					var _g32 = l[0].colors.length;
-					while(_g42 < _g32) {
-						var i1 = _g42++;
-						if(l[0].colors[i1] == color) {
-							l[0].set_current(i1);
-							_g3.setLayer(l[0]);
+					var _g43 = 0;
+					var _g32 = l2[0].colors.length;
+					while(_g43 < _g32) {
+						var i4 = _g43++;
+						if(l2[0].colors[i4] == color) {
+							l2[0].set_current(i4);
+							_g3.setLayer(l2[0]);
 							return;
 						}
 					}
-					_g3.setLayer(l[0]);
+					_g3.setLayer(l2[0]);
 				};
-			})(l)),this.allocRef((function(l) {
-				return function(_2) {
-					_g3.setLayer(l[0]);
+			})(l2)),this.allocRef((function(l2) {
+				return function(_4) {
+					_g3.setLayer(l2[0]);
 				};
-			})(l)));
+			})(l2)));
 		}
-		var callb = this.allocRef(function(_3) {
+		var callb = this.allocRef(function(_) {
 			var indexes = [];
 			var $it0 = (function($this) {
 				var $r;
@@ -1089,50 +1119,50 @@ Level.prototype = {
 				return $r;
 			}(this));
 			while( $it0.hasNext() ) {
-				var i2 = $it0.next();
-				indexes.push(i2.data("index"));
+				var i = $it0.next();
+				indexes.push(i.data("index"));
 			}
-			var _g5 = [];
-			var _g23 = 0;
+			var _g = [];
+			var _g2 = 0;
+			var _g1 = _g3.layers.length;
+			while(_g2 < _g1) {
+				var i1 = _g2++;
+				_g.push(_g3.layers[indexes[i1]]);
+			}
+			_g3.layers = _g;
+			var _g21 = 0;
 			var _g11 = _g3.layers.length;
-			while(_g23 < _g11) {
-				var i3 = _g23++;
-				_g5.push(_g3.layers[indexes[i3]]);
-			}
-			_g3.layers = _g5;
-			var _g24 = 0;
-			var _g12 = _g3.layers.length;
-			while(_g24 < _g12) {
-				var i4 = _g24++;
-				_g3.layers[i4].comp.data("index",i4);
+			while(_g21 < _g11) {
+				var i2 = _g21++;
+				_g3.layers[i2].comp.data("index",i2);
 			}
 			var groups = new haxe.ds.StringMap();
-			var _g13 = 0;
-			var _g25 = _g3.layers;
-			while(_g13 < _g25.length) {
-				var l1 = _g25[_g13];
-				++_g13;
-				if(l1.listColumnn == null) continue;
-				var g = groups.get(l1.listColumnn.name);
+			var _g12 = 0;
+			var _g22 = _g3.layers;
+			while(_g12 < _g22.length) {
+				var l = _g22[_g12];
+				++_g12;
+				if(l.listColumnn == null) continue;
+				var g = groups.get(l.listColumnn.name);
 				if(g == null) {
 					g = [];
-					groups.set(l1.listColumnn.name,g);
+					groups.set(l.listColumnn.name,g);
 				}
-				g.push(l1);
+				g.push(l);
 			}
 			var $it1 = groups.keys();
 			while( $it1.hasNext() ) {
 				var g1 = $it1.next();
 				var layers = groups.get(g1);
 				var objs;
-				var _g14 = [];
-				var _g26 = 0;
-				while(_g26 < layers.length) {
-					var l2 = layers[_g26];
-					++_g26;
-					_g14.push(l2.targetObj.o);
+				var _g13 = [];
+				var _g23 = 0;
+				while(_g23 < layers.length) {
+					var l1 = layers[_g23];
+					++_g23;
+					_g13.push(l1.targetObj.o);
 				}
-				objs = _g14;
+				objs = _g13;
 				_g3.obj[g1] = objs;
 			}
 			_g3.save();
@@ -1146,7 +1176,7 @@ Level.prototype = {
 		var ca = this.view.getCanvas();
 		ca.className = "display";
 		scont.append(ca);
-		scroll.scroll(function(_4) {
+		scroll.scroll(function(_5) {
 			_g3.savePrefs();
 		});
 		scroll[0].onmousewheel = function(e2) {
@@ -1164,7 +1194,7 @@ Level.prototype = {
 		this.tmpImage = new lvl.Image(0,0);
 		this.cursor[0].appendChild(this.cursorImage.getCanvas());
 		this.cursor.hide();
-		scont.mouseleave(function(_5) {
+		scont.mouseleave(function(_6) {
 			_g3.curPos = null;
 			if(_g3.selection == null) _g3.cursor.hide();
 			new js.JQuery(".cursorPosition").text("");
@@ -1174,7 +1204,7 @@ Level.prototype = {
 			_g3.mousePos.y = e3.pageY;
 			_g3.updateCursorPos();
 		});
-		var onMouseUp = function(_6) {
+		var onMouseUp = function(_1) {
 			_g3.mouseDown = null;
 			if(_g3.needSave) _g3.save();
 		};
@@ -1184,8 +1214,8 @@ Level.prototype = {
 				_g3.setCursor();
 				return;
 			}
-			var _g6 = e4.which;
-			switch(_g6) {
+			var _g5 = e4.which;
+			switch(_g5) {
 			case 1:
 				var l3 = _g3.currentLayer;
 				if(l3 == null) return;
@@ -1196,6 +1226,7 @@ Level.prototype = {
 				if(o == null) h = _g3.currentLayer.currentHeight; else h = o.h;
 				if(o == null && _g3.randomMode) w = h = 1;
 				_g3.mouseDown = { rx : _g3.curPos == null?0:_g3.curPos.x % w, ry : _g3.curPos == null?0:_g3.curPos.y % h, w : w, h : h};
+				_g3.set_mouseCapture(scroll);
 				if(_g3.curPos != null) {
 					_g3.set(_g3.curPos.x,_g3.curPos.y);
 					_g3.startPos = Reflect.copy(_g3.curPos);
@@ -1231,6 +1262,7 @@ Level.prototype = {
 			}
 		});
 		this.content.mouseup(function(e5) {
+			_g3.set_mouseCapture(null);
 			onMouseUp(e5);
 			if(_g3.curPos == null) {
 				_g3.startPos = null;
@@ -1270,6 +1302,18 @@ Level.prototype = {
 					h = py - sy;
 					px = sx;
 					py = sy;
+					if(w < 0) {
+						px += w;
+						w = -w;
+					}
+					if(h < 0) {
+						py += h;
+						h = -h;
+					}
+					if(!fc) {
+						w += 1;
+						h += 1;
+					}
 					if(w < 0.5) if(fc) w = 0.5; else w = 1;
 					if(h < 0.5) if(fc) h = 0.5; else h = 1;
 				}
@@ -1277,16 +1321,16 @@ Level.prototype = {
 				var _g1 = objs.length;
 				while(_g2 < _g1) {
 					var i = _g2++;
-					var o = objs[i];
-					if(o.x == px && o.y == py && w <= 1 && h <= 1) {
+					var o1 = objs[i];
+					if(o1.x == px && o1.y == py && w <= 1 && h <= 1) {
 						this.editProps(l,i);
 						this.setCursor();
 						return;
 					}
 				}
-				var o1 = { x : px, y : py};
-				objs.push(o1);
-				if(idCol != null) o1[idCol] = l.indexToId[this.currentLayer.current];
+				var o = { x : px, y : py};
+				objs.push(o);
+				if(idCol != null) o[idCol] = l.indexToId[this.currentLayer.current];
 				var _g11 = 0;
 				var _g21 = l.baseSheet.columns;
 				while(_g11 < _g21.length) {
@@ -1294,18 +1338,18 @@ Level.prototype = {
 					++_g11;
 					if(c.opt || c.name == "x" || c.name == "y" || c.name == idCol) continue;
 					var v = this.model.getDefault(c);
-					if(v != null) o1[c.name] = v;
+					if(v != null) o[c.name] = v;
 				}
 				if(l.hasSize) {
-					o1.width = w;
-					o1.height = h;
+					o.width = w;
+					o.height = h;
 					this.setCursor();
 				}
 				objs.sort(function(o11,o2) {
 					var r = Reflect.compare(o11.y,o2.y);
 					if(r == 0) return Reflect.compare(o11.x,o2.x); else return r;
 				});
-				if(this.hasProps(l,true)) this.editProps(l,Lambda.indexOf(objs,o1));
+				if(this.hasProps(l,true)) this.editProps(l,Lambda.indexOf(objs,o));
 				this.save();
 				this.draw();
 				break;
@@ -1546,6 +1590,15 @@ Level.prototype = {
 			if(fc) ccx = cxf; else ccx = cx;
 			var ccy;
 			if(fc) ccy = cyf; else ccy = cy;
+			if(ccx < 0) ccx = 0;
+			if(ccy < 0) ccy = 0;
+			if(fc) {
+				if(ccx > this.width) ccx = this.width;
+				if(ccy > this.height) ccy = this.height;
+			} else {
+				if(ccx >= this.width) ccx = this.width - 1;
+				if(ccy >= this.height) ccy = this.height - 1;
+			}
 			if(this.currentLayer.hasSize && this.mouseDown != null) {
 				var px;
 				if(fc) px = this.startPos.xf; else px = this.startPos.x;
@@ -1555,6 +1608,18 @@ Level.prototype = {
 				pw = (fc?cxf:cx) - px;
 				var ph;
 				ph = (fc?cyf:cy) - py;
+				if(pw < 0) {
+					px += pw;
+					pw = -pw;
+				}
+				if(ph < 0) {
+					py += ph;
+					ph = -ph;
+				}
+				if(!fc) {
+					pw += 1;
+					ph += 1;
+				}
 				if(pw < 0.5) if(fc) pw = 0.5; else pw = 1;
 				if(ph < 0.5) if(fc) ph = 0.5; else ph = 1;
 				ccx = px;
@@ -1580,8 +1645,13 @@ Level.prototype = {
 			if(fc1) ccy1 = cyf; else ccy1 = cy;
 			if(ccx1 < 0) ccx1 = 0;
 			if(ccy1 < 0) ccy1 = 0;
-			if(ccx1 > this.width) ccx1 = this.width;
-			if(ccy1 > this.height) ccy1 = this.height;
+			if(fc1) {
+				if(ccx1 > this.width) ccx1 = this.width;
+				if(ccy1 > this.height) ccy1 = this.height;
+			} else {
+				if(ccx1 >= this.width) ccx1 = this.width - 1;
+				if(ccy1 >= this.height) ccy1 = this.height - 1;
+			}
 			if(!this.selection.down) {
 				if(this.startPos != null) {
 					this.selection.x = this.selection.sx + (ccx1 - this.startPos.x);
@@ -1605,6 +1675,10 @@ Level.prototype = {
 			this.selection.y = y0;
 			this.selection.w = x1 - x0;
 			this.selection.h = y1 - y0;
+			if(!fc1) {
+				this.selection.w += 1;
+				this.selection.h += 1;
+			}
 			this.setCursor();
 		}
 	}
@@ -1635,7 +1709,8 @@ Level.prototype = {
 		var _g = this;
 		if(!this.hasProps(l)) return;
 		var o = Reflect.field(this.obj,l.name)[index];
-		var popup = new js.JQuery("<div>").addClass("popup").prependTo(this.content.find(".scrollContent"));
+		var scroll = this.content.find(".scrollContent");
+		var popup = new js.JQuery("<div>").addClass("popup").prependTo(scroll);
 		((function($this) {
 			var $r;
 			var html = window;
@@ -1683,7 +1758,18 @@ Level.prototype = {
 				};
 			})(td,c));
 		}
-		popup.css({ marginLeft : ((o.x + 1) * this.tileSize * this.zoomView | 0) + "px", marginTop : ((o.y + 1) * this.tileSize * this.zoomView | 0) + "px"});
+		var x = (o.x + 1) * this.tileSize * this.zoomView;
+		var y = (o.y + 1) * this.tileSize * this.zoomView;
+		var cw = this.width * this.tileSize * this.zoomView;
+		var ch = this.height * this.tileSize * this.zoomView;
+		if(x > cw - popup.width() - 30) x = cw - popup.width() - 30;
+		if(y > ch - popup.height() - 30) y = ch - popup.height() - 30;
+		var scroll1 = this.content.find(".scroll");
+		if(x < scroll1.scrollLeft() + 20) x = scroll1.scrollLeft() + 20;
+		if(y < scroll1.scrollTop() + 20) y = scroll1.scrollTop() + 20;
+		if(x + popup.width() > scroll1.scrollLeft() + scroll1.width() - 20) x = scroll1.scrollLeft() + scroll1.width() - 20 - popup.width();
+		if(y + popup.height() > scroll1.scrollTop() + scroll1.height() - 20) y = scroll1.scrollTop() + scroll1.height() - 20 - popup.height();
+		popup.css({ marginLeft : (x | 0) + "px", marginTop : (y | 0) + "px"});
 	}
 	,updateZoom: function(f) {
 		var tx = 0;
@@ -2565,11 +2651,11 @@ Level.prototype = {
 							var id1 = Reflect.field(o2,idCol);
 							var k2 = l.idToIndex.get(id1);
 							if(k2 == null) {
-								var w3;
-								if(l.hasSize) w3 = o2.width * this.tileSize; else w3 = this.tileSize;
-								var h3;
-								if(l.hasSize) h3 = o2.height * this.tileSize; else h3 = this.tileSize;
-								this.view.fillRect(o2.x * this.tileSize | 0,o2.y * this.tileSize | 0,w3 | 0,h3 | 0,-65281);
+								var w4;
+								if(l.hasSize) w4 = o2.width * this.tileSize; else w4 = this.tileSize;
+								var h4;
+								if(l.hasSize) h4 = o2.height * this.tileSize; else h4 = this.tileSize;
+								this.view.fillRect(o2.x * this.tileSize | 0,o2.y * this.tileSize | 0,w4 | 0,h4 | 0,-65281);
 								continue;
 							}
 							if(l.images != null) {
@@ -2577,11 +2663,11 @@ Level.prototype = {
 								this.view.draw(i2,(o2.x * this.tileSize | 0) - (i2.width - this.tileSize >> 1),(o2.y * this.tileSize | 0) - (i2.height - this.tileSize));
 								continue;
 							}
-							var w4;
-							if(l.hasSize) w4 = o2.width * this.tileSize; else w4 = this.tileSize;
-							var h4;
-							if(l.hasSize) h4 = o2.height * this.tileSize; else h4 = this.tileSize;
-							this.view.fillRect(o2.x * this.tileSize | 0,o2.y * this.tileSize | 0,w4 | 0,h4 | 0,l.colors[k2] | -16777216);
+							var w3;
+							if(l.hasSize) w3 = o2.width * this.tileSize; else w3 = this.tileSize;
+							var h3;
+							if(l.hasSize) h3 = o2.height * this.tileSize; else h3 = this.tileSize;
+							this.view.fillRect(o2.x * this.tileSize | 0,o2.y * this.tileSize | 0,w3 | 0,h3 | 0,l.colors[k2] | -16777216);
 						}
 					}
 					break;
@@ -2608,7 +2694,7 @@ Level.prototype = {
 	,savePrefs: function() {
 		var sc = this.content.find(".scroll");
 		var state = { zoomView : this.zoomView, curLayer : this.currentLayer == null?null:this.currentLayer.name, scrollX : sc.scrollLeft(), scrollY : sc.scrollTop(), paintMode : this.paintMode, randomMode : this.randomMode, paletteMode : this.paletteMode, paletteModeCursor : this.paletteModeCursor, smallPalette : this.smallPalette, rotation : this.rotation, flipMode : this.flipMode};
-		js.Browser.getLocalStorage().setItem(this.sheetPath,haxe.Serializer.run(state));
+		js.Browser.getLocalStorage().setItem(this.sheetPath + "#" + this.index,haxe.Serializer.run(state));
 	}
 	,scale: function(s) {
 		if(s == null || isNaN(s)) return;
@@ -2859,12 +2945,12 @@ Level.prototype = {
 						var _g1 = 0;
 						var _g2 = l.tileProps.sets;
 						while(_g1 < _g2.length) {
-							var p = _g2[_g1];
+							var p1 = _g2[_g1];
 							++_g1;
-							if(p.t == "object") oids.set(p.x + p.y * l.stride,p);
+							if(p1.t == "object") oids.set(p1.x + p1.y * l.stride,p1);
 						}
 						var objs = [];
-						var p1 = -1;
+						var p = -1;
 						var _g21 = 0;
 						var _g11 = this.height;
 						while(_g21 < _g11) {
@@ -2873,7 +2959,7 @@ Level.prototype = {
 							var _g3 = this.width;
 							while(_g4 < _g3) {
 								var x = _g4++;
-								var d = data[++p1] - 1;
+								var d = data[++p] - 1;
 								if(d < 0) continue;
 								var o = oids.get(d);
 								if(o != null) {
@@ -2885,7 +2971,7 @@ Level.prototype = {
 										var _g7 = o.w;
 										while(_g8 < _g7) {
 											var dx = _g8++;
-											var tp = p1 + dx + dy * this.width;
+											var tp = p + dx + dy * this.width;
 											if(x + dx >= this.width || y + dy >= this.height) continue;
 											var id = d + dx + dy * l.stride;
 											if(data[tp] != id + 1) {
@@ -2907,7 +2993,7 @@ Level.prototype = {
 										while(_g81 < _g71) {
 											var dx1 = _g81++;
 											if(x + dx1 >= this.width || y + dy1 >= this.height) continue;
-											data[p1 + dx1 + dy1 * this.width] = 0;
+											data[p + dx1 + dy1 * this.width] = 0;
 										}
 									}
 									objs.push({ x : x, y : y, b : y + o.w - 1, id : d});
@@ -3100,7 +3186,7 @@ Level.prototype = {
 			var s2 = l.getTileProp(m);
 			if(s2 != null) {
 				var v1;
-				try {
+				if(val == null) v1 = s2.opts.value; else try {
 					v1 = this.model.parseDynamic(val);
 				} catch( e1 ) {
 					v1 = null;
@@ -3318,6 +3404,7 @@ Level.prototype = {
 		var start_y = l.current / l.stride | 0;
 		var start_down = false;
 		jsel.mousedown(function(e2) {
+			_g.palette.find("input[type=text]:focus").blur();
 			var o = jsel.offset();
 			var x1 = (e2.pageX - o.left) / (_g.tileSize * _g.paletteZoom + 1) | 0;
 			var y1 = (e2.pageY - o.top) / (_g.tileSize * _g.paletteZoom + 1) | 0;
@@ -3356,6 +3443,7 @@ Level.prototype = {
 					}
 				}
 				start_down = true;
+				_g.set_mouseCapture(jsel);
 				l.set_current(x1 + y1 * l.stride);
 				_g.setCursor();
 			}
@@ -3393,17 +3481,21 @@ Level.prototype = {
 			var o1 = jsel.offset();
 			var x2 = (e3.pageX - o1.left) / (_g.tileSize * _g.paletteZoom + 1) | 0;
 			var y2 = (e3.pageY - o1.top) / (_g.tileSize * _g.paletteZoom + 1) | 0;
-			_g.content.find(".cursorPosition").text(x2 + "," + y2);
+			var infos = x2 + "," + y2;
 			var id = x2 + y2 * l.stride;
 			if(id >= l.images.length || l.blanks[id]) {
 				curPreview = -1;
 				jpreview.hide();
-			} else if(curPreview != id) {
-				curPreview = id;
-				jpreview.show();
-				ipreview.fill(-12582848);
-				ipreview.copyFrom(l.images[id]);
+			} else {
+				if(curPreview != id) {
+					curPreview = id;
+					jpreview.show();
+					ipreview.fill(-12582848);
+					ipreview.copyFrom(l.images[id]);
+				}
+				if(l.names != null) infos += " " + l.names[id];
 			}
+			if(l.tileProps != null) _g.content.find(".cursorPosition").text(infos); else _g.palette.find(".infos").text(infos);
 			if(!start_down) return;
 			var x01;
 			if(x2 < start_x) x01 = x2; else x01 = start_x;
@@ -3420,12 +3512,13 @@ Level.prototype = {
 			_g.setCursor();
 		});
 		jsel.mouseleave(function(e4) {
-			_g.content.find(".cursorPosition").text("");
+			if(l.tileProps != null) _g.content.find(".cursorPosition").text(""); else _g.palette.find(".infos").text("");
 			curPreview = -1;
 			jpreview.hide();
 		});
 		jsel.mouseup(function(e5) {
 			start_down = false;
+			_g.set_mouseCapture(null);
 		});
 		this.paletteSelect = select;
 		this.setCursor();
@@ -3636,14 +3729,14 @@ Level.prototype = {
 			} else {
 				sel.hide();
 				var grounds = [];
-				var _g10 = 0;
-				var _g19 = l.tileProps.sets;
-				while(_g10 < _g19.length) {
-					var s = _g19[_g10];
-					++_g10;
+				var _g20 = 0;
+				var _g111 = l.tileProps.sets;
+				while(_g20 < _g111.length) {
+					var s = _g111[_g20];
+					++_g20;
 					var color;
-					var _g25 = s.t;
-					switch(_g25) {
+					var _g27 = s.t;
+					switch(_g27) {
 					case "tile":
 						continue;
 						break;
@@ -3670,46 +3763,46 @@ Level.prototype = {
 					}
 					color |= -16777216;
 					var tsize1 = this.tileSize * this.paletteZoom;
-					var px = s.x * (tsize1 + 1);
-					var py = s.y * (tsize1 + 1);
-					var w = s.w * (tsize1 + 1) - 1;
-					var h = s.h * (tsize1 + 1) - 1;
-					this.paletteSelect.fillRect(px,py,w,1,color);
-					this.paletteSelect.fillRect(px,py + h - 1,w,1,color);
-					this.paletteSelect.fillRect(px,py,1,h,color);
-					this.paletteSelect.fillRect(px + w - 1,py,1,h,color);
+					var px1 = s.x * (tsize1 + 1);
+					var py1 = s.y * (tsize1 + 1);
+					var w1 = s.w * (tsize1 + 1) - 1;
+					var h1 = s.h * (tsize1 + 1) - 1;
+					this.paletteSelect.fillRect(px1,py1,w1,1,color);
+					this.paletteSelect.fillRect(px1,py1 + h1 - 1,w1,1,color);
+					this.paletteSelect.fillRect(px1,py1,1,h1,color);
+					this.paletteSelect.fillRect(px1 + w1 - 1,py1,1,h1,color);
 				}
 				var mode = cdb._Data.TileMode_Impl_.ofString(this.paletteMode == null?"":HxOverrides.substr(this.paletteMode,2,null));
 				var tobj = l.getTileProp(mode);
 				if(tobj == null) tobj = { x : 0, y : 0, w : 0, h : 0, t : "tile", opts : { }};
 				var baseModes = ((function($this) {
 					var $r;
-					var _g20 = [];
+					var _g10 = [];
 					{
-						var _g110 = 0;
-						var _g26 = ["tile","object","ground","border","group"];
-						while(_g110 < _g26.length) {
-							var m1 = _g26[_g110];
-							++_g110;
-							_g20.push("<option value=\"t_" + m1 + "\">" + (HxOverrides.substr(m1,0,1).toUpperCase() + HxOverrides.substr(m1,1,null)) + "</option>");
+						var _g19 = 0;
+						var _g25 = ["tile","object","ground","border","group"];
+						while(_g19 < _g25.length) {
+							var m1 = _g25[_g19];
+							++_g19;
+							_g10.push("<option value=\"t_" + m1 + "\">" + (HxOverrides.substr(m1,0,1).toUpperCase() + HxOverrides.substr(m1,1,null)) + "</option>");
 						}
 					}
-					$r = _g20;
+					$r = _g10;
 					return $r;
 				}(this))).join("\n");
 				var props = ((function($this) {
 					var $r;
-					var _g111 = [];
+					var _g110 = [];
 					{
-						var _g27 = 0;
+						var _g26 = 0;
 						var _g36 = $this.perTileProps;
-						while(_g27 < _g36.length) {
-							var t1 = _g36[_g27];
-							++_g27;
-							_g111.push("<option value=\"" + t1.name + "\">" + t1.name + "</option>");
+						while(_g26 < _g36.length) {
+							var t1 = _g36[_g26];
+							++_g26;
+							_g110.push("<option value=\"" + t1.name + "\">" + t1.name + "</option>");
 						}
 					}
-					$r = _g111;
+					$r = _g110;
 					return $r;
 				}(this))).join("\n");
 				m.find("[name=mode]").html(baseModes + props).val(this.paletteMode == null?"t_tile":this.paletteMode);
@@ -3820,14 +3913,14 @@ Level.prototype = {
 		if(this.selection != null) {
 			this.cursorImage.setSize(0,0);
 			this.cursor.show();
-			this.cursor.css({ border : "", marginLeft : (this.selection.x * this.tileSize * this.zoomView - 1 | 0) + "px", marginTop : (this.selection.y * this.tileSize * this.zoomView | 0) + "px", width : (this.selection.w * this.tileSize * this.zoomView | 0) + "px", height : (this.selection.h * size | 0) + "px"});
+			this.cursor.css({ border : "", marginLeft : (this.selection.x * this.tileSize * this.zoomView - 1 | 0) + "px", marginTop : (this.selection.y * this.tileSize * this.zoomView | 0) + "px", width : (this.selection.w * this.tileSize * this.zoomView | 0) + "px", height : (this.selection.h * this.tileSize * this.zoomView | 0) + "px"});
 			return;
 		}
 		var cur = l.current;
-		var w1;
-		if(this.randomMode) w1 = 1; else w1 = l.currentWidth;
-		var h1;
-		if(this.randomMode) h1 = 1; else h1 = l.currentHeight;
+		var w;
+		if(this.randomMode) w = 1; else w = l.currentWidth;
+		var h;
+		if(this.randomMode) h = 1; else h = l.currentHeight;
 		if((function($this) {
 			var $r;
 			var _g30 = l.data;
@@ -3847,13 +3940,13 @@ Level.prototype = {
 			var o2 = l.getSelObjects();
 			if(o2.length > 0) {
 				cur = o2[0].x + o2[0].y * l.stride;
-				w1 = o2[0].w;
-				h1 = o2[0].h;
+				w = o2[0].w;
+				h = o2[0].h;
 			}
 		}
-		this.cursorImage.setSize(size * w1,size * h1);
-		var px1 = 0;
-		var py1 = 0;
+		this.cursorImage.setSize(size * w,size * h);
+		var px = 0;
+		var py = 0;
 		if(l.images != null) {
 			{
 				var _g40 = l.data;
@@ -3865,16 +3958,16 @@ Level.prototype = {
 					this.cursorImage.setSize(w2,h2);
 					this.cursorImage.clear();
 					this.cursorImage.drawScaled(i4,0,0,w2,h2);
-					px1 = w2 - size >> 1;
-					py1 = h2 - size;
+					px = w2 - size >> 1;
+					py = h2 - size;
 					break;
 				default:
 					this.cursorImage.clear();
 					var _g112 = 0;
-					while(_g112 < h1) {
+					while(_g112 < h) {
 						var y4 = _g112++;
 						var _g210 = 0;
-						while(_g210 < w1) {
+						while(_g210 < w) {
 							var x4 = _g210++;
 							var i5 = l.images[cur + x4 + y4 * l.stride];
 							this.cursorImage.drawSub(i5,0,0,i5.width,i5.height,x4 * size,y4 * size,size,size);
@@ -3882,8 +3975,8 @@ Level.prototype = {
 					}
 					this.cursor.css({ border : "none"});
 					if(this.flipMode || this.rotation != 0) {
-						var tw = size * w1;
-						var th = size * h1;
+						var tw = size * w;
+						var th = size * h;
 						this.tmpImage.setSize(tw,th);
 						var m2 = { a : 0., b : 0., c : 0., d : 0., x : 0., y : 0.};
 						this.initMatrix(m2,tw,th,this.rotation,this.flipMode);
@@ -3905,8 +3998,8 @@ Level.prototype = {
 			this.cursor.css({ border : "1px solid " + (lum < 0.25?"white":"black")});
 		}
 		var canvas = this.cursorImage.getCanvas();
-		canvas.style.marginLeft = -px1 + "px";
-		canvas.style.marginTop = -py1 + "px";
+		canvas.style.marginLeft = -px + "px";
+		canvas.style.marginTop = -py + "px";
 	}
 	,__class__: Level
 };
@@ -3936,16 +4029,6 @@ List.prototype = {
 			l = l[1];
 		}
 		return false;
-	}
-	,iterator: function() {
-		return { h : this.h, hasNext : function() {
-			return this.h != null;
-		}, next : function() {
-			if(this.h == null) return null;
-			var x = this.h[0];
-			this.h = this.h[1];
-			return x;
-		}};
 	}
 	,__class__: List
 };
@@ -3986,7 +4069,7 @@ Model.prototype = {
 		var p = this.getParentSheet(sheet);
 		if(p == null) return sheet.lines;
 		if(p.s.props.level != null && p.c == "tileProps") {
-			var all = [];
+			var all1 = [];
 			var sets = p.s.props.level.tileSets;
 			var _g = 0;
 			var _g1 = Reflect.fields(sets);
@@ -4000,12 +4083,12 @@ Model.prototype = {
 				while(_g2 < _g3.length) {
 					var p1 = _g3[_g2];
 					++_g2;
-					if(p1 != null) all.push(p1);
+					if(p1 != null) all1.push(p1);
 				}
 			}
-			return all;
+			return all1;
 		}
-		var all1 = [];
+		var all = [];
 		var _g4 = 0;
 		var _g11 = this.getSheetLines(p.s);
 		while(_g4 < _g11.length) {
@@ -4017,11 +4100,11 @@ Model.prototype = {
 				while(_g21 < v.length) {
 					var v1 = v[_g21];
 					++_g21;
-					all1.push(v1);
+					all.push(v1);
 				}
 			}
 		}
-		return all1;
+		return all;
 	}
 	,getSheetObjects: function(sheet) {
 		var p = this.getParentSheet(sheet);
@@ -4585,18 +4668,18 @@ Model.prototype = {
 				var values2 = t[2];
 				var map1 = [];
 				var _g2 = 0;
-				var _g3 = this.makePairs((function($this) {
+				var _g32 = this.makePairs((function($this) {
 					var $r;
-					var _g4 = [];
+					var _g3 = [];
 					{
 						var _g21 = 0;
 						var _g11 = values11.length;
 						while(_g21 < _g11) {
 							var i3 = _g21++;
-							_g4.push({ name : values11[i3], i : i3});
+							_g3.push({ name : values11[i3], i : i3});
 						}
 					}
-					$r = _g4;
+					$r = _g3;
 					return $r;
 				}(this)),(function($this) {
 					var $r;
@@ -4612,8 +4695,8 @@ Model.prototype = {
 					$r = _g12;
 					return $r;
 				}(this)));
-				while(_g2 < _g3.length) {
-					var p = _g3[_g2];
+				while(_g2 < _g32.length) {
+					var p = _g32[_g2];
 					++_g2;
 					if(p.b == null) continue;
 					map1[p.a.i] = p.b.i;
@@ -4643,18 +4726,18 @@ Model.prototype = {
 				var values21 = t[2];
 				var map2 = [];
 				var _g23 = 0;
-				var _g32 = this.makePairs((function($this) {
+				var _g34 = this.makePairs((function($this) {
 					var $r;
-					var _g5 = [];
+					var _g4 = [];
 					{
 						var _g24 = 0;
 						var _g13 = values12.length;
 						while(_g24 < _g13) {
 							var i7 = _g24++;
-							_g5.push({ name : values12[i7], i : i7});
+							_g4.push({ name : values12[i7], i : i7});
 						}
 					}
-					$r = _g5;
+					$r = _g4;
 					return $r;
 				}(this)),(function($this) {
 					var $r;
@@ -4670,8 +4753,8 @@ Model.prototype = {
 					$r = _g14;
 					return $r;
 				}(this)));
-				while(_g23 < _g32.length) {
-					var p1 = _g32[_g23];
+				while(_g23 < _g34.length) {
+					var p1 = _g34[_g23];
 					++_g23;
 					if(p1.b == null) continue;
 					map2[p1.a.i] = p1.b.i;
@@ -5099,8 +5182,7 @@ Model.prototype = {
 			var n = t[2];
 			return n;
 		default:
-			var _this = Std.string(t);
-			return HxOverrides.substr(_this,1,null);
+			return HxOverrides.substr(Std.string(t),1,null);
 		}
 	}
 	,parseVal: function(t,val) {
@@ -5112,7 +5194,7 @@ Model.prototype = {
 			if(HxOverrides.cca(val,0) == 34) {
 				var esc = false;
 				var p = 1;
-				var out = new StringBuf();
+				var out_b = "";
 				try {
 					while(true) {
 						if(p == val.length) throw "Unclosed \"";
@@ -5120,7 +5202,7 @@ Model.prototype = {
 						var index = p++;
 						c = HxOverrides.cca(val,index);
 						if(esc) {
-							out.b += String.fromCharCode(c);
+							out_b += String.fromCharCode(c);
 							esc = false;
 						} else if(c != null) switch(c) {
 						case 34:
@@ -5131,11 +5213,11 @@ Model.prototype = {
 							esc = true;
 							break;
 						default:
-							out.b += String.fromCharCode(c);
-						} else out.b += String.fromCharCode(c);
+							out_b += String.fromCharCode(c);
+						} else out_b += String.fromCharCode(c);
 					}
 				} catch( e ) { if( e != "__break__" ) throw e; }
-				return out.b;
+				return out_b;
 			} else if(new EReg("^[A-Za-z0-9_]+$","").match(val)) return val;
 			throw "String requires quotes '" + val + "'";
 			break;
@@ -5152,7 +5234,9 @@ Model.prototype = {
 			return this.parseTypeVal(this.tmap.get(t1),val);
 		case 6:
 			var t2 = t[2];
-			var r = this.smap.get(t2).index.get(val);
+			var r;
+			var this1 = this.smap.get(t2).index;
+			r = this1.get(val);
 			if(r == null) throw val + " is not a known " + t2 + " id";
 			return r.id;
 		case 11:
@@ -5372,9 +5456,13 @@ Model.prototype = {
 		while(_g < oldA.length) {
 			var a = oldA[_g];
 			++_g;
-			var $it0 = newL.iterator();
-			while( $it0.hasNext() ) {
-				var b = $it0.next();
+			var _g1_head = newL.h;
+			var _g1_val = null;
+			while(_g1_head != null) {
+				var b;
+				_g1_val = _g1_head[0];
+				_g1_head = _g1_head[1];
+				b = _g1_val;
 				if(a.name == b.name) {
 					pairs.push({ a : a, b : b});
 					oldL.remove(a);
@@ -5383,12 +5471,20 @@ Model.prototype = {
 				}
 			}
 		}
-		var $it1 = oldL.iterator();
-		while( $it1.hasNext() ) {
-			var a1 = $it1.next();
-			var $it2 = newL.iterator();
-			while( $it2.hasNext() ) {
-				var b1 = $it2.next();
+		var _g_head = oldL.h;
+		var _g_val = null;
+		while(_g_head != null) {
+			var a1;
+			_g_val = _g_head[0];
+			_g_head = _g_head[1];
+			a1 = _g_val;
+			var _g_head1 = newL.h;
+			var _g_val1 = null;
+			while(_g_head1 != null) {
+				var b1;
+				_g_val1 = _g_head1[0];
+				_g_head1 = _g_head1[1];
+				b1 = _g_val1;
 				if(Lambda.indexOf(oldA,a1) == Lambda.indexOf(newA,b1)) {
 					pairs.push({ a : a1, b : b1});
 					oldL.remove(a1);
@@ -5397,9 +5493,13 @@ Model.prototype = {
 				}
 			}
 		}
-		var $it3 = oldL.iterator();
-		while( $it3.hasNext() ) {
-			var a2 = $it3.next();
+		var _g_head2 = oldL.h;
+		var _g_val2 = null;
+		while(_g_head2 != null) {
+			var a2;
+			_g_val2 = _g_head2[0];
+			_g_head2 = _g_head2[1];
+			a2 = _g_val2;
 			pairs.push({ a : a2, b : null});
 		}
 		return pairs;
@@ -6016,7 +6116,10 @@ Main.prototype = $extend(Model.prototype,{
 						if(c2 == null) continue;
 						var f = this.getConvFunction(c11.type,c2.type);
 						var v1 = Reflect.field(obj11,c11.name);
-						if(f == null) v1 = this.getDefault(c2); else if(f.f != null) v1 = f.f(v1);
+						if(f == null) v1 = this.getDefault(c2); else {
+							v1 = haxe.Json.parse(js.Node.stringify(v1,null,null));
+							if(f.f != null) v1 = f.f(v1);
+						}
 						if(v1 == null && !c2.opt) v1 = this.getDefault(c2);
 						if(v1 == null) Reflect.deleteField(obj2,c2.name); else obj2[c2.name] = v1;
 					}
@@ -6326,11 +6429,11 @@ Main.prototype = $extend(Model.prototype,{
 					var c1 = _g24[_g12];
 					++_g12;
 					var v1 = Reflect.field(obj,c1.name);
+					if(v1 == null) continue;
 					{
 						var _g3 = c1.type;
 						switch(_g3[1]) {
 						case 12:
-							if(v1 == null || v1 == "") continue;
 							var v2 = v1;
 							var odat1 = cdb._Types.Layer_Impl_.decode(v2,(function($this) {
 								var $r;
@@ -6474,8 +6577,9 @@ Main.prototype = $extend(Model.prototype,{
 			case 0:
 				if(v == "") return "<span class=\"error\">#MISSING</span>"; else if(((function($this) {
 					var $r;
+					var this1 = $this.smap.get(sheet.name).index;
 					var key = v;
-					$r = $this.smap.get(sheet.name).index.get(key);
+					$r = this1.get(key);
 					return $r;
 				}(this))).obj == obj) return v; else return "<span class=\"error\">#DUP(" + Std.string(v) + ")</span>";
 				break;
@@ -7643,9 +7747,9 @@ Main.prototype = $extend(Model.prototype,{
 								if(width == null) width = 1;
 								if(height == null) height = 1;
 								if(file == null) {
-									var i1 = index[0] - 1;
-									while(i1 >= 0) {
-										var o = sheet.lines[i1--];
+									var i2 = index[0] - 1;
+									while(i2 >= 0) {
+										var o = sheet.lines[i2--];
 										var v2 = Reflect.field(o,c[0].name);
 										if(v2 != null) {
 											file = v2.file;
@@ -7745,17 +7849,17 @@ Main.prototype = $extend(Model.prototype,{
 									};
 								})());
 								dialog.show();
-								var i2;
+								var i1;
 								var _this = window.document;
-								i2 = _this.createElement("img");
-								i2.onload = (function() {
+								i1 = _this.createElement("img");
+								i1.onload = (function() {
 									return function(_8) {
-										maxWidth = i2.width;
-										maxHeight = i2.height;
-										dialog.find(".tileView").height(i2.height);
+										maxWidth = i1.width;
+										maxHeight = i1.height;
+										dialog.find(".tileView").height(i1.height);
 									};
 								})();
-								i2.src = _g4.getAbsPath(file);
+								i1.src = _g4.getAbsPath(file);
 							};
 						})(set,v,val,index,c));
 						break;
@@ -8147,17 +8251,17 @@ Main.prototype = $extend(Model.prototype,{
 		var _g = 0;
 		var _g1 = this.data.sheets;
 		while(_g < _g1.length) {
-			var s = _g1[_g];
+			var s1 = _g1[_g];
 			++_g;
-			if(s.name == name) {
+			if(s1.name == name) {
 				this.error("Sheet name already in use");
 				return;
 			}
 		}
 		new js.JQuery("#newsheet").hide();
-		var s1 = { name : name, columns : [], lines : [], separators : [], props : { }};
+		var s = { name : name, columns : [], lines : [], separators : [], props : { }};
 		this.prefs.curSheet = this.data.sheets.length;
-		this.data.sheets.push(s1);
+		this.data.sheets.push(s);
 		this.initContent();
 		this.save();
 	}
@@ -8317,23 +8421,23 @@ Main.prototype = $extend(Model.prototype,{
 		var _g = this.data.sheets.length;
 		while(_g1 < _g) {
 			var i = _g1++;
-			var s = [this.data.sheets[i]];
-			if(s[0].props.hide) continue;
+			var s1 = [this.data.sheets[i]];
+			if(s1[0].props.hide) continue;
 			var li = [new js.JQuery("<li>")];
-			li[0].text(s[0].name).attr("id","sheet_" + i).appendTo(sheets).click(((function() {
-				return function(f,s1) {
+			li[0].text(s1[0].name).attr("id","sheet_" + i).appendTo(sheets).click(((function() {
+				return function(f,s2) {
 					return (function() {
 						return function() {
-							f(s1);
+							f(s2);
 						};
 					})();
 				};
-			})())($bind(this,this.selectSheet),s[0])).dblclick((function(li,s) {
+			})())($bind(this,this.selectSheet),s1[0])).dblclick((function(li,s1) {
 				return function(_) {
 					li[0].empty();
-					new js.JQuery("<input>").val(s[0].name).appendTo(li[0]).focus().blur((function(li,s) {
+					new js.JQuery("<input>").val(s1[0].name).appendTo(li[0]).focus().blur((function(li,s1) {
 						return function(_1) {
-							li[0].text(s[0].name);
+							li[0].text(s1[0].name);
 							var name = $(this).val();
 							if(!_g2.r_ident.match(name)) {
 								_g2.error("Invalid sheet name");
@@ -8341,21 +8445,21 @@ Main.prototype = $extend(Model.prototype,{
 							}
 							var f1 = _g2.smap.get(name);
 							if(f1 != null) {
-								if(f1.s != s[0]) _g2.error("Sheet name already in use");
+								if(f1.s != s1[0]) _g2.error("Sheet name already in use");
 								return;
 							}
-							var old = s[0].name;
-							s[0].name = name;
+							var old1 = s1[0].name;
+							s1[0].name = name;
 							_g2.mapType((function() {
 								return function(t) {
 									switch(t[1]) {
 									case 6:
 										var o = t[2];
-										if(o == old) return cdb.ColumnType.TRef(name); else return t;
+										if(o == old1) return cdb.ColumnType.TRef(name); else return t;
 										break;
 									case 12:
 										var o1 = t[2];
-										if(o1 == old) return cdb.ColumnType.TLayer(name); else return t;
+										if(o1 == old1) return cdb.ColumnType.TLayer(name); else return t;
 										break;
 									default:
 										return t;
@@ -8365,14 +8469,14 @@ Main.prototype = $extend(Model.prototype,{
 							var _g3 = 0;
 							var _g4 = _g2.data.sheets;
 							while(_g3 < _g4.length) {
-								var s2 = _g4[_g3];
+								var s3 = _g4[_g3];
 								++_g3;
-								if(StringTools.startsWith(s2.name,old + "@")) s2.name = name + "@" + HxOverrides.substr(s2.name,old.length + 1,null);
+								if(StringTools.startsWith(s3.name,old1 + "@")) s3.name = name + "@" + HxOverrides.substr(s3.name,old1.length + 1,null);
 							}
 							_g2.initContent();
 							_g2.save();
 						};
-					})(li,s)).keydown((function() {
+					})(li,s1)).keydown((function() {
 						return function(e) {
 							if(e.keyCode == 13) $(this).blur(); else if(e.keyCode == 27) _g2.initContent();
 							e.stopPropagation();
@@ -8383,36 +8487,36 @@ Main.prototype = $extend(Model.prototype,{
 						};
 					})());
 				};
-			})(li,s)).mousedown((function(li,s) {
+			})(li,s1)).mousedown((function(li,s1) {
 				return function(e2) {
 					if(e2.which == 3) {
 						haxe.Timer.delay(((function() {
-							return function(f2,s3,li1) {
+							return function(f2,s4,li1) {
 								return (function() {
 									return function() {
-										f2(s3,li1);
+										f2(s4,li1);
 									};
 								})();
 							};
-						})())($bind(_g2,_g2.popupSheet),s[0],li[0]),1);
+						})())($bind(_g2,_g2.popupSheet),s1[0],li[0]),1);
 						e2.stopPropagation();
 					}
 				};
-			})(li,s));
+			})(li,s1));
 		}
 		if(this.data.sheets.length == 0) {
 			new js.JQuery("#content").html("<a href='javascript:_.newSheet()'>Create a sheet</a>");
 			return;
 		}
-		var s4 = this.data.sheets[this.prefs.curSheet];
-		if(s4 == null) s4 = this.data.sheets[0];
-		this.selectSheet(s4,false);
-		var old1 = this.levels;
+		var s = this.data.sheets[this.prefs.curSheet];
+		if(s == null) s = this.data.sheets[0];
+		this.selectSheet(s,false);
+		var old = this.levels;
 		var lcur = null;
 		this.levels = [];
 		var _g5 = 0;
-		while(_g5 < old1.length) {
-			var level = old1[_g5];
+		while(_g5 < old.length) {
+			var level = old[_g5];
 			++_g5;
 			if(!this.smap.exists(level.sheetPath)) continue;
 			var s5 = this.smap.get(level.sheetPath).s;
@@ -8557,12 +8661,6 @@ Main.prototype = $extend(Model.prototype,{
 	}
 	,__class__: Main
 });
-var IMap = function() { };
-$hxClasses["IMap"] = IMap;
-IMap.__name__ = ["IMap"];
-IMap.prototype = {
-	__class__: IMap
-};
 Math.__name__ = ["Math"];
 var Reflect = function() { };
 $hxClasses["Reflect"] = Reflect;
@@ -8576,6 +8674,9 @@ Reflect.field = function(o,field) {
 };
 Reflect.setField = function(o,field,value) {
 	o[field] = value;
+};
+Reflect.callMethod = function(o,func,args) {
+	return func.apply(o,args);
 };
 Reflect.fields = function(o) {
 	var a = [];
@@ -8764,7 +8865,7 @@ Type.createEnum = function(e,constr,params) {
 	if(f == null) throw "No such constructor " + constr;
 	if(Reflect.isFunction(f)) {
 		if(params == null) throw "Constructor " + constr + " need parameters";
-		return f.apply(e,params);
+		return Reflect.callMethod(e,f,params);
 	}
 	if(params != null && params.length != 0) throw "Constructor " + constr + " does not need parameters";
 	return f;
@@ -8953,6 +9054,7 @@ cdb.Lz4Reader.uncompress = function(src,srcPos,srcLen,out,outPos) {
 	return [srcPos,outPos,0];
 };
 cdb.Lz4Reader.decodeString = function(s) {
+	if(s == "") return haxe.io.Bytes.alloc(0);
 	var k = haxe.crypto.Base64.decode(s);
 	if(k.b[0] != 4 || k.b[1] != 34 || k.b[2] != 77 || k.b[3] != 24) return k;
 	var tmp = new Uint8Array(k.length);
@@ -8973,7 +9075,7 @@ cdb.Lz4Reader.decodeString = function(s) {
 	return b;
 };
 cdb.Lz4Reader.encodeBytes = function(b,compress) {
-	if(compress) {
+	if(compress && b.length > 0) {
 		var tmp = new Uint8Array(b.length);
 		var _g1 = 0;
 		var _g = b.length;
@@ -9459,30 +9561,30 @@ cdb.TileBuilder.prototype = {
 				var a;
 				var a1;
 				if(gr > gl) a1 = gr; else a1 = gl;
-				var b;
-				if(gt > gb) b = gt; else b = gb;
-				if(a1 > b) a = a1; else a = b;
 				var b1;
+				if(gt > gb) b1 = gt; else b1 = gb;
+				if(a1 > b1) a = a1; else a = b1;
+				var b;
 				var a2;
 				if(gtr > gtl) a2 = gtr; else a2 = gtl;
 				var b2;
 				if(gbr > gbl) b2 = gbr; else b2 = gbl;
-				if(a2 > b2) b1 = a2; else b1 = b2;
-				if(a > b1) max = a; else max = b1;
+				if(a2 > b2) b = a2; else b = b2;
+				if(a > b) max = a; else max = b;
 				var min;
 				var a3;
 				var a4;
 				if(gr > gl) a4 = gl; else a4 = gr;
-				var b3;
-				if(gt > gb) b3 = gb; else b3 = gt;
-				if(a4 > b3) a3 = b3; else a3 = a4;
 				var b4;
+				if(gt > gb) b4 = gb; else b4 = gt;
+				if(a4 > b4) a3 = b4; else a3 = a4;
+				var b3;
 				var a5;
 				if(gtr > gtl) a5 = gtl; else a5 = gtr;
 				var b5;
 				if(gbr > gbl) b5 = gbl; else b5 = gbr;
-				if(a5 > b5) b4 = b5; else b4 = a5;
-				if(a3 > b4) min = b4; else min = a3;
+				if(a5 > b5) b3 = b5; else b3 = a5;
+				if(a3 > b3) min = b3; else min = a3;
 				var _g3 = min;
 				var _g2 = max + 1;
 				while(_g3 < _g2) {
@@ -9951,6 +10053,12 @@ cdb.IndexId.prototype = $extend(cdb.Index.prototype,{
 	,__class__: cdb.IndexId
 });
 var haxe = {};
+haxe.IMap = function() { };
+$hxClasses["haxe.IMap"] = haxe.IMap;
+haxe.IMap.__name__ = ["haxe","IMap"];
+haxe.IMap.prototype = {
+	__class__: haxe.IMap
+};
 haxe.Json = function() { };
 $hxClasses["haxe.Json"] = haxe.Json;
 haxe.Json.__name__ = ["haxe","Json"];
@@ -10083,9 +10191,13 @@ haxe.Serializer.prototype = {
 				case List:
 					this.buf.b += "l";
 					var v3 = v;
-					var $it0 = v3.iterator();
-					while( $it0.hasNext() ) {
-						var i1 = $it0.next();
+					var _g1_head = v3.h;
+					var _g1_val = null;
+					while(_g1_head != null) {
+						var i1;
+						_g1_val = _g1_head[0];
+						_g1_head = _g1_head[1];
+						i1 = _g1_val;
 						this.serialize(i1);
 					}
 					this.buf.b += "h";
@@ -10098,9 +10210,9 @@ haxe.Serializer.prototype = {
 				case haxe.ds.StringMap:
 					this.buf.b += "b";
 					var v4 = v;
-					var $it1 = v4.keys();
-					while( $it1.hasNext() ) {
-						var k = $it1.next();
+					var $it0 = v4.keys();
+					while( $it0.hasNext() ) {
+						var k = $it0.next();
 						this.serializeString(k);
 						this.serialize(v4.get(k));
 					}
@@ -10109,9 +10221,9 @@ haxe.Serializer.prototype = {
 				case haxe.ds.IntMap:
 					this.buf.b += "q";
 					var v5 = v;
-					var $it2 = v5.keys();
-					while( $it2.hasNext() ) {
-						var k1 = $it2.next();
+					var $it1 = v5.keys();
+					while( $it1.hasNext() ) {
+						var k1 = $it1.next();
 						this.buf.b += ":";
 						if(k1 == null) this.buf.b += "null"; else this.buf.b += "" + k1;
 						this.serialize(v5.get(k1));
@@ -10121,9 +10233,9 @@ haxe.Serializer.prototype = {
 				case haxe.ds.ObjectMap:
 					this.buf.b += "M";
 					var v6 = v;
-					var $it3 = v6.keys();
-					while( $it3.hasNext() ) {
-						var k2 = $it3.next();
+					var $it2 = v6.keys();
+					while( $it2.hasNext() ) {
+						var k2 = $it2.next();
 						var id = Reflect.field(k2,"__id__");
 						Reflect.deleteField(k2,"__id__");
 						this.serialize(k2);
@@ -10589,7 +10701,7 @@ haxe.io.Bytes.prototype = {
 		return this.readString(0,this.length);
 	}
 	,toHex: function() {
-		var s = new StringBuf();
+		var s_b = "";
 		var chars = [];
 		var str = "0123456789abcdef";
 		var _g1 = 0;
@@ -10603,10 +10715,10 @@ haxe.io.Bytes.prototype = {
 		while(_g11 < _g2) {
 			var i1 = _g11++;
 			var c = this.b[i1];
-			s.b += String.fromCharCode(chars[c >> 4]);
-			s.b += String.fromCharCode(chars[c & 15]);
+			s_b += String.fromCharCode(chars[c >> 4]);
+			s_b += String.fromCharCode(chars[c & 15]);
 		}
-		return s.b;
+		return s_b;
 	}
 	,getData: function() {
 		return this.b;
@@ -10733,15 +10845,15 @@ haxe.crypto.Md5.bytes2blks = function(b) {
 	var blksSize = nblk * 16;
 	var _g = 0;
 	while(_g < blksSize) {
-		var i = _g++;
-		blks[i] = 0;
+		var i1 = _g++;
+		blks[i1] = 0;
 	}
-	var i1 = 0;
-	while(i1 < b.length) {
-		blks[i1 >> 2] |= b.b[i1] << (((b.length << 3) + i1 & 3) << 3);
-		i1++;
+	var i = 0;
+	while(i < b.length) {
+		blks[i >> 2] |= b.b[i] << (((b.length << 3) + i & 3) << 3);
+		i++;
 	}
-	blks[i1 >> 2] |= 128 << (b.length * 8 + i1) % 4 * 8;
+	blks[i >> 2] |= 128 << (b.length * 8 + i) % 4 * 8;
 	var l = b.length * 8;
 	var k = nblk * 16 - 2;
 	blks[k] = l & 255;
@@ -10882,7 +10994,7 @@ haxe.ds.IntMap = function() {
 };
 $hxClasses["haxe.ds.IntMap"] = haxe.ds.IntMap;
 haxe.ds.IntMap.__name__ = ["haxe","ds","IntMap"];
-haxe.ds.IntMap.__interfaces__ = [IMap];
+haxe.ds.IntMap.__interfaces__ = [haxe.IMap];
 haxe.ds.IntMap.prototype = {
 	set: function(key,value) {
 		this.h[key] = value;
@@ -10905,7 +11017,7 @@ haxe.ds.ObjectMap = function() {
 };
 $hxClasses["haxe.ds.ObjectMap"] = haxe.ds.ObjectMap;
 haxe.ds.ObjectMap.__name__ = ["haxe","ds","ObjectMap"];
-haxe.ds.ObjectMap.__interfaces__ = [IMap];
+haxe.ds.ObjectMap.__interfaces__ = [haxe.IMap];
 haxe.ds.ObjectMap.prototype = {
 	set: function(key,value) {
 		var id = key.__id__ || (key.__id__ = ++haxe.ds.ObjectMap.count);
@@ -10929,7 +11041,7 @@ haxe.ds.StringMap = function() {
 };
 $hxClasses["haxe.ds.StringMap"] = haxe.ds.StringMap;
 haxe.ds.StringMap.__name__ = ["haxe","ds","StringMap"];
-haxe.ds.StringMap.__interfaces__ = [IMap];
+haxe.ds.StringMap.__interfaces__ = [haxe.IMap];
 haxe.ds.StringMap.prototype = {
 	set: function(key,value) {
 		this.h["$" + key] = value;
@@ -11112,18 +11224,18 @@ js.Boot.__string_rec = function(o,s) {
 		if(o instanceof Array) {
 			if(o.__enum__) {
 				if(o.length == 2) return o[0];
-				var str = o[0] + "(";
+				var str2 = o[0] + "(";
 				s += "\t";
 				var _g1 = 2;
 				var _g = o.length;
 				while(_g1 < _g) {
-					var i = _g1++;
-					if(i != 2) str += "," + js.Boot.__string_rec(o[i],s); else str += js.Boot.__string_rec(o[i],s);
+					var i1 = _g1++;
+					if(i1 != 2) str2 += "," + js.Boot.__string_rec(o[i1],s); else str2 += js.Boot.__string_rec(o[i1],s);
 				}
-				return str + ")";
+				return str2 + ")";
 			}
 			var l = o.length;
-			var i1;
+			var i;
 			var str1 = "[";
 			s += "\t";
 			var _g2 = 0;
@@ -11145,7 +11257,7 @@ js.Boot.__string_rec = function(o,s) {
 			if(s2 != "[object Object]") return s2;
 		}
 		var k = null;
-		var str2 = "{\n";
+		var str = "{\n";
 		s += "\t";
 		var hasp = o.hasOwnProperty != null;
 		for( var k in o ) {
@@ -11155,12 +11267,12 @@ js.Boot.__string_rec = function(o,s) {
 		if(k == "prototype" || k == "__class__" || k == "__super__" || k == "__interfaces__" || k == "__properties__") {
 			continue;
 		}
-		if(str2.length != 2) str2 += ", \n";
-		str2 += s + k + " : " + js.Boot.__string_rec(o[k],s);
+		if(str.length != 2) str += ", \n";
+		str += s + k + " : " + js.Boot.__string_rec(o[k],s);
 		}
 		s = s.substring(1);
-		str2 += "\n" + s + "}";
-		return str2;
+		str += "\n" + s + "}";
+		return str;
 	case "function":
 		return "<function>";
 	case "string":
