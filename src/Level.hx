@@ -444,11 +444,9 @@ class Level {
 				}
 				return { k : k, layer : l, index : idx };
 			case Objects(idCol, objs):
-				var max = objs.length - 1;
 				if( l.images == null ) {
 					var found = [];
 					for( i in 0...objs.length ) {
-						var i = max - i;
 						var o = objs[i];
 						var w = l.hasSize ? o.width : 1;
 						var h = l.hasSize ? o.height : 1;
@@ -466,8 +464,10 @@ class Level {
 							var o2 = objs[f2.index];
 							return Reflect.compare(o2.width * o2.height,o1.width * o1.height);
 						});
-					return found.pop();
+					if( found.length > 0 )
+						return found.pop();
 				} else {
+					var max = objs.length - 1;
 					for( i in 0...objs.length ) {
 						var i = max - i;
 						var o = objs[i];
