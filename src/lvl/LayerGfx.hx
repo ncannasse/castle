@@ -19,7 +19,7 @@ class LayerGfx {
 	public function new(level:Level) {
 		this.level = level;
 	}
-	
+
 	public function fromSheet( sheet : Sheet, defColor ) {
 		blanks = [];
 		if( sheet == null ) {
@@ -28,6 +28,7 @@ class LayerGfx {
 			return;
 		}
 		var idCol = null;
+		var imageTags = [];
 		for( c in sheet.columns )
 			switch( c.type ) {
 			case TColor:
@@ -36,9 +37,9 @@ class LayerGfx {
 				if( images == null ) images = [];
 				var size = level.tileSize;
 				for( idx in 0...sheet.lines.length ) {
+					if( imageTags[idx] ) continue;
 					var key = Reflect.field(sheet.lines[idx], c.name);
 					var idat = level.model.getImageData(key);
-					if( idat == null && images[idx] != null ) continue;
 					if( idat == null ) {
 						var i = new Image(size, size);
 						i.text("#" + idx, 0, 12);
@@ -46,6 +47,7 @@ class LayerGfx {
 						continue;
 					}
 					level.wait();
+					imageTags[idx] = true;
 					Image.load(idat, function(i) {
 						i.resize(size, size);
 						images[idx] = i;
@@ -58,6 +60,7 @@ class LayerGfx {
 				var size = level.tileSize;
 
 				for( idx in 0...sheet.lines.length ) {
+					if( imageTags[idx] ) continue;
 					var data : cdb.Types.TilePos = Reflect.field(sheet.lines[idx], c.name);
 					if( data == null && images[idx] != null ) continue;
 					if( data == null ) {
@@ -67,6 +70,7 @@ class LayerGfx {
 						continue;
 					}
 					level.wait();
+					imageTags[idx] = true;
 					Image.load(level.model.getAbsPath(data.file), function(i) {
 						var i2 = i.sub(data.x * data.size, data.y * data.size, data.size * (data.width == null ? 1 : data.width), data.size * (data.height == null ? 1 : data.height));
 						images[idx] = i2;
@@ -100,5 +104,5 @@ class LayerGfx {
 			names.push(n);
 		}
 	}
-	
+
 }
