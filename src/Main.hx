@@ -241,7 +241,7 @@ class Main extends Model {
 						v = getDefault(c2);
 					else {
 						// make a deep copy to erase references
-						v = haxe.Json.parse(haxe.Json.stringify(v));
+						if( v != null ) v = haxe.Json.parse(haxe.Json.stringify(v));
 						if( f.f != null )
 							v = f.f(v);
 					}
