@@ -875,10 +875,17 @@ class Level {
 				mouseDown = { rx : curPos == null ? 0 : (curPos.x % w), ry : curPos == null ? 0 : (curPos.y % h), w : w, h : h };
 				mouseCapture = scroll;
 				if( curPos != null ) {
-					set(curPos.x, curPos.y);
+					set(curPos.x, curPos.y, e.ctrlKey);
 					startPos = Reflect.copy(curPos);
 				}
 			case 3:
+
+				if( selection != null ) {
+					clearSelection();
+					draw();
+					return;
+				}
+
 				var p = pick();
 				if( p != null ) {
 					p.layer.current = p.k;
@@ -1153,7 +1160,7 @@ class Level {
 			curPos = { x : cx, y : cy, xf : cxf, yf : cyf };
 			content.find(".cursorPosition").text(cx + "," + cy);
 			if( mouseDown != null )
-				set(Std.int(cx/mouseDown.w)*mouseDown.w + mouseDown.rx, Std.int(cy/mouseDown.h)*mouseDown.h + mouseDown.ry);
+				set(Std.int(cx/mouseDown.w)*mouseDown.w + mouseDown.rx, Std.int(cy/mouseDown.h)*mouseDown.h + mouseDown.ry, false);
 			if( deleteMode != null ) doDelete();
 		} else {
 			cursor.hide();
@@ -1496,8 +1503,8 @@ class Level {
 			paletteOption("random");
 		case K.LEFT:
 			e.preventDefault();
-			if( l.current % l.stride > l.currentWidth-1 ) {
-				var w = l.currentWidth, h = l.currentHeight;
+			var w = l.currentWidth, h = l.currentHeight;
+			if( l.current % l.stride > w-1 ) {
 				l.current -= w;
 				if( w != 1 || h != 1 ) {
 					l.currentWidth = w;
@@ -1508,8 +1515,8 @@ class Level {
 			}
 		case K.RIGHT:
 			e.preventDefault();
-			if( l.current % l.stride < l.stride - l.currentWidth ) {
-				var w = l.currentWidth, h = l.currentHeight;
+			var w = l.currentWidth, h = l.currentHeight;
+			if( l.current % l.stride < l.stride - w && l.images != null && l.current + w < l.images.length ) {
 				l.current += w;
 				if( w != 1 || h != 1 ) {
 					l.currentWidth = w;
@@ -1520,8 +1527,8 @@ class Level {
 			}
 		case K.DOWN:
 			e.preventDefault();
-			if( l.images != null && l.current + l.stride * l.currentHeight < l.images.length ) {
-				var w = l.currentWidth, h = l.currentHeight;
+			var w = l.currentWidth, h = l.currentHeight;
+			if( l.images != null && l.current + l.stride * h < l.images.length ) {
 				l.current += l.stride * h;
 				if( w != 1 || h != 1 ) {
 					l.currentWidth = w;
@@ -1532,8 +1539,8 @@ class Level {
 			}
 		case K.UP:
 			e.preventDefault();
-			if( l.current >= l.stride * l.currentHeight ) {
-				var w = l.currentWidth, h = l.currentHeight;
+			var w = l.currentWidth, h = l.currentHeight;
+			if( l.current >= l.stride * h ) {
 				l.current -= l.stride * h;
 				if( w != 1 || h != 1 ) {
 					l.currentWidth = w;
@@ -1673,7 +1680,7 @@ class Level {
 		}
 	}
 
-	function set( x, y ) {
+	function set( x, y, replace ) {
 		if( selection != null )
 			return;
 		if( paintMode ) {
@@ -1700,16 +1707,32 @@ class Level {
 						for( dy in 0...putObj.h ) {
 							var k = id + dx + dy * l.stride;
 							var p = (x + dx) + (y + dy) * width;
-							if( data[p] == k || l.blanks[k - 1] ) continue;
-							data[p] = k;
+							var old = data[p];
+							if( old == k || l.blanks[k - 1] ) continue;
+							if( replace && old > 0 ) {
+								for( i in 0...width*height )
+									if( data[i] == old )
+										data[i] = k;
+							} else
+								data[p] = k;
 							changed = true;
 						}
 					changed = true;
 				} else {
 					var p = x + y * width;
-					var id = l.current + Std.random(l.currentWidth) + Std.random(l.currentHeight) * l.stride + 1;
-					if( data[p] == id || l.blanks[id - 1] ) return;
-					data[p] = id;
+					var old = data[p];
+					if( replace && old > 0 ) {
+						for( i in 0...width*height )
+							if( data[i] == old ) {
+								var id = l.current + Std.random(l.currentWidth) + Std.random(l.currentHeight) * l.stride + 1;
+								if( old == id || l.blanks[id - 1] ) continue;
+								data[i] = id;
+							}
+					} else {
+						var id = l.current + Std.random(l.currentWidth) + Std.random(l.currentHeight) * l.stride + 1;
+						if( old == id || l.blanks[id - 1] ) return;
+						data[p] = id;
+					}
 					changed = true;
 				}
 			} else {
@@ -1717,8 +1740,14 @@ class Level {
 					for( dx in 0...l.currentWidth ) {
 						var p = x + dx + (y + dy) * width;
 						var id = l.current + dx + dy * l.stride + 1;
-						if( data[p] == id || l.blanks[id - 1] ) continue;
-						data[p] = id;
+						var old = data[p];
+						if( old == id || l.blanks[id - 1] ) continue;
+						if( replace && old > 0 ) {
+							for( i in 0...width*height )
+								if( data[i] == old )
+									data[i] = id;
+						} else
+							data[p] = id;
 						changed = true;
 					}
 			}
