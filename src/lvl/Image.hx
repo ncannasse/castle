@@ -131,7 +131,7 @@ class Image {
 
 	public function getPixel(x, y) {
 		var i = ctx.getImageData(x, y, 1, 1);
-		return (i.data[0]<<24) | (i.data[1] << 16) | (i.data[2] << 8) | i.data[3];
+		return (i.data[3]<<24) | (i.data[0] << 16) | (i.data[1] << 8) | i.data[2];
 	}
 
 	public function setSize( width, height ) {
