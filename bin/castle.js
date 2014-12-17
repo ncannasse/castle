@@ -149,50 +149,6 @@ Lambda.find = function(it,f) {
 	}
 	return null;
 };
-var haxe = {};
-haxe.IMap = function() { };
-$hxClasses["haxe.IMap"] = haxe.IMap;
-haxe.IMap.__name__ = ["haxe","IMap"];
-haxe.IMap.prototype = {
-	__class__: haxe.IMap
-};
-haxe.ds = {};
-haxe.ds.StringMap = function() {
-	this.h = { };
-};
-$hxClasses["haxe.ds.StringMap"] = haxe.ds.StringMap;
-haxe.ds.StringMap.__name__ = ["haxe","ds","StringMap"];
-haxe.ds.StringMap.__interfaces__ = [haxe.IMap];
-haxe.ds.StringMap.prototype = {
-	set: function(key,value) {
-		this.h["$" + key] = value;
-	}
-	,get: function(key) {
-		return this.h["$" + key];
-	}
-	,remove: function(key) {
-		key = "$" + key;
-		if(!this.h.hasOwnProperty(key)) return false;
-		delete(this.h[key]);
-		return true;
-	}
-	,keys: function() {
-		var a = [];
-		for( var key in this.h ) {
-		if(this.h.hasOwnProperty(key)) a.push(key.substr(1));
-		}
-		return HxOverrides.iter(a);
-	}
-	,iterator: function() {
-		return { ref : this.h, it : this.keys(), hasNext : function() {
-			return this.it.hasNext();
-		}, next : function() {
-			var i = this.it.next();
-			return this.ref["$" + i];
-		}};
-	}
-	,__class__: haxe.ds.StringMap
-};
 var Level = function(model,sheet,index) {
 	this.reloading = false;
 	this.rotation = 0;
@@ -520,8 +476,7 @@ Level.prototype = {
 		if(this.content != null) this.content.html("");
 		if(this.view != null) {
 			this.view.dispose();
-			var ca = this.view.getCanvas();
-			ca.parentNode.removeChild(ca);
+			this.view.viewport.parentNode.removeChild(this.view.viewport);
 			this.view = null;
 			var _g = 0;
 			var _g1 = this.references;
@@ -1208,11 +1163,10 @@ Level.prototype = {
 		var scroll = this.content.find(".scroll");
 		var scont = this.content.find(".scrollContent");
 		this.view = lvl.Image3D.getInstance();
-		var ca = this.view.getCanvas();
-		ca.className = "display";
-		scont.append(ca);
+		scont.append(this.view.viewport);
 		scroll.scroll(function(_5) {
 			_g3.savePrefs();
+			_g3.view.setScrollPos(scroll.scrollLeft() - 20,scroll.scrollTop() - 20);
 		});
 		scroll[0].onmousewheel = function(e2) {
 			if(e2.shiftKey) _g3.updateZoom(e2.wheelDelta > 0);
@@ -10103,6 +10057,13 @@ cdb.IndexId.prototype = $extend(cdb.Index.prototype,{
 	}
 	,__class__: cdb.IndexId
 });
+var haxe = {};
+haxe.IMap = function() { };
+$hxClasses["haxe.IMap"] = haxe.IMap;
+haxe.IMap.__name__ = ["haxe","IMap"];
+haxe.IMap.prototype = {
+	__class__: haxe.IMap
+};
 haxe.Json = function() { };
 $hxClasses["haxe.Json"] = haxe.Json;
 haxe.Json.__name__ = ["haxe","Json"];
@@ -11042,6 +11003,7 @@ haxe.crypto.Md5.prototype = {
 	}
 	,__class__: haxe.crypto.Md5
 };
+haxe.ds = {};
 haxe.ds.IntMap = function() {
 	this.h = { };
 };
@@ -11088,6 +11050,42 @@ haxe.ds.ObjectMap.prototype = {
 		return HxOverrides.iter(a);
 	}
 	,__class__: haxe.ds.ObjectMap
+};
+haxe.ds.StringMap = function() {
+	this.h = { };
+};
+$hxClasses["haxe.ds.StringMap"] = haxe.ds.StringMap;
+haxe.ds.StringMap.__name__ = ["haxe","ds","StringMap"];
+haxe.ds.StringMap.__interfaces__ = [haxe.IMap];
+haxe.ds.StringMap.prototype = {
+	set: function(key,value) {
+		this.h["$" + key] = value;
+	}
+	,get: function(key) {
+		return this.h["$" + key];
+	}
+	,remove: function(key) {
+		key = "$" + key;
+		if(!this.h.hasOwnProperty(key)) return false;
+		delete(this.h[key]);
+		return true;
+	}
+	,keys: function() {
+		var a = [];
+		for( var key in this.h ) {
+		if(this.h.hasOwnProperty(key)) a.push(key.substr(1));
+		}
+		return HxOverrides.iter(a);
+	}
+	,iterator: function() {
+		return { ref : this.h, it : this.keys(), hasNext : function() {
+			return this.it.hasNext();
+		}, next : function() {
+			var i = this.it.next();
+			return this.ref["$" + i];
+		}};
+	}
+	,__class__: haxe.ds.StringMap
 };
 haxe.io.BytesBuffer = function() {
 	this.b = [];
@@ -11663,9 +11661,20 @@ lvl.Image.prototype = {
 	,__class__: lvl.Image
 };
 lvl.Image3D = function(w,h) {
+	this.scrollY = 0;
+	this.scrollX = 0;
 	this.alphaValue = 1.;
 	this.zoom = 1;
 	lvl.Image.call(this,w,h);
+	var _this = window.document;
+	this.viewport = _this.createElement("div");
+	this.viewport.style.backgroundColor = "black";
+	this.viewport.style.overflow = "hidden";
+	this.viewport.appendChild(this.canvas);
+	this.canvas.width = 2048;
+	this.canvas.height = 2048;
+	this.canvas.setAttribute("width",2048 + "px");
+	this.canvas.setAttribute("height",2048 + "px");
 	this.colorCache = new haxe.ds.IntMap();
 	this.curDraw = new Float32Array(16 * Math.ceil(10922.666666666666));
 	this.curIndex = new Uint16Array(65536);
@@ -11690,7 +11699,7 @@ lvl.Image3D.prototype = $extend(lvl.Image.prototype,{
 		this.dispose();
 		this.gl = this.canvas.gl;
 		if(this.gl != null) {
-			this.setViewport();
+			this.initScale();
 			return;
 		}
 		this.gl = js.html._CanvasElement.CanvasUtil.getContextWebGL(this.canvas,{ alpha : false, antialias : false});
@@ -11698,7 +11707,7 @@ lvl.Image3D.prototype = $extend(lvl.Image.prototype,{
 		this.gl.disable(2884);
 		this.gl.disable(2929);
 		var vertex = this.gl.createShader(35633);
-		this.gl.shaderSource(vertex,"\r\n\t\t\tvarying vec2 tuv;\r\n\t\t\tattribute vec2 pos;\r\n\t\t\tattribute vec2 uv;\r\n\t\t\tvoid main() {\r\n\t\t\t\ttuv = uv;\r\n\t\t\t\tgl_Position = vec4(pos + vec2(-1.,1.), 0, 1);\r\n\t\t\t}\r\n\t\t");
+		this.gl.shaderSource(vertex,"\r\n\t\t\tvarying vec2 tuv;\r\n\t\t\tattribute vec2 pos;\r\n\t\t\tattribute vec2 uv;\r\n\t\t\tuniform vec2 scroll;\r\n\t\t\tvoid main() {\r\n\t\t\t\ttuv = uv;\r\n\t\t\t\tgl_Position = vec4(pos + vec2(-1.,1.) + scroll, 0, 1);\r\n\t\t\t}\r\n\t\t");
 		this.gl.compileShader(vertex);
 		if(this.gl.getShaderParameter(vertex,35713) != 1) throw this.gl.getShaderInfoLog(vertex);
 		var frag = this.gl.createShader(35632);
@@ -11715,11 +11724,12 @@ lvl.Image3D.prototype = $extend(lvl.Image.prototype,{
 		this.gl.enableVertexAttribArray(1);
 		this.gl.enable(3042);
 		this.gl.blendFunc(770,771);
+		this.uniScroll = this.gl.getUniformLocation(p,"scroll");
 		this.uniTex = this.gl.getUniformLocation(p,"texture");
 		this.uniAlpha = this.gl.getUniformLocation(p,"alpha");
 		this.attribPos = this.gl.getAttribLocation(p,"pos");
 		this.attribUV = this.gl.getAttribLocation(p,"uv");
-		this.setViewport();
+		this.initScale();
 	}
 	,dispose: function() {
 		if(this.texturesObjects != null) {
@@ -11733,11 +11743,22 @@ lvl.Image3D.prototype = $extend(lvl.Image.prototype,{
 			}
 		}
 		this.texturesObjects = [];
+		if(this.allocatedBuffers != null) {
+			var _g2 = 0;
+			var _g11 = this.allocatedBuffers;
+			while(_g2 < _g11.length) {
+				var b = _g11[_g2];
+				++_g2;
+				this.gl.deleteBuffer(b);
+			}
+			this.allocatedBuffers = [];
+		}
 	}
 	,get_alpha: function() {
 		return this.alphaValue;
 	}
 	,set_alpha: function(v) {
+		if(this.alphaValue == v) return v;
 		this.endDraw();
 		return this.alphaValue = v;
 	}
@@ -11781,36 +11802,20 @@ lvl.Image3D.prototype = $extend(lvl.Image.prototype,{
 		var w = i.width;
 		var h = i.height;
 		var pos = this.drawPos >> 2;
-		var t = (0 * m.a + 0 * m.c + m.x) * _g.scaleX;
-		var rt = (t * _g.width | 0) / _g.width;
-		this.curDraw[this.drawPos++] = rt;
-		var t1 = (0 * m.b + 0 * m.d + m.y) * _g.scaleY;
-		var rt1 = (t1 * _g.height | 0) / _g.height;
-		this.curDraw[this.drawPos++] = rt1;
+		this.curDraw[this.drawPos++] = (0 * m.a + 0 * m.c + m.x) * _g.scaleX;
+		this.curDraw[this.drawPos++] = (0 * m.b + 0 * m.d + m.y) * _g.scaleY;
 		this.curDraw[this.drawPos++] = (i.originX + 0.001) / _g.curTexture.width;
 		this.curDraw[this.drawPos++] = i.originY / _g.curTexture.height;
-		var t2 = (w * m.a + 0 * m.c + m.x) * _g.scaleX;
-		var rt2 = (t2 * _g.width | 0) / _g.width;
-		this.curDraw[this.drawPos++] = rt2;
-		var t3 = (w * m.b + 0 * m.d + m.y) * _g.scaleY;
-		var rt3 = (t3 * _g.height | 0) / _g.height;
-		this.curDraw[this.drawPos++] = rt3;
+		this.curDraw[this.drawPos++] = (w * m.a + 0 * m.c + m.x) * _g.scaleX;
+		this.curDraw[this.drawPos++] = (w * m.b + 0 * m.d + m.y) * _g.scaleY;
 		this.curDraw[this.drawPos++] = (i.originX + i.width) / _g.curTexture.width;
 		this.curDraw[this.drawPos++] = i.originY / _g.curTexture.height;
-		var t4 = (0 * m.a + h * m.c + m.x) * _g.scaleX;
-		var rt4 = (t4 * _g.width | 0) / _g.width;
-		this.curDraw[this.drawPos++] = rt4;
-		var t5 = (0 * m.b + h * m.d + m.y) * _g.scaleY;
-		var rt5 = (t5 * _g.height | 0) / _g.height;
-		this.curDraw[this.drawPos++] = rt5;
+		this.curDraw[this.drawPos++] = (0 * m.a + h * m.c + m.x) * _g.scaleX;
+		this.curDraw[this.drawPos++] = (0 * m.b + h * m.d + m.y) * _g.scaleY;
 		this.curDraw[this.drawPos++] = (i.originX + 0.001) / _g.curTexture.width;
 		this.curDraw[this.drawPos++] = (i.originY + i.height + -0.01) / _g.curTexture.height;
-		var t6 = (w * m.a + h * m.c + m.x) * _g.scaleX;
-		var rt6 = (t6 * _g.width | 0) / _g.width;
-		this.curDraw[this.drawPos++] = rt6;
-		var t7 = (w * m.b + h * m.d + m.y) * _g.scaleY;
-		var rt7 = (t7 * _g.height | 0) / _g.height;
-		this.curDraw[this.drawPos++] = rt7;
+		this.curDraw[this.drawPos++] = (w * m.a + h * m.c + m.x) * _g.scaleX;
+		this.curDraw[this.drawPos++] = (w * m.b + h * m.d + m.y) * _g.scaleY;
 		this.curDraw[this.drawPos++] = (i.originX + i.width) / _g.curTexture.width;
 		this.curDraw[this.drawPos++] = (i.originY + i.height + -0.01) / _g.curTexture.height;
 		this.curIndex[this.indexPos++] = pos;
@@ -11829,36 +11834,20 @@ lvl.Image3D.prototype = $extend(lvl.Image.prototype,{
 		var w = i.width;
 		var h = i.height;
 		var pos = this.drawPos >> 2;
-		var t = x1 * _g.scaleX;
-		var rt = (t * _g.width | 0) / _g.width;
-		this.curDraw[this.drawPos++] = rt;
-		var t1 = y1 * _g.scaleY;
-		var rt1 = (t1 * _g.height | 0) / _g.height;
-		this.curDraw[this.drawPos++] = rt1;
+		this.curDraw[this.drawPos++] = x1 * _g.scaleX;
+		this.curDraw[this.drawPos++] = y1 * _g.scaleY;
 		this.curDraw[this.drawPos++] = (i.originX + 0.001) / _g.curTexture.width;
 		this.curDraw[this.drawPos++] = i.originY / _g.curTexture.height;
-		var t2 = (x1 + w) * _g.scaleX;
-		var rt2 = (t2 * _g.width | 0) / _g.width;
-		this.curDraw[this.drawPos++] = rt2;
-		var t3 = y1 * _g.scaleY;
-		var rt3 = (t3 * _g.height | 0) / _g.height;
-		this.curDraw[this.drawPos++] = rt3;
+		this.curDraw[this.drawPos++] = (x1 + w) * _g.scaleX;
+		this.curDraw[this.drawPos++] = y1 * _g.scaleY;
 		this.curDraw[this.drawPos++] = (i.originX + i.width) / _g.curTexture.width;
 		this.curDraw[this.drawPos++] = i.originY / _g.curTexture.height;
-		var t4 = x1 * _g.scaleX;
-		var rt4 = (t4 * _g.width | 0) / _g.width;
-		this.curDraw[this.drawPos++] = rt4;
-		var t5 = (y1 + h) * _g.scaleY;
-		var rt5 = (t5 * _g.height | 0) / _g.height;
-		this.curDraw[this.drawPos++] = rt5;
+		this.curDraw[this.drawPos++] = x1 * _g.scaleX;
+		this.curDraw[this.drawPos++] = (y1 + h) * _g.scaleY;
 		this.curDraw[this.drawPos++] = (i.originX + 0.001) / _g.curTexture.width;
 		this.curDraw[this.drawPos++] = (i.originY + i.height + -0.01) / _g.curTexture.height;
-		var t6 = (x1 + w) * _g.scaleX;
-		var rt6 = (t6 * _g.width | 0) / _g.width;
-		this.curDraw[this.drawPos++] = rt6;
-		var t7 = (y1 + h) * _g.scaleY;
-		var rt7 = (t7 * _g.height | 0) / _g.height;
-		this.curDraw[this.drawPos++] = rt7;
+		this.curDraw[this.drawPos++] = (x1 + w) * _g.scaleX;
+		this.curDraw[this.drawPos++] = (y1 + h) * _g.scaleY;
 		this.curDraw[this.drawPos++] = (i.originX + i.width) / _g.curTexture.width;
 		this.curDraw[this.drawPos++] = (i.originY + i.height + -0.01) / _g.curTexture.height;
 		this.curIndex[this.indexPos++] = pos;
@@ -11870,6 +11859,7 @@ lvl.Image3D.prototype = $extend(lvl.Image.prototype,{
 		if(this.indexPos > 65500) this.endDraw();
 	}
 	,endDraw: function() {
+		var _g = this;
 		if(this.curTexture == null || this.indexPos == 0) return;
 		var index = this.gl.createBuffer();
 		var vertex = this.gl.createBuffer();
@@ -11877,32 +11867,51 @@ lvl.Image3D.prototype = $extend(lvl.Image.prototype,{
 		this.gl.bufferData(34962,this.curDraw.subarray(0,this.drawPos),35044);
 		this.gl.bindBuffer(34963,index);
 		this.gl.bufferData(34963,this.curIndex.subarray(0,this.indexPos),35044);
-		this.gl.vertexAttribPointer(this.attribPos,2,5126,false,16,0);
-		this.gl.vertexAttribPointer(this.attribUV,2,5126,false,16,8);
-		this.gl.activeTexture(33984);
-		this.gl.uniform1i(this.uniTex,0);
-		this.gl.uniform1f(this.uniAlpha,this.get_alpha());
-		this.gl.bindTexture(3553,this.curTexture);
-		this.gl.drawElements(4,this.indexPos,5123,0);
-		this.gl.bindBuffer(34963,null);
-		this.gl.bindBuffer(34962,null);
-		this.gl.deleteBuffer(index);
-		this.gl.deleteBuffer(vertex);
+		var alpha = this.get_alpha();
+		var curTexture = this.curTexture;
+		var indexPos = this.indexPos;
+		this.drawCommands.push(function() {
+			_g.gl.bindBuffer(34962,vertex);
+			_g.gl.bindBuffer(34963,index);
+			_g.gl.vertexAttribPointer(_g.attribPos,2,5126,false,16,0);
+			_g.gl.vertexAttribPointer(_g.attribUV,2,5126,false,16,8);
+			_g.gl.activeTexture(33984);
+			_g.gl.uniform1i(_g.uniTex,0);
+			_g.gl.uniform1f(_g.uniAlpha,alpha);
+			_g.gl.bindTexture(3553,curTexture);
+			_g.gl.drawElements(4,indexPos,5123,0);
+		});
+		this.allocatedBuffers.push(index);
+		this.allocatedBuffers.push(vertex);
 		this.indexPos = 0;
 		this.drawPos = 0;
 	}
 	,setSize: function(w,h) {
-		lvl.Image.prototype.setSize.call(this,w,h);
-		this.setViewport();
+		this.viewport.style.width = w + "px";
+		this.viewport.style.height = h + "px";
+		this.width = w;
+		this.height = h;
 	}
-	,setViewport: function() {
-		this.gl.viewport(0,0,this.width > 4096?4096:this.width,this.height > 4096?4096:this.height);
-		this.scaleX = this.zoom / this.width * 2;
-		this.scaleY = this.zoom / this.height * -2;
+	,initScale: function() {
+		this.scaleX = this.zoom / 2048 * 2;
+		this.scaleY = this.zoom / 2048 * -2;
 	}
 	,fill: function(color) {
+		var _g = this;
 		this.gl.clearColor((color >> 16 & 255) / 255,(color >> 8 & 255) / 255,(color & 255) / 255,(color >>> 24) / 255);
-		this.gl.clear(16384);
+		if(this.allocatedBuffers != null) {
+			var _g1 = 0;
+			var _g11 = this.allocatedBuffers;
+			while(_g1 < _g11.length) {
+				var b = _g11[_g1];
+				++_g1;
+				this.gl.deleteBuffer(b);
+			}
+		}
+		this.allocatedBuffers = [];
+		this.drawCommands = [function() {
+			_g.gl.clear(16384);
+		}];
 	}
 	,fillRect: function(x,y,w,h,color) {
 		var i = this.getColorImage(color);
@@ -11911,12 +11920,39 @@ lvl.Image3D.prototype = $extend(lvl.Image.prototype,{
 		this.draw(i,x,y);
 	}
 	,flush: function() {
+		var _g = this;
 		this.endDraw();
-		this.gl.finish();
+		this.drawCommands.push(function() {
+			_g.gl.bindBuffer(34962,null);
+			_g.gl.bindBuffer(34963,null);
+			_g.gl.bindTexture(3553,null);
+			_g.gl.finish();
+		});
+		this.redraw();
+	}
+	,setScrollPos: function(x,y) {
+		if(y == null) y = 0;
+		if(x == null) x = 0;
+		this.scrollX = x;
+		this.scrollY = y;
+		this.redraw();
+	}
+	,redraw: function() {
+		this.gl.viewport(0,0,2048,2048);
+		this.canvas.style.marginLeft = (this.scrollX | 0) + "px";
+		this.canvas.style.marginTop = (this.scrollY | 0) + "px";
+		this.gl.uniform2f(this.uniScroll,-this.scrollX * 2 / 2048,this.scrollY * 2 / 2048);
+		var _g = 0;
+		var _g1 = this.drawCommands;
+		while(_g < _g1.length) {
+			var d = _g1[_g];
+			++_g;
+			d();
+		}
 	}
 	,set_zoom: function(z) {
 		this.zoom = z;
-		this.setViewport();
+		this.initScale();
 		return z;
 	}
 	,__class__: lvl.Image3D
@@ -12708,5 +12744,6 @@ js.NodeC.FILE_WRITE_APPEND = "a+";
 js.NodeC.FILE_READWRITE = "a";
 js.NodeC.FILE_READWRITE_APPEND = "a+";
 lvl.Image.cache = new haxe.ds.StringMap();
+lvl.Image3D.CANVAS_SIZE = 2048;
 Main.main();
 })();

@@ -329,8 +329,7 @@ class Level {
 		if( content != null ) content.html("");
 		if( view != null ) {
 			view.dispose();
-			var ca = view.getCanvas();
-			ca.parentNode.removeChild(ca);
+			view.viewport.parentNode.removeChild(view.viewport);
 			view = null;
 			for( r in references )
 				r.ref = null;
@@ -813,12 +812,11 @@ class Level {
 		var scont = content.find(".scrollContent");
 
 		view = lvl.Image3D.getInstance();
-		var ca = view.getCanvas();
-		ca.className = "display";
-		scont.append(ca);
+		scont.append(view.viewport);
 
 		scroll.scroll(function(_) {
 			savePrefs();
+			view.setScrollPos(scroll.scrollLeft() - 20, scroll.scrollTop() - 20);
 		});
 
 		scroll[0].onmousewheel = function(e) {

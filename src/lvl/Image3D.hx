@@ -4,6 +4,8 @@ import js.html.webgl.Texture;
 
 class Image3D extends Image {
 
+	static inline var CANVAS_SIZE = 2048;
+
 	var gl : js.html.webgl.RenderingContext;
 	var curTexture : Texture;
 	var curDraw : js.html.Float32Array;
@@ -15,18 +17,35 @@ class Image3D extends Image {
 	var attribUV : Int;
 	var uniTex : js.html.webgl.UniformLocation;
 	var uniAlpha : js.html.webgl.UniformLocation;
+	var uniScroll : js.html.webgl.UniformLocation;
 
 	public var zoom(default, set) : Float = 1;
+
+	public var viewport : js.html.Element;
 
 	var scaleX : Float;
 	var scaleY : Float;
 	var alphaValue = 1.;
 
+	var scrollX : Int = 0;
+	var scrollY : Int = 0;
+
 	var colorCache : Map<Int,Image>;
 	var texturesObjects : Array<Dynamic>;
 
+	var drawCommands : Array < Void -> Void > ;
+	var allocatedBuffers : Array< js.html.webgl.Buffer >;
+
 	public function new(w, h) {
 		super(w, h);
+		viewport = js.Browser.document.createDivElement();
+		viewport.style.backgroundColor = "black";
+		viewport.style.overflow = "hidden";
+		viewport.appendChild(canvas);
+		canvas.width = CANVAS_SIZE;
+		canvas.height = CANVAS_SIZE;
+		canvas.setAttribute("width", CANVAS_SIZE+"px");
+		canvas.setAttribute("height", CANVAS_SIZE+"px");
 		colorCache = new Map();
 		curDraw = new js.html.Float32Array(4 * 4 * Math.ceil(65536 / 6));
 		curIndex = new js.html.Uint16Array(65536);
@@ -37,7 +56,7 @@ class Image3D extends Image {
 
 		gl = untyped canvas.gl;
 		if( gl != null ) {
-			setViewport();
+			initScale();
 			return;
 		}
 		gl = canvas.getContextWebGL( { alpha : false, antialias : false } );
@@ -50,9 +69,10 @@ class Image3D extends Image {
 			varying vec2 tuv;
 			attribute vec2 pos;
 			attribute vec2 uv;
+			uniform vec2 scroll;
 			void main() {
 				tuv = uv;
-				gl_Position = vec4(pos + vec2(-1.,1.), 0, 1);
+				gl_Position = vec4(pos + vec2(-1.,1.) + scroll, 0, 1);
 			}
 		");
 		gl.compileShader(vertex);
@@ -86,12 +106,14 @@ class Image3D extends Image {
 
 		gl.enable(GL.BLEND);
 		gl.blendFunc(GL.SRC_ALPHA, GL.ONE_MINUS_SRC_ALPHA);
+
+		uniScroll = gl.getUniformLocation(p, "scroll");
 		uniTex = gl.getUniformLocation(p, "texture");
 		uniAlpha = gl.getUniformLocation(p, "alpha");
 		attribPos = gl.getAttribLocation(p, "pos");
 		attribUV = gl.getAttribLocation(p, "uv");
 
-		setViewport();
+		initScale();
 	}
 
 	public function dispose() {
@@ -101,6 +123,11 @@ class Image3D extends Image {
 				o.texture = null;
 			}
 		texturesObjects = [];
+		if( allocatedBuffers != null ) {
+			for( b in allocatedBuffers )
+				gl.deleteBuffer(b);
+			allocatedBuffers = [];
+		}
 	}
 
 	override function get_alpha() {
@@ -108,6 +135,7 @@ class Image3D extends Image {
 	}
 
 	override function set_alpha(v) {
+		if( alphaValue == v ) return v;
 		endDraw();
 		return alphaValue = v;
 	}
@@ -159,15 +187,11 @@ class Image3D extends Image {
 		var h = i.height;
 
 		inline function px(x:Int,y:Int,h) {
-			var t = (x * m.a + y * m.c + m.x) * scaleX;
-			var rt = Std.int(t * width) / width;
-			return rt;
+			return (x * m.a + y * m.c + m.x) * scaleX;
 		}
 
 		inline function py(x:Int, y:Int, h) {
-			var t = (x * m.b + y * m.d + m.y) * scaleY;
-			var rt = Std.int(t * height) / height;
-			return rt;
+			return (x * m.b + y * m.d + m.y) * scaleY;
 		}
 
 		inline function tu(v:Int,h) {
@@ -218,15 +242,11 @@ class Image3D extends Image {
 		var h = i.height;
 
 		inline function px(x:Int, h) {
-			var t = x * scaleX;
-			var rt = Std.int(t * width) / width;
-			return rt;
+			return x * scaleX;
 		}
 
 		inline function py(y:Int, h) {
-			var t = y * scaleY;
-			var rt = Std.int(t * height) / height;
-			return rt;
+			return y * scaleY;
 		}
 
 		inline function tu(v:Int,h) {
@@ -279,40 +299,52 @@ class Image3D extends Image {
 		gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, index);
 		gl.bufferData(GL.ELEMENT_ARRAY_BUFFER, curIndex.subarray(0, indexPos), GL.STATIC_DRAW);
 
-		gl.vertexAttribPointer(attribPos, 2, GL.FLOAT, false, 4 * 4, 0);
-		gl.vertexAttribPointer(attribUV, 2, GL.FLOAT, false, 4 * 4, 2 * 4);
+		var alpha = alpha;
+		var curTexture = curTexture;
+		var indexPos = indexPos;
+		drawCommands.push(function() {
+			gl.bindBuffer(GL.ARRAY_BUFFER, vertex);
+			gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, index);
+			gl.vertexAttribPointer(attribPos, 2, GL.FLOAT, false, 4 * 4, 0);
+			gl.vertexAttribPointer(attribUV, 2, GL.FLOAT, false, 4 * 4, 2 * 4);
 
-		gl.activeTexture(GL.TEXTURE0);
-		gl.uniform1i(uniTex, 0);
-		gl.uniform1f(uniAlpha, alpha);
-		gl.bindTexture(GL.TEXTURE_2D, curTexture);
+			gl.activeTexture(GL.TEXTURE0);
+			gl.uniform1i(uniTex, 0);
+			gl.uniform1f(uniAlpha, alpha);
+			gl.bindTexture(GL.TEXTURE_2D, curTexture);
 
-		gl.drawElements(GL.TRIANGLES, indexPos, GL.UNSIGNED_SHORT, 0);
-		gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, null);
-		gl.bindBuffer(GL.ARRAY_BUFFER, null);
+			gl.drawElements(GL.TRIANGLES, indexPos, GL.UNSIGNED_SHORT, 0);
+		});
 
-		gl.deleteBuffer(index);
-		gl.deleteBuffer(vertex);
+		allocatedBuffers.push(index);
+		allocatedBuffers.push(vertex);
 
-		indexPos = 0;
-		drawPos = 0;
+		this.indexPos = 0;
+		this.drawPos = 0;
 	}
 
 
-	override function setSize(w, h) {
-		super.setSize(w, h);
-		setViewport();
+	override function setSize(w:Int, h:Int) {
+		viewport.style.width = w + "px";
+		viewport.style.height = h + "px";
+		this.width = w;
+		this.height = h;
 	}
 
-	function setViewport() {
-		gl.viewport(0, 0, width > 4096 ? 4096 : width, height > 4096 ? 4096 : height);
-		scaleX = (zoom / width) * 2;
-		scaleY = (zoom / height) * -2;
+	function initScale() {
+		scaleX = (zoom / CANVAS_SIZE) * 2;
+		scaleY = (zoom / CANVAS_SIZE) * -2;
 	}
 
 	override function fill(color) {
 		gl.clearColor(((color >> 16) & 0xFF) / 255, ((color >> 8) & 0xFF) / 255, (color & 0xFF) / 255, (color >>> 24) / 255);
-		gl.clear(GL.COLOR_BUFFER_BIT);
+		if( allocatedBuffers != null )
+			for( b in allocatedBuffers )
+				gl.deleteBuffer(b);
+		allocatedBuffers = [];
+		drawCommands = [
+			function() gl.clear(GL.COLOR_BUFFER_BIT),
+		];
 	}
 
 	override function fillRect( x : Int, y : Int, w : Int, h : Int, color : Int ) {
@@ -324,12 +356,33 @@ class Image3D extends Image {
 
 	public function flush() {
 		endDraw();
-		gl.finish();
+		drawCommands.push(function() {
+			gl.bindBuffer(GL.ARRAY_BUFFER, null);
+			gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, null);
+			gl.bindTexture(GL.TEXTURE_2D, null);
+			gl.finish();
+		});
+		redraw();
+	}
+
+	public function setScrollPos( x = 0, y = 0 ) {
+		scrollX = x;
+		scrollY = y;
+		redraw();
+	}
+
+	function redraw() {
+		gl.viewport(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+		canvas.style.marginLeft = Std.int(scrollX) + "px";
+		canvas.style.marginTop = Std.int(scrollY) + "px";
+		gl.uniform2f(uniScroll, -scrollX * 2 / CANVAS_SIZE, scrollY * 2 / CANVAS_SIZE);
+		for( d in drawCommands )
+			d();
 	}
 
 	function set_zoom(z) {
 		zoom = z;
-		setViewport();
+		initScale();
 		return z;
 	}
 
