@@ -2262,7 +2262,7 @@ class Level {
 	}
 
 	function getPaletteProp() {
-		if( paletteMode == null || paletteMode.substr(0, 2) == "t_" )
+		if( paletteMode == null || paletteMode.substr(0, 2) == "t_" || currentLayer.tileProps == null )
 			return null;
 		for( c in perTileProps )
 			if( c.name == paletteMode )

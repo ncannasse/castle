@@ -3252,7 +3252,7 @@ Level.prototype = {
 		this.draw();
 	}
 	,getPaletteProp: function() {
-		if(this.paletteMode == null || HxOverrides.substr(this.paletteMode,0,2) == "t_") return null;
+		if(this.paletteMode == null || HxOverrides.substr(this.paletteMode,0,2) == "t_" || this.currentLayer.tileProps == null) return null;
 		var _g = 0;
 		var _g1 = this.perTileProps;
 		while(_g < _g1.length) {
