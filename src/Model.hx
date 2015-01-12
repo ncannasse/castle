@@ -219,29 +219,7 @@ class Model {
 		}
 		if( prefs.curFile == null )
 			return;
-		var save = [];
-		for( s in data.sheets ) {
-			for( c in s.columns ) {
-				save.push(c.type);
-				if( c.typeStr == null ) c.typeStr = cdb.Parser.saveType(c.type);
-				Reflect.deleteField(c, "type");
-			}
-		}
-		for( t in data.customTypes )
-			for( c in t.cases )
-				for( a in c.args ) {
-					save.push(a.type);
-					if( a.typeStr == null ) a.typeStr = cdb.Parser.saveType(a.type);
-					Reflect.deleteField(a, "type");
-				}
-		sys.io.File.saveContent(prefs.curFile, untyped haxe.Json.stringify(data, null, "\t"));
-		for( s in this.data.sheets )
-			for( c in s.columns )
-				c.type = save.shift();
-		for( t in data.customTypes )
-			for( c in t.cases )
-				for( a in c.args )
-					a.type = save.shift();
+		sys.io.File.saveContent(prefs.curFile, cdb.Parser.save(data));
 	}
 
 	function saveImages() {
