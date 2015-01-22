@@ -1781,11 +1781,11 @@ class Level {
 				for( dy in 0...l.currentHeight )
 					for( dx in 0...l.currentWidth )
 						insts.push( { x : x+dx, y : y+dy, o : l.current + dx + dy * l.stride, rot : rotation, flip : flipMode } );
-			inline function getY(i) {
+			inline function getY(i:Instance) {
 				var o = objs.get(i.o);
 				return Std.int( (i.y + (o == null ? 1 : o.h)) * tileSize);
 			}
-			inline function getX(i) {
+			inline function getX(i:Instance) {
 				var o = objs.get(i.o);
 				return Std.int( (i.x + (o == null ? 0.5 : o.w * 0.5)) * tileSize );
 			}
