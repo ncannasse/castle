@@ -1398,6 +1398,7 @@ class Main extends Model {
 				}
 			});
 			cols.append(col);
+
 			var ctype = "t_" + types[Type.enumIndex(c.type)];
 			for( index in 0...sheet.lines.length ) {
 				var obj = sheet.lines[index];
@@ -1636,6 +1637,12 @@ class Main extends Model {
 			}
 		}
 
+		if( sheet.lines.length == 0 ) {
+			var l = J('<tr><td colspan="${sheet.columns.length + 1}"><a href="javascript:_.insertLine()">Insert Line</a></td></tr>');
+			l.find("a").click(function() setCursor(sheet));
+			lines.push(l);
+		}
+
 		if( sheet.props.level != null ) {
 			var col = J("<td style='width:35px'>");
 			cols.prepend(col);
@@ -1665,7 +1672,7 @@ class Main extends Model {
 
 		var snext = 0;
 		for( i in 0...lines.length ) {
-			if( sheet.separators[snext] == i ) {
+			while( sheet.separators[snext] == i ) {
 				var sep = J("<tr>").addClass("separator").append('<td colspan="${colCount+1}">').appendTo(content);
 				var content = sep.find("td");
 				var title = if( sheet.props.separatorTitles != null ) sheet.props.separatorTitles[snext] else null;

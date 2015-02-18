@@ -840,45 +840,41 @@ Level.prototype = {
 		var nshow = new nodejs.webkit.MenuItem({ label : "Show Only"});
 		var nshowAll = new nodejs.webkit.MenuItem({ label : "Show All"});
 		var nrename = new nodejs.webkit.MenuItem({ label : "Rename"});
-		var m;
-		m = nshow;
-		n.append(m);
-		m = nshowAll;
-		n.append(m);
-		m = nrename;
-		n.append(m);
-		m = nclear;
-		n.append(m);
-		m = ndel;
-		n.append(m);
+		var _g1 = 0;
+		var _g11 = [nshow,nshowAll,nrename,nclear,ndel];
+		while(_g1 < _g11.length) {
+			var m = _g11[_g1];
+			++_g1;
+			n.append(m);
+		}
 		nclear.click = function() {
 			{
-				var _g1 = l.data;
-				switch(_g1[1]) {
+				var _g2 = l.data;
+				switch(_g2[1]) {
 				case 2:
-					var data = _g1[3];
-					var _g2 = 0;
-					var _g11 = data.length;
-					while(_g2 < _g11) {
-						var i = _g2++;
+					var data = _g2[3];
+					var _g21 = 0;
+					var _g12 = data.length;
+					while(_g21 < _g12) {
+						var i = _g21++;
 						data[i] = 0;
 					}
 					break;
 				case 1:
-					var objs = _g1[3];
+					var objs = _g2[3];
 					while(objs.length > 0) objs.pop();
 					break;
 				case 0:
-					var data1 = _g1[2];
-					var _g21 = 0;
-					var _g12 = data1.length;
-					while(_g21 < _g12) {
-						var i1 = _g21++;
+					var data1 = _g2[2];
+					var _g22 = 0;
+					var _g13 = data1.length;
+					while(_g22 < _g13) {
+						var i1 = _g22++;
 						data1[i1] = 0;
 					}
 					break;
 				case 3:
-					var insts = _g1[3];
+					var insts = _g2[3];
 					while(insts.length > 0) insts.pop();
 					break;
 				}
@@ -896,22 +892,22 @@ Level.prototype = {
 			_g.reload();
 		};
 		nshow.click = function() {
-			var _g13 = 0;
-			var _g22 = _g.layers;
-			while(_g13 < _g22.length) {
-				var l2 = _g22[_g13];
-				++_g13;
+			var _g14 = 0;
+			var _g23 = _g.layers;
+			while(_g14 < _g23.length) {
+				var l2 = _g23[_g14];
+				++_g14;
 				l2.set_visible(l == l2);
 				l2.saveState();
 			}
 			_g.draw();
 		};
 		nshowAll.click = function() {
-			var _g14 = 0;
-			var _g23 = _g.layers;
-			while(_g14 < _g23.length) {
-				var l21 = _g23[_g14];
-				++_g14;
+			var _g15 = 0;
+			var _g24 = _g.layers;
+			while(_g15 < _g24.length) {
+				var l21 = _g24[_g15];
+				++_g15;
 				l21.set_visible(true);
 				l21.saveState();
 			}
@@ -921,28 +917,28 @@ Level.prototype = {
 			l.comp.find("span").remove();
 			l.comp.prepend(new js.JQuery("<input type='text'>").val(l.name).focus().blur(function(_) {
 				var n1 = StringTools.trim($(this).val());
-				var _g15 = 0;
-				var _g24 = _g.props.layers;
-				while(_g15 < _g24.length) {
-					var p = _g24[_g15];
-					++_g15;
+				var _g16 = 0;
+				var _g25 = _g.props.layers;
+				while(_g16 < _g25.length) {
+					var p = _g25[_g16];
+					++_g16;
 					if(p.l == n1) {
 						_g.reload();
 						return;
 					}
 				}
-				var _g16 = 0;
-				var _g25 = _g.props.layers;
-				while(_g16 < _g25.length) {
-					var p1 = _g25[_g16];
-					++_g16;
+				var _g17 = 0;
+				var _g26 = _g.props.layers;
+				while(_g17 < _g26.length) {
+					var p1 = _g26[_g17];
+					++_g17;
 					if(p1.l == l.name) p1.l = n1;
 				}
 				var layers1 = Reflect.field(_g.obj,_g.newLayer.name);
-				var _g17 = 0;
-				while(_g17 < layers1.length) {
-					var l22 = layers1[_g17];
-					++_g17;
+				var _g18 = 0;
+				while(_g18 < layers1.length) {
+					var l22 = layers1[_g18];
+					++_g18;
 					if(l22.name == l.name) l22.name = n1;
 				}
 				l.name = n1;
@@ -3759,13 +3755,13 @@ Level.prototype = {
 				sel.hide();
 				var grounds = [];
 				var _g20 = 0;
-				var _g110 = l.tileProps.sets;
-				while(_g20 < _g110.length) {
-					var s = _g110[_g20];
+				var _g111 = l.tileProps.sets;
+				while(_g20 < _g111.length) {
+					var s = _g111[_g20];
 					++_g20;
 					var color;
-					var _g26 = s.t;
-					switch(_g26) {
+					var _g27 = s.t;
+					switch(_g27) {
 					case "tile":
 						continue;
 						break;
@@ -3808,41 +3804,37 @@ Level.prototype = {
 					var $r;
 					var _g10 = [];
 					{
-						var m1;
-						m1 = "tile";
-						_g10.push("<option value=\"t_" + m1 + "\">" + (HxOverrides.substr(m1,0,1).toUpperCase() + HxOverrides.substr(m1,1,null)) + "</option>");
-						m1 = "object";
-						_g10.push("<option value=\"t_" + m1 + "\">" + (HxOverrides.substr(m1,0,1).toUpperCase() + HxOverrides.substr(m1,1,null)) + "</option>");
-						m1 = "ground";
-						_g10.push("<option value=\"t_" + m1 + "\">" + (HxOverrides.substr(m1,0,1).toUpperCase() + HxOverrides.substr(m1,1,null)) + "</option>");
-						m1 = "border";
-						_g10.push("<option value=\"t_" + m1 + "\">" + (HxOverrides.substr(m1,0,1).toUpperCase() + HxOverrides.substr(m1,1,null)) + "</option>");
-						m1 = "group";
-						_g10.push("<option value=\"t_" + m1 + "\">" + (HxOverrides.substr(m1,0,1).toUpperCase() + HxOverrides.substr(m1,1,null)) + "</option>");
+						var _g19 = 0;
+						var _g25 = ["tile","object","ground","border","group"];
+						while(_g19 < _g25.length) {
+							var m1 = _g25[_g19];
+							++_g19;
+							_g10.push("<option value=\"t_" + m1 + "\">" + (HxOverrides.substr(m1,0,1).toUpperCase() + HxOverrides.substr(m1,1,null)) + "</option>");
+						}
 					}
 					$r = _g10;
 					return $r;
 				}(this))).join("\n");
 				var props = ((function($this) {
 					var $r;
-					var _g19 = [];
+					var _g110 = [];
 					{
-						var _g25 = 0;
+						var _g26 = 0;
 						var _g36 = $this.perTileProps;
-						while(_g25 < _g36.length) {
-							var t1 = _g36[_g25];
-							++_g25;
-							_g19.push("<option value=\"" + t1.name + "\">" + t1.name + "</option>");
+						while(_g26 < _g36.length) {
+							var t1 = _g36[_g26];
+							++_g26;
+							_g110.push("<option value=\"" + t1.name + "\">" + t1.name + "</option>");
 						}
 					}
-					$r = _g19;
+					$r = _g110;
 					return $r;
 				}(this))).join("\n");
 				m.find("[name=mode]").html(baseModes + props).val(this.paletteMode == null?"t_tile":this.paletteMode);
 				m.attr("class","").addClass("mode");
 				if(prop != null) {
-					var _g27 = prop.type;
-					switch(_g27[1]) {
+					var _g28 = prop.type;
+					switch(_g28[1]) {
 					case 6:
 						var gfx1 = this.perTileGfx.get(prop.name);
 						m.addClass("m_ref");
@@ -3869,7 +3861,7 @@ Level.prototype = {
 						}
 						break;
 					case 5:
-						var values = _g27[2];
+						var values = _g28[2];
 						m.addClass("m_ref");
 						var refList1 = m.find(".opt.refList");
 						refList1.html("");
@@ -3905,8 +3897,8 @@ Level.prototype = {
 					if(this.paletteMode == null) m.addClass("m_tile"); else m.addClass("m_create").addClass("c_" + HxOverrides.substr(this.paletteMode,2,null));
 				} else {
 					m.addClass("m_" + HxOverrides.substr(this.paletteMode,2,null)).addClass("m_exists");
-					var _g28 = tobj.t;
-					switch(_g28) {
+					var _g29 = tobj.t;
+					switch(_g29) {
 					case "tile":case "object":
 						break;
 					case "ground":
@@ -3956,10 +3948,10 @@ Level.prototype = {
 		if(this.randomMode) h = 1; else h = l.currentHeight;
 		if((function($this) {
 			var $r;
-			var _g29 = l.data;
+			var _g30 = l.data;
 			$r = (function($this) {
 				var $r;
-				switch(_g29[1]) {
+				switch(_g30[1]) {
 				case 3:
 					$r = true;
 					break;
@@ -3982,8 +3974,8 @@ Level.prototype = {
 		var py = 0;
 		if(l.images != null) {
 			{
-				var _g30 = l.data;
-				switch(_g30[1]) {
+				var _g40 = l.data;
+				switch(_g40[1]) {
 				case 1:
 					var i4 = l.images[cur];
 					var w2 = Math.ceil(i4.width * this.zoomView);
@@ -3996,9 +3988,9 @@ Level.prototype = {
 					break;
 				default:
 					this.cursorImage.clear();
-					var _g111 = 0;
-					while(_g111 < h) {
-						var y4 = _g111++;
+					var _g112 = 0;
+					while(_g112 < h) {
+						var y4 = _g112++;
 						var _g210 = 0;
 						while(_g210 < w) {
 							var x4 = _g210++;
@@ -4329,76 +4321,7 @@ Model.prototype = {
 			}
 		}
 		if(this.prefs.curFile == null) return;
-		var save = [];
-		var _g4 = 0;
-		var _g11 = this.data.sheets;
-		while(_g4 < _g11.length) {
-			var s1 = _g11[_g4];
-			++_g4;
-			var _g23 = 0;
-			var _g33 = s1.columns;
-			while(_g23 < _g33.length) {
-				var c = _g33[_g23];
-				++_g23;
-				save.push(c.type);
-				if(c.typeStr == null) c.typeStr = cdb.Parser.saveType(c.type);
-				Reflect.deleteField(c,"type");
-			}
-		}
-		var _g5 = 0;
-		var _g12 = this.data.customTypes;
-		while(_g5 < _g12.length) {
-			var t = _g12[_g5];
-			++_g5;
-			var _g24 = 0;
-			var _g34 = t.cases;
-			while(_g24 < _g34.length) {
-				var c1 = _g34[_g24];
-				++_g24;
-				var _g41 = 0;
-				var _g51 = c1.args;
-				while(_g41 < _g51.length) {
-					var a = _g51[_g41];
-					++_g41;
-					save.push(a.type);
-					if(a.typeStr == null) a.typeStr = cdb.Parser.saveType(a.type);
-					Reflect.deleteField(a,"type");
-				}
-			}
-		}
-		sys.io.File.saveContent(this.prefs.curFile,js.Node.stringify(this.data,null,"\t"));
-		var _g6 = 0;
-		var _g13 = this.data.sheets;
-		while(_g6 < _g13.length) {
-			var s2 = _g13[_g6];
-			++_g6;
-			var _g25 = 0;
-			var _g35 = s2.columns;
-			while(_g25 < _g35.length) {
-				var c2 = _g35[_g25];
-				++_g25;
-				c2.type = save.shift();
-			}
-		}
-		var _g7 = 0;
-		var _g14 = this.data.customTypes;
-		while(_g7 < _g14.length) {
-			var t1 = _g14[_g7];
-			++_g7;
-			var _g26 = 0;
-			var _g36 = t1.cases;
-			while(_g26 < _g36.length) {
-				var c3 = _g36[_g26];
-				++_g26;
-				var _g42 = 0;
-				var _g52 = c3.args;
-				while(_g42 < _g52.length) {
-					var a1 = _g52[_g42];
-					++_g42;
-					a1.type = save.shift();
-				}
-			}
-		}
+		sys.io.File.saveContent(this.prefs.curFile,cdb.Parser.save(this.data));
 	}
 	,saveImages: function() {
 		if(this.prefs.curFile == null) return;
@@ -6354,25 +6277,27 @@ Main.prototype = $extend(Model.prototype,{
 		new js.JQuery("<td>").addClass("start").appendTo(cols).click(function(_) {
 			res.change();
 		});
-		var name;
-		name = "path";
-		new js.JQuery("<td>").text(name).appendTo(cols);
-		name = "id";
-		new js.JQuery("<td>").text(name).appendTo(cols);
+		var _g8 = 0;
+		var _g12 = ["path","id"];
+		while(_g8 < _g12.length) {
+			var name = _g12[_g8];
+			++_g8;
+			new js.JQuery("<td>").text(name).appendTo(cols);
+		}
 		content.append(cols);
 		var index1 = 0;
-		var _g8 = 0;
-		while(_g8 < results.length) {
-			var rs = [results[_g8]];
-			++_g8;
+		var _g9 = 0;
+		while(_g9 < results.length) {
+			var rs = [results[_g9]];
+			++_g9;
 			var l = new js.JQuery("<tr>").appendTo(content).addClass("clickable");
 			new js.JQuery("<td>").text("" + index1++).appendTo(l);
 			var slast = [rs[0].s[rs[0].s.length - 1]];
 			new js.JQuery("<td>").text(slast[0].s.name.split("@").join(".") + "." + slast[0].c).appendTo(l);
 			var path = [];
 			var _g22 = 0;
-			var _g12 = rs[0].s.length;
-			while(_g22 < _g12) {
+			var _g13 = rs[0].s.length;
+			while(_g22 < _g13) {
 				var i = _g22++;
 				var s1 = rs[0].s[i];
 				var oid = Reflect.field(rs[0].o.path[i],s1.id);
@@ -6383,8 +6308,8 @@ Main.prototype = $extend(Model.prototype,{
 				return function(e) {
 					var key = null;
 					var _g23 = 0;
-					var _g13 = rs[0].s.length - 1;
-					while(_g23 < _g13) {
+					var _g14 = rs[0].s.length - 1;
+					while(_g23 < _g14) {
 						var i1 = _g23++;
 						var p1 = rs[0].s[i1];
 						key = _g3.getPath(p1.s) + "@" + p1.c + ":" + rs[0].o.indexes[i1];
@@ -6768,19 +6693,13 @@ Main.prototype = $extend(Model.prototype,{
 		var ndel = new nodejs.webkit.MenuItem({ label : "Delete"});
 		var nsep = new nodejs.webkit.MenuItem({ label : "Separator", type : "checkbox"});
 		var nref = new nodejs.webkit.MenuItem({ label : "Show References"});
-		var m;
-		m = nup;
-		n.append(m);
-		m = ndown;
-		n.append(m);
-		m = nins;
-		n.append(m);
-		m = ndel;
-		n.append(m);
-		m = nsep;
-		n.append(m);
-		m = nref;
-		n.append(m);
+		var _g1 = 0;
+		var _g11 = [nup,ndown,nins,ndel,nsep,nref];
+		while(_g1 < _g11.length) {
+			var m = _g11[_g1];
+			++_g1;
+			n.append(m);
+		}
 		var sepIndex = Lambda.indexOf(sheet.separators,index);
 		nsep.checked = sepIndex >= 0;
 		nins.click = function() {
@@ -6803,10 +6722,10 @@ Main.prototype = $extend(Model.prototype,{
 				if(sheet.props.separatorTitles != null) sheet.props.separatorTitles.splice(sepIndex,1);
 			} else {
 				sepIndex = sheet.separators.length;
-				var _g1 = 0;
+				var _g12 = 0;
 				var _g2 = sheet.separators.length;
-				while(_g1 < _g2) {
-					var i = _g1++;
+				while(_g12 < _g2) {
+					var i = _g12++;
 					if(sheet.separators[i] > index) {
 						sepIndex = i;
 						break;
@@ -6825,7 +6744,7 @@ Main.prototype = $extend(Model.prototype,{
 		n.popup(this.mousePos.x,this.mousePos.y);
 	}
 	,popupColumn: function(sheet,c) {
-		var _g2 = this;
+		var _g4 = this;
 		var n = new nodejs.webkit.Menu();
 		var nedit = new nodejs.webkit.MenuItem({ label : "Edit"});
 		var nins = new nodejs.webkit.MenuItem({ label : "Add Column"});
@@ -6833,26 +6752,20 @@ Main.prototype = $extend(Model.prototype,{
 		var nright = new nodejs.webkit.MenuItem({ label : "Move Right"});
 		var ndel = new nodejs.webkit.MenuItem({ label : "Delete"});
 		var ndisp = new nodejs.webkit.MenuItem({ label : "Display Column", type : "checkbox"});
-		var m;
-		m = nedit;
-		n.append(m);
-		m = nins;
-		n.append(m);
-		m = nleft;
-		n.append(m);
-		m = nright;
-		n.append(m);
-		m = ndel;
-		n.append(m);
-		m = ndisp;
-		n.append(m);
+		var _g = 0;
+		var _g1 = [nedit,nins,nleft,nright,ndel,ndisp];
+		while(_g < _g1.length) {
+			var m = _g1[_g];
+			++_g;
+			n.append(m);
+		}
 		{
-			var _g = c.type;
-			switch(_g[1]) {
+			var _g2 = c.type;
+			switch(_g2[1]) {
 			case 0:case 1:case 5:case 10:
 				var conv = new nodejs.webkit.MenuItem({ label : "Convert"});
 				var cm = new nodejs.webkit.Menu();
-				var _g1 = 0;
+				var _g11 = 0;
 				var _g21 = [{ n : "lowercase", f : function(s) {
 					return s.toLowerCase();
 				}},{ n : "UPPERCASE", f : function(s1) {
@@ -6862,9 +6775,9 @@ Main.prototype = $extend(Model.prototype,{
 				}},{ n : "lowerIdent", f : function(s3) {
 					return HxOverrides.substr(s3,0,1).toLowerCase() + HxOverrides.substr(s3,1,null);
 				}}];
-				while(_g1 < _g21.length) {
-					var k = [_g21[_g1]];
-					++_g1;
+				while(_g11 < _g21.length) {
+					var k = [_g21[_g11]];
+					++_g11;
 					var m1 = new nodejs.webkit.MenuItem({ label : k[0].n});
 					m1.click = (function(k) {
 						return function() {
@@ -6874,8 +6787,8 @@ Main.prototype = $extend(Model.prototype,{
 								case 5:
 									var values = _g3[2];
 									var _g5 = 0;
-									var _g4 = values.length;
-									while(_g5 < _g4) {
+									var _g41 = values.length;
+									while(_g5 < _g41) {
 										var i = _g5++;
 										values[i] = k[0].f(values[i]);
 									}
@@ -6883,19 +6796,19 @@ Main.prototype = $extend(Model.prototype,{
 								case 10:
 									var values = _g3[2];
 									var _g5 = 0;
-									var _g4 = values.length;
-									while(_g5 < _g4) {
+									var _g41 = values.length;
+									while(_g5 < _g41) {
 										var i = _g5++;
 										values[i] = k[0].f(values[i]);
 									}
 									break;
 								default:
 									var refMap = new haxe.ds.StringMap();
-									var _g41 = 0;
-									var _g51 = _g2.getSheetLines(sheet);
-									while(_g41 < _g51.length) {
-										var obj = _g51[_g41];
-										++_g41;
+									var _g51 = 0;
+									var _g6 = _g4.getSheetLines(sheet);
+									while(_g51 < _g6.length) {
+										var obj = _g6[_g51];
+										++_g51;
 										var t = Reflect.field(obj,c.name);
 										if(t != null && t != "") {
 											var t2 = k[0].f(t);
@@ -6908,12 +6821,12 @@ Main.prototype = $extend(Model.prototype,{
 											}
 										}
 									}
-									if(c.type == cdb.ColumnType.TId) _g2.updateRefs(sheet,refMap);
-									_g2.makeSheet(sheet);
+									if(c.type == cdb.ColumnType.TId) _g4.updateRefs(sheet,refMap);
+									_g4.makeSheet(sheet);
 								}
 							}
-							_g2.refresh();
-							_g2.save();
+							_g4.refresh();
+							_g4.save();
 						};
 					})(k);
 					cm.append(m1);
@@ -6924,91 +6837,40 @@ Main.prototype = $extend(Model.prototype,{
 			case 3:case 4:
 				var conv1 = new nodejs.webkit.MenuItem({ label : "Convert"});
 				var cm1 = new nodejs.webkit.Menu();
-				var k1;
-				k1 = { n : "* 10", f : function(s4) {
+				var _g12 = 0;
+				var _g22 = [{ n : "* 10", f : function(s4) {
 					return s4 * 10;
-				}};
-				var m2 = new nodejs.webkit.MenuItem({ label : k1.n});
-				m2.click = function() {
-					var _g11 = 0;
-					var _g31 = _g2.getSheetLines(sheet);
-					while(_g11 < _g31.length) {
-						var obj1 = _g31[_g11];
-						++_g11;
-						var t1 = Reflect.field(obj1,c.name);
-						if(t1 != null) {
-							var t21 = k1.f(t1);
-							if(c.type == cdb.ColumnType.TInt) t21 = t21 | 0;
-							obj1[c.name] = t21;
-						}
-					}
-					_g2.refresh();
-					_g2.save();
-				};
-				cm1.append(m2);
-				k1 = { n : "/ 10", f : function(s5) {
+				}},{ n : "/ 10", f : function(s5) {
 					return s5 / 10;
-				}};
-				var m2 = new nodejs.webkit.MenuItem({ label : k1.n});
-				m2.click = function() {
-					var _g11 = 0;
-					var _g31 = _g2.getSheetLines(sheet);
-					while(_g11 < _g31.length) {
-						var obj1 = _g31[_g11];
-						++_g11;
-						var t1 = Reflect.field(obj1,c.name);
-						if(t1 != null) {
-							var t21 = k1.f(t1);
-							if(c.type == cdb.ColumnType.TInt) t21 = t21 | 0;
-							obj1[c.name] = t21;
-						}
-					}
-					_g2.refresh();
-					_g2.save();
-				};
-				cm1.append(m2);
-				k1 = { n : "+ 1", f : function(s6) {
+				}},{ n : "+ 1", f : function(s6) {
 					return s6 + 1;
-				}};
-				var m2 = new nodejs.webkit.MenuItem({ label : k1.n});
-				m2.click = function() {
-					var _g11 = 0;
-					var _g31 = _g2.getSheetLines(sheet);
-					while(_g11 < _g31.length) {
-						var obj1 = _g31[_g11];
-						++_g11;
-						var t1 = Reflect.field(obj1,c.name);
-						if(t1 != null) {
-							var t21 = k1.f(t1);
-							if(c.type == cdb.ColumnType.TInt) t21 = t21 | 0;
-							obj1[c.name] = t21;
-						}
-					}
-					_g2.refresh();
-					_g2.save();
-				};
-				cm1.append(m2);
-				k1 = { n : "- 1", f : function(s7) {
+				}},{ n : "- 1", f : function(s7) {
 					return s7 - 1;
-				}};
-				var m2 = new nodejs.webkit.MenuItem({ label : k1.n});
-				m2.click = function() {
-					var _g11 = 0;
-					var _g31 = _g2.getSheetLines(sheet);
-					while(_g11 < _g31.length) {
-						var obj1 = _g31[_g11];
-						++_g11;
-						var t1 = Reflect.field(obj1,c.name);
-						if(t1 != null) {
-							var t21 = k1.f(t1);
-							if(c.type == cdb.ColumnType.TInt) t21 = t21 | 0;
-							obj1[c.name] = t21;
-						}
-					}
-					_g2.refresh();
-					_g2.save();
-				};
-				cm1.append(m2);
+				}}];
+				while(_g12 < _g22.length) {
+					var k1 = [_g22[_g12]];
+					++_g12;
+					var m2 = new nodejs.webkit.MenuItem({ label : k1[0].n});
+					m2.click = (function(k1) {
+						return function() {
+							var _g31 = 0;
+							var _g52 = _g4.getSheetLines(sheet);
+							while(_g31 < _g52.length) {
+								var obj1 = _g52[_g31];
+								++_g31;
+								var t1 = Reflect.field(obj1,c.name);
+								if(t1 != null) {
+									var t21 = k1[0].f(t1);
+									if(c.type == cdb.ColumnType.TInt) t21 = t21 | 0;
+									obj1[c.name] = t21;
+								}
+							}
+							_g4.refresh();
+							_g4.save();
+						};
+					})(k1);
+					cm1.append(m2);
+				}
 				conv1.submenu = cm1;
 				n.append(conv1);
 				break;
@@ -7017,15 +6879,15 @@ Main.prototype = $extend(Model.prototype,{
 		}
 		ndisp.checked = sheet.props.displayColumn == c.name;
 		nedit.click = function() {
-			_g2.newColumn(sheet.name,c);
+			_g4.newColumn(sheet.name,c);
 		};
 		nleft.click = function() {
 			var index = Lambda.indexOf(sheet.columns,c);
 			if(index > 0) {
 				HxOverrides.remove(sheet.columns,c);
 				sheet.columns.splice(index - 1,0,c);
-				_g2.refresh();
-				_g2.save();
+				_g4.refresh();
+				_g4.save();
 			}
 		};
 		nright.click = function() {
@@ -7033,21 +6895,21 @@ Main.prototype = $extend(Model.prototype,{
 			if(index1 < sheet.columns.length - 1) {
 				HxOverrides.remove(sheet.columns,c);
 				sheet.columns.splice(index1 + 1,0,c);
-				_g2.refresh();
-				_g2.save();
+				_g4.refresh();
+				_g4.save();
 			}
 		};
 		ndel.click = function() {
-			_g2.deleteColumn(sheet,c.name);
+			_g4.deleteColumn(sheet,c.name);
 		};
 		ndisp.click = function() {
 			if(sheet.props.displayColumn == c.name) sheet.props.displayColumn = null; else sheet.props.displayColumn = c.name;
-			_g2.makeSheet(sheet);
-			_g2.refresh();
-			_g2.save();
+			_g4.makeSheet(sheet);
+			_g4.refresh();
+			_g4.save();
 		};
 		nins.click = function() {
-			_g2.newColumn(sheet.name,null,Lambda.indexOf(sheet.columns,c) + 1);
+			_g4.newColumn(sheet.name,null,Lambda.indexOf(sheet.columns,c) + 1);
 		};
 		n.popup(this.mousePos.x,this.mousePos.y);
 	}
@@ -7061,26 +6923,18 @@ Main.prototype = $extend(Model.prototype,{
 		var ndel = new nodejs.webkit.MenuItem({ label : "Delete"});
 		var nindex = new nodejs.webkit.MenuItem({ label : "Add Index", type : "checkbox"});
 		var ngroup = new nodejs.webkit.MenuItem({ label : "Add Group", type : "checkbox"});
-		var m;
-		m = nins;
-		n.append(m);
-		m = nleft;
-		n.append(m);
-		m = nright;
-		n.append(m);
-		m = nren;
-		n.append(m);
-		m = ndel;
-		n.append(m);
-		m = nindex;
-		n.append(m);
-		m = ngroup;
-		n.append(m);
+		var _g1 = 0;
+		var _g11 = [nins,nleft,nright,nren,ndel,nindex,ngroup];
+		while(_g1 < _g11.length) {
+			var m = _g11[_g1];
+			++_g1;
+			n.append(m);
+		}
 		nleft.click = function() {
 			var prev = -1;
 			var _g2 = 0;
-			var _g1 = _g.data.sheets.length;
-			while(_g2 < _g1) {
+			var _g12 = _g.data.sheets.length;
+			while(_g2 < _g12) {
 				var i = _g2++;
 				var s2 = _g.data.sheets[i];
 				if(s == s2) break;
@@ -7096,8 +6950,8 @@ Main.prototype = $extend(Model.prototype,{
 		nright.click = function() {
 			var found = null;
 			var _g21 = 0;
-			var _g11 = _g.data.sheets.length;
-			while(_g21 < _g11) {
+			var _g13 = _g.data.sheets.length;
+			while(_g21 < _g13) {
 				var i1 = _g21++;
 				var s21 = _g.data.sheets[i1];
 				if(s == s21) found = -1; else if(!s21.props.hide && found != null) {
@@ -7123,19 +6977,19 @@ Main.prototype = $extend(Model.prototype,{
 		nindex.checked = s.props.hasIndex;
 		nindex.click = function() {
 			if(s.props.hasIndex) {
-				var _g12 = 0;
+				var _g14 = 0;
 				var _g22 = _g.getSheetLines(s);
-				while(_g12 < _g22.length) {
-					var o = _g22[_g12];
-					++_g12;
+				while(_g14 < _g22.length) {
+					var o = _g22[_g14];
+					++_g14;
 					Reflect.deleteField(o,"index");
 				}
 				s.props.hasIndex = false;
 			} else {
 				var _g3 = 0;
-				var _g13 = s.columns;
-				while(_g3 < _g13.length) {
-					var c = _g13[_g3];
+				var _g15 = s.columns;
+				while(_g3 < _g15.length) {
+					var c = _g15[_g3];
 					++_g3;
 					if(c.name == "index") {
 						_g.error("Column 'index' already exists");
@@ -7149,19 +7003,19 @@ Main.prototype = $extend(Model.prototype,{
 		ngroup.checked = s.props.hasGroup;
 		ngroup.click = function() {
 			if(s.props.hasGroup) {
-				var _g14 = 0;
+				var _g16 = 0;
 				var _g23 = _g.getSheetLines(s);
-				while(_g14 < _g23.length) {
-					var o1 = _g23[_g14];
-					++_g14;
+				while(_g16 < _g23.length) {
+					var o1 = _g23[_g16];
+					++_g16;
 					Reflect.deleteField(o1,"group");
 				}
 				s.props.hasGroup = false;
 			} else {
 				var _g4 = 0;
-				var _g15 = s.columns;
-				while(_g4 < _g15.length) {
-					var c1 = _g15[_g4];
+				var _g17 = s.columns;
+				while(_g4 < _g17.length) {
+					var c1 = _g17[_g4];
 					++_g4;
 					if(c1.name == "group") {
 						_g.error("Column 'group' already exists");
@@ -7995,6 +7849,13 @@ Main.prototype = $extend(Model.prototype,{
 				}
 			}
 		}
+		if(sheet.lines.length == 0) {
+			var l2 = new js.JQuery("<tr><td colspan=\"" + (sheet.columns.length + 1) + "\"><a href=\"javascript:_.insertLine()\">Insert Line</a></td></tr>");
+			l2.find("a").click(function() {
+				_g4.setCursor(sheet);
+			});
+			lines.push(l2);
+		}
 		if(sheet.props.level != null) {
 			var col1 = new js.JQuery("<td style='width:35px'>");
 			cols.prepend(col1);
@@ -8002,19 +7863,19 @@ Main.prototype = $extend(Model.prototype,{
 			var _g23 = sheet.lines.length;
 			while(_g32 < _g23) {
 				var index1 = [_g32++];
-				var l2 = [lines[index1[0]]];
+				var l3 = [lines[index1[0]]];
 				var c2 = new js.JQuery("<input type='submit' value='Edit'>");
-				new js.JQuery("<td>").append(c2).prependTo(l2[0]);
-				c2.click((function(l2,index1) {
+				new js.JQuery("<td>").append(c2).prependTo(l3[0]);
+				c2.click((function(l3,index1) {
 					return function() {
-						l2[0].click();
+						l3[0].click();
 						var found = null;
 						var _g51 = 0;
 						var _g61 = _g4.levels;
 						while(_g51 < _g61.length) {
-							var l3 = _g61[_g51];
+							var l4 = _g61[_g51];
 							++_g51;
-							if(l3.sheet == sheet && l3.index == index1[0]) found = l3;
+							if(l4.sheet == sheet && l4.index == index1[0]) found = l4;
 						}
 						if(found == null) {
 							found = new Level(_g4,sheet,index1[0]);
@@ -8023,7 +7884,7 @@ Main.prototype = $extend(Model.prototype,{
 							_g4.initContent();
 						} else _g4.selectLevel(found);
 					};
-				})(l2,index1));
+				})(l3,index1));
 			}
 		}
 		content.empty();
@@ -8033,7 +7894,7 @@ Main.prototype = $extend(Model.prototype,{
 		var _g24 = lines.length;
 		while(_g33 < _g24) {
 			var i3 = _g33++;
-			if(sheet.separators[snext] == i3) {
+			while(sheet.separators[snext] == i3) {
 				var sep = new js.JQuery("<tr>").addClass("separator").append("<td colspan=\"" + (colCount + 1) + "\">").appendTo(content);
 				var content2 = [sep.find("td")];
 				var title = [sheet.props.separatorTitles != null?sheet.props.separatorTitles[snext]:null];
@@ -9380,6 +9241,79 @@ cdb.Parser.parse = function(content) {
 		}
 	}
 	return data;
+};
+cdb.Parser.save = function(data) {
+	var save = [];
+	var _g = 0;
+	var _g1 = data.sheets;
+	while(_g < _g1.length) {
+		var s = _g1[_g];
+		++_g;
+		var _g2 = 0;
+		var _g3 = s.columns;
+		while(_g2 < _g3.length) {
+			var c = _g3[_g2];
+			++_g2;
+			save.push(c.type);
+			if(c.typeStr == null) c.typeStr = cdb.Parser.saveType(c.type);
+			Reflect.deleteField(c,"type");
+		}
+	}
+	var _g4 = 0;
+	var _g11 = data.customTypes;
+	while(_g4 < _g11.length) {
+		var t = _g11[_g4];
+		++_g4;
+		var _g21 = 0;
+		var _g31 = t.cases;
+		while(_g21 < _g31.length) {
+			var c1 = _g31[_g21];
+			++_g21;
+			var _g41 = 0;
+			var _g5 = c1.args;
+			while(_g41 < _g5.length) {
+				var a = _g5[_g41];
+				++_g41;
+				save.push(a.type);
+				if(a.typeStr == null) a.typeStr = cdb.Parser.saveType(a.type);
+				Reflect.deleteField(a,"type");
+			}
+		}
+	}
+	var str = js.Node.stringify(data,null,"\t");
+	var _g6 = 0;
+	var _g12 = data.sheets;
+	while(_g6 < _g12.length) {
+		var s1 = _g12[_g6];
+		++_g6;
+		var _g22 = 0;
+		var _g32 = s1.columns;
+		while(_g22 < _g32.length) {
+			var c2 = _g32[_g22];
+			++_g22;
+			c2.type = save.shift();
+		}
+	}
+	var _g7 = 0;
+	var _g13 = data.customTypes;
+	while(_g7 < _g13.length) {
+		var t1 = _g13[_g7];
+		++_g7;
+		var _g23 = 0;
+		var _g33 = t1.cases;
+		while(_g23 < _g33.length) {
+			var c3 = _g33[_g23];
+			++_g23;
+			var _g42 = 0;
+			var _g51 = c3.args;
+			while(_g42 < _g51.length) {
+				var a1 = _g51[_g42];
+				++_g42;
+				a1.type = save.shift();
+			}
+		}
+	}
+	return str;
 };
 cdb.TileBuilder = function(t,stride,total) {
 	this.borders = [];
@@ -11628,13 +11562,14 @@ js.html._CanvasElement.CanvasUtil = function() { };
 $hxClasses["js.html._CanvasElement.CanvasUtil"] = js.html._CanvasElement.CanvasUtil;
 js.html._CanvasElement.CanvasUtil.__name__ = ["js","html","_CanvasElement","CanvasUtil"];
 js.html._CanvasElement.CanvasUtil.getContextWebGL = function(canvas,attribs) {
-	var name;
-	name = "webgl";
-	var ctx = canvas.getContext(name,attribs);
-	if(ctx != null) return ctx;
-	name = "experimental-webgl";
-	var ctx = canvas.getContext(name,attribs);
-	if(ctx != null) return ctx;
+	var _g = 0;
+	var _g1 = ["webgl","experimental-webgl"];
+	while(_g < _g1.length) {
+		var name = _g1[_g];
+		++_g;
+		var ctx = canvas.getContext(name,attribs);
+		if(ctx != null) return ctx;
+	}
 	return null;
 };
 var lvl = {};
