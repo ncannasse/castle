@@ -75,7 +75,7 @@ class Module {
 		return out;
 	}
 
-	public static function build( file : String ) {
+	public static function build( file : String, ?typeName : String ) {
 		#if !macro
 		throw "This can only be called in a macro";
 		#else
@@ -106,6 +106,7 @@ class Module {
 		var types = new Array<haxe.macro.Expr.TypeDefinition>();
 		var curMod = Context.getLocalModule().split(".");
 		var modName = curMod.pop();
+		if( typeName != null ) modName = typeName;
 
 		var typesCache = new Map<String,String>();
 
