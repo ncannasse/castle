@@ -1,5 +1,5 @@
 (function (console) { "use strict";
-var $hxClasses = {};
+var $hxClasses = {},$estr = function() { return js.Boot.__string_rec(this,''); };
 function $extend(from, fields) {
 	function Inherit() {} Inherit.prototype = from; var proto = new Inherit();
 	for (var name in fields) proto[name] = fields[name];
@@ -1384,29 +1384,29 @@ Level.prototype = {
 					}
 					break;
 				case 2:
-					var data = _g2[3];
-					var sx1 = this.selection.x | 0;
-					var sy1 = this.selection.y | 0;
-					var sw1 = Math.ceil(this.selection.x + this.selection.w) - sx1;
-					var sh1 = Math.ceil(this.selection.y + this.selection.h) - sy1;
-					var _g3 = 0;
-					while(_g3 < sw1) {
-						var dx = _g3++;
-						var _g4 = 0;
-						while(_g4 < sh1) {
-							var dy = _g4++;
-							data[sx1 + dx + (sy1 + dy) * this.width] = 0;
+					var data1 = _g2[3];
+					var sx2 = this.selection.x | 0;
+					var sy2 = this.selection.y | 0;
+					var sw2 = Math.ceil(this.selection.x + this.selection.w) - sx2;
+					var sh2 = Math.ceil(this.selection.y + this.selection.h) - sy2;
+					var _g31 = 0;
+					while(_g31 < sw2) {
+						var dx1 = _g31++;
+						var _g41 = 0;
+						while(_g41 < sh2) {
+							var dy1 = _g41++;
+							data1[sx2 + dx1 + (sy2 + dy1) * this.width] = 0;
 						}
 					}
 					break;
 				case 3:
 					var insts = _g2[3];
 					var objs = l.getTileObjects();
-					var _g31 = 0;
-					var _g41 = insts.slice();
-					while(_g31 < _g41.length) {
-						var i = _g41[_g31];
-						++_g31;
+					var _g32 = 0;
+					var _g42 = insts.slice();
+					while(_g32 < _g42.length) {
+						var i = _g42[_g32];
+						++_g32;
 						var o = objs.h[i.o];
 						var ow;
 						if(o == null) ow = 1; else ow = o.w;
@@ -1418,11 +1418,11 @@ Level.prototype = {
 					break;
 				case 1:
 					var objs1 = _g2[3];
-					var _g32 = 0;
-					var _g42 = objs1.slice();
-					while(_g32 < _g42.length) {
-						var o1 = _g42[_g32];
-						++_g32;
+					var _g33 = 0;
+					var _g43 = objs1.slice();
+					while(_g33 < _g43.length) {
+						var o1 = _g43[_g33];
+						++_g33;
 						var ow1;
 						if(l.hasSize) ow1 = o1.width; else ow1 = 1;
 						var oh1;
@@ -1488,35 +1488,35 @@ Level.prototype = {
 					}
 					break;
 				case 0:
-					var data = _g2[2];
-					var sx1 = this.selection.x | 0;
-					var sy1 = this.selection.y | 0;
-					var sw1 = Math.ceil(this.selection.x + this.selection.w) - sx1;
-					var sh1 = Math.ceil(this.selection.y + this.selection.h) - sy1;
-					var ndata = [];
-					var _g4 = 0;
-					var _g3 = this.height;
-					while(_g4 < _g3) {
-						var y = _g4++;
-						var _g6 = 0;
-						var _g5 = this.width;
-						while(_g6 < _g5) {
-							var x = _g6++;
-							var k;
-							if(x >= sx1 && x < sx1 + sw1 && y >= sy1 && y < sy1 + sh1) {
-								var tx = x - ix;
-								var ty = y - iy;
-								if(tx >= 0 && tx < this.width && ty >= 0 && ty < this.height) k = data[tx + ty * this.width]; else k = 0;
-								if(k == 0 && !(x >= sx1 - ix && x < sx1 + sw1 - ix && y >= sy1 - iy && y < sy1 + sh1 - iy)) k = data[x + y * this.width];
-							} else if(x >= sx1 - ix && x < sx1 + sw1 - ix && y >= sy1 - iy && y < sy1 + sh1 - iy) k = 0; else k = data[x + y * this.width];
-							ndata.push(k);
+					var data1 = _g2[2];
+					var sx2 = this.selection.x | 0;
+					var sy2 = this.selection.y | 0;
+					var sw2 = Math.ceil(this.selection.x + this.selection.w) - sx2;
+					var sh2 = Math.ceil(this.selection.y + this.selection.h) - sy2;
+					var ndata1 = [];
+					var _g42 = 0;
+					var _g32 = this.height;
+					while(_g42 < _g32) {
+						var y1 = _g42++;
+						var _g61 = 0;
+						var _g51 = this.width;
+						while(_g61 < _g51) {
+							var x1 = _g61++;
+							var k1;
+							if(x1 >= sx2 && x1 < sx2 + sw2 && y1 >= sy2 && y1 < sy2 + sh2) {
+								var tx1 = x1 - ix;
+								var ty1 = y1 - iy;
+								if(tx1 >= 0 && tx1 < this.width && ty1 >= 0 && ty1 < this.height) k1 = data1[tx1 + ty1 * this.width]; else k1 = 0;
+								if(k1 == 0 && !(x1 >= sx2 - ix && x1 < sx2 + sw2 - ix && y1 >= sy2 - iy && y1 < sy2 + sh2 - iy)) k1 = data1[x1 + y1 * this.width];
+							} else if(x1 >= sx2 - ix && x1 < sx2 + sw2 - ix && y1 >= sy2 - iy && y1 < sy2 + sh2 - iy) k1 = 0; else k1 = data1[x1 + y1 * this.width];
+							ndata1.push(k1);
 						}
 					}
-					var _g41 = 0;
-					var _g31 = data.length;
-					while(_g41 < _g31) {
-						var i = _g41++;
-						data[i] = ndata[i];
+					var _g43 = 0;
+					var _g33 = data1.length;
+					while(_g43 < _g33) {
+						var i1 = _g43++;
+						data1[i1] = ndata1[i1];
 					}
 					break;
 				case 3:
@@ -1524,31 +1524,31 @@ Level.prototype = {
 					sx -= dx;
 					sy -= dy;
 					var objs = l.getTileObjects();
-					var _g32 = 0;
-					var _g42 = insts.slice();
-					while(_g32 < _g42.length) {
-						var i1 = _g42[_g32];
-						++_g32;
-						var o = objs.h[i1.o];
+					var _g34 = 0;
+					var _g44 = insts.slice();
+					while(_g34 < _g44.length) {
+						var i2 = _g44[_g34];
+						++_g34;
+						var o = objs.h[i2.o];
 						var ow;
 						if(o == null) ow = 1; else ow = o.w;
 						var oh;
 						if(o == null) oh = 1; else oh = o.h;
-						if(sx + sw <= i1.x || sy + sh <= i1.y || sx >= i1.x + ow || sy >= i1.y + oh) continue;
-						if(l.hasFloatCoord) i1.x += dx; else i1.x += ix;
-						if(l.hasFloatCoord) i1.y += dy; else i1.y += iy;
-						if(i1.x < 0 || i1.y < 0 || i1.x >= this.width || i1.y >= this.height) HxOverrides.remove(insts,i1);
+						if(sx + sw <= i2.x || sy + sh <= i2.y || sx >= i2.x + ow || sy >= i2.y + oh) continue;
+						if(l.hasFloatCoord) i2.x += dx; else i2.x += ix;
+						if(l.hasFloatCoord) i2.y += dy; else i2.y += iy;
+						if(i2.x < 0 || i2.y < 0 || i2.x >= this.width || i2.y >= this.height) HxOverrides.remove(insts,i2);
 					}
 					break;
 				case 1:
 					var objs1 = _g2[3];
 					sx -= dx;
 					sy -= dy;
-					var _g33 = 0;
-					var _g43 = objs1.slice();
-					while(_g33 < _g43.length) {
-						var o1 = _g43[_g33];
-						++_g33;
+					var _g35 = 0;
+					var _g45 = objs1.slice();
+					while(_g35 < _g45.length) {
+						var o1 = _g45[_g35];
+						++_g35;
 						var ow1;
 						if(l.hasSize) ow1 = o1.width; else ow1 = 1;
 						var oh1;
@@ -2208,12 +2208,12 @@ Level.prototype = {
 				}
 				break;
 			case 2:
-				var data = _g[3];
-				var _g2 = 0;
-				var _g1 = this.width * this.height;
-				while(_g2 < _g1) {
-					var i = _g2++;
-					if(data[i] == k + 1) data[i] = 0;
+				var data1 = _g[3];
+				var _g21 = 0;
+				var _g11 = this.width * this.height;
+				while(_g21 < _g11) {
+					var i1 = _g21++;
+					if(data1[i1] == k + 1) data1[i1] = 0;
 				}
 				break;
 			case 1:
@@ -2221,12 +2221,12 @@ Level.prototype = {
 				return;
 			case 3:
 				var insts = _g[3];
-				var _g11 = 0;
-				var _g21 = insts.slice();
-				while(_g11 < _g21.length) {
-					var i1 = _g21[_g11];
-					++_g11;
-					if(i1.o == k) HxOverrides.remove(insts,i1);
+				var _g12 = 0;
+				var _g22 = insts.slice();
+				while(_g12 < _g22.length) {
+					var i2 = _g22[_g12];
+					++_g12;
+					if(i2.o == k) HxOverrides.remove(insts,i2);
 				}
 				break;
 			}
@@ -2759,39 +2759,39 @@ Level.prototype = {
 					}
 					break;
 				case 0:
-					var data = _g2[2];
-					var ndata = [];
-					var _g4 = 0;
-					var _g3 = this.height;
-					while(_g4 < _g3) {
-						var y = _g4++;
-						var _g6 = 0;
-						var _g5 = this.width;
-						while(_g6 < _g5) {
-							var x = _g6++;
-							var tx = x / s | 0;
-							var ty = y / s | 0;
-							var k;
-							if(tx >= this.width || ty >= this.height) k = 0; else k = data[tx + ty * this.width];
-							ndata.push(k);
+					var data1 = _g2[2];
+					var ndata1 = [];
+					var _g42 = 0;
+					var _g32 = this.height;
+					while(_g42 < _g32) {
+						var y1 = _g42++;
+						var _g61 = 0;
+						var _g51 = this.width;
+						while(_g61 < _g51) {
+							var x1 = _g61++;
+							var tx1 = x1 / s | 0;
+							var ty1 = y1 / s | 0;
+							var k1;
+							if(tx1 >= this.width || ty1 >= this.height) k1 = 0; else k1 = data1[tx1 + ty1 * this.width];
+							ndata1.push(k1);
 						}
 					}
-					var _g41 = 0;
-					var _g31 = this.width * this.height;
-					while(_g41 < _g31) {
-						var i = _g41++;
-						data[i] = ndata[i];
+					var _g43 = 0;
+					var _g33 = this.width * this.height;
+					while(_g43 < _g33) {
+						var i1 = _g43++;
+						data1[i1] = ndata1[i1];
 					}
 					break;
 				case 1:
 					var objs = _g2[3];
 					var m;
 					if(l.floatCoord) m = this.tileSize; else m = 1;
-					var _g32 = 0;
-					var _g42 = objs.slice();
-					while(_g32 < _g42.length) {
-						var o = _g42[_g32];
-						++_g32;
+					var _g34 = 0;
+					var _g44 = objs.slice();
+					while(_g34 < _g44.length) {
+						var o = _g44[_g34];
+						++_g34;
 						o.x = (o.x * s * m | 0) / m;
 						o.y = (o.y * s * m | 0) / m;
 						if(o.x < 0 || o.y < 0 || o.x >= this.width || o.y >= this.height) HxOverrides.remove(objs,o);
@@ -2801,14 +2801,14 @@ Level.prototype = {
 					var insts = _g2[3];
 					var m1;
 					if(l.floatCoord) m1 = this.tileSize; else m1 = 1;
-					var _g33 = 0;
-					var _g43 = insts.slice();
-					while(_g33 < _g43.length) {
-						var i1 = _g43[_g33];
-						++_g33;
-						i1.x = (i1.x * s * m1 | 0) / m1;
-						i1.y = (i1.y * s * m1 | 0) / m1;
-						if(i1.x < 0 || i1.y < 0 || i1.x >= this.width || i1.y >= this.height) HxOverrides.remove(insts,i1);
+					var _g35 = 0;
+					var _g45 = insts.slice();
+					while(_g35 < _g45.length) {
+						var i2 = _g45[_g35];
+						++_g35;
+						i2.x = (i2.x * s * m1 | 0) / m1;
+						i2.y = (i2.y * s * m1 | 0) / m1;
+						if(i2.x < 0 || i2.y < 0 || i2.x >= this.width || i2.y >= this.height) HxOverrides.remove(insts,i2);
 					}
 					break;
 				}
@@ -2856,37 +2856,37 @@ Level.prototype = {
 					}
 					break;
 				case 0:
-					var data = _g2[2];
-					var ndata = [];
-					var _g4 = 0;
-					var _g3 = this.height;
-					while(_g4 < _g3) {
-						var y = _g4++;
-						var _g6 = 0;
-						var _g5 = this.width;
-						while(_g6 < _g5) {
-							var x = _g6++;
-							var tx = x - dx;
-							var ty = y - dy;
-							var k;
-							if(tx < 0 || ty < 0 || tx >= this.width || ty >= this.height) k = 0; else k = data[tx + ty * this.width];
-							ndata.push(k);
+					var data1 = _g2[2];
+					var ndata1 = [];
+					var _g42 = 0;
+					var _g32 = this.height;
+					while(_g42 < _g32) {
+						var y1 = _g42++;
+						var _g61 = 0;
+						var _g51 = this.width;
+						while(_g61 < _g51) {
+							var x1 = _g61++;
+							var tx1 = x1 - dx;
+							var ty1 = y1 - dy;
+							var k1;
+							if(tx1 < 0 || ty1 < 0 || tx1 >= this.width || ty1 >= this.height) k1 = 0; else k1 = data1[tx1 + ty1 * this.width];
+							ndata1.push(k1);
 						}
 					}
-					var _g41 = 0;
-					var _g31 = this.width * this.height;
-					while(_g41 < _g31) {
-						var i = _g41++;
-						data[i] = ndata[i];
+					var _g43 = 0;
+					var _g33 = this.width * this.height;
+					while(_g43 < _g33) {
+						var i1 = _g43++;
+						data1[i1] = ndata1[i1];
 					}
 					break;
 				case 1:
 					var objs = _g2[3];
-					var _g32 = 0;
-					var _g42 = objs.slice();
-					while(_g32 < _g42.length) {
-						var o = _g42[_g32];
-						++_g32;
+					var _g34 = 0;
+					var _g44 = objs.slice();
+					while(_g34 < _g44.length) {
+						var o = _g44[_g34];
+						++_g34;
 						o.x += dx;
 						o.y += dy;
 						if(o.x < 0 || o.y < 0 || o.x >= this.width || o.y >= this.height) HxOverrides.remove(objs,o);
@@ -2894,14 +2894,14 @@ Level.prototype = {
 					break;
 				case 3:
 					var insts = _g2[3];
-					var _g33 = 0;
-					var _g43 = insts.slice();
-					while(_g33 < _g43.length) {
-						var i1 = _g43[_g33];
-						++_g33;
-						i1.x += dx;
-						i1.y += dy;
-						if(i1.x < 0 || i1.y < 0 || i1.x >= this.width || i1.y >= this.height) HxOverrides.remove(insts,i1);
+					var _g35 = 0;
+					var _g45 = insts.slice();
+					while(_g35 < _g45.length) {
+						var i2 = _g45[_g35];
+						++_g35;
+						i2.x += dx;
+						i2.y += dy;
+						if(i2.x < 0 || i2.y < 0 || i2.x >= this.width || i2.y >= this.height) HxOverrides.remove(insts,i2);
 					}
 					break;
 				}
@@ -3352,8 +3352,8 @@ Level.prototype = {
 				this.content.find("[name=file]").closest(".item").show();
 				break;
 			case 3:
-				var t = _g2[2];
-				this.content.find("[name=size]").val("" + t.size).closest(".item").show();
+				var t1 = _g2[2];
+				this.content.find("[name=size]").val("" + t1.size).closest(".item").show();
 				this.content.find("[name=file]").closest(".item").show();
 				break;
 			default:
@@ -4472,8 +4472,8 @@ Model.prototype = {
 				if(r == sheet.name) return cdb.ColumnType.TString; else return t;
 				break;
 			case 12:
-				var r = t[2];
-				if(r == sheet.name) return cdb.ColumnType.TString; else return t;
+				var r1 = t[2];
+				if(r1 == sheet.name) return cdb.ColumnType.TString; else return t;
 				break;
 			default:
 				return t;
@@ -5137,8 +5137,8 @@ Model.prototype = {
 			var n = t[2];
 			return n;
 		case 9:
-			var n = t[2];
-			return n;
+			var n1 = t[2];
+			return n1;
 		default:
 			return HxOverrides.substr(Std.string(t),1,null);
 		}
@@ -6505,19 +6505,19 @@ Main.prototype = $extend(Model.prototype,{
 			break;
 		default:
 			if(sheet.props.displayColumn == c.name) {
-				var obj1 = sheet.lines[index];
-				var s1 = this.smap.get(sheet.name);
-				var _g13 = 0;
-				var _g25 = sheet.columns;
-				while(_g13 < _g25.length) {
-					var cid = _g25[_g13];
-					++_g13;
-					if(cid.type == cdb.ColumnType.TId) {
-						var id = Reflect.field(obj1,cid.name);
-						if(id != null) {
-							var disp = Reflect.field(obj1,c.name);
-							if(disp == null) disp = "#" + id;
-							s1.index.get(id).disp = disp;
+				var obj3 = sheet.lines[index];
+				var s2 = this.smap.get(sheet.name);
+				var _g15 = 0;
+				var _g27 = sheet.columns;
+				while(_g15 < _g27.length) {
+					var cid1 = _g27[_g15];
+					++_g15;
+					if(cid1.type == cdb.ColumnType.TId) {
+						var id1 = Reflect.field(obj3,cid1.name);
+						if(id1 != null) {
+							var disp1 = Reflect.field(obj3,c.name);
+							if(disp1 == null) disp1 = "#" + id1;
+							s2.index.get(id1).disp = disp1;
 						}
 					}
 				}
@@ -6794,21 +6794,21 @@ Main.prototype = $extend(Model.prototype,{
 									}
 									break;
 								case 10:
-									var values = _g3[2];
-									var _g5 = 0;
-									var _g41 = values.length;
-									while(_g5 < _g41) {
-										var i = _g5++;
-										values[i] = k[0].f(values[i]);
+									var values1 = _g3[2];
+									var _g51 = 0;
+									var _g42 = values1.length;
+									while(_g51 < _g42) {
+										var i1 = _g51++;
+										values1[i1] = k[0].f(values1[i1]);
 									}
 									break;
 								default:
 									var refMap = new haxe.ds.StringMap();
-									var _g51 = 0;
+									var _g52 = 0;
 									var _g6 = _g4.getSheetLines(sheet);
-									while(_g51 < _g6.length) {
-										var obj = _g6[_g51];
-										++_g51;
+									while(_g52 < _g6.length) {
+										var obj = _g6[_g52];
+										++_g52;
 										var t = Reflect.field(obj,c.name);
 										if(t != null && t != "") {
 											var t2 = k[0].f(t);
@@ -6854,9 +6854,9 @@ Main.prototype = $extend(Model.prototype,{
 					m2.click = (function(k1) {
 						return function() {
 							var _g31 = 0;
-							var _g52 = _g4.getSheetLines(sheet);
-							while(_g31 < _g52.length) {
-								var obj1 = _g52[_g31];
+							var _g53 = _g4.getSheetLines(sheet);
+							while(_g31 < _g53.length) {
+								var obj1 = _g53[_g31];
 								++_g31;
 								var t1 = Reflect.field(obj1,c.name);
 								if(t1 != null) {
@@ -8187,8 +8187,8 @@ Main.prototype = $extend(Model.prototype,{
 					form.find("[name=values]").val(values.join(","));
 					break;
 				case 10:
-					var values = _g3[2];
-					form.find("[name=values]").val(values.join(","));
+					var values1 = _g3[2];
+					form.find("[name=values]").val(values1.join(","));
 					break;
 				case 6:
 					var sname = _g3[2];
@@ -8197,9 +8197,9 @@ Main.prototype = $extend(Model.prototype,{
 					})));
 					break;
 				case 12:
-					var sname = _g3[2];
+					var sname1 = _g3[2];
 					form.find("[name=sheet]").val("" + Lambda.indexOf(this.data.sheets,Lambda.find(this.data.sheets,function(s1) {
-						return s1.name == sname;
+						return s1.name == sname1;
 					})));
 					break;
 				case 9:
@@ -8795,20 +8795,27 @@ Sys.time = function() {
 };
 var ValueType = $hxClasses["ValueType"] = { __ename__ : ["ValueType"], __constructs__ : ["TNull","TInt","TFloat","TBool","TObject","TFunction","TClass","TEnum","TUnknown"] };
 ValueType.TNull = ["TNull",0];
+ValueType.TNull.toString = $estr;
 ValueType.TNull.__enum__ = ValueType;
 ValueType.TInt = ["TInt",1];
+ValueType.TInt.toString = $estr;
 ValueType.TInt.__enum__ = ValueType;
 ValueType.TFloat = ["TFloat",2];
+ValueType.TFloat.toString = $estr;
 ValueType.TFloat.__enum__ = ValueType;
 ValueType.TBool = ["TBool",3];
+ValueType.TBool.toString = $estr;
 ValueType.TBool.__enum__ = ValueType;
 ValueType.TObject = ["TObject",4];
+ValueType.TObject.toString = $estr;
 ValueType.TObject.__enum__ = ValueType;
 ValueType.TFunction = ["TFunction",5];
+ValueType.TFunction.toString = $estr;
 ValueType.TFunction.__enum__ = ValueType;
-ValueType.TClass = function(c) { var $x = ["TClass",6,c]; $x.__enum__ = ValueType; return $x; };
-ValueType.TEnum = function(e) { var $x = ["TEnum",7,e]; $x.__enum__ = ValueType; return $x; };
+ValueType.TClass = function(c) { var $x = ["TClass",6,c]; $x.__enum__ = ValueType; $x.toString = $estr; return $x; };
+ValueType.TEnum = function(e) { var $x = ["TEnum",7,e]; $x.__enum__ = ValueType; $x.toString = $estr; return $x; };
 ValueType.TUnknown = ["TUnknown",8];
+ValueType.TUnknown.toString = $estr;
 ValueType.TUnknown.__enum__ = ValueType;
 var Type = function() { };
 $hxClasses["Type"] = Type;
@@ -8896,33 +8903,45 @@ Type.enumEq = function(a,b) {
 var cdb = {};
 cdb.ColumnType = $hxClasses["cdb.ColumnType"] = { __ename__ : ["cdb","ColumnType"], __constructs__ : ["TId","TString","TBool","TInt","TFloat","TEnum","TRef","TImage","TList","TCustom","TFlags","TColor","TLayer","TFile","TTilePos","TTileLayer","TDynamic"] };
 cdb.ColumnType.TId = ["TId",0];
+cdb.ColumnType.TId.toString = $estr;
 cdb.ColumnType.TId.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TString = ["TString",1];
+cdb.ColumnType.TString.toString = $estr;
 cdb.ColumnType.TString.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TBool = ["TBool",2];
+cdb.ColumnType.TBool.toString = $estr;
 cdb.ColumnType.TBool.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TInt = ["TInt",3];
+cdb.ColumnType.TInt.toString = $estr;
 cdb.ColumnType.TInt.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TFloat = ["TFloat",4];
+cdb.ColumnType.TFloat.toString = $estr;
 cdb.ColumnType.TFloat.__enum__ = cdb.ColumnType;
-cdb.ColumnType.TEnum = function(values) { var $x = ["TEnum",5,values]; $x.__enum__ = cdb.ColumnType; return $x; };
-cdb.ColumnType.TRef = function(sheet) { var $x = ["TRef",6,sheet]; $x.__enum__ = cdb.ColumnType; return $x; };
+cdb.ColumnType.TEnum = function(values) { var $x = ["TEnum",5,values]; $x.__enum__ = cdb.ColumnType; $x.toString = $estr; return $x; };
+cdb.ColumnType.TRef = function(sheet) { var $x = ["TRef",6,sheet]; $x.__enum__ = cdb.ColumnType; $x.toString = $estr; return $x; };
 cdb.ColumnType.TImage = ["TImage",7];
+cdb.ColumnType.TImage.toString = $estr;
 cdb.ColumnType.TImage.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TList = ["TList",8];
+cdb.ColumnType.TList.toString = $estr;
 cdb.ColumnType.TList.__enum__ = cdb.ColumnType;
-cdb.ColumnType.TCustom = function(name) { var $x = ["TCustom",9,name]; $x.__enum__ = cdb.ColumnType; return $x; };
-cdb.ColumnType.TFlags = function(values) { var $x = ["TFlags",10,values]; $x.__enum__ = cdb.ColumnType; return $x; };
+cdb.ColumnType.TCustom = function(name) { var $x = ["TCustom",9,name]; $x.__enum__ = cdb.ColumnType; $x.toString = $estr; return $x; };
+cdb.ColumnType.TFlags = function(values) { var $x = ["TFlags",10,values]; $x.__enum__ = cdb.ColumnType; $x.toString = $estr; return $x; };
 cdb.ColumnType.TColor = ["TColor",11];
+cdb.ColumnType.TColor.toString = $estr;
 cdb.ColumnType.TColor.__enum__ = cdb.ColumnType;
-cdb.ColumnType.TLayer = function(type) { var $x = ["TLayer",12,type]; $x.__enum__ = cdb.ColumnType; return $x; };
+cdb.ColumnType.TLayer = function(type) { var $x = ["TLayer",12,type]; $x.__enum__ = cdb.ColumnType; $x.toString = $estr; return $x; };
 cdb.ColumnType.TFile = ["TFile",13];
+cdb.ColumnType.TFile.toString = $estr;
 cdb.ColumnType.TFile.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TTilePos = ["TTilePos",14];
+cdb.ColumnType.TTilePos.toString = $estr;
 cdb.ColumnType.TTilePos.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TTileLayer = ["TTileLayer",15];
+cdb.ColumnType.TTileLayer.toString = $estr;
 cdb.ColumnType.TTileLayer.__enum__ = cdb.ColumnType;
 cdb.ColumnType.TDynamic = ["TDynamic",16];
+cdb.ColumnType.TDynamic.toString = $estr;
 cdb.ColumnType.TDynamic.__enum__ = cdb.ColumnType;
 cdb._Data = {};
 cdb._Data.TileMode_Impl_ = {};
@@ -9131,8 +9150,8 @@ cdb.Parser.saveType = function(t) {
 		var values = t[2];
 		return t[1] + ":" + values.join(",");
 	case 10:
-		var values = t[2];
-		return t[1] + ":" + values.join(",");
+		var values1 = t[2];
+		return t[1] + ":" + values1.join(",");
 	case 0:case 1:case 8:case 3:case 7:case 4:case 2:case 11:case 13:case 14:case 15:case 16:
 		return Std.string(t[1]);
 	}
@@ -11268,12 +11287,15 @@ haxe.io.Eof.prototype = {
 };
 haxe.io.Error = $hxClasses["haxe.io.Error"] = { __ename__ : ["haxe","io","Error"], __constructs__ : ["Blocked","Overflow","OutsideBounds","Custom"] };
 haxe.io.Error.Blocked = ["Blocked",0];
+haxe.io.Error.Blocked.toString = $estr;
 haxe.io.Error.Blocked.__enum__ = haxe.io.Error;
 haxe.io.Error.Overflow = ["Overflow",1];
+haxe.io.Error.Overflow.toString = $estr;
 haxe.io.Error.Overflow.__enum__ = haxe.io.Error;
 haxe.io.Error.OutsideBounds = ["OutsideBounds",2];
+haxe.io.Error.OutsideBounds.toString = $estr;
 haxe.io.Error.OutsideBounds.__enum__ = haxe.io.Error;
-haxe.io.Error.Custom = function(e) { var $x = ["Custom",3,e]; $x.__enum__ = haxe.io.Error; return $x; };
+haxe.io.Error.Custom = function(e) { var $x = ["Custom",3,e]; $x.__enum__ = haxe.io.Error; $x.toString = $estr; return $x; };
 haxe.io.Path = function(path) {
 	switch(path) {
 	case ".":case "..":
@@ -12053,10 +12075,10 @@ lvl.Image3D.prototype = $extend(lvl.Image.prototype,{
 	,__class__: lvl.Image3D
 });
 lvl.LayerInnerData = $hxClasses["lvl.LayerInnerData"] = { __ename__ : ["lvl","LayerInnerData"], __constructs__ : ["Layer","Objects","Tiles","TileInstances"] };
-lvl.LayerInnerData.Layer = function(a) { var $x = ["Layer",0,a]; $x.__enum__ = lvl.LayerInnerData; return $x; };
-lvl.LayerInnerData.Objects = function(idCol,objs) { var $x = ["Objects",1,idCol,objs]; $x.__enum__ = lvl.LayerInnerData; return $x; };
-lvl.LayerInnerData.Tiles = function(t,data) { var $x = ["Tiles",2,t,data]; $x.__enum__ = lvl.LayerInnerData; return $x; };
-lvl.LayerInnerData.TileInstances = function(t,insts) { var $x = ["TileInstances",3,t,insts]; $x.__enum__ = lvl.LayerInnerData; return $x; };
+lvl.LayerInnerData.Layer = function(a) { var $x = ["Layer",0,a]; $x.__enum__ = lvl.LayerInnerData; $x.toString = $estr; return $x; };
+lvl.LayerInnerData.Objects = function(idCol,objs) { var $x = ["Objects",1,idCol,objs]; $x.__enum__ = lvl.LayerInnerData; $x.toString = $estr; return $x; };
+lvl.LayerInnerData.Tiles = function(t,data) { var $x = ["Tiles",2,t,data]; $x.__enum__ = lvl.LayerInnerData; $x.toString = $estr; return $x; };
+lvl.LayerInnerData.TileInstances = function(t,insts) { var $x = ["TileInstances",3,t,insts]; $x.__enum__ = lvl.LayerInnerData; $x.toString = $estr; return $x; };
 lvl.LayerGfx = function(level) {
 	this.height = 0;
 	this.stride = 0;
@@ -12385,19 +12407,19 @@ lvl.LayerData.prototype = $extend(lvl.LayerGfx.prototype,{
 				}
 			} else switch(_g21) {
 			case "tiles":case "ground":
-				var max = w * h;
-				var _g4 = 0;
-				var _g3 = data.length;
-				while(_g4 < _g3) {
-					var i2 = _g4++;
-					var v = data[i2] - 1;
-					if(v < 0) continue;
-					var vx = v % stride;
-					var vy = v / stride | 0;
-					var v2 = vx + vy * w;
-					if(vx >= w || vy >= h || blanks[v2]) v2 = -1;
-					if(v != v2) {
-						data[i2] = v2 + 1;
+				var max1 = w * h;
+				var _g41 = 0;
+				var _g31 = data.length;
+				while(_g41 < _g31) {
+					var i3 = _g41++;
+					var v1 = data[i3] - 1;
+					if(v1 < 0) continue;
+					var vx1 = v1 % stride;
+					var vy1 = v1 / stride | 0;
+					var v21 = vx1 + vy1 * w;
+					if(vx1 >= w || vy1 >= h || blanks[v21]) v21 = -1;
+					if(v1 != v21) {
+						data[i3] = v21 + 1;
 						_g1.dirty = true;
 					}
 				}
@@ -12409,21 +12431,21 @@ lvl.LayerData.prototype = $extend(lvl.LayerGfx.prototype,{
 				while(p < data.length) {
 					var x = data[p++];
 					var y = data[p++];
-					var v1 = data[p++];
-					var flip = (v1 & 32768) != 0;
+					var v3 = data[p++];
+					var flip = (v3 & 32768) != 0;
 					var rot = x >> 15 | y >> 15 << 1;
-					v1 &= 32767;
+					v3 &= 32767;
 					var x1 = (x & 32767) / _g1.level.tileSize;
 					var y1 = (y & 32767) / _g1.level.tileSize;
-					var vx1 = v1 % stride;
-					var vy1 = v1 / stride | 0;
-					var v21 = vx1 + vy1 * w;
-					if(vx1 >= w || vy1 >= h || x1 >= _g1.level.width || y1 >= _g1.level.height) {
+					var vx2 = v3 % stride;
+					var vy2 = v3 / stride | 0;
+					var v22 = vx2 + vy2 * w;
+					if(vx2 >= w || vy2 >= h || x1 >= _g1.level.width || y1 >= _g1.level.height) {
 						_g1.dirty = true;
 						continue;
 					}
-					if(v1 != v21) _g1.dirty = true;
-					insts.push({ x : x1, y : y1, o : v21, flip : flip, rot : rot});
+					if(v3 != v22) _g1.dirty = true;
+					insts.push({ x : x1, y : y1, o : v22, flip : flip, rot : rot});
 				}
 				_g1.data = lvl.LayerInnerData.TileInstances(d,insts);
 				_g1.hasRotFlip = true;
@@ -12480,8 +12502,8 @@ lvl.LayerData.prototype = $extend(lvl.LayerGfx.prototype,{
 							}
 							break;
 						case 3:
-							var t2 = _g3[2];
-							if(t2.file == t.file) l.setCurrent(this.current,this.currentWidth,this.currentHeight); else {
+							var t21 = _g3[2];
+							if(t21.file == t.file) l.setCurrent(this.current,this.currentWidth,this.currentHeight); else {
 							}
 							break;
 						default:
@@ -12490,23 +12512,23 @@ lvl.LayerData.prototype = $extend(lvl.LayerGfx.prototype,{
 				}
 				break;
 			case 3:
-				var t = _g[2];
-				var _g1 = 0;
-				var _g2 = this.level.layers;
-				while(_g1 < _g2.length) {
-					var l = _g2[_g1];
-					++_g1;
-					if(l != this) {
-						var _g3 = l.data;
-						switch(_g3[1]) {
+				var t1 = _g[2];
+				var _g11 = 0;
+				var _g21 = this.level.layers;
+				while(_g11 < _g21.length) {
+					var l1 = _g21[_g11];
+					++_g11;
+					if(l1 != this) {
+						var _g31 = l1.data;
+						switch(_g31[1]) {
 						case 2:
-							var t2 = _g3[2];
-							if(t2.file == t.file) l.setCurrent(this.current,this.currentWidth,this.currentHeight); else {
+							var t22 = _g31[2];
+							if(t22.file == t1.file) l1.setCurrent(this.current,this.currentWidth,this.currentHeight); else {
 							}
 							break;
 						case 3:
-							var t2 = _g3[2];
-							if(t2.file == t.file) l.setCurrent(this.current,this.currentWidth,this.currentHeight); else {
+							var t23 = _g31[2];
+							if(t23.file == t1.file) l1.setCurrent(this.current,this.currentWidth,this.currentHeight); else {
 							}
 							break;
 						default:
