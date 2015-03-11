@@ -212,7 +212,7 @@ class Model {
 				if( curSavedData != null ) {
 					this.history.push(curSavedData);
 					this.redo = [];
-					if( this.history.length > 100 ) this.history.shift();
+					if( this.history.length > 100 || curSavedData.length * this.history.length * 2 > 300<<20 ) this.history.shift();
 				}
 				curSavedData = sdata;
 			}
