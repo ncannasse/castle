@@ -819,7 +819,7 @@ class Level {
 			view.setScrollPos(scroll.scrollLeft() - 20, scroll.scrollTop() - 20);
 		});
 
-		scroll[0].onmousewheel = function(e) {
+		untyped scroll[0].onmousewheel = function(e) {
 			if( e.shiftKey )
 				updateZoom(e.wheelDelta > 0);
 		};
@@ -2073,7 +2073,7 @@ class Level {
 	function setLayerMode( mode : LayerMode ) {
 		var l = currentLayer;
 		if( l.tileProps == null ) {
-			js.Lib.alert("Choose file first");
+			js.Browser.alert("Choose file first");
 			return;
 		}
 		var old = l.props.mode;

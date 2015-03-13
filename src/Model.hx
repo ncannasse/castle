@@ -30,10 +30,7 @@ class Model {
 			curFile : null,
 			curSheet : 0,
 		};
-		try {
-			prefs = haxe.Unserializer.run(js.Browser.getLocalStorage().getItem("prefs"));
-		} catch( e : Dynamic ) {
-		}
+		loadPrefs();
 	}
 
 	public function getImageData( key : String ) : String {
@@ -564,13 +561,17 @@ class Model {
 		return data.compress;
 	}
 
+	function error( msg ) {
+		js.Browser.alert(msg);
+	}
+
 	function load(noError = false) {
 		history = [];
 		redo = [];
 		try {
 			data = cdb.Parser.parse(sys.io.File.getContent(prefs.curFile));
 		} catch( e : Dynamic ) {
-			if( !noError ) js.Lib.alert(e);
+			if( !noError ) error(Std.string(e));
 			prefs.curFile = null;
 			prefs.curSheet = 0;
 			data = {
@@ -651,6 +652,13 @@ class Model {
 		for( f in Reflect.fields(imageBank) )
 			if( !used.get(f) )
 				Reflect.deleteField(imageBank, f);
+	}
+
+	function loadPrefs() {
+		try {
+			prefs = haxe.Unserializer.run(js.Browser.getLocalStorage().getItem("prefs"));
+		} catch( e : Dynamic ) {
+		}
 	}
 
 	function savePrefs() {

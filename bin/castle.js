@@ -1,5 +1,5 @@
 (function (console) { "use strict";
-var $hxClasses = {},$estr = function() { return js.Boot.__string_rec(this,''); };
+var $hxClasses = {},$estr = function() { return js_Boot.__string_rec(this,''); };
 function $extend(from, fields) {
 	function Inherit() {} Inherit.prototype = from; var proto = new Inherit();
 	for (var name in fields) proto[name] = fields[name];
@@ -171,7 +171,7 @@ var Level = function(model,sheet,index) {
 	while(_g < _g1.length) {
 		var c = _g1[_g];
 		++_g;
-		if(c.name == "tileProps" && c.type == cdb.ColumnType.TList) this.perTileProps = model.smap.get(sheet.name + "@" + c.name).s.columns;
+		if(c.name == "tileProps" && c.type == cdb_ColumnType.TList) this.perTileProps = model.smap.get(sheet.name + "@" + c.name).s.columns;
 	}
 	this.references = [];
 };
@@ -222,7 +222,7 @@ Level.prototype = {
 		var _g = this;
 		this.layers = [];
 		this.watchList = [];
-		this.watchTimer = new haxe.Timer(50);
+		this.watchTimer = new haxe_Timer(50);
 		this.watchTimer.run = $bind(this,this.checkWatch);
 		var $it0 = Level.loadedTilesCache.keys();
 		while( $it0.hasNext() ) {
@@ -236,7 +236,7 @@ Level.prototype = {
 		}
 		if(this.props.tileSize == null) this.props.tileSize = 16;
 		this.tileSize = this.props.tileSize;
-		var lprops = new haxe.ds.StringMap();
+		var lprops = new haxe_ds_StringMap();
 		if(this.props.layers == null) this.props.layers = [];
 		var _g1 = 0;
 		var _g11 = this.props.layers;
@@ -283,7 +283,7 @@ Level.prototype = {
 					break;
 				case 12:
 					var type = _g22[2];
-					var l = new lvl.LayerData(this,c.name,getProps(c.name),{ o : this.obj, f : c.name});
+					var l = new lvl_LayerData(this,c.name,getProps(c.name),{ o : this.obj, f : c.name});
 					l.loadSheetData(this.model.smap.get(type).s);
 					l.setLayerData(val);
 					this.layers.push(l);
@@ -291,7 +291,7 @@ Level.prototype = {
 				case 8:
 					var sheet = this.model.smap.get(this.sheet.name + "@" + c.name).s;
 					var floatCoord = false;
-					if(this.model.hasColumn(sheet,"x",[cdb.ColumnType.TInt]) && this.model.hasColumn(sheet,"y",[cdb.ColumnType.TInt]) || (floatCoord = this.model.hasColumn(sheet,"x",[cdb.ColumnType.TFloat]) && this.model.hasColumn(sheet,"y",[cdb.ColumnType.TFloat]))) {
+					if(this.model.hasColumn(sheet,"x",[cdb_ColumnType.TInt]) && this.model.hasColumn(sheet,"y",[cdb_ColumnType.TInt]) || (floatCoord = this.model.hasColumn(sheet,"x",[cdb_ColumnType.TFloat]) && this.model.hasColumn(sheet,"y",[cdb_ColumnType.TFloat]))) {
 						var sid = null;
 						var idCol = null;
 						var _g3 = 0;
@@ -314,21 +314,21 @@ Level.prototype = {
 								}
 							}
 						} catch( e ) { if( e != "__break__" ) throw e; }
-						var l1 = new lvl.LayerData(this,c.name,getProps(c.name),{ o : this.obj, f : c.name});
+						var l1 = new lvl_LayerData(this,c.name,getProps(c.name),{ o : this.obj, f : c.name});
 						l1.hasFloatCoord = l1.floatCoord = floatCoord;
 						l1.baseSheet = sheet;
 						l1.loadSheetData(sid);
 						l1.setObjectsData(idCol,val);
-						l1.hasSize = this.model.hasColumn(sheet,"width",[floatCoord?cdb.ColumnType.TFloat:cdb.ColumnType.TInt]) && this.model.hasColumn(sheet,"height",[floatCoord?cdb.ColumnType.TFloat:cdb.ColumnType.TInt]);
+						l1.hasSize = this.model.hasColumn(sheet,"width",[floatCoord?cdb_ColumnType.TFloat:cdb_ColumnType.TInt]) && this.model.hasColumn(sheet,"height",[floatCoord?cdb_ColumnType.TFloat:cdb_ColumnType.TInt]);
 						this.layers.push(l1);
-					} else if(this.model.hasColumn(sheet,"name",[cdb.ColumnType.TString]) && this.model.hasColumn(sheet,"data",[cdb.ColumnType.TTileLayer])) {
+					} else if(this.model.hasColumn(sheet,"name",[cdb_ColumnType.TString]) && this.model.hasColumn(sheet,"data",[cdb_ColumnType.TTileLayer])) {
 						var val1 = val;
 						var _g31 = 0;
 						while(_g31 < val1.length) {
 							var lobj = val1[_g31];
 							++_g31;
 							if(lobj.name == null) continue;
-							var l2 = new lvl.LayerData(this,lobj.name,getProps(lobj.name),{ o : lobj, f : "data"});
+							var l2 = new lvl_LayerData(this,lobj.name,getProps(lobj.name),{ o : lobj, f : "data"});
 							l2.setTilesData(lobj.data);
 							l2.listColumnn = c;
 							this.layers.push(l2);
@@ -337,7 +337,7 @@ Level.prototype = {
 					}
 					break;
 				case 15:
-					var l3 = new lvl.LayerData(this,c.name,getProps(c.name),{ o : this.obj, f : c.name});
+					var l3 = new lvl_LayerData(this,c.name,getProps(c.name),{ o : this.obj, f : c.name});
 					l3.setTilesData(val);
 					this.layers.push(l3);
 					break;
@@ -345,7 +345,7 @@ Level.prototype = {
 				}
 			}
 		}
-		var $it1 = new haxe.ds._StringMap.StringMapIterator(lprops,lprops.arrayKeys());
+		var $it1 = new haxe_ds__$StringMap_StringMapIterator(lprops,lprops.arrayKeys());
 		while( $it1.hasNext() ) {
 			var c1 = $it1.next();
 			HxOverrides.remove(this.props.layers,c1);
@@ -354,7 +354,7 @@ Level.prototype = {
 			var t = Reflect.field(this.obj,this.sheet.props.displayColumn);
 			if(t != null) title = t;
 		}
-		this.perTileGfx = new haxe.ds.StringMap();
+		this.perTileGfx = new haxe_ds_StringMap();
 		var _g6 = 0;
 		var _g13 = this.perTileProps;
 		while(_g6 < _g13.length) {
@@ -365,7 +365,7 @@ Level.prototype = {
 				switch(_g23[1]) {
 				case 6:
 					var s = _g23[2];
-					var g = new lvl.LayerGfx(this);
+					var g = new lvl_LayerGfx(this);
 					g.fromSheet(this.model.smap.get(s).s,16711680);
 					this.perTileGfx.set(c2.name,g);
 					break;
@@ -380,7 +380,7 @@ Level.prototype = {
 		var file = key.split("@").shift();
 		var abs = this.model.getAbsPath(file);
 		this.watch(file,function() {
-			lvl.Image.load(abs,function(_) {
+			lvl_Image.load(abs,function(_) {
 				Level.loadedTilesCache.remove(key);
 				_g.reload();
 			},function() {
@@ -400,7 +400,7 @@ Level.prototype = {
 		if(a == null) {
 			a = { pending : [], data : null};
 			Level.loadedTilesCache.set(key,a);
-			lvl.Image.load(this.model.getAbsPath(file),function(i) {
+			lvl_Image.load(this.model.getAbsPath(file),function(i) {
 				var images = [];
 				var blanks = [];
 				var w = i.width / size | 0;
@@ -527,7 +527,7 @@ Level.prototype = {
 	}
 	,getFileTime: function(path) {
 		try {
-			return js.Node.require("fs").statSync(path).mtime.getTime() * 1.;
+			return js_Node.require("fs").statSync(path).mtime.getTime() * 1.;
 		} catch( e ) {
 			return 0.;
 		}
@@ -542,7 +542,7 @@ Level.prototype = {
 		var layer = this.layers[0];
 		var state;
 		try {
-			state = haxe.Unserializer.run(js.Browser.getLocalStorage().getItem(this.sheetPath + "#" + this.index));
+			state = haxe_Unserializer.run(js_Browser.getLocalStorage().getItem(this.sheetPath + "#" + this.index));
 		} catch( e ) {
 			state = null;
 		}
@@ -700,7 +700,7 @@ Level.prototype = {
 		var l = this.currentLayer;
 		switch(name) {
 		case "close":
-			(js.Boot.__cast(this.model , Main)).closeLevel(this);
+			(js_Boot.__cast(this.model , Main)).closeLevel(this);
 			break;
 		case "options":
 			var opt = this.content.find(".submenu.options");
@@ -723,7 +723,7 @@ Level.prototype = {
 			break;
 		case "file":
 			var m;
-			m = js.Boot.__cast(this.model , Main);
+			m = js_Boot.__cast(this.model , Main);
 			m.chooseFile(function(path) {
 				{
 					var _g1 = _g.currentLayer.data;
@@ -781,7 +781,7 @@ Level.prototype = {
 			this.setLayerMode(val);
 			break;
 		}
-		new js.JQuery(":focus").blur();
+		js.JQuery(":focus").blur();
 	}
 	,addNewLayer: function(name) {
 		var _g = this.newLayer.type;
@@ -804,7 +804,7 @@ Level.prototype = {
 			while(n >= 0) {
 				var o2 = a[n--];
 				if(o2.data != null) {
-					var a1 = cdb._Types.TileLayerData_Impl_.encode((function($this) {
+					var a1 = cdb__$Types_TileLayerData_$Impl_$.encode((function($this) {
 						var $r;
 						var _g11 = [];
 						{
@@ -834,12 +834,12 @@ Level.prototype = {
 	,popupLayer: function(l,mouseX,mouseY) {
 		var _g = this;
 		this.setLayer(l);
-		var n = new nodejs.webkit.Menu();
-		var nclear = new nodejs.webkit.MenuItem({ label : "Clear"});
-		var ndel = new nodejs.webkit.MenuItem({ label : "Delete"});
-		var nshow = new nodejs.webkit.MenuItem({ label : "Show Only"});
-		var nshowAll = new nodejs.webkit.MenuItem({ label : "Show All"});
-		var nrename = new nodejs.webkit.MenuItem({ label : "Rename"});
+		var n = new nodejs_webkit_Menu();
+		var nclear = new nodejs_webkit_MenuItem({ label : "Clear"});
+		var ndel = new nodejs_webkit_MenuItem({ label : "Delete"});
+		var nshow = new nodejs_webkit_MenuItem({ label : "Show Only"});
+		var nshowAll = new nodejs_webkit_MenuItem({ label : "Show All"});
+		var nrename = new nodejs_webkit_MenuItem({ label : "Rename"});
 		var _g1 = 0;
 		var _g11 = [nshow,nshowAll,nrename,nclear,ndel];
 		while(_g1 < _g11.length) {
@@ -915,8 +915,8 @@ Level.prototype = {
 		};
 		nrename.click = function() {
 			l.comp.find("span").remove();
-			l.comp.prepend(new js.JQuery("<input type='text'>").val(l.name).focus().blur(function(_) {
-				var n1 = StringTools.trim($(this).val());
+			l.comp.prepend(js.JQuery("<input type='text'>").val(l.name).focus().blur(function(_) {
+				var n1 = StringTools.trim(js.JQuery(this).val());
 				var _g16 = 0;
 				var _g25 = _g.props.layers;
 				while(_g16 < _g25.length) {
@@ -947,14 +947,14 @@ Level.prototype = {
 				_g.save();
 				_g.reload();
 			}).keypress(function(e) {
-				if(e.keyCode == 13) $(this).blur();
+				if(e.keyCode == 13) js.JQuery(this).blur();
 			}));
 		};
 		nrename.enabled = ndel.enabled;
 		n.popup(mouseX,mouseY);
 	}
 	,onResize: function() {
-		var win = nodejs.webkit.Window.get();
+		var win = nodejs_webkit_Window.get();
 		this.content.find(".scroll").css("height",win.height - 240 + "px");
 	}
 	,setSort: function(j,callb) {
@@ -974,12 +974,12 @@ Level.prototype = {
 	}
 	,setup: function() {
 		var _g3 = this;
-		var page = new js.JQuery("#content");
+		var page = js.JQuery("#content");
 		page.html("");
 		this.content = ((function($this) {
 			var $r;
-			var html = new js.JQuery("#levelContent").html();
-			$r = new js.JQuery(html);
+			var html = js.JQuery("#levelContent").html();
+			$r = js.JQuery(html);
 			return $r;
 		}(this))).appendTo(page);
 		var mlayers = this.content.find(".layers");
@@ -988,7 +988,7 @@ Level.prototype = {
 		while(_g14 < _g4) {
 			var index = _g14++;
 			var l2 = [this.layers[index]];
-			var td = [new js.JQuery("<li class='item layer'>").appendTo(mlayers)];
+			var td = [js.JQuery("<li class='item layer'>").appendTo(mlayers)];
 			l2[0].comp = td[0];
 			td[0].data("index",index);
 			if(!l2[0].visible) td[0].addClass("hidden");
@@ -1008,24 +1008,24 @@ Level.prototype = {
 					}
 				};
 			})(l2));
-			new js.JQuery("<span>").text(l2[0].name).appendTo(td[0]);
+			js.JQuery("<span>").text(l2[0].name).appendTo(td[0]);
 			if(l2[0].images != null) {
-				var isel = new js.JQuery("<div class='img'>").appendTo(td[0]);
+				var isel = js.JQuery("<div class='img'>").appendTo(td[0]);
 				if(l2[0].images.length > 0) isel.append((function($this) {
 					var $r;
 					var html2 = l2[0].images[l2[0].current].getCanvas();
-					$r = new js.JQuery(html2);
+					$r = js.JQuery(html2);
 					return $r;
 				}(this)));
 				isel.click((function(td,l2) {
 					return function(e1) {
 						_g3.setLayer(l2[0]);
-						var list = new js.JQuery("<div class='imglist'>");
+						var list = js.JQuery("<div class='imglist'>");
 						var _g41 = 0;
 						var _g25 = l2[0].images.length;
 						while(_g41 < _g25) {
 							var i3 = [_g41++];
-							list.append(new js.JQuery("<img>").attr("src",l2[0].images[i3[0]].getCanvas().toDataURL()).click((function(i3,l2) {
+							list.append(js.JQuery("<img>").attr("src",l2[0].images[i3[0]].getCanvas().toDataURL()).click((function(i3,l2) {
 								return function(_2) {
 									l2[0].set_current(i3[0]);
 									_g3.setLayer(l2[0]);
@@ -1039,7 +1039,7 @@ Level.prototype = {
 								((function($this) {
 									var $r;
 									var html3 = window;
-									$r = new js.JQuery(html3);
+									$r = js.JQuery(html3);
 									return $r;
 								}(this))).unbind("click");
 							};
@@ -1047,7 +1047,7 @@ Level.prototype = {
 						((function($this) {
 							var $r;
 							var html4 = window;
-							$r = new js.JQuery(html4);
+							$r = js.JQuery(html4);
 							return $r;
 						}(this))).bind("click",(function() {
 							return function(_3) {
@@ -1063,7 +1063,7 @@ Level.prototype = {
 			var t = ((function($this) {
 				var $r;
 				var html1 = "<input type=\"text\" id=\"_" + Level.UID++ + "\">";
-				$r = new js.JQuery(html1);
+				$r = js.JQuery(html1);
 				return $r;
 			}(this))).appendTo(td[0]);
 			this.spectrum(t,{ color : this.toColor(l2[0].colors[l2[0].current]), clickoutFiresChange : true, showButtons : false, showPaletteOnly : true, showPalette : true, palette : (function($this) {
@@ -1126,7 +1126,7 @@ Level.prototype = {
 				var i2 = _g21++;
 				_g3.layers[i2].comp.data("index",i2);
 			}
-			var groups = new haxe.ds.StringMap();
+			var groups = new haxe_ds_StringMap();
 			var _g12 = 0;
 			var _g22 = _g3.layers;
 			while(_g12 < _g22.length) {
@@ -1163,7 +1163,7 @@ Level.prototype = {
 		this.content.find("[name=newlayer]").css({ display : this.newLayer != null?"block":"none"});
 		var scroll = this.content.find(".scroll");
 		var scont = this.content.find(".scrollContent");
-		this.view = lvl.Image3D.getInstance();
+		this.view = lvl_Image3D.getInstance();
 		scont.append(this.view.viewport);
 		scroll.scroll(function(_5) {
 			_g3.savePrefs();
@@ -1179,15 +1179,15 @@ Level.prototype = {
 		}));
 		this.onResize();
 		this.cursor = this.content.find("#cursor");
-		this.cursorImage = new lvl.Image(0,0);
+		this.cursorImage = new lvl_Image(0,0);
 		this.cursorImage.set_smooth(false);
-		this.tmpImage = new lvl.Image(0,0);
+		this.tmpImage = new lvl_Image(0,0);
 		this.cursor[0].appendChild(this.cursorImage.getCanvas());
 		this.cursor.hide();
 		scont.mouseleave(function(_6) {
 			_g3.curPos = null;
 			if(_g3.selection == null) _g3.cursor.hide();
-			new js.JQuery(".cursorPosition").text("");
+			js.JQuery(".cursorPosition").text("");
 		});
 		scont.mousemove(function(e3) {
 			_g3.mousePos.x = e3.pageX;
@@ -1570,7 +1570,7 @@ Level.prototype = {
 		var off = ((function($this) {
 			var $r;
 			var html = $this.view.getCanvas();
-			$r = new js.JQuery(html);
+			$r = js.JQuery(html);
 			return $r;
 		}(this))).parent().offset();
 		var cxf = ((this.mousePos.x - off.left) / this.zoomView | 0) / this.tileSize;
@@ -1705,18 +1705,18 @@ Level.prototype = {
 		if(!this.hasProps(l)) return;
 		var o = Reflect.field(this.obj,l.name)[index];
 		var scroll = this.content.find(".scrollContent");
-		var popup = new js.JQuery("<div>").addClass("popup").prependTo(scroll);
+		var popup = js.JQuery("<div>").addClass("popup").prependTo(scroll);
 		((function($this) {
 			var $r;
 			var html = window;
-			$r = new js.JQuery(html);
+			$r = js.JQuery(html);
 			return $r;
 		}(this))).bind("mousedown",function(_) {
 			popup.remove();
 			((function($this) {
 				var $r;
 				var html1 = window;
-				$r = new js.JQuery(html1);
+				$r = js.JQuery(html1);
 				return $r;
 			}(this))).unbind("mousedown");
 			if(_g.view != null) _g.draw();
@@ -1730,16 +1730,16 @@ Level.prototype = {
 		popup.click(function(e2) {
 			e2.stopPropagation();
 		});
-		var table = new js.JQuery("<table>").appendTo(popup);
+		var table = js.JQuery("<table>").appendTo(popup);
 		var main = Std.instance(this.model,Main);
 		var _g1 = 0;
 		var _g11 = l.baseSheet.columns;
 		while(_g1 < _g11.length) {
 			var c = [_g11[_g1]];
 			++_g1;
-			var tr = new js.JQuery("<tr>").appendTo(table);
-			var th = new js.JQuery("<th>").text(c[0].name).appendTo(tr);
-			var td = [new js.JQuery("<td>").html(main.valueHtml(c[0],Reflect.field(o,c[0].name),l.baseSheet,o)).appendTo(tr)];
+			var tr = js.JQuery("<tr>").appendTo(table);
+			var th = js.JQuery("<th>").text(c[0].name).appendTo(tr);
+			var td = [js.JQuery("<td>").html(main.valueHtml(c[0],Reflect.field(o,c[0].name),l.baseSheet,o)).appendTo(tr)];
 			td[0].click((function(td,c) {
 				return function(e3) {
 					var psheet = { columns : l.baseSheet.columns, props : l.baseSheet.props, name : l.baseSheet.name, path : _g.model.getPath(l.baseSheet) + ":" + index, parent : { sheet : _g.sheet, column : Lambda.indexOf(_g.sheet.columns,Lambda.find(_g.sheet.columns,(function() {
@@ -1771,7 +1771,7 @@ Level.prototype = {
 		var ty = 0;
 		var sc = this.content.find(".scroll");
 		if(f != null) {
-			new js.JQuery(".popup").remove();
+			js.JQuery(".popup").remove();
 			var width = sc.width();
 			var height = sc.height();
 			var cx = (sc.scrollLeft() + width * 0.5) / this.zoomView;
@@ -1895,8 +1895,8 @@ Level.prototype = {
 			}
 			return;
 		}
-		if(new js.JQuery("input[type=text]:focus").length > 0 || this.currentLayer == null) return;
-		new js.JQuery(".popup").remove();
+		if(js.JQuery("input[type=text]:focus").length > 0 || this.currentLayer == null) return;
+		js.JQuery(".popup").remove();
 		var l1 = this.currentLayer;
 		var _g2 = e.keyCode;
 		switch(_g2) {
@@ -1927,7 +1927,7 @@ Level.prototype = {
 			this.spaceDown = true;
 			var canvas;
 			var html = this.view.getCanvas();
-			canvas = new js.JQuery(html);
+			canvas = js.JQuery(html);
 			canvas.css({ cursor : "move"});
 			this.cursor.hide();
 			var s = canvas.closest(".scroll");
@@ -2165,7 +2165,7 @@ Level.prototype = {
 				switch(_g18[1]) {
 				case 1:
 					var objs = _g18[3];
-					new js.JQuery(".popup").remove();
+					js.JQuery(".popup").remove();
 					this.editProps(p1.layer,p1.index);
 					break;
 				default:
@@ -2309,7 +2309,7 @@ Level.prototype = {
 			this.spaceDown = false;
 			var canvas;
 			var html = this.view.getCanvas();
-			canvas = new js.JQuery(html);
+			canvas = js.JQuery(html);
 			canvas.unbind("mousemove");
 			canvas.css({ cursor : ""});
 			this.updateCursorPos();
@@ -2585,7 +2585,7 @@ Level.prototype = {
 						}
 					}
 					if(l.props.mode == "ground") {
-						var b = new cdb.TileBuilder(l.tileProps,l.stride,l.images.length);
+						var b = new cdb_TileBuilder(l.tileProps,l.stride,l.images.length);
 						var a = b.buildGrounds(data1,this.width);
 						var p = 0;
 						var max = a.length;
@@ -2719,7 +2719,7 @@ Level.prototype = {
 	,savePrefs: function() {
 		var sc = this.content.find(".scroll");
 		var state = { zoomView : this.zoomView, curLayer : this.currentLayer == null?null:this.currentLayer.name, scrollX : sc.scrollLeft(), scrollY : sc.scrollTop(), paintMode : this.paintMode, randomMode : this.randomMode, paletteMode : this.paletteMode, paletteModeCursor : this.paletteModeCursor, smallPalette : this.smallPalette, rotation : this.rotation, flipMode : this.flipMode};
-		js.Browser.getLocalStorage().setItem(this.sheetPath + "#" + this.index,haxe.Serializer.run(state));
+		js_Browser.getLocalStorage().setItem(this.sheetPath + "#" + this.index,haxe_Serializer.run(state));
 	}
 	,scale: function(s) {
 		if(s == null || isNaN(s)) return;
@@ -2949,7 +2949,7 @@ Level.prototype = {
 	,setLayerMode: function(mode) {
 		var l = this.currentLayer;
 		if(l.tileProps == null) {
-			js.Lib.alert("Choose file first");
+			js_Browser.alert("Choose file first");
 			return;
 		}
 		var old = l.props.mode;
@@ -2966,13 +2966,13 @@ Level.prototype = {
 					case 2:
 						var data = _g[3];
 						var td = _g[2];
-						var oids_h = { };
+						var oids = new haxe_ds_IntMap();
 						var _g1 = 0;
 						var _g2 = l.tileProps.sets;
 						while(_g1 < _g2.length) {
 							var p1 = _g2[_g1];
 							++_g1;
-							if(p1.t == "object") oids_h[p1.x + p1.y * l.stride] = p1;
+							if(p1.t == "object") oids.h[p1.x + p1.y * l.stride] = p1;
 						}
 						var objs = [];
 						var p = -1;
@@ -2986,7 +2986,7 @@ Level.prototype = {
 								var x = _g4++;
 								var d = data[++p] - 1;
 								if(d < 0) continue;
-								var o = oids_h[d];
+								var o = oids.h[d];
 								if(o != null) {
 									var _g6 = 0;
 									var _g5 = o.h;
@@ -3028,7 +3028,7 @@ Level.prototype = {
 						objs.sort(function(o1,o2) {
 							return o1.b - o2.b;
 						});
-						l.data = lvl.LayerInnerData.TileInstances(td,(function($this) {
+						l.data = lvl_LayerInnerData.TileInstances(td,(function($this) {
 							var $r;
 							var _g12 = [];
 							{
@@ -3095,7 +3095,7 @@ Level.prototype = {
 								}
 							}
 						}
-						l.data = lvl.LayerInnerData.Tiles(td1,data1);
+						l.data = lvl_LayerInnerData.Tiles(td1,data1);
 						l.dirty = true;
 						break;
 					default:
@@ -3113,7 +3113,7 @@ Level.prototype = {
 	}
 	,paletteOption: function(name,val) {
 		if(this.palette == null) return;
-		var m = cdb._Data.TileMode_Impl_.ofString(this.paletteMode == null?"":HxOverrides.substr(this.paletteMode,2,null));
+		var m = cdb__$Data_TileMode_$Impl_$.ofString(this.paletteMode == null?"":HxOverrides.substr(this.paletteMode,2,null));
 		var l = this.currentLayer;
 		if(val != null) val = StringTools.trim(val);
 		switch(name) {
@@ -3217,7 +3217,7 @@ Level.prototype = {
 					v1 = null;
 				}
 				if(v1 == null) Reflect.deleteField(s2.opts,"value"); else s2.opts.value = v1;
-				this.palette.find("[name=value]").val(v1 == null?"":haxe.Json.stringify(v1,null,null));
+				this.palette.find("[name=value]").val(v1 == null?"":haxe_Json.stringify(v1,null,null));
 			}
 			break;
 		case "priority":
@@ -3391,12 +3391,12 @@ Level.prototype = {
 		}
 		this.palette = ((function($this) {
 			var $r;
-			var html = new js.JQuery("#paletteContent").html();
-			$r = new js.JQuery(html);
+			var html = js.JQuery("#paletteContent").html();
+			$r = js.JQuery(html);
 			return $r;
 		}(this))).appendTo(this.content);
 		this.palette.toggleClass("small",this.smallPalette);
-		var i = lvl.Image.fromCanvas(this.palette.find("canvas.view")[0]);
+		var i = lvl_Image.fromCanvas(this.palette.find("canvas.view")[0]);
 		this.paletteZoom = 1;
 		while(this.paletteZoom < 4 && l.stride * this.paletteZoom * this.tileSize < 256 && l.height * this.paletteZoom * this.tileSize < 256) this.paletteZoom++;
 		var tsize = this.tileSize * this.paletteZoom;
@@ -3412,8 +3412,8 @@ Level.prototype = {
 		}
 		var jsel = this.palette.find("canvas.select");
 		var jpreview = this.palette.find(".preview").hide();
-		var ipreview = lvl.Image.fromCanvas(jpreview.find("canvas")[0]);
-		var select = lvl.Image.fromCanvas(jsel[0]);
+		var ipreview = lvl_Image.fromCanvas(jpreview.find("canvas")[0]);
+		var select = lvl_Image.fromCanvas(jsel[0]);
 		select.setSize(i.width,i.height);
 		this.palette.find(".icon.random").toggleClass("active",this.randomMode);
 		this.palette.find(".icon.paint").toggleClass("active",this.paintMode);
@@ -3797,7 +3797,7 @@ Level.prototype = {
 					this.paletteSelect.fillRect(px1,py1,1,h1,color);
 					this.paletteSelect.fillRect(px1 + w1 - 1,py1,1,h1,color);
 				}
-				var mode = cdb._Data.TileMode_Impl_.ofString(this.paletteMode == null?"":HxOverrides.substr(this.paletteMode,2,null));
+				var mode = cdb__$Data_TileMode_$Impl_$.ofString(this.paletteMode == null?"":HxOverrides.substr(this.paletteMode,2,null));
 				var tobj = l.getTileProp(mode);
 				if(tobj == null) tobj = { x : 0, y : 0, w : 0, h : 0, t : "tile", opts : { }};
 				var baseModes = ((function($this) {
@@ -3840,7 +3840,7 @@ Level.prototype = {
 						m.addClass("m_ref");
 						var refList = m.find(".opt.refList");
 						refList.html("");
-						if(prop.opt) new js.JQuery("<div>").addClass("icon").addClass("delete").appendTo(refList).toggleClass("active",this.paletteModeCursor < 0).click(function() {
+						if(prop.opt) js.JQuery("<div>").addClass("icon").addClass("delete").appendTo(refList).toggleClass("active",this.paletteModeCursor < 0).click(function() {
 							_g3.paletteModeCursor = -1;
 							_g3.setCursor();
 						});
@@ -3848,7 +3848,7 @@ Level.prototype = {
 						var _g37 = gfx1.images.length;
 						while(_g45 < _g37) {
 							var i2 = [_g45++];
-							var d = new js.JQuery("<div>").addClass("icon").css({ background : "url('" + gfx1.images[i2[0]].getCanvas().toDataURL() + "')"});
+							var d = js.JQuery("<div>").addClass("icon").css({ background : "url('" + gfx1.images[i2[0]].getCanvas().toDataURL() + "')"});
 							d.appendTo(refList);
 							d.toggleClass("active",this.paletteModeCursor == i2[0]);
 							d.attr("title",gfx1.names[i2[0]]);
@@ -3865,7 +3865,7 @@ Level.prototype = {
 						m.addClass("m_ref");
 						var refList1 = m.find(".opt.refList");
 						refList1.html("");
-						if(prop.opt) new js.JQuery("<div>").addClass("icon").addClass("delete").appendTo(refList1).toggleClass("active",this.paletteModeCursor < 0).click(function() {
+						if(prop.opt) js.JQuery("<div>").addClass("icon").addClass("delete").appendTo(refList1).toggleClass("active",this.paletteModeCursor < 0).click(function() {
 							_g3.paletteModeCursor = -1;
 							_g3.setCursor();
 						});
@@ -3873,7 +3873,7 @@ Level.prototype = {
 						var _g38 = values.length;
 						while(_g46 < _g38) {
 							var i3 = [_g46++];
-							var d1 = new js.JQuery("<div>").addClass("icon").css({ background : this.toColor(Level.colorPalette[i3[0]]), width : "auto"}).text(values[i3[0]]);
+							var d1 = js.JQuery("<div>").addClass("icon").css({ background : this.toColor(Level.colorPalette[i3[0]]), width : "auto"}).text(values[i3[0]]);
 							d1.appendTo(refList1);
 							d1.toggleClass("active",this.paletteModeCursor == i3[0]);
 							d1.click((function(i3) {
@@ -3889,11 +3889,11 @@ Level.prototype = {
 						var p4 = this.getTileProp(l.current % l.stride,l.current / l.stride | 0,false);
 						var v4;
 						if(p4 == null) v4 = null; else v4 = Reflect.field(p4,prop.name);
-						m.find("[name=value]").val(prop.type == cdb.ColumnType.TDynamic?haxe.Json.stringify(v4,null,null):v4 == null?"":"" + v4);
+						m.find("[name=value]").val(prop.type == cdb_ColumnType.TDynamic?haxe_Json.stringify(v4,null,null):v4 == null?"":"" + v4);
 						break;
 					default:
 					}
-				} else if("t_" + cdb._Data.TileMode_Impl_.toString(tobj.t) != this.paletteMode) {
+				} else if("t_" + cdb__$Data_TileMode_$Impl_$.toString(tobj.t) != this.paletteMode) {
 					if(this.paletteMode == null) m.addClass("m_tile"); else m.addClass("m_create").addClass("c_" + HxOverrides.substr(this.paletteMode,2,null));
 				} else {
 					m.addClass("m_" + HxOverrides.substr(this.paletteMode,2,null)).addClass("m_exists");
@@ -3907,7 +3907,7 @@ Level.prototype = {
 						break;
 					case "group":
 						m.find("[name=name]").val(tobj.opts.name == null?"":tobj.opts.name);
-						m.find("[name=value]").val(tobj.opts.value == null?"":haxe.Json.stringify(tobj.opts.value,null,null));
+						m.find("[name=value]").val(tobj.opts.value == null?"":haxe_Json.stringify(tobj.opts.value,null,null));
 						break;
 					case "border":
 						var opts = ((function($this) {
@@ -4061,13 +4061,10 @@ var K = function() { };
 $hxClasses["K"] = K;
 K.__name__ = ["K"];
 var Model = function() {
-	this.openedList = new haxe.ds.StringMap();
+	this.openedList = new haxe_ds_StringMap();
 	this.r_ident = new EReg("^[A-Za-z_][A-Za-z0-9_]*$","");
 	this.prefs = { windowPos : { x : 50, y : 50, w : 800, h : 600, max : false}, curFile : null, curSheet : 0};
-	try {
-		this.prefs = haxe.Unserializer.run(js.Browser.getLocalStorage().getItem("prefs"));
-	} catch( e ) {
-	}
+	this.loadPrefs();
 };
 $hxClasses["Model"] = Model;
 Model.__name__ = ["Model"];
@@ -4076,7 +4073,7 @@ Model.prototype = {
 		return Reflect.field(this.imageBank,key);
 	}
 	,getAbsPath: function(file) {
-		if(file.charAt(0) == "/" || file.charAt(1) == ":") return file; else return new haxe.io.Path(this.prefs.curFile).dir.split("\\").join("/") + "/" + file;
+		if(file.charAt(0) == "/" || file.charAt(1) == ":") return file; else return new haxe_io_Path(this.prefs.curFile).dir.split("\\").join("/") + "/" + file;
 	}
 	,getSheet: function(name) {
 		return this.smap.get(name).s;
@@ -4224,7 +4221,7 @@ Model.prototype = {
 					while(_g1 < _g2.length) {
 						var c1 = _g2[_g1];
 						++_g1;
-						if(c1.type == cdb.ColumnType.TId) {
+						if(c1.type == cdb_ColumnType.TId) {
 							id = Reflect.field(l,c1.name);
 							break;
 						}
@@ -4242,7 +4239,7 @@ Model.prototype = {
 	}
 	,parseDynamic: function(s) {
 		s = new EReg("([{,]) *([a-zA-Z_][a-zA-Z0-9_]*) *:","g").replace(s,"$1\"$2\":");
-		return js.Node.parse(s);
+		return js_Node.parse(s);
 	}
 	,hasColumn: function(s,name,types) {
 		var _g = 0;
@@ -4315,26 +4312,26 @@ Model.prototype = {
 				if(this.curSavedData != null) {
 					this.history.push(this.curSavedData);
 					this.redo = [];
-					if(this.history.length > 100) this.history.shift();
+					if(this.history.length > 100 || this.curSavedData.length * this.history.length * 2 > 314572800) this.history.shift();
 				}
 				this.curSavedData = sdata;
 			}
 		}
 		if(this.prefs.curFile == null) return;
-		sys.io.File.saveContent(this.prefs.curFile,cdb.Parser.save(this.data));
+		sys_io_File.saveContent(this.prefs.curFile,cdb_Parser.save(this.data));
 	}
 	,saveImages: function() {
 		if(this.prefs.curFile == null) return;
 		var img = this.prefs.curFile.split(".");
 		img.pop();
 		var path = img.join(".") + ".img";
-		if(this.imageBank == null) js.Node.require("fs").unlinkSync(path); else sys.io.File.saveContent(path,js.Node.stringify(this.imageBank,null,"\t"));
+		if(this.imageBank == null) js_Node.require("fs").unlinkSync(path); else sys_io_File.saveContent(path,js_Node.stringify(this.imageBank,null,"\t"));
 	}
 	,quickSave: function() {
-		return haxe.Serializer.run({ d : this.data, o : this.openedList});
+		return haxe_Serializer.run({ d : this.data, o : this.openedList});
 	}
 	,quickLoad: function(sdata) {
-		var t = haxe.Unserializer.run(sdata);
+		var t = haxe_Unserializer.run(sdata);
 		this.data = t.d;
 		this.openedList = t.o;
 	}
@@ -4443,7 +4440,7 @@ Model.prototype = {
 					sheet.props.displayColumn = null;
 					this.makeSheet(sheet);
 				}
-				if(c.type == cdb.ColumnType.TList) this.deleteSheet(this.smap.get(sheet.name + "@" + c.name).s);
+				if(c.type == cdb_ColumnType.TList) this.deleteSheet(this.smap.get(sheet.name + "@" + c.name).s);
 				return true;
 			}
 		}
@@ -4469,11 +4466,11 @@ Model.prototype = {
 			switch(t[1]) {
 			case 6:
 				var r = t[2];
-				if(r == sheet.name) return cdb.ColumnType.TString; else return t;
+				if(r == sheet.name) return cdb_ColumnType.TString; else return t;
 				break;
 			case 12:
 				var r1 = t[2];
-				if(r1 == sheet.name) return cdb.ColumnType.TString; else return t;
+				if(r1 == sheet.name) return cdb_ColumnType.TString; else return t;
 				break;
 			default:
 				return t;
@@ -4486,7 +4483,7 @@ Model.prototype = {
 		while(_g < _g1.length) {
 			var c2 = _g1[_g];
 			++_g;
-			if(c2.name == c.name) return "Column already exists"; else if(c2.type == cdb.ColumnType.TId && c.type == cdb.ColumnType.TId) return "Only one ID allowed";
+			if(c2.name == c.name) return "Column already exists"; else if(c2.type == cdb_ColumnType.TId && c.type == cdb_ColumnType.TId) return "Only one ID allowed";
 		}
 		if(c.name == "index" && sheet.props.hasIndex) return "Sheet already has an index";
 		if(c.name == "group" && sheet.props.hasGroup) return "Sheet already has a group";
@@ -4499,7 +4496,7 @@ Model.prototype = {
 			var def = this.getDefault(c);
 			if(def != null) i[c.name] = def;
 		}
-		if(c.type == cdb.ColumnType.TList) {
+		if(c.type == cdb_ColumnType.TList) {
 			var s = { name : sheet.name + "@" + c.name, props : { hide : true}, separators : [], lines : [], columns : []};
 			this.data.sheets.push(s);
 			this.makeSheet(s);
@@ -4569,7 +4566,7 @@ Model.prototype = {
 				break;
 			case 5:
 				var values1 = t[2];
-				var map = new haxe.ds.StringMap();
+				var map = new haxe_ds_StringMap();
 				var _g1 = 0;
 				var _g = values1.length;
 				while(_g1 < _g) {
@@ -4779,12 +4776,12 @@ Model.prototype = {
 				while(_g13 < _g21.length) {
 					var c1 = _g21[_g13];
 					++_g13;
-					if(c1.type == cdb.ColumnType.TList) renameRec1(s,c1);
+					if(c1.type == cdb_ColumnType.TList) renameRec1(s,c1);
 				}
 				_g.makeSheet(s);
 			};
 			renameRec = renameRec1;
-			if(old.type == cdb.ColumnType.TList) renameRec(sheet,old);
+			if(old.type == cdb_ColumnType.TList) renameRec(sheet,old);
 			old.name = c.name;
 		}
 		if(!Type.enumEq(old.type,c.type)) {
@@ -4874,7 +4871,7 @@ Model.prototype = {
 							++_g5;
 							var ldat = Reflect.field(obj,c1.name);
 							if(ldat == null || ldat == "") continue;
-							var d = cdb._Types.Layer_Impl_.decode(ldat,(function($this) {
+							var d = cdb__$Types_Layer_$Impl_$.decode(ldat,(function($this) {
 								var $r;
 								var _g7 = [];
 								{
@@ -4887,7 +4884,7 @@ Model.prototype = {
 								$r = _g7;
 								return $r;
 							}(this)));
-							ldat = cdb._Types.Layer_Impl_.encode(d,this.data.compress);
+							ldat = cdb__$Types_Layer_$Impl_$.encode(d,this.data.compress);
 							obj[c1.name] = ldat;
 						}
 						break;
@@ -4899,8 +4896,8 @@ Model.prototype = {
 							++_g51;
 							var ldat1 = Reflect.field(obj1,c1.name);
 							if(ldat1 == null || ldat1 == "") continue;
-							var d1 = cdb._Types.TileLayerData_Impl_.decode(ldat1.data);
-							Reflect.setField(ldat1,"data",cdb._Types.TileLayerData_Impl_.encode(d1,this.data.compress));
+							var d1 = cdb__$Types_TileLayerData_$Impl_$.decode(ldat1.data);
+							Reflect.setField(ldat1,"data",cdb__$Types_TileLayerData_$Impl_$.encode(d1,this.data.compress));
 						}
 						break;
 					default:
@@ -4912,14 +4909,17 @@ Model.prototype = {
 	,compressionEnabled: function() {
 		return this.data.compress;
 	}
+	,error: function(msg) {
+		js_Browser.alert(msg);
+	}
 	,load: function(noError) {
 		if(noError == null) noError = false;
 		this.history = [];
 		this.redo = [];
 		try {
-			this.data = cdb.Parser.parse(sys.io.File.getContent(this.prefs.curFile));
+			this.data = cdb_Parser.parse(sys_io_File.getContent(this.prefs.curFile));
 		} catch( e ) {
-			if(!noError) js.Lib.alert(e);
+			if(!noError) this.error(Std.string(e));
 			this.prefs.curFile = null;
 			this.prefs.curSheet = 0;
 			this.data = { sheets : [], customTypes : [], compress : false};
@@ -4927,7 +4927,7 @@ Model.prototype = {
 		try {
 			var img = this.prefs.curFile.split(".");
 			img.pop();
-			this.imageBank = haxe.Json.parse(sys.io.File.getContent(img.join(".") + ".img"));
+			this.imageBank = haxe_Json.parse(sys_io_File.getContent(img.join(".") + ".img"));
 		} catch( e1 ) {
 			this.imageBank = null;
 		}
@@ -4935,7 +4935,7 @@ Model.prototype = {
 		this.initContent();
 	}
 	,initContent: function() {
-		this.smap = new haxe.ds.StringMap();
+		this.smap = new haxe_ds_StringMap();
 		var _g = 0;
 		var _g1 = this.data.sheets;
 		while(_g < _g1.length) {
@@ -4943,7 +4943,7 @@ Model.prototype = {
 			++_g;
 			this.makeSheet(s);
 		}
-		this.tmap = new haxe.ds.StringMap();
+		this.tmap = new haxe_ds_StringMap();
 		var _g2 = 0;
 		var _g11 = this.data.customTypes;
 		while(_g2 < _g11.length) {
@@ -4956,7 +4956,7 @@ Model.prototype = {
 		if(a.disp > b.disp) return 1; else return -1;
 	}
 	,makeSheet: function(s) {
-		var sdat = { s : s, index : new haxe.ds.StringMap(), all : []};
+		var sdat = { s : s, index : new haxe_ds_StringMap(), all : []};
 		var cid = null;
 		var lines = this.getSheetLines(s);
 		var _g = 0;
@@ -4964,7 +4964,7 @@ Model.prototype = {
 		while(_g < _g1.length) {
 			var c = _g1[_g];
 			++_g;
-			if(c.type == cdb.ColumnType.TId) {
+			if(c.type == cdb_ColumnType.TId) {
 				var _g2 = 0;
 				while(_g2 < lines.length) {
 					var l = lines[_g2];
@@ -4989,7 +4989,7 @@ Model.prototype = {
 	}
 	,cleanImages: function() {
 		if(this.imageBank == null) return;
-		var used = new haxe.ds.StringMap();
+		var used = new haxe_ds_StringMap();
 		var _g = 0;
 		var _g1 = this.data.sheets;
 		while(_g < _g1.length) {
@@ -5026,8 +5026,14 @@ Model.prototype = {
 			if(!(__map_reserved[f] != null?used.getReserved(f):used.h[f])) Reflect.deleteField(this.imageBank,f);
 		}
 	}
+	,loadPrefs: function() {
+		try {
+			this.prefs = haxe_Unserializer.run(js_Browser.getLocalStorage().getItem("prefs"));
+		} catch( e ) {
+		}
+	}
 	,savePrefs: function() {
-		js.Browser.getLocalStorage().setItem("prefs",haxe.Serializer.run(this.prefs));
+		js_Browser.getLocalStorage().setItem("prefs",haxe_Serializer.run(this.prefs));
 	}
 	,objToString: function(sheet,obj,esc) {
 		if(esc == null) esc = false;
@@ -5087,7 +5093,7 @@ Model.prototype = {
 			break;
 		case 5:
 			var values = t[2];
-			return this.valToString(cdb.ColumnType.TString,values[val],esc);
+			return this.valToString(cdb_ColumnType.TString,values[val],esc);
 		case 9:
 			var t1 = t[2];
 			return this.typeValToString(this.tmap.get(t1),val,esc);
@@ -5099,7 +5105,7 @@ Model.prototype = {
 			var _g = values1.length;
 			while(_g1 < _g) {
 				var i = _g1++;
-				if((v & 1 << i) != 0) flags.push(this.valToString(cdb.ColumnType.TString,values1[i],esc));
+				if((v & 1 << i) != 0) flags.push(this.valToString(cdb_ColumnType.TString,values1[i],esc));
 			}
 			return Std.string(flags);
 		case 11:
@@ -5107,7 +5113,7 @@ Model.prototype = {
 			if(esc) return "\"" + s + "\""; else return s;
 			break;
 		case 15:case 16:case 14:
-			if(esc) return haxe.Json.stringify(val,null,null); else return Std.string(val);
+			if(esc) return haxe_Json.stringify(val,null,null); else return Std.string(val);
 			break;
 		case 8:
 			return "???";
@@ -5292,7 +5298,7 @@ Model.prototype = {
 						try {
 							val1 = this.parseVal(a.type,v);
 						} catch( e ) {
-							if( js.Boot.__instanceof(e,String) ) {
+							if( js_Boot.__instanceof(e,String) ) {
 								throw e + " for " + a.name;
 							} else throw(e);
 						}
@@ -5311,15 +5317,15 @@ Model.prototype = {
 	,parseType: function(tstr) {
 		switch(tstr) {
 		case "Int":
-			return cdb.ColumnType.TInt;
+			return cdb_ColumnType.TInt;
 		case "Float":
-			return cdb.ColumnType.TFloat;
+			return cdb_ColumnType.TFloat;
 		case "Bool":
-			return cdb.ColumnType.TBool;
+			return cdb_ColumnType.TBool;
 		case "String":
-			return cdb.ColumnType.TString;
+			return cdb_ColumnType.TString;
 		default:
-			if(this.tmap.exists(tstr)) return cdb.ColumnType.TCustom(tstr); else if(this.smap.exists(tstr)) return cdb.ColumnType.TRef(tstr); else {
+			if(this.tmap.exists(tstr)) return cdb_ColumnType.TCustom(tstr); else if(this.smap.exists(tstr)) return cdb_ColumnType.TRef(tstr); else {
 				if(StringTools.endsWith(tstr,">")) {
 					var tname = tstr.split("<").shift();
 					var tparam;
@@ -5362,7 +5368,7 @@ Model.prototype = {
 	}
 	,parseTypeCases: function(def) {
 		var cases = [];
-		var cmap = new haxe.ds.StringMap();
+		var cmap = new haxe_ds_StringMap();
 		var _g = 0;
 		var _g1 = new EReg("[\n;]","g").split(def);
 		while(_g < _g1.length) {
@@ -5544,7 +5550,7 @@ Model.prototype = {
 								++_g5;
 								var ldat = Reflect.field(obj,c.name);
 								if(ldat == null || ldat == "") continue;
-								var d = cdb._Types.Layer_Impl_.decode(ldat,(function($this) {
+								var d = cdb__$Types_Layer_$Impl_$.decode(ldat,(function($this) {
 									var $r;
 									var _g7 = [];
 									{
@@ -5565,7 +5571,7 @@ Model.prototype = {
 									if(r < 0) r = 0;
 									d[i1] = r;
 								}
-								ldat = cdb._Types.Layer_Impl_.encode(d,this.data.compress);
+								ldat = cdb__$Types_Layer_$Impl_$.encode(d,this.data.compress);
 								obj[c.name] = ldat;
 							}
 						} else {
@@ -5795,7 +5801,7 @@ Model.prototype = {
 							}
 						}
 						if(tname1 == old.name && t.name != old.name) {
-							c2.type = cdb.ColumnType.TCustom(t.name);
+							c2.type = cdb_ColumnType.TCustom(t.name);
 							c2.typeStr = null;
 						}
 						break;
@@ -5826,7 +5832,7 @@ Model.prototype = {
 							case 9:
 								var n = _g61[2];
 								if(n == old.name) {
-									a2.type = cdb.ColumnType.TCustom(t.name);
+									a2.type = cdb_ColumnType.TCustom(t.name);
 									a2.typeStr = null;
 								} else {
 								}
@@ -5847,24 +5853,24 @@ Model.prototype = {
 };
 var Main = function() {
 	Model.call(this);
-	this.window = nodejs.webkit.Window.get();
+	this.window = nodejs_webkit_Window.get();
 	this.window.on("resize",$bind(this,this.onResize));
 	this.initMenu();
 	this.levels = [];
 	this.mousePos = { x : 0, y : 0};
-	this.sheetCursors = new haxe.ds.StringMap();
+	this.sheetCursors = new haxe_ds_StringMap();
 	this.window.window.addEventListener("keydown",$bind(this,this.onKey));
 	this.window.window.addEventListener("keypress",$bind(this,this.onKeyPress));
 	this.window.window.addEventListener("keyup",$bind(this,this.onKeyUp));
 	this.window.window.addEventListener("mousemove",$bind(this,this.onMouseMove));
-	new js.JQuery(".modal").keypress(function(e) {
+	js.JQuery(".modal").keypress(function(e) {
 		e.stopPropagation();
 	}).keydown(function(e1) {
 		e1.stopPropagation();
 	});
 	this.cursor = { s : null, x : 0, y : 0};
 	this.load(true);
-	var t = new haxe.Timer(1000);
+	var t = new haxe_Timer(1000);
 	t.run = $bind(this,this.checkTime);
 };
 $hxClasses["Main"] = Main;
@@ -5897,7 +5903,7 @@ Main.prototype = $extend(Model.prototype,{
 			$r = _g;
 			return $r;
 		}(this))), data : data, schema : schema};
-		nodejs.webkit.Clipboard.get().set(this.clipboard.text,"text");
+		nodejs_webkit_Clipboard.get().set(this.clipboard.text,"text");
 	}
 	,moveCursor: function(dx,dy,shift,ctrl) {
 		if(this.cursor.s == null) return;
@@ -5914,7 +5920,7 @@ Main.prototype = $extend(Model.prototype,{
 		this.updateCursor();
 	}
 	,onKeyPress: function(e) {
-		if(!e.ctrlKey) new js.JQuery(".cursor").not(".edit").dblclick();
+		if(!e.ctrlKey) js.JQuery(".cursor").not(".edit").dblclick();
 	}
 	,getSelection: function() {
 		if(this.cursor.s == null) return null;
@@ -5948,7 +5954,7 @@ Main.prototype = $extend(Model.prototype,{
 			break;
 		case 46:
 			if(this.level == null) {
-				new js.JQuery(".selected.deletable").change();
+				js.JQuery(".selected.deletable").change();
 				if(this.cursor.s != null) {
 					if(this.cursor.x < 0) {
 						var s = this.getSelection();
@@ -6068,7 +6074,7 @@ Main.prototype = $extend(Model.prototype,{
 			break;
 		case 86:
 			if(e.ctrlKey) {
-				if(this.cursor.s == null || this.clipboard == null || nodejs.webkit.Clipboard.get().get("text") != this.clipboard.text) return;
+				if(this.cursor.s == null || this.clipboard == null || nodejs_webkit_Clipboard.get().get("text") != this.clipboard.text) return;
 				var sheet = this.cursor.s;
 				var posX;
 				if(this.cursor.x < 0) posX = 0; else posX = this.cursor.x;
@@ -6091,7 +6097,7 @@ Main.prototype = $extend(Model.prototype,{
 						var f = this.getConvFunction(c11.type,c2.type);
 						var v1 = Reflect.field(obj11,c11.name);
 						if(f == null) v1 = this.getDefault(c2); else {
-							if(v1 != null) v1 = haxe.Json.parse(haxe.Json.stringify(v1,null,null));
+							if(v1 != null) v1 = haxe_Json.parse(haxe_Json.stringify(v1,null,null));
 							if(f.f != null) v1 = f.f(v1);
 						}
 						if(v1 == null && !c2.opt) v1 = this.getDefault(c2);
@@ -6123,14 +6129,14 @@ Main.prototype = $extend(Model.prototype,{
 			if(this.cursor.s != null && this.cursor.s.parent != null) {
 				var p = this.cursor.s.parent;
 				this.setCursor(p.sheet,p.column,p.line);
-				new js.JQuery(".cursor").click();
+				js.JQuery(".cursor").click();
 			} else if(this.cursor.select != null) {
 				this.cursor.select = null;
 				this.updateCursor();
 			}
 			break;
 		case 113:
-			new js.JQuery(".cursor").not(".edit").dblclick();
+			js.JQuery(".cursor").not(".edit").dblclick();
 			break;
 		case 114:
 			if(this.cursor.s != null) this.showReferences(this.cursor.s,this.cursor.y);
@@ -6172,7 +6178,7 @@ Main.prototype = $extend(Model.prototype,{
 		return ((function($this) {
 			var $r;
 			var html = "table[sheet='" + $this.getPath(sheet) + "'] > tbody > tr";
-			$r = new js.JQuery(html);
+			$r = js.JQuery(html);
 			return $r;
 		}(this))).not(".head,.separator,.list").eq(index);
 	}
@@ -6258,7 +6264,7 @@ Main.prototype = $extend(Model.prototype,{
 		}
 		if(results.length == 0) {
 			this.setErrorMessage(id + " not found");
-			haxe.Timer.delay((function(f) {
+			haxe_Timer.delay((function(f) {
 				return function() {
 					f();
 				};
@@ -6267,14 +6273,14 @@ Main.prototype = $extend(Model.prototype,{
 		}
 		var line = this.getLine(sheet,index);
 		line.next("tr.list").change();
-		var res = new js.JQuery("<tr>").addClass("list");
-		new js.JQuery("<td>").appendTo(res);
-		var cell = new js.JQuery("<td>").attr("colspan","" + (sheet.columns.length + (sheet.props.level != null?1:0))).appendTo(res);
-		var div = new js.JQuery("<div>").appendTo(cell);
+		var res = js.JQuery("<tr>").addClass("list");
+		js.JQuery("<td>").appendTo(res);
+		var cell = js.JQuery("<td>").attr("colspan","" + (sheet.columns.length + (sheet.props.level != null?1:0))).appendTo(res);
+		var div = js.JQuery("<div>").appendTo(cell);
 		div.hide();
-		var content = new js.JQuery("<table>").appendTo(div);
-		var cols = new js.JQuery("<tr>").addClass("head");
-		new js.JQuery("<td>").addClass("start").appendTo(cols).click(function(_) {
+		var content = js.JQuery("<table>").appendTo(div);
+		var cols = js.JQuery("<tr>").addClass("head");
+		js.JQuery("<td>").addClass("start").appendTo(cols).click(function(_) {
 			res.change();
 		});
 		var _g8 = 0;
@@ -6282,7 +6288,7 @@ Main.prototype = $extend(Model.prototype,{
 		while(_g8 < _g12.length) {
 			var name = _g12[_g8];
 			++_g8;
-			new js.JQuery("<td>").text(name).appendTo(cols);
+			js.JQuery("<td>").text(name).appendTo(cols);
 		}
 		content.append(cols);
 		var index1 = 0;
@@ -6290,10 +6296,10 @@ Main.prototype = $extend(Model.prototype,{
 		while(_g9 < results.length) {
 			var rs = [results[_g9]];
 			++_g9;
-			var l = new js.JQuery("<tr>").appendTo(content).addClass("clickable");
-			new js.JQuery("<td>").text("" + index1++).appendTo(l);
+			var l = js.JQuery("<tr>").appendTo(content).addClass("clickable");
+			js.JQuery("<td>").text("" + index1++).appendTo(l);
 			var slast = [rs[0].s[rs[0].s.length - 1]];
-			new js.JQuery("<td>").text(slast[0].s.name.split("@").join(".") + "." + slast[0].c).appendTo(l);
+			js.JQuery("<td>").text(slast[0].s.name.split("@").join(".") + "." + slast[0].c).appendTo(l);
 			var path = [];
 			var _g22 = 0;
 			var _g13 = rs[0].s.length;
@@ -6303,7 +6309,7 @@ Main.prototype = $extend(Model.prototype,{
 				var oid = Reflect.field(rs[0].o.path[i],s1.id);
 				if(oid == null || oid == "") path.push(s1.s.name.split("@").pop() + "[" + rs[0].o.indexes[i] + "]"); else path.push(oid);
 			}
-			new js.JQuery("<td>").text(path.join(".")).appendTo(l);
+			js.JQuery("<td>").text(path.join(".")).appendTo(l);
 			l.click((function(slast,rs) {
 				return function(e) {
 					var key = null;
@@ -6361,7 +6367,7 @@ Main.prototype = $extend(Model.prototype,{
 				if(c.name == "width") oldW = old; else oldH = old;
 				var remapTileLayer = function(v) {
 					if(v == null) return null;
-					var odat = cdb._Types.TileLayerData_Impl_.decode(v.data);
+					var odat = cdb__$Types_TileLayerData_$Impl_$.decode(v.data);
 					var ndat = [];
 					if(odat[0] == 65535) ndat = odat; else {
 						var pos = 0;
@@ -6395,7 +6401,7 @@ Main.prototype = $extend(Model.prototype,{
 							}
 						}
 					}
-					return { file : v.file, size : v.size, stride : v.stride, data : cdb._Types.TileLayerData_Impl_.encode(ndat,_g1.data.compress)};
+					return { file : v.file, size : v.size, stride : v.stride, data : cdb__$Types_TileLayerData_$Impl_$.encode(ndat,_g1.data.compress)};
 				};
 				var _g12 = 0;
 				var _g24 = sheet.columns;
@@ -6409,7 +6415,7 @@ Main.prototype = $extend(Model.prototype,{
 						switch(_g3[1]) {
 						case 12:
 							var v2 = v1;
-							var odat1 = cdb._Types.Layer_Impl_.decode(v2,(function($this) {
+							var odat1 = cdb__$Types_Layer_$Impl_$.decode(v2,(function($this) {
 								var $r;
 								var _g4 = [];
 								{
@@ -6434,12 +6440,12 @@ Main.prototype = $extend(Model.prototype,{
 									ndat1.push(k);
 								}
 							}
-							v2 = cdb._Types.Layer_Impl_.encode(ndat1,this.data.compress);
+							v2 = cdb__$Types_Layer_$Impl_$.encode(ndat1,this.data.compress);
 							obj[c1.name] = v2;
 							break;
 						case 8:
 							var s = this.smap.get(sheet.name + "@" + c1.name).s;
-							if(this.hasColumn(s,"x",[cdb.ColumnType.TInt,cdb.ColumnType.TFloat]) && this.hasColumn(s,"y",[cdb.ColumnType.TInt,cdb.ColumnType.TFloat])) {
+							if(this.hasColumn(s,"x",[cdb_ColumnType.TInt,cdb_ColumnType.TFloat]) && this.hasColumn(s,"y",[cdb_ColumnType.TInt,cdb_ColumnType.TFloat])) {
 								var elts = Reflect.field(obj,c1.name);
 								var _g41 = 0;
 								var _g52 = elts.slice();
@@ -6448,7 +6454,7 @@ Main.prototype = $extend(Model.prototype,{
 									++_g41;
 									if(e.x >= newW || e.y >= newH) HxOverrides.remove(elts,e);
 								}
-							} else if(this.hasColumn(s,"data",[cdb.ColumnType.TTileLayer])) {
+							} else if(this.hasColumn(s,"data",[cdb_ColumnType.TTileLayer])) {
 								var a = v1;
 								var _g42 = 0;
 								while(_g42 < a.length) {
@@ -6473,7 +6479,7 @@ Main.prototype = $extend(Model.prototype,{
 				while(_g13 < _g25.length) {
 					var cid = _g25[_g13];
 					++_g13;
-					if(cid.type == cdb.ColumnType.TId) {
+					if(cid.type == cdb_ColumnType.TId) {
 						var id = Reflect.field(obj1,cid.name);
 						if(id != null) {
 							var disp = Reflect.field(obj1,c.name);
@@ -6488,7 +6494,7 @@ Main.prototype = $extend(Model.prototype,{
 			var obj2 = sheet.lines[index];
 			var oldV = old;
 			var newV = Reflect.field(obj2,c.name);
-			if(newV != null && oldV != null && oldV.file != newV.file && !sys.FileSystem.exists(this.getAbsPath(oldV.file)) && sys.FileSystem.exists(this.getAbsPath(newV.file))) {
+			if(newV != null && oldV != null && oldV.file != newV.file && !sys_FileSystem.exists(this.getAbsPath(oldV.file)) && sys_FileSystem.exists(this.getAbsPath(newV.file))) {
 				var change = false;
 				var _g26 = 0;
 				var _g14 = sheet.lines.length;
@@ -6512,7 +6518,7 @@ Main.prototype = $extend(Model.prototype,{
 				while(_g15 < _g27.length) {
 					var cid1 = _g27[_g15];
 					++_g15;
-					if(cid1.type == cdb.ColumnType.TId) {
+					if(cid1.type == cdb_ColumnType.TId) {
 						var id1 = Reflect.field(obj3,cid1.name);
 						if(id1 != null) {
 							var disp1 = Reflect.field(obj3,c.name);
@@ -6525,11 +6531,8 @@ Main.prototype = $extend(Model.prototype,{
 		}
 		this.save();
 	}
-	,error: function(msg) {
-		js.Lib.alert(msg);
-	}
 	,setErrorMessage: function(msg) {
-		if(msg == null) new js.JQuery(".errorMsg").hide(); else new js.JQuery(".errorMsg").text(msg).show();
+		if(msg == null) js.JQuery(".errorMsg").hide(); else js.JQuery(".errorMsg").text(msg).show();
 	}
 	,valueHtml: function(c,v,sheet,obj) {
 		if(v == null) {
@@ -6648,13 +6651,13 @@ Main.prototype = $extend(Model.prototype,{
 				var ext = v.split(".").pop().toLowerCase();
 				var html;
 				if(v == "") html = "<span class=\"error\">#MISSING</span>"; else html = StringTools.htmlEscape(v);
-				if(v != "" && !js.Node.require("fs").existsSync(path)) html = "<span class=\"error\">" + html + "</span>"; else if(ext == "png" || ext == "jpg" || ext == "jpeg" || ext == "gif") html = "<span class=\"preview\">" + html + "<div class=\"previewContent\"><div class=\"label\"></div><img src=\"" + path + "\" onload=\"$(this).parent().find('.label').text(this.width+'x'+this.height)\"/></div></span>";
+				if(v != "" && !js_Node.require("fs").existsSync(path)) html = "<span class=\"error\">" + html + "</span>"; else if(ext == "png" || ext == "jpg" || ext == "jpeg" || ext == "gif") html = "<span class=\"preview\">" + html + "<div class=\"previewContent\"><div class=\"label\"></div><img src=\"" + path + "\" onload=\"$(this).parent().find('.label').text(this.width+'x'+this.height)\"/></div></span>";
 				if(v != "") html += " <input type=\"submit\" value=\"open\" onclick=\"_.openFile('" + path + "')\"/>";
 				return html;
 			case 14:
 				var v3 = v;
 				var path1 = this.getAbsPath(v3.file);
-				if(!js.Node.require("fs").existsSync(path1)) return "<span class=\"error\">" + v3.file + "</span>"; else {
+				if(!js_Node.require("fs").existsSync(path1)) return "<span class=\"error\">" + v3.file + "</span>"; else {
 					var id1 = Main.UID++;
 					var zoom = 2;
 					var html1;
@@ -6666,7 +6669,7 @@ Main.prototype = $extend(Model.prototype,{
 			case 15:
 				var v4 = v;
 				var path2 = this.getAbsPath(v4.file);
-				if(!js.Node.require("fs").existsSync(path2)) return "<span class=\"error\">" + v4.file + "</span>"; else return "#DATA";
+				if(!js_Node.require("fs").existsSync(path2)) return "<span class=\"error\">" + v4.file + "</span>"; else return "#DATA";
 				break;
 			case 16:
 				var str1 = Std.string(v).split("\n").join(" ").split("\t").join("");
@@ -6686,13 +6689,13 @@ Main.prototype = $extend(Model.prototype,{
 	}
 	,popupLine: function(sheet,index) {
 		var _g = this;
-		var n = new nodejs.webkit.Menu();
-		var nup = new nodejs.webkit.MenuItem({ label : "Move Up"});
-		var ndown = new nodejs.webkit.MenuItem({ label : "Move Down"});
-		var nins = new nodejs.webkit.MenuItem({ label : "Insert"});
-		var ndel = new nodejs.webkit.MenuItem({ label : "Delete"});
-		var nsep = new nodejs.webkit.MenuItem({ label : "Separator", type : "checkbox"});
-		var nref = new nodejs.webkit.MenuItem({ label : "Show References"});
+		var n = new nodejs_webkit_Menu();
+		var nup = new nodejs_webkit_MenuItem({ label : "Move Up"});
+		var ndown = new nodejs_webkit_MenuItem({ label : "Move Down"});
+		var nins = new nodejs_webkit_MenuItem({ label : "Insert"});
+		var ndel = new nodejs_webkit_MenuItem({ label : "Delete"});
+		var nsep = new nodejs_webkit_MenuItem({ label : "Separator", type : "checkbox"});
+		var nref = new nodejs_webkit_MenuItem({ label : "Show References"});
 		var _g1 = 0;
 		var _g11 = [nup,ndown,nins,ndel,nsep,nref];
 		while(_g1 < _g11.length) {
@@ -6745,13 +6748,13 @@ Main.prototype = $extend(Model.prototype,{
 	}
 	,popupColumn: function(sheet,c) {
 		var _g4 = this;
-		var n = new nodejs.webkit.Menu();
-		var nedit = new nodejs.webkit.MenuItem({ label : "Edit"});
-		var nins = new nodejs.webkit.MenuItem({ label : "Add Column"});
-		var nleft = new nodejs.webkit.MenuItem({ label : "Move Left"});
-		var nright = new nodejs.webkit.MenuItem({ label : "Move Right"});
-		var ndel = new nodejs.webkit.MenuItem({ label : "Delete"});
-		var ndisp = new nodejs.webkit.MenuItem({ label : "Display Column", type : "checkbox"});
+		var n = new nodejs_webkit_Menu();
+		var nedit = new nodejs_webkit_MenuItem({ label : "Edit"});
+		var nins = new nodejs_webkit_MenuItem({ label : "Add Column"});
+		var nleft = new nodejs_webkit_MenuItem({ label : "Move Left"});
+		var nright = new nodejs_webkit_MenuItem({ label : "Move Right"});
+		var ndel = new nodejs_webkit_MenuItem({ label : "Delete"});
+		var ndisp = new nodejs_webkit_MenuItem({ label : "Display Column", type : "checkbox"});
 		var _g = 0;
 		var _g1 = [nedit,nins,nleft,nright,ndel,ndisp];
 		while(_g < _g1.length) {
@@ -6763,8 +6766,8 @@ Main.prototype = $extend(Model.prototype,{
 			var _g2 = c.type;
 			switch(_g2[1]) {
 			case 0:case 1:case 5:case 10:
-				var conv = new nodejs.webkit.MenuItem({ label : "Convert"});
-				var cm = new nodejs.webkit.Menu();
+				var conv = new nodejs_webkit_MenuItem({ label : "Convert"});
+				var cm = new nodejs_webkit_Menu();
 				var _g11 = 0;
 				var _g21 = [{ n : "lowercase", f : function(s) {
 					return s.toLowerCase();
@@ -6778,7 +6781,7 @@ Main.prototype = $extend(Model.prototype,{
 				while(_g11 < _g21.length) {
 					var k = [_g21[_g11]];
 					++_g11;
-					var m1 = new nodejs.webkit.MenuItem({ label : k[0].n});
+					var m1 = new nodejs_webkit_MenuItem({ label : k[0].n});
 					m1.click = (function(k) {
 						return function() {
 							{
@@ -6803,7 +6806,7 @@ Main.prototype = $extend(Model.prototype,{
 									}
 									break;
 								default:
-									var refMap = new haxe.ds.StringMap();
+									var refMap = new haxe_ds_StringMap();
 									var _g52 = 0;
 									var _g6 = _g4.getSheetLines(sheet);
 									while(_g52 < _g6.length) {
@@ -6821,7 +6824,7 @@ Main.prototype = $extend(Model.prototype,{
 											}
 										}
 									}
-									if(c.type == cdb.ColumnType.TId) _g4.updateRefs(sheet,refMap);
+									if(c.type == cdb_ColumnType.TId) _g4.updateRefs(sheet,refMap);
 									_g4.makeSheet(sheet);
 								}
 							}
@@ -6835,8 +6838,8 @@ Main.prototype = $extend(Model.prototype,{
 				n.append(conv);
 				break;
 			case 3:case 4:
-				var conv1 = new nodejs.webkit.MenuItem({ label : "Convert"});
-				var cm1 = new nodejs.webkit.Menu();
+				var conv1 = new nodejs_webkit_MenuItem({ label : "Convert"});
+				var cm1 = new nodejs_webkit_Menu();
 				var _g12 = 0;
 				var _g22 = [{ n : "* 10", f : function(s4) {
 					return s4 * 10;
@@ -6850,7 +6853,7 @@ Main.prototype = $extend(Model.prototype,{
 				while(_g12 < _g22.length) {
 					var k1 = [_g22[_g12]];
 					++_g12;
-					var m2 = new nodejs.webkit.MenuItem({ label : k1[0].n});
+					var m2 = new nodejs_webkit_MenuItem({ label : k1[0].n});
 					m2.click = (function(k1) {
 						return function() {
 							var _g31 = 0;
@@ -6861,7 +6864,7 @@ Main.prototype = $extend(Model.prototype,{
 								var t1 = Reflect.field(obj1,c.name);
 								if(t1 != null) {
 									var t21 = k1[0].f(t1);
-									if(c.type == cdb.ColumnType.TInt) t21 = t21 | 0;
+									if(c.type == cdb_ColumnType.TInt) t21 = t21 | 0;
 									obj1[c.name] = t21;
 								}
 							}
@@ -6915,14 +6918,14 @@ Main.prototype = $extend(Model.prototype,{
 	}
 	,popupSheet: function(s,li) {
 		var _g = this;
-		var n = new nodejs.webkit.Menu();
-		var nins = new nodejs.webkit.MenuItem({ label : "Add Sheet"});
-		var nleft = new nodejs.webkit.MenuItem({ label : "Move Left"});
-		var nright = new nodejs.webkit.MenuItem({ label : "Move Right"});
-		var nren = new nodejs.webkit.MenuItem({ label : "Rename"});
-		var ndel = new nodejs.webkit.MenuItem({ label : "Delete"});
-		var nindex = new nodejs.webkit.MenuItem({ label : "Add Index", type : "checkbox"});
-		var ngroup = new nodejs.webkit.MenuItem({ label : "Add Group", type : "checkbox"});
+		var n = new nodejs_webkit_Menu();
+		var nins = new nodejs_webkit_MenuItem({ label : "Add Sheet"});
+		var nleft = new nodejs_webkit_MenuItem({ label : "Move Left"});
+		var nright = new nodejs_webkit_MenuItem({ label : "Move Right"});
+		var nren = new nodejs_webkit_MenuItem({ label : "Rename"});
+		var ndel = new nodejs_webkit_MenuItem({ label : "Delete"});
+		var nindex = new nodejs_webkit_MenuItem({ label : "Add Index", type : "checkbox"});
+		var ngroup = new nodejs_webkit_MenuItem({ label : "Add Group", type : "checkbox"});
 		var _g1 = 0;
 		var _g11 = [nins,nleft,nright,nren,ndel,nindex,ngroup];
 		while(_g1 < _g11.length) {
@@ -7029,8 +7032,8 @@ Main.prototype = $extend(Model.prototype,{
 		nren.click = function() {
 			li.dblclick();
 		};
-		if(s.props.level != null || this.hasColumn(s,"width",[cdb.ColumnType.TInt]) && this.hasColumn(s,"height",[cdb.ColumnType.TInt]) && this.hasColumn(s,"props",[cdb.ColumnType.TDynamic])) {
-			var nlevel = new nodejs.webkit.MenuItem({ label : "Level", type : "checkbox"});
+		if(s.props.level != null || this.hasColumn(s,"width",[cdb_ColumnType.TInt]) && this.hasColumn(s,"height",[cdb_ColumnType.TInt]) && this.hasColumn(s,"props",[cdb_ColumnType.TDynamic])) {
+			var nlevel = new nodejs_webkit_MenuItem({ label : "Level", type : "checkbox"});
 			nlevel.checked = s.props.level != null;
 			n.append(nlevel);
 			nlevel.click = function() {
@@ -7058,7 +7061,7 @@ Main.prototype = $extend(Model.prototype,{
 			switch(_g1[1]) {
 			case 3:case 4:case 1:case 0:case 9:case 16:
 				v.empty();
-				var i = new js.JQuery("<input>");
+				var i = js.JQuery("<input>");
 				v.addClass("edit");
 				i.appendTo(v);
 				if(val != null) {
@@ -7069,7 +7072,7 @@ Main.prototype = $extend(Model.prototype,{
 						i.val(this.typeValToString(this.tmap.get(t),val));
 						break;
 					case 16:
-						i.val(haxe.Json.stringify(val,null,null));
+						i.val(haxe_Json.stringify(val,null,null));
 						break;
 					default:
 						i.val("" + Std.string(val));
@@ -7094,8 +7097,8 @@ Main.prototype = $extend(Model.prototype,{
 					case 9:
 						i.blur();
 						_g.moveCursor(e1.shiftKey?-1:1,0,false,false);
-						haxe.Timer.delay(function() {
-							new js.JQuery(".cursor").dblclick();
+						haxe_Timer.delay(function() {
+							js.JQuery(".cursor").dblclick();
 						},1);
 						e1.preventDefault();
 						break;
@@ -7146,8 +7149,8 @@ Main.prototype = $extend(Model.prototype,{
 							}
 						}
 						if(val2 != val && val2 != null) {
-							if(c.type == cdb.ColumnType.TId && val != null) {
-								var m = new haxe.ds.StringMap();
+							if(c.type == cdb_ColumnType.TId && val != null) {
+								var m = new haxe_ds_StringMap();
 								var key = val;
 								var value = val2;
 								if(__map_reserved[key] != null) m.setReserved(key,value); else m.h[key] = value;
@@ -7174,7 +7177,7 @@ Main.prototype = $extend(Model.prototype,{
 								_g.setErrorMessage();
 								i.removeClass("error");
 							} catch( msg ) {
-								if( js.Boot.__instanceof(msg,String) ) {
+								if( js_Boot.__instanceof(msg,String) ) {
 									_g.setErrorMessage(msg);
 									i.addClass("error");
 								} else throw(msg);
@@ -7190,15 +7193,15 @@ Main.prototype = $extend(Model.prototype,{
 			case 5:
 				var values = _g1[2];
 				v.empty();
-				var s = new js.JQuery("<select>");
+				var s = js.JQuery("<select>");
 				v.addClass("edit");
 				var _g2 = 0;
 				var _g15 = values.length;
 				while(_g2 < _g15) {
 					var i1 = _g2++;
-					new js.JQuery("<option>").attr("value","" + i1).attr(val == i1?"selected":"_sel","selected").text(values[i1]).appendTo(s);
+					js.JQuery("<option>").attr("value","" + i1).attr(val == i1?"selected":"_sel","selected").text(values[i1]).appendTo(s);
 				}
-				if(c.opt) new js.JQuery("<option>").attr("value","-1").text("--- None ---").prependTo(s);
+				if(c.opt) js.JQuery("<option>").attr("value","-1").text("--- None ---").prependTo(s);
 				v.append(s);
 				s.change(function(e4) {
 					val = Std.parseInt(s.val());
@@ -7220,8 +7223,8 @@ Main.prototype = $extend(Model.prototype,{
 					case 9:
 						s.blur();
 						_g.moveCursor(e5.shiftKey?-1:1,0,false,false);
-						haxe.Timer.delay(function() {
-							new js.JQuery(".cursor").dblclick();
+						haxe_Timer.delay(function() {
+							js.JQuery(".cursor").dblclick();
 						},1);
 						e5.preventDefault();
 						break;
@@ -7243,15 +7246,15 @@ Main.prototype = $extend(Model.prototype,{
 				if(sdat == null) return;
 				v.empty();
 				v.addClass("edit");
-				var s1 = new js.JQuery("<select>");
+				var s1 = js.JQuery("<select>");
 				var _g17 = 0;
 				var _g21 = sdat.all;
 				while(_g17 < _g21.length) {
 					var l = _g21[_g17];
 					++_g17;
-					new js.JQuery("<option>").attr("value","" + l.id).attr(val == l.id?"selected":"_sel","selected").text(l.disp).appendTo(s1);
+					js.JQuery("<option>").attr("value","" + l.id).attr(val == l.id?"selected":"_sel","selected").text(l.disp).appendTo(s1);
 				}
-				if(c.opt || val == null || val == "") new js.JQuery("<option>").attr("value","").text("--- None ---").prependTo(s1);
+				if(c.opt || val == null || val == "") js.JQuery("<option>").attr("value","").text("--- None ---").prependTo(s1);
 				v.append(s1);
 				s1.change(function(e6) {
 					val = s1.val();
@@ -7273,8 +7276,8 @@ Main.prototype = $extend(Model.prototype,{
 					case 9:
 						s1.blur();
 						_g.moveCursor(e7.shiftKey?-1:1,0,false,false);
-						haxe.Timer.delay(function() {
-							new js.JQuery(".cursor").dblclick();
+						haxe_Timer.delay(function() {
+							js.JQuery(".cursor").dblclick();
 						},1);
 						e7.preventDefault();
 						break;
@@ -7302,8 +7305,8 @@ Main.prototype = $extend(Model.prototype,{
 				_g.changed(sheet,c,index,old);
 				break;
 			case 7:
-				var i2 = new js.JQuery("<input>").attr("type","file").css("display","none").change(function(e8) {
-					var j = $(this);
+				var i2 = js.JQuery("<input>").attr("type","file").css("display","none").change(function(e8) {
+					var j = js.JQuery(this);
 					var file = j.val();
 					var ext = file.split(".").pop().toLowerCase();
 					if(ext == "jpeg") ext = "jpg";
@@ -7311,11 +7314,11 @@ Main.prototype = $extend(Model.prototype,{
 						_g.error("Unsupported image extension " + ext);
 						return;
 					}
-					var bytes = sys.io.File.getBytes(file);
-					var md5 = haxe.crypto.Md5.make(bytes).toHex();
+					var bytes = sys_io_File.getBytes(file);
+					var md5 = haxe_crypto_Md5.make(bytes).toHex();
 					if(_g.imageBank == null) _g.imageBank = { };
 					if(!Object.prototype.hasOwnProperty.call(_g.imageBank,md5)) {
-						var data = "data:image/" + ext + ";base64," + new haxe.crypto.BaseCode(haxe.io.Bytes.ofString("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/")).encodeBytes(bytes).toString();
+						var data = "data:image/" + ext + ";base64," + new haxe_crypto_BaseCode(haxe_io_Bytes.ofString("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/")).encodeBytes(bytes).toString();
 						_g.imageBank[md5] = data;
 					}
 					val = md5;
@@ -7324,12 +7327,12 @@ Main.prototype = $extend(Model.prototype,{
 					_g.changed(sheet,c,index,old);
 					j.remove();
 				});
-				i2.appendTo(new js.JQuery("body"));
+				i2.appendTo(js.JQuery("body"));
 				i2.click();
 				break;
 			case 10:
 				var values1 = _g1[2];
-				var div = new js.JQuery("<div>").addClass("flagValues");
+				var div = js.JQuery("<div>").addClass("flagValues");
 				div.click(function(e9) {
 					e9.stopPropagation();
 				}).dblclick(function(e10) {
@@ -7339,14 +7342,14 @@ Main.prototype = $extend(Model.prototype,{
 				var _g19 = values1.length;
 				while(_g22 < _g19) {
 					var i3 = [_g22++];
-					var f1 = new js.JQuery("<input>").attr("type","checkbox").prop("checked",(val & 1 << i3[0]) != 0).change((function(i3) {
+					var f1 = js.JQuery("<input>").attr("type","checkbox").prop("checked",(val & 1 << i3[0]) != 0).change((function(i3) {
 						return function(e11) {
 							val &= ~(1 << i3[0]);
-							if($(this).prop("checked")) val |= 1 << i3[0];
+							if(js.JQuery(this).prop("checked")) val |= 1 << i3[0];
 							e11.stopPropagation();
 						};
 					})(i3));
-					new js.JQuery("<label>").text(values1[i3[0]]).appendTo(div).append(f1);
+					js.JQuery("<label>").text(values1[i3[0]]).appendTo(div).append(f1);
 				}
 				v.empty();
 				v.append(div);
@@ -7369,8 +7372,8 @@ Main.prototype = $extend(Model.prototype,{
 		}
 	}
 	,updateCursor: function() {
-		new js.JQuery(".selected").removeClass("selected");
-		new js.JQuery(".cursor").removeClass("cursor");
+		js.JQuery(".selected").removeClass("selected");
+		js.JQuery(".cursor").removeClass("cursor");
 		if(this.cursor.s == null) return;
 		if(this.cursor.y < 0) {
 			this.cursor.y = 0;
@@ -7410,25 +7413,25 @@ Main.prototype = $extend(Model.prototype,{
 		if(e != null) e.scrollIntoViewIfNeeded();
 	}
 	,refresh: function() {
-		var t = new js.JQuery("<table>");
+		var t = js.JQuery("<table>");
 		this.checkCursor = true;
 		this.fillTable(t,this.viewSheet);
 		if(this.cursor.s != this.viewSheet && this.checkCursor) this.setCursor(this.viewSheet,null,null,null,false);
-		var content = new js.JQuery("#content");
+		var content = js.JQuery("#content");
 		content.empty();
 		t.appendTo(content);
-		new js.JQuery("<div>").appendTo(content).addClass("tableBottom");
+		js.JQuery("<div>").appendTo(content).addClass("tableBottom");
 		this.updateCursor();
 	}
 	,chooseFile: function(callb,cancel) {
 		var _g = this;
 		if(this.prefs.curFile == null) {
-			js.Lib.alert("Please save CDB file first");
+			this.error("Please save CDB file first");
 			if(cancel != null) cancel();
 			return;
 		}
-		var fs = new js.JQuery("#fileSelect");
-		if(fs.attr("nwworkingdir") == null) fs.attr("nwworkingdir",new haxe.io.Path(this.prefs.curFile).dir);
+		var fs = js.JQuery("#fileSelect");
+		if(fs.attr("nwworkingdir") == null) fs.attr("nwworkingdir",new haxe_io_Path(this.prefs.curFile).dir);
 		fs.change(function(_) {
 			fs.unbind("change");
 			var path = fs.val().split("\\").join("/");
@@ -7461,19 +7464,19 @@ Main.prototype = $extend(Model.prototype,{
 		}
 		var todo = [];
 		var inTodo = false;
-		var cols = new js.JQuery("<tr>").addClass("head");
+		var cols = js.JQuery("<tr>").addClass("head");
 		var types;
 		var _g = [];
 		var _g1 = 0;
-		var _g2 = Type.getEnumConstructs(cdb.ColumnType);
+		var _g2 = Type.getEnumConstructs(cdb_ColumnType);
 		while(_g1 < _g2.length) {
 			var t = _g2[_g1];
 			++_g1;
 			_g.push(HxOverrides.substr(t,1,null).toLowerCase());
 		}
 		types = _g;
-		new js.JQuery("<td>").addClass("start").appendTo(cols).click(function(_) {
-			if(sheet.props.hide) content.change(); else new js.JQuery("tr.list table").change();
+		js.JQuery("<td>").addClass("start").appendTo(cols).click(function(_) {
+			if(sheet.props.hide) content.change(); else js.JQuery("tr.list table").change();
 		});
 		content.addClass("sheet");
 		content.attr("sheet",this.getPath(sheet));
@@ -7488,14 +7491,14 @@ Main.prototype = $extend(Model.prototype,{
 			var i = [_g3++];
 			_g11.push((function($this) {
 				var $r;
-				var l = new js.JQuery("<tr>");
+				var l = js.JQuery("<tr>");
 				l.data("index",i[0]);
-				var head = [new js.JQuery("<td>").addClass("start").text("" + i[0])];
+				var head = [js.JQuery("<td>").addClass("start").text("" + i[0])];
 				l.mousedown((function(head,i) {
 					return function(e1) {
 						if(e1.which == 3) {
 							head[0].click();
-							haxe.Timer.delay(((function() {
+							haxe_Timer.delay(((function() {
 								return function(f,a1,a2) {
 									return (function() {
 										return function() {
@@ -7529,14 +7532,14 @@ Main.prototype = $extend(Model.prototype,{
 		while(_g31 < _g22) {
 			var cindex = [_g31++];
 			var c = [sheet.columns[cindex[0]]];
-			var col = new js.JQuery("<td>");
+			var col = js.JQuery("<td>");
 			col.html(c[0].name);
 			col.css("width",(100 / colCount | 0) + "%");
 			if(sheet.props.displayColumn == c[0].name) col.addClass("display");
 			col.mousedown((function(c) {
 				return function(e3) {
 					if(e3.which == 3) {
-						haxe.Timer.delay(((function() {
+						haxe_Timer.delay(((function() {
 							return function(f1,a11,c1) {
 								return (function() {
 									return function() {
@@ -7558,7 +7561,7 @@ Main.prototype = $extend(Model.prototype,{
 				var index = [_g5++];
 				var obj = [sheet.lines[index[0]]];
 				var val = [Reflect.field(obj[0],c[0].name)];
-				var v = [new js.JQuery("<td>").addClass(ctype).addClass("c")];
+				var v = [js.JQuery("<td>").addClass(ctype).addClass("c")];
 				var l1 = [lines[index[0]]];
 				v[0].appendTo(l1[0]);
 				var html = [this.valueHtml(c[0],val[0],sheet,obj[0])];
@@ -7599,7 +7602,7 @@ Main.prototype = $extend(Model.prototype,{
 							};
 						})(obj,c)).click((function() {
 							return function(e6) {
-								$(this).addClass("selected");
+								js.JQuery(this).addClass("selected");
 								e6.stopPropagation();
 							};
 						})());
@@ -7621,12 +7624,12 @@ Main.prototype = $extend(Model.prototype,{
 									}
 									next.change();
 								}
-								next = new js.JQuery("<tr>").addClass("list").data("name",c[0].name);
-								new js.JQuery("<td>").appendTo(next);
-								var cell = new js.JQuery("<td>").attr("colspan","" + colCount).appendTo(next);
-								var div = new js.JQuery("<div>").appendTo(cell);
+								next = js.JQuery("<tr>").addClass("list").data("name",c[0].name);
+								js.JQuery("<td>").appendTo(next);
+								var cell = js.JQuery("<td>").attr("colspan","" + colCount).appendTo(next);
+								var div = js.JQuery("<div>").appendTo(cell);
 								if(!inTodo) div.hide();
-								var content1 = new js.JQuery("<table>").appendTo(div);
+								var content1 = js.JQuery("<table>").appendTo(div);
 								var psheet = _g4.smap.get(sheet.name + "@" + c[0].name).s;
 								if(val[0] == null) {
 									val[0] = [];
@@ -7754,22 +7757,22 @@ Main.prototype = $extend(Model.prototype,{
 								}
 								var dialog = ((function($this) {
 									var $r;
-									var html1 = new js.JQuery(".tileSelect").parent().html();
-									$r = new js.JQuery(html1);
+									var html1 = js.JQuery(".tileSelect").parent().html();
+									$r = js.JQuery(html1);
 									return $r;
-								}(this))).prependTo(new js.JQuery("body"));
+								}(this))).prependTo(js.JQuery("body"));
 								var maxWidth = 1000000;
 								var maxHeight = 1000000;
 								dialog.find(".tileView").css({ backgroundImage : "url(\"" + _g4.getAbsPath(file) + "\")"}).mousemove((function() {
 									return function(e11) {
-										var off = $(this).offset();
+										var off = js.JQuery(this).offset();
 										posX = (e11.pageX - off.left) / size | 0;
 										posY = (e11.pageY - off.top) / size | 0;
 										if((posX + width) * size > maxWidth) posX = (maxWidth / size | 0) - width;
 										if((posY + height) * size > maxHeight) posY = (maxHeight / size | 0) - height;
 										if(posX < 0) posX = 0;
 										if(posY < 0) posY = 0;
-										new js.JQuery(".tileCursor").not(".current").css({ marginLeft : size * posX - 1 + "px", marginTop : size * posY - 1 + "px"});
+										js.JQuery(".tileCursor").not(".current").css({ marginLeft : size * posX - 1 + "px", marginTop : size * posY - 1 + "px"});
 									};
 								})()).click((function() {
 									return function(_4) {
@@ -7780,21 +7783,21 @@ Main.prototype = $extend(Model.prototype,{
 								})());
 								dialog.find("[name=size]").val("" + size).change((function() {
 									return function(_5) {
-										size = Std.parseInt($(this).val());
-										new js.JQuery(".tileCursor").css({ width : size * width + "px", height : size * height + "px"});
-										new js.JQuery(".tileCursor.current").css({ marginLeft : size * posX - 2 + "px", marginTop : size * posY - 2 + "px"});
+										size = Std.parseInt(js.JQuery(this).val());
+										js.JQuery(".tileCursor").css({ width : size * width + "px", height : size * height + "px"});
+										js.JQuery(".tileCursor.current").css({ marginLeft : size * posX - 2 + "px", marginTop : size * posY - 2 + "px"});
 									};
 								})()).change();
 								dialog.find("[name=width]").val("" + width).change((function() {
 									return function(_6) {
-										width = Std.parseInt($(this).val());
-										new js.JQuery(".tileCursor").css({ width : size * width + "px", height : size * height + "px"});
+										width = Std.parseInt(js.JQuery(this).val());
+										js.JQuery(".tileCursor").css({ width : size * width + "px", height : size * height + "px"});
 									};
 								})()).change();
 								dialog.find("[name=height]").val("" + height).change((function() {
 									return function(_7) {
-										height = Std.parseInt($(this).val());
-										new js.JQuery(".tileCursor").css({ width : size * width + "px", height : size * height + "px"});
+										height = Std.parseInt(js.JQuery(this).val());
+										js.JQuery(".tileCursor").css({ width : size * width + "px", height : size * height + "px"});
 									};
 								})()).change();
 								dialog.find("[name=cancel]").click((function() {
@@ -7850,22 +7853,22 @@ Main.prototype = $extend(Model.prototype,{
 			}
 		}
 		if(sheet.lines.length == 0) {
-			var l2 = new js.JQuery("<tr><td colspan=\"" + (sheet.columns.length + 1) + "\"><a href=\"javascript:_.insertLine()\">Insert Line</a></td></tr>");
+			var l2 = js.JQuery("<tr><td colspan=\"" + (sheet.columns.length + 1) + "\"><a href=\"javascript:_.insertLine()\">Insert Line</a></td></tr>");
 			l2.find("a").click(function() {
 				_g4.setCursor(sheet);
 			});
 			lines.push(l2);
 		}
 		if(sheet.props.level != null) {
-			var col1 = new js.JQuery("<td style='width:35px'>");
+			var col1 = js.JQuery("<td style='width:35px'>");
 			cols.prepend(col1);
 			var _g32 = 0;
 			var _g23 = sheet.lines.length;
 			while(_g32 < _g23) {
 				var index1 = [_g32++];
 				var l3 = [lines[index1[0]]];
-				var c2 = new js.JQuery("<input type='submit' value='Edit'>");
-				new js.JQuery("<td>").append(c2).prependTo(l3[0]);
+				var c2 = js.JQuery("<input type='submit' value='Edit'>");
+				js.JQuery("<td>").append(c2).prependTo(l3[0]);
 				c2.click((function(l3,index1) {
 					return function() {
 						l3[0].click();
@@ -7895,7 +7898,7 @@ Main.prototype = $extend(Model.prototype,{
 		while(_g33 < _g24) {
 			var i3 = _g33++;
 			while(sheet.separators[snext] == i3) {
-				var sep = new js.JQuery("<tr>").addClass("separator").append("<td colspan=\"" + (colCount + 1) + "\">").appendTo(content);
+				var sep = js.JQuery("<tr>").addClass("separator").append("<td colspan=\"" + (colCount + 1) + "\">").appendTo(content);
 				var content2 = [sep.find("td")];
 				var title = [sheet.props.separatorTitles != null?sheet.props.separatorTitles[snext]:null];
 				if(title[0] != null) content2[0].text(title[0]);
@@ -7903,10 +7906,10 @@ Main.prototype = $extend(Model.prototype,{
 				sep.dblclick((function(pos,title,content2) {
 					return function(e15) {
 						content2[0].empty();
-						new js.JQuery("<input>").appendTo(content2[0]).focus().val(title[0] == null?"":title[0]).blur((function(pos,title,content2) {
+						js.JQuery("<input>").appendTo(content2[0]).focus().val(title[0] == null?"":title[0]).blur((function(pos,title,content2) {
 							return function(_9) {
-								title[0] = $(this).val();
-								$(this).remove();
+								title[0] = js.JQuery(this).val();
+								js.JQuery(this).remove();
 								content2[0].text(title[0]);
 								var titles = sheet.props.separatorTitles;
 								if(titles == null) titles = [];
@@ -7924,7 +7927,7 @@ Main.prototype = $extend(Model.prototype,{
 						})()).keydown((function(title,content2) {
 							return function(e17) {
 								if(e17.keyCode == 13) {
-									$(this).blur();
+									js.JQuery(this).blur();
 									e17.preventDefault();
 								} else if(e17.keyCode == 27) content2[0].text(title[0]);
 								e17.stopPropagation();
@@ -7946,7 +7949,7 @@ Main.prototype = $extend(Model.prototype,{
 		inTodo = false;
 	}
 	,openFile: function(file) {
-		nodejs.webkit.Shell.openItem(file);
+		nodejs_webkit_Shell.openItem(file);
 	}
 	,setCursor: function(s,x,y,sel,update) {
 		if(update == null) update = true;
@@ -7976,14 +7979,14 @@ Main.prototype = $extend(Model.prototype,{
 			this.level = null;
 		}
 		this.prefs.curSheet = Lambda.indexOf(this.data.sheets,s);
-		new js.JQuery("#sheets li").removeClass("active").filter("#sheet_" + this.prefs.curSheet).addClass("active");
+		js.JQuery("#sheets li").removeClass("active").filter("#sheet_" + this.prefs.curSheet).addClass("active");
 		if(manual) this.refresh();
 	}
 	,selectLevel: function(l) {
 		if(this.level != null) this.level.dispose();
 		this.level = l;
 		this.level.init();
-		new js.JQuery("#sheets li").removeClass("active").filter("#level_" + l.sheetPath.split(".").join("_") + "_" + l.index).addClass("active");
+		js.JQuery("#sheets li").removeClass("active").filter("#level_" + l.sheetPath.split(".").join("_") + "_" + l.index).addClass("active");
 	}
 	,closeLevel: function(l) {
 		l.dispose();
@@ -7993,7 +7996,7 @@ Main.prototype = $extend(Model.prototype,{
 		this.initContent();
 	}
 	,newSheet: function() {
-		new js.JQuery("#newsheet").show();
+		js.JQuery("#newsheet").show();
 	}
 	,deleteColumn: function(sheet,cname) {
 		if(cname == null) {
@@ -8001,7 +8004,7 @@ Main.prototype = $extend(Model.prototype,{
 			cname = this.colProps.ref.name;
 		}
 		if(!Model.prototype.deleteColumn.call(this,sheet,cname)) return false;
-		new js.JQuery("#newcol").hide();
+		js.JQuery("#newcol").hide();
 		this.refresh();
 		this.save();
 		return true;
@@ -8019,8 +8022,8 @@ Main.prototype = $extend(Model.prototype,{
 			}
 			this.typesStr = tl.join("\n\n");
 		}
-		var content = new js.JQuery("#content");
-		content.html(new js.JQuery("#editTypes").html());
+		var content = js.JQuery("#content");
+		content.html(js.JQuery("#editTypes").html());
 		var text = content.find("textarea");
 		var apply = content.find("input.button").first();
 		var cancel = content.find("input.button").eq(1);
@@ -8034,7 +8037,7 @@ Main.prototype = $extend(Model.prototype,{
 			var r = new EReg("^enum[ \r\n\t]+([A-Za-z0-9_]+)[ \r\n\t]*\\{([^}]*)\\}","");
 			var oldTMap = _g.tmap;
 			var descs = [];
-			_g.tmap = new haxe.ds.StringMap();
+			_g.tmap = new haxe_ds_StringMap();
 			types = [];
 			while(r.match(t1)) {
 				var name = r.matched(1);
@@ -8064,7 +8067,7 @@ Main.prototype = $extend(Model.prototype,{
 		text.keydown(function(e) {
 			if(e.keyCode == 9) {
 				e.preventDefault();
-				new js.Selection(text[0]).insert("\t","","");
+				new js_Selection(text[0]).insert("\t","","");
 			}
 			e.stopPropagation();
 		});
@@ -8132,7 +8135,7 @@ Main.prototype = $extend(Model.prototype,{
 				if(p2.b == null) HxOverrides.remove(_g.data.customTypes,p2.a); else try {
 					_g.updateType(p2.a,p2.b);
 				} catch( msg1 ) {
-					if( js.Boot.__instanceof(msg1,String) ) {
+					if( js_Boot.__instanceof(msg1,String) ) {
 						_g.error("Error while updating " + p2.b.name + " : " + msg1);
 						return;
 					} else throw(msg1);
@@ -8146,9 +8149,9 @@ Main.prototype = $extend(Model.prototype,{
 		text.change();
 	}
 	,newColumn: function(sheetName,ref,index) {
-		var form = new js.JQuery("#newcol form");
+		var form = js.JQuery("#newcol form");
 		this.colProps = { sheet : sheetName, ref : ref, index : index};
-		var sheets = new js.JQuery("[name=sheet]");
+		var sheets = js.JQuery("[name=sheet]");
 		sheets.empty();
 		var _g1 = 0;
 		var _g = this.data.sheets.length;
@@ -8156,21 +8159,21 @@ Main.prototype = $extend(Model.prototype,{
 			var i = _g1++;
 			var s = this.data.sheets[i];
 			if(s.props.hide) continue;
-			new js.JQuery("<option>").attr("value","" + i).text(s.name).appendTo(sheets);
+			js.JQuery("<option>").attr("value","" + i).text(s.name).appendTo(sheets);
 		}
-		var types = new js.JQuery("[name=ctype]");
+		var types = js.JQuery("[name=ctype]");
 		types.empty();
 		types.unbind("change");
 		types.change(function(_) {
-			new js.JQuery("#col_options").toggleClass("t_edit",types.val() != "");
+			js.JQuery("#col_options").toggleClass("t_edit",types.val() != "");
 		});
-		new js.JQuery("<option>").attr("value","").text("--- Select ---").appendTo(types);
+		js.JQuery("<option>").attr("value","").text("--- Select ---").appendTo(types);
 		var _g2 = 0;
 		var _g11 = this.data.customTypes;
 		while(_g2 < _g11.length) {
 			var t = _g11[_g2];
 			++_g2;
-			new js.JQuery("<option>").attr("value","" + t.name).text(t.name).appendTo(types);
+			js.JQuery("<option>").attr("value","" + t.name).text(t.name).appendTo(types);
 		}
 		form.removeClass("edit").removeClass("create");
 		if(ref != null) {
@@ -8215,7 +8218,7 @@ Main.prototype = $extend(Model.prototype,{
 			form.find("[name=req]").prop("checked",true);
 		}
 		types.change();
-		new js.JQuery("#newcol").show();
+		js.JQuery("#newcol").show();
 	}
 	,newLine: function(sheet,index) {
 		Model.prototype.newLine.call(this,sheet,index);
@@ -8241,7 +8244,7 @@ Main.prototype = $extend(Model.prototype,{
 				return;
 			}
 		}
-		new js.JQuery("#newsheet").hide();
+		js.JQuery("#newsheet").hide();
 		var s = { name : name, columns : [], lines : [], separators : [], props : { }};
 		this.prefs.curSheet = this.data.sheets.length;
 		this.data.sheets.push(s);
@@ -8250,7 +8253,7 @@ Main.prototype = $extend(Model.prototype,{
 	}
 	,createColumn: function() {
 		var v = { };
-		var cols = new js.JQuery("#col_form input, #col_form select").not("[type=submit]");
+		var cols = js.JQuery("#col_form input, #col_form select").not("[type=submit]");
 		var $it0 = (cols.iterator)();
 		while( $it0.hasNext() ) {
 			var i = $it0.next();
@@ -8263,19 +8266,19 @@ Main.prototype = $extend(Model.prototype,{
 		var _g = v.type;
 		switch(_g) {
 		case "id":
-			t = cdb.ColumnType.TId;
+			t = cdb_ColumnType.TId;
 			break;
 		case "int":
-			t = cdb.ColumnType.TInt;
+			t = cdb_ColumnType.TInt;
 			break;
 		case "float":
-			t = cdb.ColumnType.TFloat;
+			t = cdb_ColumnType.TFloat;
 			break;
 		case "string":
-			t = cdb.ColumnType.TString;
+			t = cdb_ColumnType.TString;
 			break;
 		case "bool":
-			t = cdb.ColumnType.TBool;
+			t = cdb_ColumnType.TBool;
 			break;
 		case "enum":
 			var vals = StringTools.trim(v.values).split(",");
@@ -8283,7 +8286,7 @@ Main.prototype = $extend(Model.prototype,{
 				this.error("Missing value list");
 				return;
 			}
-			t = cdb.ColumnType.TEnum((function($this) {
+			t = cdb_ColumnType.TEnum((function($this) {
 				var $r;
 				var _g1 = [];
 				{
@@ -8304,7 +8307,7 @@ Main.prototype = $extend(Model.prototype,{
 				this.error("Missing value list");
 				return;
 			}
-			t = cdb.ColumnType.TFlags((function($this) {
+			t = cdb_ColumnType.TFlags((function($this) {
 				var $r;
 				var _g11 = [];
 				{
@@ -8325,13 +8328,13 @@ Main.prototype = $extend(Model.prototype,{
 				this.error("Sheet not found");
 				return;
 			}
-			t = cdb.ColumnType.TRef(s.name);
+			t = cdb_ColumnType.TRef(s.name);
 			break;
 		case "image":
-			t = cdb.ColumnType.TImage;
+			t = cdb_ColumnType.TImage;
 			break;
 		case "list":
-			t = cdb.ColumnType.TList;
+			t = cdb_ColumnType.TList;
 			break;
 		case "custom":
 			var t1 = this.tmap.get(v.ctype);
@@ -8339,10 +8342,10 @@ Main.prototype = $extend(Model.prototype,{
 				this.error("Type not found");
 				return;
 			}
-			t = cdb.ColumnType.TCustom(t1.name);
+			t = cdb_ColumnType.TCustom(t1.name);
 			break;
 		case "color":
-			t = cdb.ColumnType.TColor;
+			t = cdb_ColumnType.TColor;
 			break;
 		case "layer":
 			var s1 = this.data.sheets[Std.parseInt(v.sheet)];
@@ -8350,19 +8353,19 @@ Main.prototype = $extend(Model.prototype,{
 				this.error("Sheet not found");
 				return;
 			}
-			t = cdb.ColumnType.TLayer(s1.name);
+			t = cdb_ColumnType.TLayer(s1.name);
 			break;
 		case "file":
-			t = cdb.ColumnType.TFile;
+			t = cdb_ColumnType.TFile;
 			break;
 		case "tilepos":
-			t = cdb.ColumnType.TTilePos;
+			t = cdb_ColumnType.TTilePos;
 			break;
 		case "tilelayer":
-			t = cdb.ColumnType.TTileLayer;
+			t = cdb_ColumnType.TTileLayer;
 			break;
 		case "dynamic":
-			t = cdb.ColumnType.TDynamic;
+			t = cdb_ColumnType.TDynamic;
 			break;
 		default:
 			return;
@@ -8385,7 +8388,7 @@ Main.prototype = $extend(Model.prototype,{
 				return;
 			}
 		}
-		new js.JQuery("#newcol").hide();
+		js.JQuery("#newcol").hide();
 		var $it1 = (cols.iterator)();
 		while( $it1.hasNext() ) {
 			var c1 = $it1.next();
@@ -8397,8 +8400,8 @@ Main.prototype = $extend(Model.prototype,{
 	,initContent: function() {
 		var _g2 = this;
 		Model.prototype.initContent.call(this);
-		new js.JQuery("body").spectrum.clearAll();
-		var sheets = new js.JQuery("ul#sheets");
+		js.JQuery("body").spectrum.clearAll();
+		var sheets = js.JQuery("ul#sheets");
 		sheets.children().remove();
 		var _g1 = 0;
 		var _g = this.data.sheets.length;
@@ -8406,7 +8409,7 @@ Main.prototype = $extend(Model.prototype,{
 			var i = _g1++;
 			var s1 = [this.data.sheets[i]];
 			if(s1[0].props.hide) continue;
-			var li = [new js.JQuery("<li>")];
+			var li = [js.JQuery("<li>")];
 			li[0].text(s1[0].name).attr("id","sheet_" + i).appendTo(sheets).click(((function() {
 				return function(f,s2) {
 					return (function() {
@@ -8418,10 +8421,10 @@ Main.prototype = $extend(Model.prototype,{
 			})())($bind(this,this.selectSheet),s1[0])).dblclick((function(li,s1) {
 				return function(_) {
 					li[0].empty();
-					new js.JQuery("<input>").val(s1[0].name).appendTo(li[0]).focus().blur((function(li,s1) {
+					js.JQuery("<input>").val(s1[0].name).appendTo(li[0]).focus().blur((function(li,s1) {
 						return function(_1) {
 							li[0].text(s1[0].name);
-							var name = $(this).val();
+							var name = js.JQuery(this).val();
 							if(!_g2.r_ident.match(name)) {
 								_g2.error("Invalid sheet name");
 								return;
@@ -8438,11 +8441,11 @@ Main.prototype = $extend(Model.prototype,{
 									switch(t[1]) {
 									case 6:
 										var o = t[2];
-										if(o == old1) return cdb.ColumnType.TRef(name); else return t;
+										if(o == old1) return cdb_ColumnType.TRef(name); else return t;
 										break;
 									case 12:
 										var o1 = t[2];
-										if(o1 == old1) return cdb.ColumnType.TLayer(name); else return t;
+										if(o1 == old1) return cdb_ColumnType.TLayer(name); else return t;
 										break;
 									default:
 										return t;
@@ -8461,7 +8464,7 @@ Main.prototype = $extend(Model.prototype,{
 						};
 					})(li,s1)).keydown((function() {
 						return function(e) {
-							if(e.keyCode == 13) $(this).blur(); else if(e.keyCode == 27) _g2.initContent();
+							if(e.keyCode == 13) js.JQuery(this).blur(); else if(e.keyCode == 27) _g2.initContent();
 							e.stopPropagation();
 						};
 					})()).keypress((function() {
@@ -8473,7 +8476,7 @@ Main.prototype = $extend(Model.prototype,{
 			})(li,s1)).mousedown((function(li,s1) {
 				return function(e2) {
 					if(e2.which == 3) {
-						haxe.Timer.delay(((function() {
+						haxe_Timer.delay(((function() {
 							return function(f2,s4,li1) {
 								return (function() {
 									return function() {
@@ -8488,7 +8491,7 @@ Main.prototype = $extend(Model.prototype,{
 			})(li,s1));
 		}
 		if(this.data.sheets.length == 0) {
-			new js.JQuery("#content").html("<a href='javascript:_.newSheet()'>Create a sheet</a>");
+			js.JQuery("#content").html("<a href='javascript:_.newSheet()'>Create a sheet</a>");
 			return;
 		}
 		var s = this.data.sheets[this.prefs.curSheet];
@@ -8507,7 +8510,7 @@ Main.prototype = $extend(Model.prototype,{
 			var l = new Level(this,s5,level.index);
 			if(level == this.level) lcur = l;
 			this.levels.push(l);
-			var li2 = new js.JQuery("<li>");
+			var li2 = js.JQuery("<li>");
 			var name1 = level.getName();
 			if(name1 == "") name1 = "???";
 			li2.text(name1).attr("id","level_" + l.sheetPath.split(".").join("_") + "_" + l.index).appendTo(sheets).click((function(f3,l1) {
@@ -8520,21 +8523,21 @@ Main.prototype = $extend(Model.prototype,{
 	}
 	,initMenu: function() {
 		var _g = this;
-		var menu = new nodejs.webkit.Menu({ type : "menubar"});
-		var mfile = new nodejs.webkit.MenuItem({ label : "File"});
-		var mfiles = new nodejs.webkit.Menu();
-		var mnew = new nodejs.webkit.MenuItem({ label : "New"});
-		var mopen = new nodejs.webkit.MenuItem({ label : "Open..."});
-		var msave = new nodejs.webkit.MenuItem({ label : "Save As..."});
-		var mclean = new nodejs.webkit.MenuItem({ label : "Clean Images"});
-		this.mcompress = new nodejs.webkit.MenuItem({ label : "Enable Compression", type : "checkbox"});
+		var menu = new nodejs_webkit_Menu({ type : "menubar"});
+		var mfile = new nodejs_webkit_MenuItem({ label : "File"});
+		var mfiles = new nodejs_webkit_Menu();
+		var mnew = new nodejs_webkit_MenuItem({ label : "New"});
+		var mopen = new nodejs_webkit_MenuItem({ label : "Open..."});
+		var msave = new nodejs_webkit_MenuItem({ label : "Save As..."});
+		var mclean = new nodejs_webkit_MenuItem({ label : "Clean Images"});
+		this.mcompress = new nodejs_webkit_MenuItem({ label : "Enable Compression", type : "checkbox"});
 		this.mcompress.click = function() {
 			_g.setCompressionMode(_g.mcompress.checked);
 			_g.save();
 		};
-		var mabout = new nodejs.webkit.MenuItem({ label : "About"});
-		var mexit = new nodejs.webkit.MenuItem({ label : "Exit"});
-		var mdebug = new nodejs.webkit.MenuItem({ label : "Dev"});
+		var mabout = new nodejs_webkit_MenuItem({ label : "About"});
+		var mexit = new nodejs_webkit_MenuItem({ label : "Exit"});
+		var mdebug = new nodejs_webkit_MenuItem({ label : "Dev"});
 		mnew.click = function() {
 			_g.prefs.curFile = null;
 			_g.load(true);
@@ -8543,23 +8546,23 @@ Main.prototype = $extend(Model.prototype,{
 			_g.window.showDevTools();
 		};
 		mopen.click = function() {
-			var i = new js.JQuery("<input>").attr("type","file").css("display","none").change(function(e) {
-				var j = $(this);
+			var i = js.JQuery("<input>").attr("type","file").css("display","none").change(function(e) {
+				var j = js.JQuery(this);
 				_g.prefs.curFile = j.val();
 				_g.load();
 				j.remove();
 			});
-			i.appendTo(new js.JQuery("body"));
+			i.appendTo(js.JQuery("body"));
 			i.click();
 		};
 		msave.click = function() {
-			var i1 = new js.JQuery("<input>").attr("type","file").attr("nwsaveas","new.cdb").css("display","none").change(function(e1) {
-				var j1 = $(this);
+			var i1 = js.JQuery("<input>").attr("type","file").attr("nwsaveas","new.cdb").css("display","none").change(function(e1) {
+				var j1 = js.JQuery(this);
 				_g.prefs.curFile = j1.val();
 				_g.save();
 				j1.remove();
 			});
-			i1.appendTo(new js.JQuery("body"));
+			i1.appendTo(js.JQuery("body"));
 			i1.click();
 		};
 		mclean.click = function() {
@@ -8579,7 +8582,7 @@ Main.prototype = $extend(Model.prototype,{
 			Sys.exit(0);
 		};
 		mabout.click = function() {
-			new js.JQuery("#about").show();
+			js.JQuery("#about").show();
 		};
 		mfiles.append(mnew);
 		mfiles.append(mopen);
@@ -8613,7 +8616,7 @@ Main.prototype = $extend(Model.prototype,{
 	}
 	,getFileTime: function() {
 		try {
-			return js.Node.require("fs").statSync(this.prefs.curFile).mtime.getTime() * 1.;
+			return js_Node.require("fs").statSync(this.prefs.curFile).mtime.getTime() * 1.;
 		} catch( e ) {
 			return 0.;
 		}
@@ -8623,7 +8626,7 @@ Main.prototype = $extend(Model.prototype,{
 		var fileTime = this.getFileTime();
 		if(fileTime != this.lastSave && fileTime != 0) {
 			if(window.confirm("The CDB file has been modified. Reload?")) {
-				if(sys.io.File.getContent(this.prefs.curFile).indexOf("<<<<<<<") >= 0) {
+				if(sys_io_File.getContent(this.prefs.curFile).indexOf("<<<<<<<") >= 0) {
 					this.error("The file has conflicts, please resolve them before reloading");
 					return;
 				}
@@ -8700,7 +8703,7 @@ Std.instance = function(value,c) {
 	if((value instanceof c)) return value; else return null;
 };
 Std.string = function(s) {
-	return js.Boot.__string_rec(s,"");
+	return js_Boot.__string_rec(s,"");
 };
 Std["int"] = function(x) {
 	return x | 0;
@@ -8779,16 +8782,16 @@ var Sys = function() { };
 $hxClasses["Sys"] = Sys;
 Sys.__name__ = ["Sys"];
 Sys.args = function() {
-	return js.Node.process.argv;
+	return js_Node.process.argv;
 };
 Sys.getEnv = function(key) {
-	return Reflect.field(js.Node.process.env,key);
+	return Reflect.field(js_Node.process.env,key);
 };
 Sys.environment = function() {
-	return js.Node.process.env;
+	return js_Node.process.env;
 };
 Sys.exit = function(code) {
-	js.Node.process.exit(code);
+	js_Node.process.exit(code);
 };
 Sys.time = function() {
 	return new Date().getTime() / 1000;
@@ -8871,7 +8874,7 @@ Type["typeof"] = function(v) {
 		if(v == null) return ValueType.TNull;
 		var e = v.__enum__;
 		if(e != null) return ValueType.TEnum(e);
-		var c = js.Boot.getClass(v);
+		var c = js_Boot.getClass(v);
 		if(c != null) return ValueType.TClass(c);
 		return ValueType.TObject;
 	case "function":
@@ -8900,67 +8903,65 @@ Type.enumEq = function(a,b) {
 	}
 	return true;
 };
-var cdb = {};
-cdb.ColumnType = $hxClasses["cdb.ColumnType"] = { __ename__ : ["cdb","ColumnType"], __constructs__ : ["TId","TString","TBool","TInt","TFloat","TEnum","TRef","TImage","TList","TCustom","TFlags","TColor","TLayer","TFile","TTilePos","TTileLayer","TDynamic"] };
-cdb.ColumnType.TId = ["TId",0];
-cdb.ColumnType.TId.toString = $estr;
-cdb.ColumnType.TId.__enum__ = cdb.ColumnType;
-cdb.ColumnType.TString = ["TString",1];
-cdb.ColumnType.TString.toString = $estr;
-cdb.ColumnType.TString.__enum__ = cdb.ColumnType;
-cdb.ColumnType.TBool = ["TBool",2];
-cdb.ColumnType.TBool.toString = $estr;
-cdb.ColumnType.TBool.__enum__ = cdb.ColumnType;
-cdb.ColumnType.TInt = ["TInt",3];
-cdb.ColumnType.TInt.toString = $estr;
-cdb.ColumnType.TInt.__enum__ = cdb.ColumnType;
-cdb.ColumnType.TFloat = ["TFloat",4];
-cdb.ColumnType.TFloat.toString = $estr;
-cdb.ColumnType.TFloat.__enum__ = cdb.ColumnType;
-cdb.ColumnType.TEnum = function(values) { var $x = ["TEnum",5,values]; $x.__enum__ = cdb.ColumnType; $x.toString = $estr; return $x; };
-cdb.ColumnType.TRef = function(sheet) { var $x = ["TRef",6,sheet]; $x.__enum__ = cdb.ColumnType; $x.toString = $estr; return $x; };
-cdb.ColumnType.TImage = ["TImage",7];
-cdb.ColumnType.TImage.toString = $estr;
-cdb.ColumnType.TImage.__enum__ = cdb.ColumnType;
-cdb.ColumnType.TList = ["TList",8];
-cdb.ColumnType.TList.toString = $estr;
-cdb.ColumnType.TList.__enum__ = cdb.ColumnType;
-cdb.ColumnType.TCustom = function(name) { var $x = ["TCustom",9,name]; $x.__enum__ = cdb.ColumnType; $x.toString = $estr; return $x; };
-cdb.ColumnType.TFlags = function(values) { var $x = ["TFlags",10,values]; $x.__enum__ = cdb.ColumnType; $x.toString = $estr; return $x; };
-cdb.ColumnType.TColor = ["TColor",11];
-cdb.ColumnType.TColor.toString = $estr;
-cdb.ColumnType.TColor.__enum__ = cdb.ColumnType;
-cdb.ColumnType.TLayer = function(type) { var $x = ["TLayer",12,type]; $x.__enum__ = cdb.ColumnType; $x.toString = $estr; return $x; };
-cdb.ColumnType.TFile = ["TFile",13];
-cdb.ColumnType.TFile.toString = $estr;
-cdb.ColumnType.TFile.__enum__ = cdb.ColumnType;
-cdb.ColumnType.TTilePos = ["TTilePos",14];
-cdb.ColumnType.TTilePos.toString = $estr;
-cdb.ColumnType.TTilePos.__enum__ = cdb.ColumnType;
-cdb.ColumnType.TTileLayer = ["TTileLayer",15];
-cdb.ColumnType.TTileLayer.toString = $estr;
-cdb.ColumnType.TTileLayer.__enum__ = cdb.ColumnType;
-cdb.ColumnType.TDynamic = ["TDynamic",16];
-cdb.ColumnType.TDynamic.toString = $estr;
-cdb.ColumnType.TDynamic.__enum__ = cdb.ColumnType;
-cdb._Data = {};
-cdb._Data.TileMode_Impl_ = {};
-$hxClasses["cdb._Data.TileMode_Impl_"] = cdb._Data.TileMode_Impl_;
-cdb._Data.TileMode_Impl_.__name__ = ["cdb","_Data","TileMode_Impl_"];
-cdb._Data.TileMode_Impl_._new = function(s) {
+var cdb_ColumnType = $hxClasses["cdb.ColumnType"] = { __ename__ : ["cdb","ColumnType"], __constructs__ : ["TId","TString","TBool","TInt","TFloat","TEnum","TRef","TImage","TList","TCustom","TFlags","TColor","TLayer","TFile","TTilePos","TTileLayer","TDynamic"] };
+cdb_ColumnType.TId = ["TId",0];
+cdb_ColumnType.TId.toString = $estr;
+cdb_ColumnType.TId.__enum__ = cdb_ColumnType;
+cdb_ColumnType.TString = ["TString",1];
+cdb_ColumnType.TString.toString = $estr;
+cdb_ColumnType.TString.__enum__ = cdb_ColumnType;
+cdb_ColumnType.TBool = ["TBool",2];
+cdb_ColumnType.TBool.toString = $estr;
+cdb_ColumnType.TBool.__enum__ = cdb_ColumnType;
+cdb_ColumnType.TInt = ["TInt",3];
+cdb_ColumnType.TInt.toString = $estr;
+cdb_ColumnType.TInt.__enum__ = cdb_ColumnType;
+cdb_ColumnType.TFloat = ["TFloat",4];
+cdb_ColumnType.TFloat.toString = $estr;
+cdb_ColumnType.TFloat.__enum__ = cdb_ColumnType;
+cdb_ColumnType.TEnum = function(values) { var $x = ["TEnum",5,values]; $x.__enum__ = cdb_ColumnType; $x.toString = $estr; return $x; };
+cdb_ColumnType.TRef = function(sheet) { var $x = ["TRef",6,sheet]; $x.__enum__ = cdb_ColumnType; $x.toString = $estr; return $x; };
+cdb_ColumnType.TImage = ["TImage",7];
+cdb_ColumnType.TImage.toString = $estr;
+cdb_ColumnType.TImage.__enum__ = cdb_ColumnType;
+cdb_ColumnType.TList = ["TList",8];
+cdb_ColumnType.TList.toString = $estr;
+cdb_ColumnType.TList.__enum__ = cdb_ColumnType;
+cdb_ColumnType.TCustom = function(name) { var $x = ["TCustom",9,name]; $x.__enum__ = cdb_ColumnType; $x.toString = $estr; return $x; };
+cdb_ColumnType.TFlags = function(values) { var $x = ["TFlags",10,values]; $x.__enum__ = cdb_ColumnType; $x.toString = $estr; return $x; };
+cdb_ColumnType.TColor = ["TColor",11];
+cdb_ColumnType.TColor.toString = $estr;
+cdb_ColumnType.TColor.__enum__ = cdb_ColumnType;
+cdb_ColumnType.TLayer = function(type) { var $x = ["TLayer",12,type]; $x.__enum__ = cdb_ColumnType; $x.toString = $estr; return $x; };
+cdb_ColumnType.TFile = ["TFile",13];
+cdb_ColumnType.TFile.toString = $estr;
+cdb_ColumnType.TFile.__enum__ = cdb_ColumnType;
+cdb_ColumnType.TTilePos = ["TTilePos",14];
+cdb_ColumnType.TTilePos.toString = $estr;
+cdb_ColumnType.TTilePos.__enum__ = cdb_ColumnType;
+cdb_ColumnType.TTileLayer = ["TTileLayer",15];
+cdb_ColumnType.TTileLayer.toString = $estr;
+cdb_ColumnType.TTileLayer.__enum__ = cdb_ColumnType;
+cdb_ColumnType.TDynamic = ["TDynamic",16];
+cdb_ColumnType.TDynamic.toString = $estr;
+cdb_ColumnType.TDynamic.__enum__ = cdb_ColumnType;
+var cdb__$Data_TileMode_$Impl_$ = {};
+$hxClasses["cdb._Data.TileMode_Impl_"] = cdb__$Data_TileMode_$Impl_$;
+cdb__$Data_TileMode_$Impl_$.__name__ = ["cdb","_Data","TileMode_Impl_"];
+cdb__$Data_TileMode_$Impl_$._new = function(s) {
 	return s;
 };
-cdb._Data.TileMode_Impl_.ofString = function(s) {
-	return cdb._Data.TileMode_Impl_._new(s);
+cdb__$Data_TileMode_$Impl_$.ofString = function(s) {
+	return cdb__$Data_TileMode_$Impl_$._new(s);
 };
-cdb._Data.TileMode_Impl_.toString = function(this1) {
+cdb__$Data_TileMode_$Impl_$.toString = function(this1) {
 	return this1;
 };
-cdb.Lz4Reader = function() {
+var cdb_Lz4Reader = function() {
 };
-$hxClasses["cdb.Lz4Reader"] = cdb.Lz4Reader;
-cdb.Lz4Reader.__name__ = ["cdb","Lz4Reader"];
-cdb.Lz4Reader.uncompress = function(src,srcPos,srcLen,out,outPos) {
+$hxClasses["cdb.Lz4Reader"] = cdb_Lz4Reader;
+cdb_Lz4Reader.__name__ = ["cdb","Lz4Reader"];
+cdb_Lz4Reader.uncompress = function(src,srcPos,srcLen,out,outPos) {
 	var outSave = outPos;
 	var srcEnd = srcPos + srcLen;
 	if(srcLen == 0) return [srcPos,outPos,0];
@@ -9036,9 +9037,9 @@ cdb.Lz4Reader.uncompress = function(src,srcPos,srcLen,out,outPos) {
 	if(srcPos != srcEnd) throw "Read too much data " + (srcPos - srcLen);
 	return [srcPos,outPos,0];
 };
-cdb.Lz4Reader.decodeString = function(s) {
-	if(s == "") return haxe.io.Bytes.alloc(0);
-	var k = haxe.crypto.Base64.decode(s);
+cdb_Lz4Reader.decodeString = function(s) {
+	if(s == "") return haxe_io_Bytes.alloc(0);
+	var k = haxe_crypto_Base64.decode(s);
 	if(k.b[0] != 4 || k.b[1] != 34 || k.b[2] != 77 || k.b[3] != 24) return k;
 	var tmp = new Uint8Array(k.length);
 	var _g1 = 0;
@@ -9048,7 +9049,7 @@ cdb.Lz4Reader.decodeString = function(s) {
 		tmp[i] = k.b[i];
 	}
 	var k1 = lz4.decompress(tmp);
-	var b = haxe.io.Bytes.alloc(k1.length);
+	var b = haxe_io_Bytes.alloc(k1.length);
 	var _g11 = 0;
 	var _g2 = k1.length;
 	while(_g11 < _g2) {
@@ -9057,7 +9058,7 @@ cdb.Lz4Reader.decodeString = function(s) {
 	}
 	return b;
 };
-cdb.Lz4Reader.encodeBytes = function(b,compress) {
+cdb_Lz4Reader.encodeBytes = function(b,compress) {
 	if(compress && b.length > 0) {
 		var tmp = new Uint8Array(b.length);
 		var _g1 = 0;
@@ -9067,7 +9068,7 @@ cdb.Lz4Reader.encodeBytes = function(b,compress) {
 			tmp[i] = b.b[i];
 		}
 		tmp = lz4.compress(tmp,65536);
-		b = haxe.io.Bytes.alloc(tmp.length);
+		b = haxe_io_Bytes.alloc(tmp.length);
 		var _g11 = 0;
 		var _g2 = tmp.length;
 		while(_g11 < _g2) {
@@ -9075,16 +9076,16 @@ cdb.Lz4Reader.encodeBytes = function(b,compress) {
 			b.b[i1] = tmp[i1];
 		}
 	}
-	return haxe.crypto.Base64.encode(b);
+	return haxe_crypto_Base64.encode(b);
 };
-cdb.Lz4Reader.prototype = {
+cdb_Lz4Reader.prototype = {
 	b: function() {
 		return this.bytes.get(this.pos++);
 	}
 	,grow: function(out,pos,len) {
 		var size = out.length;
 		do size = size * 3 >> 1; while(size < pos + len);
-		var out2 = haxe.io.Bytes.alloc(size);
+		var out2 = haxe_io_Bytes.alloc(size);
 		out2.blit(0,out,0,pos);
 		return out2;
 	}
@@ -9107,7 +9108,7 @@ cdb.Lz4Reader.prototype = {
 		if(streamSize) this.pos += 8;
 		if(presetDict) throw "Preset dictionary not supported";
 		var headerChk = this.bytes.get(this.pos++);
-		var out = haxe.io.Bytes.alloc(128);
+		var out = haxe_io_Bytes.alloc(128);
 		var outPos = 0;
 		while(true) {
 			var size = this.bytes.get(this.pos++) | this.bytes.get(this.pos++) << 8 | this.bytes.get(this.pos++) << 16 | this.bytes.get(this.pos++) << 24;
@@ -9126,7 +9127,7 @@ cdb.Lz4Reader.prototype = {
 			} else {
 				var srcEnd = this.pos + size;
 				while(this.pos < srcEnd) {
-					var r = cdb.Lz4Reader.uncompress(bytes,this.pos,srcEnd - this.pos,out,outPos);
+					var r = cdb_Lz4Reader.uncompress(bytes,this.pos,srcEnd - this.pos,out,outPos);
 					this.pos = r[0];
 					outPos = r[1];
 					var req = r[2];
@@ -9137,15 +9138,15 @@ cdb.Lz4Reader.prototype = {
 		}
 		return out.sub(0,outPos);
 	}
-	,__class__: cdb.Lz4Reader
+	,__class__: cdb_Lz4Reader
 };
-cdb.Parser = function() { };
-$hxClasses["cdb.Parser"] = cdb.Parser;
-cdb.Parser.__name__ = ["cdb","Parser"];
-cdb.Parser.saveType = function(t) {
+var cdb_Parser = function() { };
+$hxClasses["cdb.Parser"] = cdb_Parser;
+cdb_Parser.__name__ = ["cdb","Parser"];
+cdb_Parser.saveType = function(t) {
 	switch(t[1]) {
 	case 6:case 9:case 12:
-		return t[1] + ":" + t.slice(2)[0];
+		return t[1] + ":" + Std.string(t.slice(2)[0]);
 	case 5:
 		var values = t[2];
 		return t[1] + ":" + values.join(",");
@@ -9156,75 +9157,75 @@ cdb.Parser.saveType = function(t) {
 		return Std.string(t[1]);
 	}
 };
-cdb.Parser.getType = function(str) {
+cdb_Parser.getType = function(str) {
 	var _g = Std.parseInt(str);
 	if(_g != null) switch(_g) {
 	case 0:
-		return cdb.ColumnType.TId;
+		return cdb_ColumnType.TId;
 	case 1:
-		return cdb.ColumnType.TString;
+		return cdb_ColumnType.TString;
 	case 2:
-		return cdb.ColumnType.TBool;
+		return cdb_ColumnType.TBool;
 	case 3:
-		return cdb.ColumnType.TInt;
+		return cdb_ColumnType.TInt;
 	case 4:
-		return cdb.ColumnType.TFloat;
+		return cdb_ColumnType.TFloat;
 	case 5:
-		return cdb.ColumnType.TEnum(((function($this) {
+		return cdb_ColumnType.TEnum(((function($this) {
 			var $r;
 			var pos = str.indexOf(":") + 1;
 			$r = HxOverrides.substr(str,pos,null);
 			return $r;
 		}(this))).split(","));
 	case 6:
-		return cdb.ColumnType.TRef((function($this) {
+		return cdb_ColumnType.TRef((function($this) {
 			var $r;
 			var pos1 = str.indexOf(":") + 1;
 			$r = HxOverrides.substr(str,pos1,null);
 			return $r;
 		}(this)));
 	case 7:
-		return cdb.ColumnType.TImage;
+		return cdb_ColumnType.TImage;
 	case 8:
-		return cdb.ColumnType.TList;
+		return cdb_ColumnType.TList;
 	case 9:
-		return cdb.ColumnType.TCustom((function($this) {
+		return cdb_ColumnType.TCustom((function($this) {
 			var $r;
 			var pos2 = str.indexOf(":") + 1;
 			$r = HxOverrides.substr(str,pos2,null);
 			return $r;
 		}(this)));
 	case 10:
-		return cdb.ColumnType.TFlags(((function($this) {
+		return cdb_ColumnType.TFlags(((function($this) {
 			var $r;
 			var pos3 = str.indexOf(":") + 1;
 			$r = HxOverrides.substr(str,pos3,null);
 			return $r;
 		}(this))).split(","));
 	case 11:
-		return cdb.ColumnType.TColor;
+		return cdb_ColumnType.TColor;
 	case 12:
-		return cdb.ColumnType.TLayer((function($this) {
+		return cdb_ColumnType.TLayer((function($this) {
 			var $r;
 			var pos4 = str.indexOf(":") + 1;
 			$r = HxOverrides.substr(str,pos4,null);
 			return $r;
 		}(this)));
 	case 13:
-		return cdb.ColumnType.TFile;
+		return cdb_ColumnType.TFile;
 	case 14:
-		return cdb.ColumnType.TTilePos;
+		return cdb_ColumnType.TTilePos;
 	case 15:
-		return cdb.ColumnType.TTileLayer;
+		return cdb_ColumnType.TTileLayer;
 	case 16:
-		return cdb.ColumnType.TDynamic;
+		return cdb_ColumnType.TDynamic;
 	default:
 		throw "Unknown type " + str;
 	} else throw "Unknown type " + str;
 };
-cdb.Parser.parse = function(content) {
+cdb_Parser.parse = function(content) {
 	if(content == null) throw "CDB content is null";
-	var data = js.Node.parse(content);
+	var data = js_Node.parse(content);
 	var _g = 0;
 	var _g1 = data.sheets;
 	while(_g < _g1.length) {
@@ -9235,7 +9236,7 @@ cdb.Parser.parse = function(content) {
 		while(_g2 < _g3.length) {
 			var c = _g3[_g2];
 			++_g2;
-			c.type = cdb.Parser.getType(c.typeStr);
+			c.type = cdb_Parser.getType(c.typeStr);
 			c.typeStr = null;
 		}
 	}
@@ -9254,14 +9255,14 @@ cdb.Parser.parse = function(content) {
 			while(_g41 < _g5.length) {
 				var a = _g5[_g41];
 				++_g41;
-				a.type = cdb.Parser.getType(a.typeStr);
+				a.type = cdb_Parser.getType(a.typeStr);
 				a.typeStr = null;
 			}
 		}
 	}
 	return data;
 };
-cdb.Parser.save = function(data) {
+cdb_Parser.save = function(data) {
 	var save = [];
 	var _g = 0;
 	var _g1 = data.sheets;
@@ -9274,7 +9275,7 @@ cdb.Parser.save = function(data) {
 			var c = _g3[_g2];
 			++_g2;
 			save.push(c.type);
-			if(c.typeStr == null) c.typeStr = cdb.Parser.saveType(c.type);
+			if(c.typeStr == null) c.typeStr = cdb_Parser.saveType(c.type);
 			Reflect.deleteField(c,"type");
 		}
 	}
@@ -9294,12 +9295,12 @@ cdb.Parser.save = function(data) {
 				var a = _g5[_g41];
 				++_g41;
 				save.push(a.type);
-				if(a.typeStr == null) a.typeStr = cdb.Parser.saveType(a.type);
+				if(a.typeStr == null) a.typeStr = cdb_Parser.saveType(a.type);
 				Reflect.deleteField(a,"type");
 			}
 		}
 	}
-	var str = js.Node.stringify(data,null,"\t");
+	var str = js_Node.stringify(data,null,"\t");
 	var _g6 = 0;
 	var _g12 = data.sheets;
 	while(_g6 < _g12.length) {
@@ -9334,9 +9335,9 @@ cdb.Parser.save = function(data) {
 	}
 	return str;
 };
-cdb.TileBuilder = function(t,stride,total) {
+var cdb_TileBuilder = function(t,stride,total) {
 	this.borders = [];
-	this.groundIds = new haxe.ds.StringMap();
+	this.groundIds = new haxe_ds_StringMap();
 	this.groundMap = [];
 	var _g1 = 0;
 	var _g = total + 1;
@@ -9346,7 +9347,7 @@ cdb.TileBuilder = function(t,stride,total) {
 	}
 	this.groundMap[0] = 0;
 	this.borders = [];
-	var tmp = new haxe.ds.StringMap();
+	var tmp = new haxe_ds_StringMap();
 	var _g2 = 0;
 	var _g11 = t.sets;
 	while(_g2 < _g11.length) {
@@ -9566,9 +9567,9 @@ cdb.TileBuilder = function(t,stride,total) {
 		}
 	}
 };
-$hxClasses["cdb.TileBuilder"] = cdb.TileBuilder;
-cdb.TileBuilder.__name__ = ["cdb","TileBuilder"];
-cdb.TileBuilder.prototype = {
+$hxClasses["cdb.TileBuilder"] = cdb_TileBuilder;
+cdb_TileBuilder.__name__ = ["cdb","TileBuilder"];
+cdb_TileBuilder.prototype = {
 	random: function(n) {
 		n *= -862048943;
 		n = n << 15 | n >>> 17;
@@ -9888,31 +9889,30 @@ cdb.TileBuilder.prototype = {
 		}
 		return out;
 	}
-	,__class__: cdb.TileBuilder
+	,__class__: cdb_TileBuilder
 };
-cdb._Types = {};
-cdb._Types.ArrayIterator = function(a) {
+var cdb__$Types_ArrayIterator = function(a) {
 	this.a = a;
 	this.pos = 0;
 };
-$hxClasses["cdb._Types.ArrayIterator"] = cdb._Types.ArrayIterator;
-cdb._Types.ArrayIterator.__name__ = ["cdb","_Types","ArrayIterator"];
-cdb._Types.ArrayIterator.prototype = {
+$hxClasses["cdb._Types.ArrayIterator"] = cdb__$Types_ArrayIterator;
+cdb__$Types_ArrayIterator.__name__ = ["cdb","_Types","ArrayIterator"];
+cdb__$Types_ArrayIterator.prototype = {
 	hasNext: function() {
 		return this.pos < this.a.length;
 	}
 	,next: function() {
 		return this.a[this.pos++];
 	}
-	,__class__: cdb._Types.ArrayIterator
+	,__class__: cdb__$Types_ArrayIterator
 };
-cdb._Types.FlagsIterator = function(flags) {
+var cdb__$Types_FlagsIterator = function(flags) {
 	this.flags = flags;
 	this.k = 0;
 };
-$hxClasses["cdb._Types.FlagsIterator"] = cdb._Types.FlagsIterator;
-cdb._Types.FlagsIterator.__name__ = ["cdb","_Types","FlagsIterator"];
-cdb._Types.FlagsIterator.prototype = {
+$hxClasses["cdb._Types.FlagsIterator"] = cdb__$Types_FlagsIterator;
+cdb__$Types_FlagsIterator.__name__ = ["cdb","_Types","FlagsIterator"];
+cdb__$Types_FlagsIterator.prototype = {
 	hasNext: function() {
 		return this.flags >= 1 << this.k;
 	}
@@ -9920,58 +9920,58 @@ cdb._Types.FlagsIterator.prototype = {
 		while((this.flags & 1 << this.k) == 0) this.k++;
 		return this.k++;
 	}
-	,__class__: cdb._Types.FlagsIterator
+	,__class__: cdb__$Types_FlagsIterator
 };
-cdb._Types.ArrayRead_Impl_ = {};
-$hxClasses["cdb._Types.ArrayRead_Impl_"] = cdb._Types.ArrayRead_Impl_;
-cdb._Types.ArrayRead_Impl_.__name__ = ["cdb","_Types","ArrayRead_Impl_"];
-cdb._Types.ArrayRead_Impl_._new = function(a) {
+var cdb__$Types_ArrayRead_$Impl_$ = {};
+$hxClasses["cdb._Types.ArrayRead_Impl_"] = cdb__$Types_ArrayRead_$Impl_$;
+cdb__$Types_ArrayRead_$Impl_$.__name__ = ["cdb","_Types","ArrayRead_Impl_"];
+cdb__$Types_ArrayRead_$Impl_$._new = function(a) {
 	return a;
 };
-cdb._Types.ArrayRead_Impl_.get_length = function(this1) {
+cdb__$Types_ArrayRead_$Impl_$.get_length = function(this1) {
 	return this1.length;
 };
-cdb._Types.ArrayRead_Impl_.iterator = function(this1) {
-	return new cdb._Types.ArrayIterator(this1);
+cdb__$Types_ArrayRead_$Impl_$.iterator = function(this1) {
+	return new cdb__$Types_ArrayIterator(this1);
 };
-cdb._Types.ArrayRead_Impl_.castArray = function(this1) {
+cdb__$Types_ArrayRead_$Impl_$.castArray = function(this1) {
 	return this1;
 };
-cdb._Types.ArrayRead_Impl_.toArrayCopy = function(this1) {
+cdb__$Types_ArrayRead_$Impl_$.toArrayCopy = function(this1) {
 	return this1.slice();
 };
-cdb._Types.ArrayRead_Impl_.getIndex = function(this1,v) {
+cdb__$Types_ArrayRead_$Impl_$.getIndex = function(this1,v) {
 	return this1[v];
 };
-cdb._Types.Flags_Impl_ = {};
-$hxClasses["cdb._Types.Flags_Impl_"] = cdb._Types.Flags_Impl_;
-cdb._Types.Flags_Impl_.__name__ = ["cdb","_Types","Flags_Impl_"];
-cdb._Types.Flags_Impl_._new = function(x) {
+var cdb__$Types_Flags_$Impl_$ = {};
+$hxClasses["cdb._Types.Flags_Impl_"] = cdb__$Types_Flags_$Impl_$;
+cdb__$Types_Flags_$Impl_$.__name__ = ["cdb","_Types","Flags_Impl_"];
+cdb__$Types_Flags_$Impl_$._new = function(x) {
 	return x;
 };
-cdb._Types.Flags_Impl_.has = function(this1,t) {
+cdb__$Types_Flags_$Impl_$.has = function(this1,t) {
 	return (this1 & 1 << t) != 0;
 };
-cdb._Types.Flags_Impl_.set = function(this1,t) {
+cdb__$Types_Flags_$Impl_$.set = function(this1,t) {
 	this1 |= 1 << t;
 };
-cdb._Types.Flags_Impl_.unset = function(this1,t) {
+cdb__$Types_Flags_$Impl_$.unset = function(this1,t) {
 	this1 &= ~(1 << t);
 };
-cdb._Types.Flags_Impl_.iterator = function(this1) {
-	return new cdb._Types.FlagsIterator(this1);
+cdb__$Types_Flags_$Impl_$.iterator = function(this1) {
+	return new cdb__$Types_FlagsIterator(this1);
 };
-cdb._Types.Flags_Impl_.toInt = function(this1) {
+cdb__$Types_Flags_$Impl_$.toInt = function(this1) {
 	return this1;
 };
-cdb._Types.Layer_Impl_ = {};
-$hxClasses["cdb._Types.Layer_Impl_"] = cdb._Types.Layer_Impl_;
-cdb._Types.Layer_Impl_.__name__ = ["cdb","_Types","Layer_Impl_"];
-cdb._Types.Layer_Impl_._new = function(x) {
+var cdb__$Types_Layer_$Impl_$ = {};
+$hxClasses["cdb._Types.Layer_Impl_"] = cdb__$Types_Layer_$Impl_$;
+cdb__$Types_Layer_$Impl_$.__name__ = ["cdb","_Types","Layer_Impl_"];
+cdb__$Types_Layer_$Impl_$._new = function(x) {
 	return x;
 };
-cdb._Types.Layer_Impl_.decode = function(this1,all) {
-	var k = cdb.Lz4Reader.decodeString(this1);
+cdb__$Types_Layer_$Impl_$.decode = function(this1,all) {
+	var k = cdb_Lz4Reader.decodeString(this1);
 	var _g = [];
 	var _g2 = 0;
 	var _g1 = k.length;
@@ -9981,25 +9981,25 @@ cdb._Types.Layer_Impl_.decode = function(this1,all) {
 	}
 	return _g;
 };
-cdb._Types.Layer_Impl_.encode = function(a,compress) {
-	var b = haxe.io.Bytes.alloc(a.length);
+cdb__$Types_Layer_$Impl_$.encode = function(a,compress) {
+	var b = haxe_io_Bytes.alloc(a.length);
 	var _g1 = 0;
 	var _g = a.length;
 	while(_g1 < _g) {
 		var i = _g1++;
 		b.b[i] = a[i];
 	}
-	var x = cdb.Lz4Reader.encodeBytes(b,compress);
+	var x = cdb_Lz4Reader.encodeBytes(b,compress);
 	return x;
 };
-cdb._Types.TileLayerData_Impl_ = {};
-$hxClasses["cdb._Types.TileLayerData_Impl_"] = cdb._Types.TileLayerData_Impl_;
-cdb._Types.TileLayerData_Impl_.__name__ = ["cdb","_Types","TileLayerData_Impl_"];
-cdb._Types.TileLayerData_Impl_._new = function(v) {
+var cdb__$Types_TileLayerData_$Impl_$ = {};
+$hxClasses["cdb._Types.TileLayerData_Impl_"] = cdb__$Types_TileLayerData_$Impl_$;
+cdb__$Types_TileLayerData_$Impl_$.__name__ = ["cdb","_Types","TileLayerData_Impl_"];
+cdb__$Types_TileLayerData_$Impl_$._new = function(v) {
 	return v;
 };
-cdb._Types.TileLayerData_Impl_.decode = function(this1) {
-	var k = cdb.Lz4Reader.decodeString(this1);
+cdb__$Types_TileLayerData_$Impl_$.decode = function(this1) {
+	var k = cdb_Lz4Reader.decodeString(this1);
 	var _g = [];
 	var _g2 = 0;
 	var _g1 = k.length >> 1;
@@ -10009,8 +10009,8 @@ cdb._Types.TileLayerData_Impl_.decode = function(this1) {
 	}
 	return _g;
 };
-cdb._Types.TileLayerData_Impl_.encode = function(a,compress) {
-	var b = haxe.io.Bytes.alloc(a.length * 2);
+cdb__$Types_TileLayerData_$Impl_$.encode = function(a,compress) {
+	var b = haxe_io_Bytes.alloc(a.length * 2);
 	var _g1 = 0;
 	var _g = a.length;
 	while(_g1 < _g) {
@@ -10019,18 +10019,18 @@ cdb._Types.TileLayerData_Impl_.encode = function(a,compress) {
 		b.b[i << 1] = v & 255;
 		b.b[(i << 1) + 1] = v >> 8 & 255;
 	}
-	return cdb._Types.TileLayerData_Impl_._new(cdb.Lz4Reader.encodeBytes(b,compress));
+	return cdb__$Types_TileLayerData_$Impl_$._new(cdb_Lz4Reader.encodeBytes(b,compress));
 };
-cdb._Types.LevelPropsAccess_Impl_ = {};
-$hxClasses["cdb._Types.LevelPropsAccess_Impl_"] = cdb._Types.LevelPropsAccess_Impl_;
-cdb._Types.LevelPropsAccess_Impl_.__name__ = ["cdb","_Types","LevelPropsAccess_Impl_"];
-cdb._Types.LevelPropsAccess_Impl_.get_tileSize = function(this1) {
+var cdb__$Types_LevelPropsAccess_$Impl_$ = {};
+$hxClasses["cdb._Types.LevelPropsAccess_Impl_"] = cdb__$Types_LevelPropsAccess_$Impl_$;
+cdb__$Types_LevelPropsAccess_$Impl_$.__name__ = ["cdb","_Types","LevelPropsAccess_Impl_"];
+cdb__$Types_LevelPropsAccess_$Impl_$.get_tileSize = function(this1) {
 	return this1.tileSize;
 };
-cdb._Types.LevelPropsAccess_Impl_.getTileset = function(this1,i,name) {
+cdb__$Types_LevelPropsAccess_$Impl_$.getTileset = function(this1,i,name) {
 	return Reflect.field(i.sheet.props.level.tileSets,name);
 };
-cdb._Types.LevelPropsAccess_Impl_.getLayer = function(this1,name) {
+cdb__$Types_LevelPropsAccess_$Impl_$.getLayer = function(this1,name) {
 	if(this1 == null || this1.layers == null) return null;
 	var _g = 0;
 	var _g1 = this1.layers;
@@ -10041,7 +10041,7 @@ cdb._Types.LevelPropsAccess_Impl_.getLayer = function(this1,name) {
 	}
 	return null;
 };
-cdb.Index = function(data,name) {
+var cdb_Index = function(data,name) {
 	this.name = name;
 	var _g = 0;
 	var _g1 = data.sheets;
@@ -10056,14 +10056,14 @@ cdb.Index = function(data,name) {
 	}
 	if(this.sheet == null) throw "'" + name + "' not found in CDB data";
 };
-$hxClasses["cdb.Index"] = cdb.Index;
-cdb.Index.__name__ = ["cdb","Index"];
-cdb.Index.prototype = {
-	__class__: cdb.Index
+$hxClasses["cdb.Index"] = cdb_Index;
+cdb_Index.__name__ = ["cdb","Index"];
+cdb_Index.prototype = {
+	__class__: cdb_Index
 };
-cdb.IndexId = function(data,name) {
-	cdb.Index.call(this,data,name);
-	this.byId = new haxe.ds.StringMap();
+var cdb_IndexId = function(data,name) {
+	cdb_Index.call(this,data,name);
+	this.byId = new haxe_ds_StringMap();
 	this.byIndex = [];
 	var _g = 0;
 	var _g1 = this.sheet.columns;
@@ -10094,10 +10094,10 @@ cdb.IndexId = function(data,name) {
 		}
 	} catch( e ) { if( e != "__break__" ) throw e; }
 };
-$hxClasses["cdb.IndexId"] = cdb.IndexId;
-cdb.IndexId.__name__ = ["cdb","IndexId"];
-cdb.IndexId.__super__ = cdb.Index;
-cdb.IndexId.prototype = $extend(cdb.Index.prototype,{
+$hxClasses["cdb.IndexId"] = cdb_IndexId;
+cdb_IndexId.__name__ = ["cdb","IndexId"];
+cdb_IndexId.__super__ = cdb_Index;
+cdb_IndexId.prototype = $extend(cdb_Index.prototype,{
 	get: function(k) {
 		return this.byId.get(k);
 	}
@@ -10106,40 +10106,39 @@ cdb.IndexId.prototype = $extend(cdb.Index.prototype,{
 		var v = this.byId.get(id);
 		if(v == null && !opt) throw "Missing " + this.name + "." + id; else return v;
 	}
-	,__class__: cdb.IndexId
+	,__class__: cdb_IndexId
 });
-var haxe = {};
-haxe.IMap = function() { };
-$hxClasses["haxe.IMap"] = haxe.IMap;
-haxe.IMap.__name__ = ["haxe","IMap"];
-haxe.IMap.prototype = {
-	__class__: haxe.IMap
+var haxe_IMap = function() { };
+$hxClasses["haxe.IMap"] = haxe_IMap;
+haxe_IMap.__name__ = ["haxe","IMap"];
+haxe_IMap.prototype = {
+	__class__: haxe_IMap
 };
-haxe.Json = function() { };
-$hxClasses["haxe.Json"] = haxe.Json;
-haxe.Json.__name__ = ["haxe","Json"];
-haxe.Json.stringify = function(obj,replacer,insertion) {
-	return js.Node.stringify(obj,replacer,insertion);
+var haxe_Json = function() { };
+$hxClasses["haxe.Json"] = haxe_Json;
+haxe_Json.__name__ = ["haxe","Json"];
+haxe_Json.stringify = function(obj,replacer,insertion) {
+	return js_Node.stringify(obj,replacer,insertion);
 };
-haxe.Json.parse = function(jsonString) {
-	return js.Node.parse(jsonString);
+haxe_Json.parse = function(jsonString) {
+	return js_Node.parse(jsonString);
 };
-haxe.Serializer = function() {
+var haxe_Serializer = function() {
 	this.buf = new StringBuf();
 	this.cache = [];
-	this.useCache = haxe.Serializer.USE_CACHE;
-	this.useEnumIndex = haxe.Serializer.USE_ENUM_INDEX;
-	this.shash = new haxe.ds.StringMap();
+	this.useCache = haxe_Serializer.USE_CACHE;
+	this.useEnumIndex = haxe_Serializer.USE_ENUM_INDEX;
+	this.shash = new haxe_ds_StringMap();
 	this.scount = 0;
 };
-$hxClasses["haxe.Serializer"] = haxe.Serializer;
-haxe.Serializer.__name__ = ["haxe","Serializer"];
-haxe.Serializer.run = function(v) {
-	var s = new haxe.Serializer();
+$hxClasses["haxe.Serializer"] = haxe_Serializer;
+haxe_Serializer.__name__ = ["haxe","Serializer"];
+haxe_Serializer.run = function(v) {
+	var s = new haxe_Serializer();
 	s.serialize(v);
 	return s.toString();
 };
-haxe.Serializer.prototype = {
+haxe_Serializer.prototype = {
 	toString: function() {
 		return this.buf.b;
 	}
@@ -10263,7 +10262,7 @@ haxe.Serializer.prototype = {
 					this.buf.b += "v";
 					this.buf.add(d.getTime());
 					break;
-				case haxe.ds.StringMap:
+				case haxe_ds_StringMap:
 					this.buf.b += "b";
 					var v4 = v;
 					var $it0 = v4.keys();
@@ -10274,7 +10273,7 @@ haxe.Serializer.prototype = {
 					}
 					this.buf.b += "h";
 					break;
-				case haxe.ds.IntMap:
+				case haxe_ds_IntMap:
 					this.buf.b += "q";
 					var v5 = v;
 					var $it1 = v5.keys();
@@ -10286,7 +10285,7 @@ haxe.Serializer.prototype = {
 					}
 					this.buf.b += "h";
 					break;
-				case haxe.ds.ObjectMap:
+				case haxe_ds_ObjectMap:
 					this.buf.b += "M";
 					var v6 = v;
 					var $it2 = v6.keys();
@@ -10300,12 +10299,12 @@ haxe.Serializer.prototype = {
 					}
 					this.buf.b += "h";
 					break;
-				case haxe.io.Bytes:
+				case haxe_io_Bytes:
 					var v7 = v;
 					var i2 = 0;
 					var max = v7.length - 2;
 					var charsBuf = new StringBuf();
-					var b64 = haxe.Serializer.BASE64;
+					var b64 = haxe_Serializer.BASE64;
 					while(i2 < max) {
 						var b1 = v7.get(i2++);
 						var b2 = v7.get(i2++);
@@ -10349,11 +10348,11 @@ haxe.Serializer.prototype = {
 				}
 				break;
 			case 4:
-				if(js.Boot.__instanceof(v,Class)) {
+				if(js_Boot.__instanceof(v,Class)) {
 					var className = Type.getClassName(v);
 					this.buf.b += "A";
 					this.serializeString(className);
-				} else if(js.Boot.__instanceof(v,Enum)) {
+				} else if(js_Boot.__instanceof(v,Enum)) {
 					this.buf.b += "B";
 					this.serializeString(Type.getEnumName(v));
 				} else {
@@ -10392,25 +10391,25 @@ haxe.Serializer.prototype = {
 			}
 		}
 	}
-	,__class__: haxe.Serializer
+	,__class__: haxe_Serializer
 };
-haxe.Timer = function(time_ms) {
+var haxe_Timer = function(time_ms) {
 	var me = this;
 	this.id = setInterval(function() {
 		me.run();
 	},time_ms);
 };
-$hxClasses["haxe.Timer"] = haxe.Timer;
-haxe.Timer.__name__ = ["haxe","Timer"];
-haxe.Timer.delay = function(f,time_ms) {
-	var t = new haxe.Timer(time_ms);
+$hxClasses["haxe.Timer"] = haxe_Timer;
+haxe_Timer.__name__ = ["haxe","Timer"];
+haxe_Timer.delay = function(f,time_ms) {
+	var t = new haxe_Timer(time_ms);
 	t.run = function() {
 		t.stop();
 		f();
 	};
 	return t;
 };
-haxe.Timer.prototype = {
+haxe_Timer.prototype = {
 	stop: function() {
 		if(this.id == null) return;
 		clearInterval(this.id);
@@ -10418,37 +10417,37 @@ haxe.Timer.prototype = {
 	}
 	,run: function() {
 	}
-	,__class__: haxe.Timer
+	,__class__: haxe_Timer
 };
-haxe.Unserializer = function(buf) {
+var haxe_Unserializer = function(buf) {
 	this.buf = buf;
 	this.length = buf.length;
 	this.pos = 0;
 	this.scache = [];
 	this.cache = [];
-	var r = haxe.Unserializer.DEFAULT_RESOLVER;
+	var r = haxe_Unserializer.DEFAULT_RESOLVER;
 	if(r == null) {
 		r = Type;
-		haxe.Unserializer.DEFAULT_RESOLVER = r;
+		haxe_Unserializer.DEFAULT_RESOLVER = r;
 	}
 	this.setResolver(r);
 };
-$hxClasses["haxe.Unserializer"] = haxe.Unserializer;
-haxe.Unserializer.__name__ = ["haxe","Unserializer"];
-haxe.Unserializer.initCodes = function() {
+$hxClasses["haxe.Unserializer"] = haxe_Unserializer;
+haxe_Unserializer.__name__ = ["haxe","Unserializer"];
+haxe_Unserializer.initCodes = function() {
 	var codes = [];
 	var _g1 = 0;
-	var _g = haxe.Unserializer.BASE64.length;
+	var _g = haxe_Unserializer.BASE64.length;
 	while(_g1 < _g) {
 		var i = _g1++;
-		codes[haxe.Unserializer.BASE64.charCodeAt(i)] = i;
+		codes[haxe_Unserializer.BASE64.charCodeAt(i)] = i;
 	}
 	return codes;
 };
-haxe.Unserializer.run = function(v) {
-	return new haxe.Unserializer(v).unserialize();
+haxe_Unserializer.run = function(v) {
+	return new haxe_Unserializer(v).unserialize();
 };
-haxe.Unserializer.prototype = {
+haxe_Unserializer.prototype = {
 	setResolver: function(r) {
 		if(r == null) this.resolver = { resolveClass : function(_) {
 			return null;
@@ -10602,7 +10601,7 @@ haxe.Unserializer.prototype = {
 			this.pos++;
 			return l;
 		case 98:
-			var h = new haxe.ds.StringMap();
+			var h = new haxe_ds_StringMap();
 			this.cache.push(h);
 			var buf2 = this.buf;
 			while(this.buf.charCodeAt(this.pos) != 104) {
@@ -10612,7 +10611,7 @@ haxe.Unserializer.prototype = {
 			this.pos++;
 			return h;
 		case 113:
-			var h1 = new haxe.ds.IntMap();
+			var h1 = new haxe_ds_IntMap();
 			this.cache.push(h1);
 			var buf3 = this.buf;
 			var c1 = this.get(this.pos++);
@@ -10624,7 +10623,7 @@ haxe.Unserializer.prototype = {
 			if(c1 != 104) throw "Invalid IntMap format";
 			return h1;
 		case 77:
-			var h2 = new haxe.ds.ObjectMap();
+			var h2 = new haxe_ds_ObjectMap();
 			this.cache.push(h2);
 			var buf4 = this.buf;
 			while(this.buf.charCodeAt(this.pos) != 104) {
@@ -10651,17 +10650,17 @@ haxe.Unserializer.prototype = {
 			var len1 = this.readDigits();
 			var buf5 = this.buf;
 			if(this.get(this.pos++) != 58 || this.length - this.pos < len1) throw "Invalid bytes length";
-			var codes = haxe.Unserializer.CODES;
+			var codes = haxe_Unserializer.CODES;
 			if(codes == null) {
-				codes = haxe.Unserializer.initCodes();
-				haxe.Unserializer.CODES = codes;
+				codes = haxe_Unserializer.initCodes();
+				haxe_Unserializer.CODES = codes;
 			}
 			var i1 = this.pos;
 			var rest = len1 & 3;
 			var size;
 			size = (len1 >> 2) * 3 + (rest >= 2?rest - 1:0);
 			var max = i1 + (len1 - rest);
-			var bytes = haxe.io.Bytes.alloc(size);
+			var bytes = haxe_io_Bytes.alloc(size);
 			var bpos = 0;
 			while(i1 < max) {
 				var c11 = codes[StringTools.fastCodeAt(buf5,i1++)];
@@ -10708,28 +10707,27 @@ haxe.Unserializer.prototype = {
 		this.pos--;
 		throw "Invalid char " + this.buf.charAt(this.pos) + " at position " + this.pos;
 	}
-	,__class__: haxe.Unserializer
+	,__class__: haxe_Unserializer
 };
-haxe.io = {};
-haxe.io.Bytes = function(length,b) {
+var haxe_io_Bytes = function(length,b) {
 	this.length = length;
 	this.b = b;
 };
-$hxClasses["haxe.io.Bytes"] = haxe.io.Bytes;
-haxe.io.Bytes.__name__ = ["haxe","io","Bytes"];
-haxe.io.Bytes.alloc = function(length) {
+$hxClasses["haxe.io.Bytes"] = haxe_io_Bytes;
+haxe_io_Bytes.__name__ = ["haxe","io","Bytes"];
+haxe_io_Bytes.alloc = function(length) {
 	var b = new Buffer(length);
 	b.fill(0,0);
-	return new haxe.io.Bytes(length,b);
+	return new haxe_io_Bytes(length,b);
 };
-haxe.io.Bytes.ofString = function(s) {
+haxe_io_Bytes.ofString = function(s) {
 	var nb = new Buffer(s,"utf8");
-	return new haxe.io.Bytes(nb.length,nb);
+	return new haxe_io_Bytes(nb.length,nb);
 };
-haxe.io.Bytes.ofData = function(b) {
-	return new haxe.io.Bytes(b.length,b);
+haxe_io_Bytes.ofData = function(b) {
+	return new haxe_io_Bytes(b.length,b);
 };
-haxe.io.Bytes.prototype = {
+haxe_io_Bytes.prototype = {
 	get: function(pos) {
 		return this.b[pos];
 	}
@@ -10737,15 +10735,15 @@ haxe.io.Bytes.prototype = {
 		this.b[pos] = v;
 	}
 	,blit: function(pos,src,srcpos,len) {
-		if(pos < 0 || srcpos < 0 || len < 0 || pos + len > this.length || srcpos + len > src.length) throw haxe.io.Error.OutsideBounds;
+		if(pos < 0 || srcpos < 0 || len < 0 || pos + len > this.length || srcpos + len > src.length) throw haxe_io_Error.OutsideBounds;
 		src.b.copy(this.b,pos,srcpos,srcpos + len);
 	}
 	,sub: function(pos,len) {
-		if(pos < 0 || len < 0 || pos + len > this.length) throw haxe.io.Error.OutsideBounds;
+		if(pos < 0 || len < 0 || pos + len > this.length) throw haxe_io_Error.OutsideBounds;
 		var nb = new Buffer(len);
 		var slice = this.b.slice(pos,pos + len);
 		slice.copy(nb,0,0,len);
-		return new haxe.io.Bytes(len,nb);
+		return new haxe_io_Bytes(len,nb);
 	}
 	,compare: function(other) {
 		var b1 = this.b;
@@ -10760,7 +10758,7 @@ haxe.io.Bytes.prototype = {
 		return this.length - other.length;
 	}
 	,readString: function(pos,len) {
-		if(pos < 0 || len < 0 || pos + len > this.length) throw haxe.io.Error.OutsideBounds;
+		if(pos < 0 || len < 0 || pos + len > this.length) throw haxe_io_Error.OutsideBounds;
 		var s = "";
 		var b = this.b;
 		var fcc = String.fromCharCode;
@@ -10808,31 +10806,34 @@ haxe.io.Bytes.prototype = {
 	,getData: function() {
 		return this.b;
 	}
-	,__class__: haxe.io.Bytes
+	,__class__: haxe_io_Bytes
 };
-haxe.crypto = {};
-haxe.crypto.Base64 = function() { };
-$hxClasses["haxe.crypto.Base64"] = haxe.crypto.Base64;
-haxe.crypto.Base64.__name__ = ["haxe","crypto","Base64"];
-haxe.crypto.Base64.encode = function(bytes,complement) {
+var haxe_crypto_Base64 = function() { };
+$hxClasses["haxe.crypto.Base64"] = haxe_crypto_Base64;
+haxe_crypto_Base64.__name__ = ["haxe","crypto","Base64"];
+haxe_crypto_Base64.encode = function(bytes,complement) {
 	if(complement == null) complement = true;
-	var str = new haxe.crypto.BaseCode(haxe.crypto.Base64.BYTES).encodeBytes(bytes).toString();
+	var str = new haxe_crypto_BaseCode(haxe_crypto_Base64.BYTES).encodeBytes(bytes).toString();
 	if(complement) {
-		var _g1 = 0;
-		var _g = (3 - bytes.length * 4 % 3) % 3;
-		while(_g1 < _g) {
-			var i = _g1++;
+		var _g = bytes.length % 3;
+		switch(_g) {
+		case 1:
+			str += "==";
+			break;
+		case 2:
 			str += "=";
+			break;
+		default:
 		}
 	}
 	return str;
 };
-haxe.crypto.Base64.decode = function(str,complement) {
+haxe_crypto_Base64.decode = function(str,complement) {
 	if(complement == null) complement = true;
 	if(complement) while(HxOverrides.cca(str,str.length - 1) == 61) str = HxOverrides.substr(str,0,-1);
-	return new haxe.crypto.BaseCode(haxe.crypto.Base64.BYTES).decodeBytes(haxe.io.Bytes.ofString(str));
+	return new haxe_crypto_BaseCode(haxe_crypto_Base64.BYTES).decodeBytes(haxe_io_Bytes.ofString(str));
 };
-haxe.crypto.BaseCode = function(base) {
+var haxe_crypto_BaseCode = function(base) {
 	var len = base.length;
 	var nbits = 1;
 	while(len > 1 << nbits) nbits++;
@@ -10840,14 +10841,14 @@ haxe.crypto.BaseCode = function(base) {
 	this.base = base;
 	this.nbits = nbits;
 };
-$hxClasses["haxe.crypto.BaseCode"] = haxe.crypto.BaseCode;
-haxe.crypto.BaseCode.__name__ = ["haxe","crypto","BaseCode"];
-haxe.crypto.BaseCode.prototype = {
+$hxClasses["haxe.crypto.BaseCode"] = haxe_crypto_BaseCode;
+haxe_crypto_BaseCode.__name__ = ["haxe","crypto","BaseCode"];
+haxe_crypto_BaseCode.prototype = {
 	encodeBytes: function(b) {
 		var nbits = this.nbits;
 		var base = this.base;
 		var size = b.length * 8 / nbits | 0;
-		var out = haxe.io.Bytes.alloc(size + (b.length * 8 % nbits == 0?0:1));
+		var out = haxe_io_Bytes.alloc(size + (b.length * 8 % nbits == 0?0:1));
 		var buf = 0;
 		var curbits = 0;
 		var mask = (1 << nbits) - 1;
@@ -10886,7 +10887,7 @@ haxe.crypto.BaseCode.prototype = {
 		if(this.tbl == null) this.initTable();
 		var tbl = this.tbl;
 		var size = b.length * nbits >> 3;
-		var out = haxe.io.Bytes.alloc(size);
+		var out = haxe_io_Bytes.alloc(size);
 		var buf = 0;
 		var curbits = 0;
 		var pin = 0;
@@ -10904,15 +10905,15 @@ haxe.crypto.BaseCode.prototype = {
 		}
 		return out;
 	}
-	,__class__: haxe.crypto.BaseCode
+	,__class__: haxe_crypto_BaseCode
 };
-haxe.crypto.Md5 = function() {
+var haxe_crypto_Md5 = function() {
 };
-$hxClasses["haxe.crypto.Md5"] = haxe.crypto.Md5;
-haxe.crypto.Md5.__name__ = ["haxe","crypto","Md5"];
-haxe.crypto.Md5.make = function(b) {
-	var h = new haxe.crypto.Md5().doEncode(haxe.crypto.Md5.bytes2blks(b));
-	var out = haxe.io.Bytes.alloc(16);
+$hxClasses["haxe.crypto.Md5"] = haxe_crypto_Md5;
+haxe_crypto_Md5.__name__ = ["haxe","crypto","Md5"];
+haxe_crypto_Md5.make = function(b) {
+	var h = new haxe_crypto_Md5().doEncode(haxe_crypto_Md5.bytes2blks(b));
+	var out = haxe_io_Bytes.alloc(16);
 	var p = 0;
 	var _g = 0;
 	while(_g < 4) {
@@ -10924,7 +10925,7 @@ haxe.crypto.Md5.make = function(b) {
 	}
 	return out;
 };
-haxe.crypto.Md5.bytes2blks = function(b) {
+haxe_crypto_Md5.bytes2blks = function(b) {
 	var nblk = (b.length + 8 >> 6) + 1;
 	var blks = [];
 	var blksSize = nblk * 16;
@@ -10947,7 +10948,7 @@ haxe.crypto.Md5.bytes2blks = function(b) {
 	blks[k] |= (l >>> 24 & 255) << 24;
 	return blks;
 };
-haxe.crypto.Md5.prototype = {
+haxe_crypto_Md5.prototype = {
 	bitOR: function(a,b) {
 		var lsb = a & 1 | b & 1;
 		var msb31 = a >>> 1 | b >>> 1;
@@ -11071,16 +11072,15 @@ haxe.crypto.Md5.prototype = {
 		}
 		return [a,b,c,d];
 	}
-	,__class__: haxe.crypto.Md5
+	,__class__: haxe_crypto_Md5
 };
-haxe.ds = {};
-haxe.ds.IntMap = function() {
+var haxe_ds_IntMap = function() {
 	this.h = { };
 };
-$hxClasses["haxe.ds.IntMap"] = haxe.ds.IntMap;
-haxe.ds.IntMap.__name__ = ["haxe","ds","IntMap"];
-haxe.ds.IntMap.__interfaces__ = [haxe.IMap];
-haxe.ds.IntMap.prototype = {
+$hxClasses["haxe.ds.IntMap"] = haxe_ds_IntMap;
+haxe_ds_IntMap.__name__ = ["haxe","ds","IntMap"];
+haxe_ds_IntMap.__interfaces__ = [haxe_IMap];
+haxe_ds_IntMap.prototype = {
 	set: function(key,value) {
 		this.h[key] = value;
 	}
@@ -11094,18 +11094,18 @@ haxe.ds.IntMap.prototype = {
 		}
 		return HxOverrides.iter(a);
 	}
-	,__class__: haxe.ds.IntMap
+	,__class__: haxe_ds_IntMap
 };
-haxe.ds.ObjectMap = function() {
+var haxe_ds_ObjectMap = function() {
 	this.h = { };
 	this.h.__keys__ = { };
 };
-$hxClasses["haxe.ds.ObjectMap"] = haxe.ds.ObjectMap;
-haxe.ds.ObjectMap.__name__ = ["haxe","ds","ObjectMap"];
-haxe.ds.ObjectMap.__interfaces__ = [haxe.IMap];
-haxe.ds.ObjectMap.prototype = {
+$hxClasses["haxe.ds.ObjectMap"] = haxe_ds_ObjectMap;
+haxe_ds_ObjectMap.__name__ = ["haxe","ds","ObjectMap"];
+haxe_ds_ObjectMap.__interfaces__ = [haxe_IMap];
+haxe_ds_ObjectMap.prototype = {
 	set: function(key,value) {
-		var id = key.__id__ || (key.__id__ = ++haxe.ds.ObjectMap.count);
+		var id = key.__id__ || (key.__id__ = ++haxe_ds_ObjectMap.count);
 		this.h[id] = value;
 		this.h.__keys__[id] = key;
 	}
@@ -11119,33 +11119,32 @@ haxe.ds.ObjectMap.prototype = {
 		}
 		return HxOverrides.iter(a);
 	}
-	,__class__: haxe.ds.ObjectMap
+	,__class__: haxe_ds_ObjectMap
 };
-haxe.ds._StringMap = {};
-haxe.ds._StringMap.StringMapIterator = function(map,keys) {
+var haxe_ds__$StringMap_StringMapIterator = function(map,keys) {
 	this.map = map;
 	this.keys = keys;
 	this.index = 0;
 	this.count = keys.length;
 };
-$hxClasses["haxe.ds._StringMap.StringMapIterator"] = haxe.ds._StringMap.StringMapIterator;
-haxe.ds._StringMap.StringMapIterator.__name__ = ["haxe","ds","_StringMap","StringMapIterator"];
-haxe.ds._StringMap.StringMapIterator.prototype = {
+$hxClasses["haxe.ds._StringMap.StringMapIterator"] = haxe_ds__$StringMap_StringMapIterator;
+haxe_ds__$StringMap_StringMapIterator.__name__ = ["haxe","ds","_StringMap","StringMapIterator"];
+haxe_ds__$StringMap_StringMapIterator.prototype = {
 	hasNext: function() {
 		return this.index < this.count;
 	}
 	,next: function() {
 		return this.map.get(this.keys[this.index++]);
 	}
-	,__class__: haxe.ds._StringMap.StringMapIterator
+	,__class__: haxe_ds__$StringMap_StringMapIterator
 };
-haxe.ds.StringMap = function() {
+var haxe_ds_StringMap = function() {
 	this.h = { };
 };
-$hxClasses["haxe.ds.StringMap"] = haxe.ds.StringMap;
-haxe.ds.StringMap.__name__ = ["haxe","ds","StringMap"];
-haxe.ds.StringMap.__interfaces__ = [haxe.IMap];
-haxe.ds.StringMap.prototype = {
+$hxClasses["haxe.ds.StringMap"] = haxe_ds_StringMap;
+haxe_ds_StringMap.__name__ = ["haxe","ds","StringMap"];
+haxe_ds_StringMap.__interfaces__ = [haxe_IMap];
+haxe_ds_StringMap.prototype = {
 	set: function(key,value) {
 		if(__map_reserved[key] != null) this.setReserved(key,value); else this.h[key] = value;
 	}
@@ -11197,16 +11196,16 @@ haxe.ds.StringMap.prototype = {
 		return out;
 	}
 	,iterator: function() {
-		return new haxe.ds._StringMap.StringMapIterator(this,this.arrayKeys());
+		return new haxe_ds__$StringMap_StringMapIterator(this,this.arrayKeys());
 	}
-	,__class__: haxe.ds.StringMap
+	,__class__: haxe_ds_StringMap
 };
-haxe.io.BytesBuffer = function() {
+var haxe_io_BytesBuffer = function() {
 	this.b = [];
 };
-$hxClasses["haxe.io.BytesBuffer"] = haxe.io.BytesBuffer;
-haxe.io.BytesBuffer.__name__ = ["haxe","io","BytesBuffer"];
-haxe.io.BytesBuffer.prototype = {
+$hxClasses["haxe.io.BytesBuffer"] = haxe_io_BytesBuffer;
+haxe_io_BytesBuffer.__name__ = ["haxe","io","BytesBuffer"];
+haxe_io_BytesBuffer.prototype = {
 	addByte: function($byte) {
 		this.b.push($byte);
 	}
@@ -11221,7 +11220,7 @@ haxe.io.BytesBuffer.prototype = {
 		}
 	}
 	,addBytes: function(src,pos,len) {
-		if(pos < 0 || len < 0 || pos + len > src.length) throw haxe.io.Error.OutsideBounds;
+		if(pos < 0 || len < 0 || pos + len > src.length) throw haxe_io_Error.OutsideBounds;
 		var b1 = this.b;
 		var b2 = src.b;
 		var _g1 = pos;
@@ -11233,24 +11232,24 @@ haxe.io.BytesBuffer.prototype = {
 	}
 	,getBytes: function() {
 		var nb = new Buffer(this.b);
-		var bytes = new haxe.io.Bytes(nb.length,nb);
+		var bytes = new haxe_io_Bytes(nb.length,nb);
 		this.b = null;
 		return bytes;
 	}
 	,get_length: function() {
 		return this.b.length;
 	}
-	,__class__: haxe.io.BytesBuffer
+	,__class__: haxe_io_BytesBuffer
 };
-haxe.io.Output = function() { };
-$hxClasses["haxe.io.Output"] = haxe.io.Output;
-haxe.io.Output.__name__ = ["haxe","io","Output"];
-haxe.io.Output.prototype = {
+var haxe_io_Output = function() { };
+$hxClasses["haxe.io.Output"] = haxe_io_Output;
+haxe_io_Output.__name__ = ["haxe","io","Output"];
+haxe_io_Output.prototype = {
 	writeByte: function(c) {
 		throw "Not implemented";
 	}
 	,writeUInt16: function(x) {
-		if(x < 0 || x >= 65536) throw haxe.io.Error.Overflow;
+		if(x < 0 || x >= 65536) throw haxe_io_Error.Overflow;
 		if(this.bigEndian) {
 			this.writeByte(x >> 8);
 			this.writeByte(x & 255);
@@ -11259,44 +11258,44 @@ haxe.io.Output.prototype = {
 			this.writeByte(x >> 8);
 		}
 	}
-	,__class__: haxe.io.Output
+	,__class__: haxe_io_Output
 };
-haxe.io.BytesOutput = function() {
-	this.b = new haxe.io.BytesBuffer();
+var haxe_io_BytesOutput = function() {
+	this.b = new haxe_io_BytesBuffer();
 };
-$hxClasses["haxe.io.BytesOutput"] = haxe.io.BytesOutput;
-haxe.io.BytesOutput.__name__ = ["haxe","io","BytesOutput"];
-haxe.io.BytesOutput.__super__ = haxe.io.Output;
-haxe.io.BytesOutput.prototype = $extend(haxe.io.Output.prototype,{
+$hxClasses["haxe.io.BytesOutput"] = haxe_io_BytesOutput;
+haxe_io_BytesOutput.__name__ = ["haxe","io","BytesOutput"];
+haxe_io_BytesOutput.__super__ = haxe_io_Output;
+haxe_io_BytesOutput.prototype = $extend(haxe_io_Output.prototype,{
 	writeByte: function(c) {
 		this.b.b.push(c);
 	}
 	,getBytes: function() {
 		return this.b.getBytes();
 	}
-	,__class__: haxe.io.BytesOutput
+	,__class__: haxe_io_BytesOutput
 });
-haxe.io.Eof = function() { };
-$hxClasses["haxe.io.Eof"] = haxe.io.Eof;
-haxe.io.Eof.__name__ = ["haxe","io","Eof"];
-haxe.io.Eof.prototype = {
+var haxe_io_Eof = function() { };
+$hxClasses["haxe.io.Eof"] = haxe_io_Eof;
+haxe_io_Eof.__name__ = ["haxe","io","Eof"];
+haxe_io_Eof.prototype = {
 	toString: function() {
 		return "Eof";
 	}
-	,__class__: haxe.io.Eof
+	,__class__: haxe_io_Eof
 };
-haxe.io.Error = $hxClasses["haxe.io.Error"] = { __ename__ : ["haxe","io","Error"], __constructs__ : ["Blocked","Overflow","OutsideBounds","Custom"] };
-haxe.io.Error.Blocked = ["Blocked",0];
-haxe.io.Error.Blocked.toString = $estr;
-haxe.io.Error.Blocked.__enum__ = haxe.io.Error;
-haxe.io.Error.Overflow = ["Overflow",1];
-haxe.io.Error.Overflow.toString = $estr;
-haxe.io.Error.Overflow.__enum__ = haxe.io.Error;
-haxe.io.Error.OutsideBounds = ["OutsideBounds",2];
-haxe.io.Error.OutsideBounds.toString = $estr;
-haxe.io.Error.OutsideBounds.__enum__ = haxe.io.Error;
-haxe.io.Error.Custom = function(e) { var $x = ["Custom",3,e]; $x.__enum__ = haxe.io.Error; $x.toString = $estr; return $x; };
-haxe.io.Path = function(path) {
+var haxe_io_Error = $hxClasses["haxe.io.Error"] = { __ename__ : ["haxe","io","Error"], __constructs__ : ["Blocked","Overflow","OutsideBounds","Custom"] };
+haxe_io_Error.Blocked = ["Blocked",0];
+haxe_io_Error.Blocked.toString = $estr;
+haxe_io_Error.Blocked.__enum__ = haxe_io_Error;
+haxe_io_Error.Overflow = ["Overflow",1];
+haxe_io_Error.Overflow.toString = $estr;
+haxe_io_Error.Overflow.__enum__ = haxe_io_Error;
+haxe_io_Error.OutsideBounds = ["OutsideBounds",2];
+haxe_io_Error.OutsideBounds.toString = $estr;
+haxe_io_Error.OutsideBounds.__enum__ = haxe_io_Error;
+haxe_io_Error.Custom = function(e) { var $x = ["Custom",3,e]; $x.__enum__ = haxe_io_Error; $x.toString = $estr; return $x; };
+var haxe_io_Path = function(path) {
 	switch(path) {
 	case ".":case "..":
 		this.dir = path;
@@ -11322,25 +11321,24 @@ haxe.io.Path = function(path) {
 		this.file = path;
 	}
 };
-$hxClasses["haxe.io.Path"] = haxe.io.Path;
-haxe.io.Path.__name__ = ["haxe","io","Path"];
-haxe.io.Path.prototype = {
-	__class__: haxe.io.Path
+$hxClasses["haxe.io.Path"] = haxe_io_Path;
+haxe_io_Path.__name__ = ["haxe","io","Path"];
+haxe_io_Path.prototype = {
+	__class__: haxe_io_Path
 };
-var js = {};
-js.Boot = function() { };
-$hxClasses["js.Boot"] = js.Boot;
-js.Boot.__name__ = ["js","Boot"];
-js.Boot.getClass = function(o) {
+var js_Boot = function() { };
+$hxClasses["js.Boot"] = js_Boot;
+js_Boot.__name__ = ["js","Boot"];
+js_Boot.getClass = function(o) {
 	if((o instanceof Array) && o.__enum__ == null) return Array; else {
 		var cl = o.__class__;
 		if(cl != null) return cl;
-		var name = js.Boot.__nativeClassName(o);
-		if(name != null) return js.Boot.__resolveNativeClass(name);
+		var name = js_Boot.__nativeClassName(o);
+		if(name != null) return js_Boot.__resolveNativeClass(name);
 		return null;
 	}
 };
-js.Boot.__string_rec = function(o,s) {
+js_Boot.__string_rec = function(o,s) {
 	if(o == null) return "null";
 	if(s.length >= 5) return "<...>";
 	var t = typeof(o);
@@ -11356,7 +11354,7 @@ js.Boot.__string_rec = function(o,s) {
 				var _g = o.length;
 				while(_g1 < _g) {
 					var i1 = _g1++;
-					if(i1 != 2) str2 += "," + js.Boot.__string_rec(o[i1],s); else str2 += js.Boot.__string_rec(o[i1],s);
+					if(i1 != 2) str2 += "," + js_Boot.__string_rec(o[i1],s); else str2 += js_Boot.__string_rec(o[i1],s);
 				}
 				return str2 + ")";
 			}
@@ -11367,7 +11365,7 @@ js.Boot.__string_rec = function(o,s) {
 			var _g2 = 0;
 			while(_g2 < l) {
 				var i2 = _g2++;
-				str1 += (i2 > 0?",":"") + js.Boot.__string_rec(o[i2],s);
+				str1 += (i2 > 0?",":"") + js_Boot.__string_rec(o[i2],s);
 			}
 			str1 += "]";
 			return str1;
@@ -11394,7 +11392,7 @@ js.Boot.__string_rec = function(o,s) {
 			continue;
 		}
 		if(str.length != 2) str += ", \n";
-		str += s + k + " : " + js.Boot.__string_rec(o[k],s);
+		str += s + k + " : " + js_Boot.__string_rec(o[k],s);
 		}
 		s = s.substring(1);
 		str += "\n" + s + "}";
@@ -11407,7 +11405,7 @@ js.Boot.__string_rec = function(o,s) {
 		return String(o);
 	}
 };
-js.Boot.__interfLoop = function(cc,cl) {
+js_Boot.__interfLoop = function(cc,cl) {
 	if(cc == null) return false;
 	if(cc == cl) return true;
 	var intf = cc.__interfaces__;
@@ -11417,12 +11415,12 @@ js.Boot.__interfLoop = function(cc,cl) {
 		while(_g1 < _g) {
 			var i = _g1++;
 			var i1 = intf[i];
-			if(i1 == cl || js.Boot.__interfLoop(i1,cl)) return true;
+			if(i1 == cl || js_Boot.__interfLoop(i1,cl)) return true;
 		}
 	}
-	return js.Boot.__interfLoop(cc.__super__,cl);
+	return js_Boot.__interfLoop(cc.__super__,cl);
 };
-js.Boot.__instanceof = function(o,cl) {
+js_Boot.__instanceof = function(o,cl) {
 	if(cl == null) return false;
 	switch(cl) {
 	case Int:
@@ -11441,8 +11439,8 @@ js.Boot.__instanceof = function(o,cl) {
 		if(o != null) {
 			if(typeof(cl) == "function") {
 				if(o instanceof cl) return true;
-				if(js.Boot.__interfLoop(js.Boot.getClass(o),cl)) return true;
-			} else if(typeof(cl) == "object" && js.Boot.__isNativeObj(cl)) {
+				if(js_Boot.__interfLoop(js_Boot.getClass(o),cl)) return true;
+			} else if(typeof(cl) == "object" && js_Boot.__isNativeObj(cl)) {
 				if(o instanceof cl) return true;
 			}
 		} else return false;
@@ -11451,24 +11449,24 @@ js.Boot.__instanceof = function(o,cl) {
 		return o.__enum__ == cl;
 	}
 };
-js.Boot.__cast = function(o,t) {
-	if(js.Boot.__instanceof(o,t)) return o; else throw "Cannot cast " + Std.string(o) + " to " + Std.string(t);
+js_Boot.__cast = function(o,t) {
+	if(js_Boot.__instanceof(o,t)) return o; else throw "Cannot cast " + Std.string(o) + " to " + Std.string(t);
 };
-js.Boot.__nativeClassName = function(o) {
-	var name = js.Boot.__toStr.call(o).slice(8,-1);
+js_Boot.__nativeClassName = function(o) {
+	var name = js_Boot.__toStr.call(o).slice(8,-1);
 	if(name == "Object" || name == "Function" || name == "Math" || name == "JSON") return null;
 	return name;
 };
-js.Boot.__isNativeObj = function(o) {
-	return js.Boot.__nativeClassName(o) != null;
+js_Boot.__isNativeObj = function(o) {
+	return js_Boot.__nativeClassName(o) != null;
 };
-js.Boot.__resolveNativeClass = function(name) {
+js_Boot.__resolveNativeClass = function(name) {
 	if(typeof window != "undefined") return window[name]; else return global[name];
 };
-js.Browser = function() { };
-$hxClasses["js.Browser"] = js.Browser;
-js.Browser.__name__ = ["js","Browser"];
-js.Browser.getLocalStorage = function() {
+var js_Browser = function() { };
+$hxClasses["js.Browser"] = js_Browser;
+js_Browser.__name__ = ["js","Browser"];
+js_Browser.getLocalStorage = function() {
 	try {
 		var s = window.localStorage;
 		s.getItem("");
@@ -11477,87 +11475,87 @@ js.Browser.getLocalStorage = function() {
 		return null;
 	}
 };
-js.Lib = function() { };
-$hxClasses["js.Lib"] = js.Lib;
-js.Lib.__name__ = ["js","Lib"];
-js.Lib.alert = function(v) {
-	alert(js.Boot.__string_rec(v,""));
+js_Browser.alert = function(v) {
+	window.alert(js_Boot.__string_rec(v,""));
 };
-js.NodeC = function() { };
-$hxClasses["js.NodeC"] = js.NodeC;
-js.NodeC.__name__ = ["js","NodeC"];
-js.Node = function() { };
-$hxClasses["js.Node"] = js.Node;
-js.Node.__name__ = ["js","Node"];
-js.Node.get_assert = function() {
-	return js.Node.require("assert");
+var js_Lib = function() { };
+$hxClasses["js.Lib"] = js_Lib;
+js_Lib.__name__ = ["js","Lib"];
+var js_NodeC = function() { };
+$hxClasses["js.NodeC"] = js_NodeC;
+js_NodeC.__name__ = ["js","NodeC"];
+var js_Node = function() { };
+$hxClasses["js.Node"] = js_Node;
+js_Node.__name__ = ["js","Node"];
+js_Node.get_assert = function() {
+	return js_Node.require("assert");
 };
-js.Node.get_childProcess = function() {
-	return js.Node.require("child_process");
+js_Node.get_childProcess = function() {
+	return js_Node.require("child_process");
 };
-js.Node.get_cluster = function() {
-	return js.Node.require("cluster");
+js_Node.get_cluster = function() {
+	return js_Node.require("cluster");
 };
-js.Node.get_crypto = function() {
-	return js.Node.require("crypto");
+js_Node.get_crypto = function() {
+	return js_Node.require("crypto");
 };
-js.Node.get_dgram = function() {
-	return js.Node.require("dgram");
+js_Node.get_dgram = function() {
+	return js_Node.require("dgram");
 };
-js.Node.get_dns = function() {
-	return js.Node.require("dns");
+js_Node.get_dns = function() {
+	return js_Node.require("dns");
 };
-js.Node.get_fs = function() {
-	return js.Node.require("fs");
+js_Node.get_fs = function() {
+	return js_Node.require("fs");
 };
-js.Node.get_http = function() {
-	return js.Node.require("http");
+js_Node.get_http = function() {
+	return js_Node.require("http");
 };
-js.Node.get_https = function() {
-	return js.Node.require("https");
+js_Node.get_https = function() {
+	return js_Node.require("https");
 };
-js.Node.get_net = function() {
-	return js.Node.require("net");
+js_Node.get_net = function() {
+	return js_Node.require("net");
 };
-js.Node.get_os = function() {
-	return js.Node.require("os");
+js_Node.get_os = function() {
+	return js_Node.require("os");
 };
-js.Node.get_path = function() {
-	return js.Node.require("path");
+js_Node.get_path = function() {
+	return js_Node.require("path");
 };
-js.Node.get_querystring = function() {
-	return js.Node.require("querystring");
+js_Node.get_querystring = function() {
+	return js_Node.require("querystring");
 };
-js.Node.get_repl = function() {
-	return js.Node.require("repl");
+js_Node.get_repl = function() {
+	return js_Node.require("repl");
 };
-js.Node.get_tls = function() {
-	return js.Node.require("tls");
+js_Node.get_tls = function() {
+	return js_Node.require("tls");
 };
-js.Node.get_url = function() {
-	return js.Node.require("url");
+js_Node.get_url = function() {
+	return js_Node.require("url");
 };
-js.Node.get_util = function() {
-	return js.Node.require("util");
+js_Node.get_util = function() {
+	return js_Node.require("util");
 };
-js.Node.get_vm = function() {
-	return js.Node.require("vm");
+js_Node.get_vm = function() {
+	return js_Node.require("vm");
 };
-js.Node.get___filename = function() {
+js_Node.get___filename = function() {
 	return __filename;
 };
-js.Node.get___dirname = function() {
+js_Node.get___dirname = function() {
 	return __dirname;
 };
-js.Node.newSocket = function(options) {
+js_Node.newSocket = function(options) {
 	return new js.Node.net.Socket(options);
 };
-js.Selection = function(doc) {
+var js_Selection = function(doc) {
 	this.doc = doc;
 };
-$hxClasses["js.Selection"] = js.Selection;
-js.Selection.__name__ = ["js","Selection"];
-js.Selection.prototype = {
+$hxClasses["js.Selection"] = js_Selection;
+js_Selection.__name__ = ["js","Selection"];
+js_Selection.prototype = {
 	insert: function(left,text,right) {
 		this.doc.focus();
 		if(this.doc.selectionStart != null) {
@@ -11570,20 +11568,18 @@ js.Selection.prototype = {
 			this.doc.scrollTop = top;
 			return;
 		}
-		var range = js.Lib.document.selection.createRange();
+		var range = js_Lib.document.selection.createRange();
 		range.text = left + text + right;
 		range.moveStart("character",-text.length - right.length);
 		range.moveEnd("character",-right.length);
 		range.select();
 	}
-	,__class__: js.Selection
+	,__class__: js_Selection
 };
-js.html = {};
-js.html._CanvasElement = {};
-js.html._CanvasElement.CanvasUtil = function() { };
-$hxClasses["js.html._CanvasElement.CanvasUtil"] = js.html._CanvasElement.CanvasUtil;
-js.html._CanvasElement.CanvasUtil.__name__ = ["js","html","_CanvasElement","CanvasUtil"];
-js.html._CanvasElement.CanvasUtil.getContextWebGL = function(canvas,attribs) {
+var js_html__$CanvasElement_CanvasUtil = function() { };
+$hxClasses["js.html._CanvasElement.CanvasUtil"] = js_html__$CanvasElement_CanvasUtil;
+js_html__$CanvasElement_CanvasUtil.__name__ = ["js","html","_CanvasElement","CanvasUtil"];
+js_html__$CanvasElement_CanvasUtil.getContextWebGL = function(canvas,attribs) {
 	var _g = 0;
 	var _g1 = ["webgl","experimental-webgl"];
 	while(_g < _g1.length) {
@@ -11594,8 +11590,7 @@ js.html._CanvasElement.CanvasUtil.getContextWebGL = function(canvas,attribs) {
 	}
 	return null;
 };
-var lvl = {};
-lvl.Image = function(w,h) {
+var lvl_Image = function(w,h) {
 	this.originY = 0;
 	this.originX = 0;
 	this.width = w;
@@ -11607,15 +11602,15 @@ lvl.Image = function(w,h) {
 	this.canvas.height = h;
 	this.init();
 };
-$hxClasses["lvl.Image"] = lvl.Image;
-lvl.Image.__name__ = ["lvl","Image"];
-lvl.Image.clearCache = function(url) {
-	lvl.Image.cache.remove(url);
+$hxClasses["lvl.Image"] = lvl_Image;
+lvl_Image.__name__ = ["lvl","Image"];
+lvl_Image.clearCache = function(url) {
+	lvl_Image.cache.remove(url);
 };
-lvl.Image.load = function(url,callb,onError,forceReload) {
-	var i = lvl.Image.cache.get(url);
+lvl_Image.load = function(url,callb,onError,forceReload) {
+	var i = lvl_Image.cache.get(url);
 	if(i != null && !forceReload) {
-		var im = new lvl.Image(i.width,i.height);
+		var im = new lvl_Image(i.width,i.height);
 		im.ctx.drawImage(i,0,0);
 		im.origin = i;
 		callb(im);
@@ -11624,9 +11619,9 @@ lvl.Image.load = function(url,callb,onError,forceReload) {
 	var _this = window.document;
 	i = _this.createElement("img");
 	i.onload = function(_) {
-		var i2 = lvl.Image.cache.get(url);
-		if(i2 == null || forceReload) lvl.Image.cache.set(url,i); else i = i2;
-		var im1 = new lvl.Image(i.width,i.height);
+		var i2 = lvl_Image.cache.get(url);
+		if(i2 == null || forceReload) lvl_Image.cache.set(url,i); else i = i2;
+		var im1 = new lvl_Image(i.width,i.height);
 		im1.ctx.drawImage(i,0,0);
 		im1.origin = i;
 		callb(im1);
@@ -11636,21 +11631,21 @@ lvl.Image.load = function(url,callb,onError,forceReload) {
 			onError();
 			return;
 		}
-		var i1 = new lvl.Image(16,16);
+		var i1 = new lvl_Image(16,16);
 		i1.fill(-65281);
 		callb(i1);
 	};
 	i.src = url;
 };
-lvl.Image.fromCanvas = function(c) {
-	var i = new lvl.Image(0,0);
+lvl_Image.fromCanvas = function(c) {
+	var i = new lvl_Image(0,0);
 	i.width = c.width;
 	i.height = c.height;
 	i.canvas = i.origin = c;
 	i.init();
 	return i;
 };
-lvl.Image.prototype = {
+lvl_Image.prototype = {
 	get_smooth: function() {
 		return this.ctx.imageSmoothingEnabled;
 	}
@@ -11664,7 +11659,7 @@ lvl.Image.prototype = {
 		return this.ctx.globalAlpha = v;
 	}
 	,init: function() {
-		this.ctx = this.canvas.getContext("2d");
+		this.ctx = this.canvas.getContext("2d",null);
 		this.ctx.imageSmoothingEnabled = false;
 	}
 	,getColor: function(color) {
@@ -11694,7 +11689,7 @@ lvl.Image.prototype = {
 		this.invalidate();
 	}
 	,sub: function(x,y,w,h) {
-		var i = new lvl.Image(w,h);
+		var i = new lvl_Image(w,h);
 		i.ctx.drawImage(this.origin,x,y,w,h,0,0,w,h);
 		i.origin = this.origin;
 		i.originX = this.originX + x;
@@ -11766,7 +11761,7 @@ lvl.Image.prototype = {
 		c = _this.createElement("canvas");
 		c.width = width;
 		c.height = height;
-		var ctx2 = c.getContext("2d");
+		var ctx2 = c.getContext("2d",null);
 		ctx2.imageSmoothingEnabled = this.ctx.imageSmoothingEnabled;
 		ctx2.drawImage(this.canvas,0,0,this.width,this.height,0,0,width,height);
 		this.ctx = ctx2;
@@ -11775,14 +11770,14 @@ lvl.Image.prototype = {
 		this.height = height;
 		this.invalidate();
 	}
-	,__class__: lvl.Image
+	,__class__: lvl_Image
 };
-lvl.Image3D = function(w,h) {
+var lvl_Image3D = function(w,h) {
 	this.scrollY = 0;
 	this.scrollX = 0;
 	this.alphaValue = 1.;
 	this.zoom = 1;
-	lvl.Image.call(this,w,h);
+	lvl_Image.call(this,w,h);
 	var _this = window.document;
 	this.viewport = _this.createElement("div");
 	this.viewport.style.backgroundColor = "black";
@@ -11792,26 +11787,26 @@ lvl.Image3D = function(w,h) {
 	this.canvas.height = 2048;
 	this.canvas.setAttribute("width",2048 + "px");
 	this.canvas.setAttribute("height",2048 + "px");
-	this.colorCache = new haxe.ds.IntMap();
+	this.colorCache = new haxe_ds_IntMap();
 	this.curDraw = new Float32Array(16 * Math.ceil(10922.666666666666));
 	this.curIndex = new Uint16Array(65536);
 };
-$hxClasses["lvl.Image3D"] = lvl.Image3D;
-lvl.Image3D.__name__ = ["lvl","Image3D"];
-lvl.Image3D.getInstance = function() {
-	if(lvl.Image3D.inst == null) lvl.Image3D.inst = new lvl.Image3D(0,0);
-	return lvl.Image3D.inst;
+$hxClasses["lvl.Image3D"] = lvl_Image3D;
+lvl_Image3D.__name__ = ["lvl","Image3D"];
+lvl_Image3D.getInstance = function() {
+	if(lvl_Image3D.inst == null) lvl_Image3D.inst = new lvl_Image3D(0,0);
+	return lvl_Image3D.inst;
 };
-lvl.Image3D.fromCanvas = function(c) {
-	var i = new lvl.Image3D(0,0);
+lvl_Image3D.fromCanvas = function(c) {
+	var i = new lvl_Image3D(0,0);
 	i.width = c.width;
 	i.height = c.height;
 	i.canvas = i.origin = c;
 	i.init();
 	return i;
 };
-lvl.Image3D.__super__ = lvl.Image;
-lvl.Image3D.prototype = $extend(lvl.Image.prototype,{
+lvl_Image3D.__super__ = lvl_Image;
+lvl_Image3D.prototype = $extend(lvl_Image.prototype,{
 	init: function() {
 		this.dispose();
 		this.gl = this.canvas.gl;
@@ -11819,7 +11814,7 @@ lvl.Image3D.prototype = $extend(lvl.Image.prototype,{
 			this.initScale();
 			return;
 		}
-		this.gl = js.html._CanvasElement.CanvasUtil.getContextWebGL(this.canvas,{ alpha : false, antialias : false});
+		this.gl = js_html__$CanvasElement_CanvasUtil.getContextWebGL(this.canvas,{ alpha : false, antialias : false});
 		this.canvas.gl = this.gl;
 		this.gl.disable(2884);
 		this.gl.disable(2929);
@@ -11890,7 +11885,7 @@ lvl.Image3D.prototype = $extend(lvl.Image.prototype,{
 	,getColorImage: function(color) {
 		var i = this.colorCache.h[color];
 		if(i != null) return i;
-		i = new lvl.Image(1,1);
+		i = new lvl_Image(1,1);
 		i.fill(color);
 		this.colorCache.h[color] = i;
 		return i;
@@ -12072,21 +12067,21 @@ lvl.Image3D.prototype = $extend(lvl.Image.prototype,{
 		this.initScale();
 		return z;
 	}
-	,__class__: lvl.Image3D
+	,__class__: lvl_Image3D
 });
-lvl.LayerInnerData = $hxClasses["lvl.LayerInnerData"] = { __ename__ : ["lvl","LayerInnerData"], __constructs__ : ["Layer","Objects","Tiles","TileInstances"] };
-lvl.LayerInnerData.Layer = function(a) { var $x = ["Layer",0,a]; $x.__enum__ = lvl.LayerInnerData; $x.toString = $estr; return $x; };
-lvl.LayerInnerData.Objects = function(idCol,objs) { var $x = ["Objects",1,idCol,objs]; $x.__enum__ = lvl.LayerInnerData; $x.toString = $estr; return $x; };
-lvl.LayerInnerData.Tiles = function(t,data) { var $x = ["Tiles",2,t,data]; $x.__enum__ = lvl.LayerInnerData; $x.toString = $estr; return $x; };
-lvl.LayerInnerData.TileInstances = function(t,insts) { var $x = ["TileInstances",3,t,insts]; $x.__enum__ = lvl.LayerInnerData; $x.toString = $estr; return $x; };
-lvl.LayerGfx = function(level) {
+var lvl_LayerInnerData = $hxClasses["lvl.LayerInnerData"] = { __ename__ : ["lvl","LayerInnerData"], __constructs__ : ["Layer","Objects","Tiles","TileInstances"] };
+lvl_LayerInnerData.Layer = function(a) { var $x = ["Layer",0,a]; $x.__enum__ = lvl_LayerInnerData; $x.toString = $estr; return $x; };
+lvl_LayerInnerData.Objects = function(idCol,objs) { var $x = ["Objects",1,idCol,objs]; $x.__enum__ = lvl_LayerInnerData; $x.toString = $estr; return $x; };
+lvl_LayerInnerData.Tiles = function(t,data) { var $x = ["Tiles",2,t,data]; $x.__enum__ = lvl_LayerInnerData; $x.toString = $estr; return $x; };
+lvl_LayerInnerData.TileInstances = function(t,insts) { var $x = ["TileInstances",3,t,insts]; $x.__enum__ = lvl_LayerInnerData; $x.toString = $estr; return $x; };
+var lvl_LayerGfx = function(level) {
 	this.height = 0;
 	this.stride = 0;
 	this.level = level;
 };
-$hxClasses["lvl.LayerGfx"] = lvl.LayerGfx;
-lvl.LayerGfx.__name__ = ["lvl","LayerGfx"];
-lvl.LayerGfx.prototype = {
+$hxClasses["lvl.LayerGfx"] = lvl_LayerGfx;
+lvl_LayerGfx.__name__ = ["lvl","LayerGfx"];
+lvl_LayerGfx.prototype = {
 	fromSheet: function(sheet,defColor) {
 		var _g5 = this;
 		this.blanks = [];
@@ -12131,14 +12126,14 @@ lvl.LayerGfx.prototype = {
 					var key = Reflect.field(sheet.lines[idx[0]],c.name);
 					var idat = this.level.model.getImageData(key);
 					if(idat == null) {
-						var i = new lvl.Image(size[0],size[0]);
+						var i = new lvl_Image(size[0],size[0]);
 						i.text("#" + idx[0],0,12);
 						this.images[idx[0]] = i;
 						continue;
 					}
 					this.level.wait();
 					imageTags[idx[0]] = true;
-					lvl.Image.load(idat,(function(idx,size) {
+					lvl_Image.load(idat,(function(idx,size) {
 						return function(i1) {
 							i1.resize(size[0],size[0]);
 							_g5.images[idx[0]] = i1;
@@ -12158,14 +12153,14 @@ lvl.LayerGfx.prototype = {
 					var data = [Reflect.field(sheet.lines[idx1[0]],c.name)];
 					if(data[0] == null && this.images[idx1[0]] != null) continue;
 					if(data[0] == null) {
-						var i2 = new lvl.Image(size1,size1);
+						var i2 = new lvl_Image(size1,size1);
 						i2.text("#" + idx1[0],0,12);
 						this.images[idx1[0]] = i2;
 						continue;
 					}
 					this.level.wait();
 					imageTags[idx1[0]] = true;
-					lvl.Image.load(this.level.model.getAbsPath(data[0].file),(function(data,idx1) {
+					lvl_Image.load(this.level.model.getAbsPath(data[0].file),(function(data,idx1) {
 						return function(i3) {
 							var i21 = i3.sub(data[0].x * data[0].size,data[0].y * data[0].size,data[0].size * (data[0].width == null?1:data[0].width),data[0].size * (data[0].height == null?1:data[0].height));
 							_g5.images[idx1[0]] = i21;
@@ -12175,7 +12170,7 @@ lvl.LayerGfx.prototype = {
 					})(data,idx1));
 					this.level.watch(data[0].file,(function(data) {
 						return function() {
-							lvl.Image.clearCache(_g5.level.model.getAbsPath(data[0].file));
+							lvl_Image.clearCache(_g5.level.model.getAbsPath(data[0].file));
 							_g5.level.reload();
 						};
 					})(data));
@@ -12190,7 +12185,7 @@ lvl.LayerGfx.prototype = {
 		this.names = [];
 		this.stride = Math.ceil(Math.sqrt(sheet.lines.length));
 		this.height = Math.ceil(sheet.lines.length / this.stride);
-		this.idToIndex = new haxe.ds.StringMap();
+		this.idToIndex = new haxe_ds_StringMap();
 		this.indexToId = [];
 		var _g11 = 0;
 		var _g6 = sheet.lines.length;
@@ -12209,23 +12204,23 @@ lvl.LayerGfx.prototype = {
 			this.names.push(n);
 		}
 	}
-	,__class__: lvl.LayerGfx
+	,__class__: lvl_LayerGfx
 };
-lvl.LayerData = function(level,name,p,target) {
+var lvl_LayerData = function(level,name,p,target) {
 	this.currentHeight = 1;
 	this.currentWidth = 1;
 	this.current = 0;
 	this.lock = false;
 	this.visible = true;
-	lvl.LayerGfx.call(this,level);
+	lvl_LayerGfx.call(this,level);
 	this.name = name;
 	this.props = p;
 	this.targetObj = target;
 };
-$hxClasses["lvl.LayerData"] = lvl.LayerData;
-lvl.LayerData.__name__ = ["lvl","LayerData"];
-lvl.LayerData.__super__ = lvl.LayerGfx;
-lvl.LayerData.prototype = $extend(lvl.LayerGfx.prototype,{
+$hxClasses["lvl.LayerData"] = lvl_LayerData;
+lvl_LayerData.__name__ = ["lvl","LayerData"];
+lvl_LayerData.__super__ = lvl_LayerGfx;
+lvl_LayerData.prototype = $extend(lvl_LayerGfx.prototype,{
 	loadSheetData: function(sheet) {
 		if(sheet == null && this.props.color == null) {
 			this.props.color = 16711680;
@@ -12260,7 +12255,7 @@ lvl.LayerData.prototype = $extend(lvl.LayerGfx.prototype,{
 	,loadState: function() {
 		var state;
 		try {
-			state = haxe.Unserializer.run(js.Browser.getLocalStorage().getItem(this.level.sheetPath + ":" + this.name));
+			state = haxe_Unserializer.run(js_Browser.getLocalStorage().getItem(this.level.sheetPath + ":" + this.name));
 		} catch( e ) {
 			state = null;
 		}
@@ -12279,7 +12274,7 @@ lvl.LayerData.prototype = $extend(lvl.LayerGfx.prototype,{
 		this.stateLoaded = true;
 	}
 	,setLayerData: function(val) {
-		if(val == null || val == "") this.data = lvl.LayerInnerData.Layer((function($this) {
+		if(val == null || val == "") this.data = lvl_LayerInnerData.Layer((function($this) {
 			var $r;
 			var _g = [];
 			{
@@ -12293,9 +12288,9 @@ lvl.LayerData.prototype = $extend(lvl.LayerGfx.prototype,{
 			$r = _g;
 			return $r;
 		}(this))); else {
-			var a = cdb.Lz4Reader.decodeString(val);
+			var a = cdb_Lz4Reader.decodeString(val);
 			if(a.length != this.level.width * this.level.height) throw "Invalid layer data";
-			this.data = lvl.LayerInnerData.Layer((function($this) {
+			this.data = lvl_LayerInnerData.Layer((function($this) {
 				var $r;
 				var _g11 = [];
 				{
@@ -12324,7 +12319,7 @@ lvl.LayerData.prototype = $extend(lvl.LayerGfx.prototype,{
 		return null;
 	}
 	,getTileObjects: function() {
-		var objs = new haxe.ds.IntMap();
+		var objs = new haxe_ds_IntMap();
 		if(this.tileProps == null) return objs;
 		var _g = 0;
 		var _g1 = this.tileProps.sets;
@@ -12350,7 +12345,7 @@ lvl.LayerData.prototype = $extend(lvl.LayerGfx.prototype,{
 		return out;
 	}
 	,setObjectsData: function(id,val) {
-		this.data = lvl.LayerInnerData.Objects(id,val);
+		this.data = lvl_LayerInnerData.Objects(id,val);
 	}
 	,setTilesData: function(val) {
 		var _g1 = this;
@@ -12368,15 +12363,15 @@ lvl.LayerData.prototype = $extend(lvl.LayerGfx.prototype,{
 				_g.push(0);
 			}
 			data = _g;
-		} else data = cdb._Types.TileLayerData_Impl_.decode(val.data);
+		} else data = cdb__$Types_TileLayerData_$Impl_$.decode(val.data);
 		var stride;
 		if(val == null) stride = 0; else stride = val.stride;
 		var d = { file : file, size : size, stride : stride};
 		this.images = [];
-		this.data = lvl.LayerInnerData.Tiles(d,data);
+		this.data = lvl_LayerInnerData.Tiles(d,data);
 		if(file == null) {
 			if(this.props.mode != "tiles" && this.props.mode != null) Reflect.deleteField(this.props,"mode");
-			var i1 = new lvl.Image(16,16);
+			var i1 = new lvl_Image(16,16);
 			i1.fill(-65281);
 			this.images.push(i1);
 			this.loadState();
@@ -12447,7 +12442,7 @@ lvl.LayerData.prototype = $extend(lvl.LayerGfx.prototype,{
 					if(v3 != v22) _g1.dirty = true;
 					insts.push({ x : x1, y : y1, o : v22, flip : flip, rot : rot});
 				}
-				_g1.data = lvl.LayerInnerData.TileInstances(d,insts);
+				_g1.data = lvl_LayerInnerData.TileInstances(d,insts);
 				_g1.hasRotFlip = true;
 				_g1.hasFloatCoord = _g1.floatCoord = true;
 				break;
@@ -12468,7 +12463,7 @@ lvl.LayerData.prototype = $extend(lvl.LayerGfx.prototype,{
 		this.current = v;
 		this.currentWidth = 1;
 		this.currentHeight = 1;
-		if(this.images != null && this.comp != null) this.comp.find("div.img").html("").append(new js.JQuery(this.images[this.current].getCanvas()));
+		if(this.images != null && this.comp != null) this.comp.find("div.img").html("").append(js.JQuery(this.images[this.current].getCanvas()));
 		this.saveState();
 		return v;
 	}
@@ -12477,7 +12472,7 @@ lvl.LayerData.prototype = $extend(lvl.LayerGfx.prototype,{
 		this.current = id;
 		this.currentWidth = w;
 		this.currentHeight = h;
-		if(this.images != null && this.comp != null) this.comp.find("div.img").html("").append(new js.JQuery(this.images[this.current].getCanvas()));
+		if(this.images != null && this.comp != null) this.comp.find("div.img").html("").append(js.JQuery(this.images[this.current].getCanvas()));
 		this.saveState(false);
 	}
 	,saveState: function(sync) {
@@ -12540,7 +12535,7 @@ lvl.LayerData.prototype = $extend(lvl.LayerGfx.prototype,{
 			}
 		}
 		var s = { current : this.current, visible : this.visible, lock : this.lock, lockGrid : this.hasFloatCoord && !this.floatCoord, cw : this.currentWidth, ch : this.currentHeight};
-		js.Browser.getLocalStorage().setItem(this.level.sheetPath + ":" + this.name,haxe.Serializer.run(s));
+		js_Browser.getLocalStorage().setItem(this.level.sheetPath + ":" + this.name,haxe_Serializer.run(s));
 	}
 	,save: function() {
 		if(!this.dirty) return;
@@ -12553,7 +12548,7 @@ lvl.LayerData.prototype = $extend(lvl.LayerGfx.prototype,{
 			switch(_g[1]) {
 			case 0:
 				var data = _g[2];
-				var b = haxe.io.Bytes.alloc(this.level.width * this.level.height);
+				var b = haxe_io_Bytes.alloc(this.level.width * this.level.height);
 				var p = 0;
 				var _g2 = 0;
 				var _g1 = this.level.height;
@@ -12567,26 +12562,26 @@ lvl.LayerData.prototype = $extend(lvl.LayerGfx.prototype,{
 						p++;
 					}
 				}
-				return cdb.Lz4Reader.encodeBytes(b,this.level.model.compressionEnabled());
+				return cdb_Lz4Reader.encodeBytes(b,this.level.model.compressionEnabled());
 			case 1:
 				var objs = _g[3];
 				return objs;
 			case 2:
 				var data1 = _g[3];
 				var t = _g[2];
-				var b1 = new haxe.io.BytesOutput();
+				var b1 = new haxe_io_BytesOutput();
 				var _g21 = 0;
 				var _g11 = data1.length;
 				while(_g21 < _g11) {
 					var r = _g21++;
 					b1.writeUInt16(data1[r]);
 				}
-				if(t.file == null) return null; else return { file : t.file, size : t.size, stride : t.stride, data : cdb.Lz4Reader.encodeBytes(b1.getBytes(),this.level.model.compressionEnabled())};
+				if(t.file == null) return null; else return { file : t.file, size : t.size, stride : t.stride, data : cdb_Lz4Reader.encodeBytes(b1.getBytes(),this.level.model.compressionEnabled())};
 				break;
 			case 3:
 				var insts = _g[3];
 				var t1 = _g[2];
-				var b2 = new haxe.io.BytesOutput();
+				var b2 = new haxe_io_BytesOutput();
 				b2.writeUInt16(65535);
 				var _g12 = 0;
 				while(_g12 < insts.length) {
@@ -12596,119 +12591,117 @@ lvl.LayerData.prototype = $extend(lvl.LayerGfx.prototype,{
 					b2.writeUInt16(i.y * this.level.tileSize | 0 | i.rot >> 1 << 15);
 					b2.writeUInt16(i.o | (i.flip?1:0) << 15);
 				}
-				if(t1.file == null) return null; else return { file : t1.file, size : t1.size, stride : t1.stride, data : cdb.Lz4Reader.encodeBytes(b2.getBytes(),this.level.model.compressionEnabled())};
+				if(t1.file == null) return null; else return { file : t1.file, size : t1.size, stride : t1.stride, data : cdb_Lz4Reader.encodeBytes(b2.getBytes(),this.level.model.compressionEnabled())};
 				break;
 			}
 		}
 	}
-	,__class__: lvl.LayerData
+	,__class__: lvl_LayerData
 });
-var nodejs = {};
-nodejs.webkit = {};
-nodejs.webkit.$ui = function() { };
-$hxClasses["nodejs.webkit.$ui"] = nodejs.webkit.$ui;
-nodejs.webkit.$ui.__name__ = ["nodejs","webkit","$ui"];
-var sys = {};
-sys.FileSystem = function() { };
-$hxClasses["sys.FileSystem"] = sys.FileSystem;
-sys.FileSystem.__name__ = ["sys","FileSystem"];
-sys.FileSystem.exists = function(path) {
-	return js.Node.require("fs").existsSync(path);
+var nodejs_webkit_Clipboard = require("nw.gui").Clipboard;
+var nodejs_webkit_Menu = require("nw.gui").Menu;
+var nodejs_webkit_MenuItem = require("nw.gui").MenuItem;
+var nodejs_webkit_Shell = require("nw.gui").Shell;
+var nodejs_webkit_Window = require("nw.gui").Window;
+var sys_FileSystem = function() { };
+$hxClasses["sys.FileSystem"] = sys_FileSystem;
+sys_FileSystem.__name__ = ["sys","FileSystem"];
+sys_FileSystem.exists = function(path) {
+	return js_Node.require("fs").existsSync(path);
 };
-sys.FileSystem.rename = function(path,newpath) {
-	js.Node.require("fs").renameSync(path,newpath);
+sys_FileSystem.rename = function(path,newpath) {
+	js_Node.require("fs").renameSync(path,newpath);
 };
-sys.FileSystem.stat = function(path) {
-	return js.Node.require("fs").statSync(path);
+sys_FileSystem.stat = function(path) {
+	return js_Node.require("fs").statSync(path);
 };
-sys.FileSystem.fullPath = function(relpath) {
-	return js.Node.require("path").resolve(null,relpath);
+sys_FileSystem.fullPath = function(relpath) {
+	return js_Node.require("path").resolve(null,relpath);
 };
-sys.FileSystem.isDirectory = function(path) {
-	if(js.Node.require("fs").statSync(path).isSymbolicLink()) return false; else return js.Node.require("fs").statSync(path).isDirectory();
+sys_FileSystem.isDirectory = function(path) {
+	if(js_Node.require("fs").statSync(path).isSymbolicLink()) return false; else return js_Node.require("fs").statSync(path).isDirectory();
 };
-sys.FileSystem.createDirectory = function(path) {
-	js.Node.require("fs").mkdirSync(path);
+sys_FileSystem.createDirectory = function(path) {
+	js_Node.require("fs").mkdirSync(path);
 };
-sys.FileSystem.deleteFile = function(path) {
-	js.Node.require("fs").unlinkSync(path);
+sys_FileSystem.deleteFile = function(path) {
+	js_Node.require("fs").unlinkSync(path);
 };
-sys.FileSystem.deleteDirectory = function(path) {
-	js.Node.require("fs").rmdirSync(path);
+sys_FileSystem.deleteDirectory = function(path) {
+	js_Node.require("fs").rmdirSync(path);
 };
-sys.FileSystem.readDirectory = function(path) {
-	return js.Node.require("fs").readdirSync(path);
+sys_FileSystem.readDirectory = function(path) {
+	return js_Node.require("fs").readdirSync(path);
 };
-sys.FileSystem.signature = function(path) {
-	var shasum = js.Node.require("crypto").createHash("md5");
-	shasum.update(js.Node.require("fs").readFileSync(path));
+sys_FileSystem.signature = function(path) {
+	var shasum = js_Node.require("crypto").createHash("md5");
+	shasum.update(js_Node.require("fs").readFileSync(path));
 	return shasum.digest("hex");
 };
-sys.FileSystem.join = function(p1,p2,p3) {
-	return js.Node.require("path").join(p1 == null?"":p1,p2 == null?"":p2,p3 == null?"":p3);
+sys_FileSystem.join = function(p1,p2,p3) {
+	return js_Node.require("path").join(p1 == null?"":p1,p2 == null?"":p2,p3 == null?"":p3);
 };
-sys.FileSystem.readRecursive = function(path,filter) {
-	var files = sys.FileSystem.readRecursiveInternal(path,null,filter);
+sys_FileSystem.readRecursive = function(path,filter) {
+	var files = sys_FileSystem.readRecursiveInternal(path,null,filter);
 	if(files == null) return []; else return files;
 };
-sys.FileSystem.readRecursiveInternal = function(root,dir,filter) {
+sys_FileSystem.readRecursiveInternal = function(root,dir,filter) {
 	if(dir == null) dir = "";
 	if(root == null) return null;
-	var dirPath = js.Node.require("path").join(root == null?"":root,dir == null?"":dir,"");
-	if(!(js.Node.require("fs").existsSync(dirPath) && sys.FileSystem.isDirectory(dirPath))) return null;
+	var dirPath = js_Node.require("path").join(root == null?"":root,dir == null?"":dir,"");
+	if(!(js_Node.require("fs").existsSync(dirPath) && sys_FileSystem.isDirectory(dirPath))) return null;
 	var result = [];
 	var _g = 0;
-	var _g1 = js.Node.require("fs").readdirSync(dirPath);
+	var _g1 = js_Node.require("fs").readdirSync(dirPath);
 	while(_g < _g1.length) {
 		var file = _g1[_g];
 		++_g;
-		var fullPath = js.Node.require("path").join(dirPath == null?"":dirPath,file == null?"":file,"");
+		var fullPath = js_Node.require("path").join(dirPath == null?"":dirPath,file == null?"":file,"");
 		var relPath;
-		if(dir == "") relPath = file; else relPath = js.Node.require("path").join(dir == null?"":dir,file == null?"":file,"");
-		if(js.Node.require("fs").existsSync(fullPath)) {
-			if(sys.FileSystem.isDirectory(fullPath)) {
+		if(dir == "") relPath = file; else relPath = js_Node.require("path").join(dir == null?"":dir,file == null?"":file,"");
+		if(js_Node.require("fs").existsSync(fullPath)) {
+			if(sys_FileSystem.isDirectory(fullPath)) {
 				if(fullPath.charCodeAt(fullPath.length - 1) == 47) fullPath = HxOverrides.substr(fullPath,0,-1);
 				if(filter != null && !filter(relPath)) continue;
-				var recursedResults = sys.FileSystem.readRecursiveInternal(root,relPath,filter);
+				var recursedResults = sys_FileSystem.readRecursiveInternal(root,relPath,filter);
 				if(recursedResults != null && recursedResults.length > 0) result = result.concat(recursedResults);
 			} else if(filter == null || filter(relPath)) result.push(relPath);
 		}
 	}
 	return result;
 };
-sys.io = {};
-sys.io.File = function() { };
-$hxClasses["sys.io.File"] = sys.io.File;
-sys.io.File.__name__ = ["sys","io","File"];
-sys.io.File.append = function(path,binary) {
+var sys_io_File = function() { };
+$hxClasses["sys.io.File"] = sys_io_File;
+sys_io_File.__name__ = ["sys","io","File"];
+sys_io_File.append = function(path,binary) {
 	throw "Not implemented";
 	return null;
 };
-sys.io.File.copy = function(src,dst) {
-	var content = js.Node.require("fs").readFileSync(src);
-	js.Node.require("fs").writeFileSync(dst,content);
+sys_io_File.copy = function(src,dst) {
+	var content = js_Node.require("fs").readFileSync(src);
+	js_Node.require("fs").writeFileSync(dst,content);
 };
-sys.io.File.getBytes = function(path) {
-	var o = js.Node.require("fs").openSync(path,"r");
-	var s = js.Node.require("fs").fstatSync(o);
+sys_io_File.getBytes = function(path) {
+	var o = js_Node.require("fs").openSync(path,"r");
+	var s = js_Node.require("fs").fstatSync(o);
 	var len = s.size;
 	var pos = 0;
-	var bytes = haxe.io.Bytes.alloc(s.size);
+	var bytes = haxe_io_Bytes.alloc(s.size);
 	while(len > 0) {
-		var r = js.Node.require("fs").readSync(o,bytes.b,pos,len,null);
+		var r = js_Node.require("fs").readSync(o,bytes.b,pos,len,null);
 		pos += r;
 		len -= r;
 	}
-	js.Node.require("fs").closeSync(o);
+	js_Node.require("fs").closeSync(o);
 	return bytes;
 };
-sys.io.File.getContent = function(path) {
-	return js.Node.require("fs").readFileSync(path,"utf8");
+sys_io_File.getContent = function(path) {
+	return js_Node.require("fs").readFileSync(path,"utf8");
 };
-sys.io.File.saveContent = function(path,content) {
-	js.Node.require("fs").writeFileSync(path,content);
+sys_io_File.saveContent = function(path,content) {
+	js_Node.require("fs").writeFileSync(path,content);
 };
-sys.io.File.write = function(path,binary) {
+sys_io_File.write = function(path,binary) {
 	throw "Not implemented";
 	return null;
 };
@@ -12766,31 +12759,25 @@ q.fn.iterator = function() {
 	}};
 };
 var module, setImmediate, clearImmediate;
-js.Node.setTimeout = setTimeout;
-js.Node.clearTimeout = clearTimeout;
-js.Node.setInterval = setInterval;
-js.Node.clearInterval = clearInterval;
-js.Node.global = global;
-js.Node.process = process;
-js.Node.require = require;
-js.Node.console = console;
-js.Node.module = module;
-js.Node.stringify = JSON.stringify;
-js.Node.parse = JSON.parse;
-var version = HxOverrides.substr(js.Node.process.version,1,null).split(".").map(Std.parseInt);
+js_Node.setTimeout = setTimeout;
+js_Node.clearTimeout = clearTimeout;
+js_Node.setInterval = setInterval;
+js_Node.clearInterval = clearInterval;
+js_Node.global = global;
+js_Node.process = process;
+js_Node.require = require;
+js_Node.console = console;
+js_Node.module = module;
+js_Node.stringify = JSON.stringify;
+js_Node.parse = JSON.parse;
+var version = HxOverrides.substr(js_Node.process.version,1,null).split(".").map(Std.parseInt);
 if(version[0] > 0 || version[1] >= 9) {
-	js.Node.setImmediate = setImmediate;
-	js.Node.clearImmediate = clearImmediate;
+	js_Node.setImmediate = setImmediate;
+	js_Node.clearImmediate = clearImmediate;
 }
-nodejs.webkit.$ui = require('nw.gui');
-nodejs.webkit.Clipboard = nodejs.webkit.$ui.Clipboard;
-nodejs.webkit.Menu = nodejs.webkit.$ui.Menu;
-nodejs.webkit.MenuItem = nodejs.webkit.$ui.MenuItem;
-nodejs.webkit.Shell = nodejs.webkit.$ui.Shell;
-nodejs.webkit.Window = nodejs.webkit.$ui.Window;
 Level.UID = 0;
 Level.colorPalette = [16711680,65280,16711935,65535,16776960,16777215,33023,65408,8388863,8453888,16711808,16744448];
-Level.loadedTilesCache = new haxe.ds.StringMap();
+Level.loadedTilesCache = new haxe_ds_StringMap();
 K.INSERT = 45;
 K.DELETE = 46;
 K.LEFT = 37;
@@ -12808,60 +12795,60 @@ K.NUMPAD_ADD = 107;
 K.NUMPAD_SUB = 109;
 K.NUMPAD_DIV = 111;
 Main.UID = 0;
-cdb._Data.TileMode_Impl_.Tile = "tile";
-cdb._Data.TileMode_Impl_.Ground = "ground";
-cdb._Data.TileMode_Impl_.Border = "border";
-cdb._Data.TileMode_Impl_.Object = "object";
-cdb._Data.TileMode_Impl_.Group = "group";
-haxe.Serializer.USE_CACHE = false;
-haxe.Serializer.USE_ENUM_INDEX = false;
-haxe.Serializer.BASE64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789%:";
-haxe.Unserializer.DEFAULT_RESOLVER = Type;
-haxe.Unserializer.BASE64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789%:";
-haxe.crypto.Base64.CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-haxe.crypto.Base64.BYTES = haxe.io.Bytes.ofString(haxe.crypto.Base64.CHARS);
-haxe.ds.ObjectMap.count = 0;
-js.Boot.__toStr = {}.toString;
-js.NodeC.UTF8 = "utf8";
-js.NodeC.ASCII = "ascii";
-js.NodeC.BINARY = "binary";
-js.NodeC.BASE64 = "base64";
-js.NodeC.HEX = "hex";
-js.NodeC.EVENT_EVENTEMITTER_NEWLISTENER = "newListener";
-js.NodeC.EVENT_EVENTEMITTER_ERROR = "error";
-js.NodeC.EVENT_STREAM_DATA = "data";
-js.NodeC.EVENT_STREAM_END = "end";
-js.NodeC.EVENT_STREAM_ERROR = "error";
-js.NodeC.EVENT_STREAM_CLOSE = "close";
-js.NodeC.EVENT_STREAM_DRAIN = "drain";
-js.NodeC.EVENT_STREAM_CONNECT = "connect";
-js.NodeC.EVENT_STREAM_SECURE = "secure";
-js.NodeC.EVENT_STREAM_TIMEOUT = "timeout";
-js.NodeC.EVENT_STREAM_PIPE = "pipe";
-js.NodeC.EVENT_PROCESS_EXIT = "exit";
-js.NodeC.EVENT_PROCESS_UNCAUGHTEXCEPTION = "uncaughtException";
-js.NodeC.EVENT_PROCESS_SIGINT = "SIGINT";
-js.NodeC.EVENT_PROCESS_SIGUSR1 = "SIGUSR1";
-js.NodeC.EVENT_CHILDPROCESS_EXIT = "exit";
-js.NodeC.EVENT_HTTPSERVER_REQUEST = "request";
-js.NodeC.EVENT_HTTPSERVER_CONNECTION = "connection";
-js.NodeC.EVENT_HTTPSERVER_CLOSE = "close";
-js.NodeC.EVENT_HTTPSERVER_UPGRADE = "upgrade";
-js.NodeC.EVENT_HTTPSERVER_CLIENTERROR = "clientError";
-js.NodeC.EVENT_HTTPSERVERREQUEST_DATA = "data";
-js.NodeC.EVENT_HTTPSERVERREQUEST_END = "end";
-js.NodeC.EVENT_CLIENTREQUEST_RESPONSE = "response";
-js.NodeC.EVENT_CLIENTRESPONSE_DATA = "data";
-js.NodeC.EVENT_CLIENTRESPONSE_END = "end";
-js.NodeC.EVENT_NETSERVER_CONNECTION = "connection";
-js.NodeC.EVENT_NETSERVER_CLOSE = "close";
-js.NodeC.FILE_READ = "r";
-js.NodeC.FILE_READ_APPEND = "r+";
-js.NodeC.FILE_WRITE = "w";
-js.NodeC.FILE_WRITE_APPEND = "a+";
-js.NodeC.FILE_READWRITE = "a";
-js.NodeC.FILE_READWRITE_APPEND = "a+";
-lvl.Image.cache = new haxe.ds.StringMap();
-lvl.Image3D.CANVAS_SIZE = 2048;
+cdb__$Data_TileMode_$Impl_$.Tile = "tile";
+cdb__$Data_TileMode_$Impl_$.Ground = "ground";
+cdb__$Data_TileMode_$Impl_$.Border = "border";
+cdb__$Data_TileMode_$Impl_$.Object = "object";
+cdb__$Data_TileMode_$Impl_$.Group = "group";
+haxe_Serializer.USE_CACHE = false;
+haxe_Serializer.USE_ENUM_INDEX = false;
+haxe_Serializer.BASE64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789%:";
+haxe_Unserializer.DEFAULT_RESOLVER = Type;
+haxe_Unserializer.BASE64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789%:";
+haxe_crypto_Base64.CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+haxe_crypto_Base64.BYTES = haxe_io_Bytes.ofString(haxe_crypto_Base64.CHARS);
+haxe_ds_ObjectMap.count = 0;
+js_Boot.__toStr = {}.toString;
+js_NodeC.UTF8 = "utf8";
+js_NodeC.ASCII = "ascii";
+js_NodeC.BINARY = "binary";
+js_NodeC.BASE64 = "base64";
+js_NodeC.HEX = "hex";
+js_NodeC.EVENT_EVENTEMITTER_NEWLISTENER = "newListener";
+js_NodeC.EVENT_EVENTEMITTER_ERROR = "error";
+js_NodeC.EVENT_STREAM_DATA = "data";
+js_NodeC.EVENT_STREAM_END = "end";
+js_NodeC.EVENT_STREAM_ERROR = "error";
+js_NodeC.EVENT_STREAM_CLOSE = "close";
+js_NodeC.EVENT_STREAM_DRAIN = "drain";
+js_NodeC.EVENT_STREAM_CONNECT = "connect";
+js_NodeC.EVENT_STREAM_SECURE = "secure";
+js_NodeC.EVENT_STREAM_TIMEOUT = "timeout";
+js_NodeC.EVENT_STREAM_PIPE = "pipe";
+js_NodeC.EVENT_PROCESS_EXIT = "exit";
+js_NodeC.EVENT_PROCESS_UNCAUGHTEXCEPTION = "uncaughtException";
+js_NodeC.EVENT_PROCESS_SIGINT = "SIGINT";
+js_NodeC.EVENT_PROCESS_SIGUSR1 = "SIGUSR1";
+js_NodeC.EVENT_CHILDPROCESS_EXIT = "exit";
+js_NodeC.EVENT_HTTPSERVER_REQUEST = "request";
+js_NodeC.EVENT_HTTPSERVER_CONNECTION = "connection";
+js_NodeC.EVENT_HTTPSERVER_CLOSE = "close";
+js_NodeC.EVENT_HTTPSERVER_UPGRADE = "upgrade";
+js_NodeC.EVENT_HTTPSERVER_CLIENTERROR = "clientError";
+js_NodeC.EVENT_HTTPSERVERREQUEST_DATA = "data";
+js_NodeC.EVENT_HTTPSERVERREQUEST_END = "end";
+js_NodeC.EVENT_CLIENTREQUEST_RESPONSE = "response";
+js_NodeC.EVENT_CLIENTRESPONSE_DATA = "data";
+js_NodeC.EVENT_CLIENTRESPONSE_END = "end";
+js_NodeC.EVENT_NETSERVER_CONNECTION = "connection";
+js_NodeC.EVENT_NETSERVER_CLOSE = "close";
+js_NodeC.FILE_READ = "r";
+js_NodeC.FILE_READ_APPEND = "r+";
+js_NodeC.FILE_WRITE = "w";
+js_NodeC.FILE_WRITE_APPEND = "a+";
+js_NodeC.FILE_READWRITE = "a";
+js_NodeC.FILE_READWRITE_APPEND = "a+";
+lvl_Image.cache = new haxe_ds_StringMap();
+lvl_Image3D.CANVAS_SIZE = 2048;
 Main.main();
 })(typeof console != "undefined" ? console : {log:function(){}});

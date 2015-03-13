@@ -552,10 +552,6 @@ class Main extends Model {
 		save();
 	}
 
-	function error( msg ) {
-		js.Lib.alert(msg);
-	}
-
 	function setErrorMessage( ?msg ) {
 		if( msg == null )
 			J(".errorMsg").hide();
@@ -1278,7 +1274,7 @@ class Main extends Model {
 			}
 		}
 		var e = l[0];
-		if( e != null ) e.scrollIntoViewIfNeeded();
+		if( e != null ) untyped e.scrollIntoViewIfNeeded();
 	}
 
 	function refresh() {
@@ -1296,7 +1292,7 @@ class Main extends Model {
 	public function chooseFile( callb : String -> Void, ?cancel : Void -> Void ) {
 
 		if( prefs.curFile == null ) {
-			js.Lib.alert("Please save CDB file first");
+			error("Please save CDB file first");
 			if( cancel != null ) cancel();
 			return;
 		}
