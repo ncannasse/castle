@@ -401,11 +401,12 @@ class Level {
 		setLayer(layer);
 		updateZoom();
 
+		var sc = content.find(".scroll");
 		if( state != null ) {
-			var sc = content.find(".scroll");
 			sc.scrollLeft(state.scrollX);
 			sc.scrollTop(state.scrollY);
 		}
+		sc.scroll();
 	}
 
 	function toColor( v : Int ) {

@@ -376,8 +376,9 @@ class Image3D extends Image {
 		canvas.style.marginLeft = Std.int(scrollX) + "px";
 		canvas.style.marginTop = Std.int(scrollY) + "px";
 		gl.uniform2f(uniScroll, -scrollX * 2 / CANVAS_SIZE, scrollY * 2 / CANVAS_SIZE);
-		for( d in drawCommands )
-			d();
+		if( drawCommands != null )
+			for( d in drawCommands )
+				d();
 	}
 
 	function set_zoom(z) {

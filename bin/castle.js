@@ -570,11 +570,12 @@ Level.prototype = {
 		}
 		this.setLayer(layer);
 		this.updateZoom();
+		var sc = this.content.find(".scroll");
 		if(state != null) {
-			var sc = this.content.find(".scroll");
 			sc.scrollLeft(state.scrollX);
 			sc.scrollTop(state.scrollY);
 		}
+		sc.scroll();
 	}
 	,toColor: function(v) {
 		return "#" + StringTools.hex(v,6);
@@ -12049,12 +12050,14 @@ lvl_Image3D.prototype = $extend(lvl_Image.prototype,{
 		this.canvas.style.marginLeft = (this.scrollX | 0) + "px";
 		this.canvas.style.marginTop = (this.scrollY | 0) + "px";
 		this.gl.uniform2f(this.uniScroll,-this.scrollX * 2 / 2048,this.scrollY * 2 / 2048);
-		var _g = 0;
-		var _g1 = this.drawCommands;
-		while(_g < _g1.length) {
-			var d = _g1[_g];
-			++_g;
-			d();
+		if(this.drawCommands != null) {
+			var _g = 0;
+			var _g1 = this.drawCommands;
+			while(_g < _g1.length) {
+				var d = _g1[_g];
+				++_g;
+				d();
+			}
 		}
 	}
 	,set_zoom: function(z) {
