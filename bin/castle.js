@@ -20,10 +20,14 @@ EReg.prototype = {
 		return this.r.m != null;
 	}
 	,matched: function(n) {
-		if(this.r.m != null && n >= 0 && n < this.r.m.length) return this.r.m[n]; else throw "EReg::matched";
+		if(this.r.m != null && n >= 0 && n < this.r.m.length) return this.r.m[n]; else throw new js__$Boot_HaxeError("EReg::matched");
+	}
+	,matchedLeft: function() {
+		if(this.r.m == null) throw new js__$Boot_HaxeError("No string matched");
+		return HxOverrides.substr(this.r.s,0,this.r.m.index);
 	}
 	,matchedRight: function() {
-		if(this.r.m == null) throw "No string matched";
+		if(this.r.m == null) throw new js__$Boot_HaxeError("No string matched");
 		var sz = this.r.m.index + this.r.m[0].length;
 		return HxOverrides.substr(this.r.s,sz,this.r.s.length - sz);
 	}
@@ -59,7 +63,7 @@ HxOverrides.strDate = function(s) {
 		var t = k2[1].split(":");
 		return new Date(y[0],y[1] - 1,y[2],t[0],t[1],t[2]);
 	default:
-		throw "Invalid date format : " + s;
+		throw new js__$Boot_HaxeError("Invalid date format : " + s);
 	}
 };
 HxOverrides.cca = function(s,index) {
@@ -426,7 +430,7 @@ Level.prototype = {
 				}
 				a.pending = [];
 			},function() {
-				throw "Could not load " + file;
+				throw new js__$Boot_HaxeError("Could not load " + file);
 			});
 			this.watchSplit(key);
 		}
@@ -529,6 +533,7 @@ Level.prototype = {
 		try {
 			return js_Node.require("fs").statSync(path).mtime.getTime() * 1.;
 		} catch( e ) {
+			if (e instanceof js__$Boot_HaxeError) e = e.val;
 			return 0.;
 		}
 	}
@@ -544,6 +549,7 @@ Level.prototype = {
 		try {
 			state = haxe_Unserializer.run(js_Browser.getLocalStorage().getItem(this.sheetPath + "#" + this.index));
 		} catch( e ) {
+			if (e instanceof js__$Boot_HaxeError) e = e.val;
 			state = null;
 		}
 		if(state != null) {
@@ -3046,7 +3052,7 @@ Level.prototype = {
 						l.dirty = true;
 						break;
 					default:
-						throw "assert0";
+						throw new js__$Boot_HaxeError("assert0");
 					}
 				}
 				break;
@@ -3100,7 +3106,7 @@ Level.prototype = {
 						l.dirty = true;
 						break;
 					default:
-						throw "assert1";
+						throw new js__$Boot_HaxeError("assert1");
 					}
 				}
 				break;
@@ -3199,11 +3205,12 @@ Level.prototype = {
 					try {
 						v = this.model.parseDynamic(val);
 					} catch( e ) {
+						if (e instanceof js__$Boot_HaxeError) e = e.val;
 						v = null;
 					}
 					break;
 				default:
-					throw "assert";
+					throw new js__$Boot_HaxeError("assert");
 				}
 				if(v == null) Reflect.deleteField(t,p.name); else t[p.name] = v;
 				this.saveTileProps();
@@ -3215,6 +3222,7 @@ Level.prototype = {
 				if(val == null) v1 = s2.opts.value; else try {
 					v1 = this.model.parseDynamic(val);
 				} catch( e1 ) {
+					if (e1 instanceof js__$Boot_HaxeError) e1 = e1.val;
 					v1 = null;
 				}
 				if(v1 == null) Reflect.deleteField(s2.opts,"value"); else s2.opts.value = v1;
@@ -4319,6 +4327,7 @@ Model.prototype = {
 		try {
 			sys_io_File.saveContent(this.prefs.curFile,sdata.d);
 		} catch( e ) {
+			if (e instanceof js__$Boot_HaxeError) e = e.val;
 			haxe_Timer.delay(function() {
 				sys_io_File.saveContent(_g.prefs.curFile,sdata.d);
 			},500);
@@ -4922,6 +4931,7 @@ Model.prototype = {
 		try {
 			this.data = cdb_Parser.parse(sys_io_File.getContent(this.prefs.curFile));
 		} catch( e ) {
+			if (e instanceof js__$Boot_HaxeError) e = e.val;
 			if(!noError) this.error(Std.string(e));
 			this.prefs.curFile = null;
 			this.prefs.curSheet = 0;
@@ -4932,6 +4942,7 @@ Model.prototype = {
 			img.pop();
 			this.imageBank = haxe_Json.parse(sys_io_File.getContent(img.join(".") + ".img"));
 		} catch( e1 ) {
+			if (e1 instanceof js__$Boot_HaxeError) e1 = e1.val;
 			this.imageBank = null;
 		}
 		this.curSavedData = this.quickSave();
@@ -5033,6 +5044,7 @@ Model.prototype = {
 		try {
 			this.prefs = haxe_Unserializer.run(js_Browser.getLocalStorage().getItem("prefs"));
 		} catch( e ) {
+			if (e instanceof js__$Boot_HaxeError) e = e.val;
 		}
 	}
 	,savePrefs: function() {
@@ -5164,7 +5176,7 @@ Model.prototype = {
 				var out_b = "";
 				try {
 					while(true) {
-						if(p == val.length) throw "Unclosed \"";
+						if(p == val.length) throw new js__$Boot_HaxeError("Unclosed \"");
 						var c;
 						var index = p++;
 						c = HxOverrides.cca(val,index);
@@ -5173,7 +5185,7 @@ Model.prototype = {
 							esc = false;
 						} else if(c != null) switch(c) {
 						case 34:
-							if(p < val.length) throw "Invalid content after string '" + val;
+							if(p < val.length) throw new js__$Boot_HaxeError("Invalid content after string '" + val);
 							throw "__break__";
 							break;
 						case 92:
@@ -5186,7 +5198,7 @@ Model.prototype = {
 				} catch( e ) { if( e != "__break__" ) throw e; }
 				return out_b;
 			} else if(new EReg("^[A-Za-z0-9_]+$","").match(val)) return val;
-			throw "String requires quotes '" + val + "'";
+			throw new js__$Boot_HaxeError("String requires quotes '" + val + "'");
 			break;
 		case 2:
 			if(val == "true") return true;
@@ -5204,7 +5216,7 @@ Model.prototype = {
 			var r;
 			var this1 = this.smap.get(t2).index;
 			r = this1.get(val);
-			if(r == null) throw val + " is not a known " + t2 + " id";
+			if(r == null) throw new js__$Boot_HaxeError(val + " is not a known " + t2 + " id");
 			return r.id;
 		case 11:
 			if(val.charAt(0) == "#") val = "0x" + HxOverrides.substr(val,1,null);
@@ -5212,10 +5224,10 @@ Model.prototype = {
 			break;
 		default:
 		}
-		throw "'" + val + "' should be " + this.typeStr(t);
+		throw new js__$Boot_HaxeError("'" + val + "' should be " + this.typeStr(t));
 	}
 	,parseTypeVal: function(t,val) {
-		if(t == null || val == null) throw "Missing val/type";
+		if(t == null || val == null) throw new js__$Boot_HaxeError("Missing val/type");
 		val = StringTools.trim(val);
 		var missingCloseParent = false;
 		var pos = val.indexOf("(");
@@ -5241,14 +5253,14 @@ Model.prototype = {
 					pc++;
 					break;
 				case 41:
-					if(pc == 0) throw "Extra )";
+					if(pc == 0) throw new js__$Boot_HaxeError("Extra )");
 					pc--;
 					break;
 				case 34:
 					var esc = false;
 					try {
 						while(true) {
-							if(p == val.length) throw "Unclosed \"";
+							if(p == val.length) throw new js__$Boot_HaxeError("Unclosed \"");
 							var c;
 							var index1 = p++;
 							c = HxOverrides.cca(val,index1);
@@ -5290,7 +5302,7 @@ Model.prototype = {
 					++_g21;
 					var v = args.shift();
 					if(v == null) {
-						if(a.opt) vals.push(null); else throw "Missing argument " + a.name + " : " + this.typeStr(a.type);
+						if(a.opt) vals.push(null); else throw new js__$Boot_HaxeError("Missing argument " + a.name + " : " + this.typeStr(a.type));
 					} else {
 						v = StringTools.trim(v);
 						if(a.opt && v == "null") {
@@ -5301,20 +5313,21 @@ Model.prototype = {
 						try {
 							val1 = this.parseVal(a.type,v);
 						} catch( e ) {
+							if (e instanceof js__$Boot_HaxeError) e = e.val;
 							if( js_Boot.__instanceof(e,String) ) {
-								throw e + " for " + a.name;
+								throw new js__$Boot_HaxeError(e + " for " + a.name);
 							} else throw(e);
 						}
 						vals.push(val1);
 					}
 				}
-				if(args.length > 0) throw "Extra argument '" + args.shift() + "'";
-				if(missingCloseParent) throw "Missing )";
+				if(args.length > 0) throw new js__$Boot_HaxeError("Extra argument '" + args.shift() + "'");
+				if(missingCloseParent) throw new js__$Boot_HaxeError("Missing )");
 				while(vals[vals.length - 1] == null) vals.pop();
 				return vals;
 			}
 		}
-		throw "Unkown value '" + id + "'";
+		throw new js__$Boot_HaxeError("Unkown value '" + id + "'");
 		return null;
 	}
 	,parseType: function(tstr) {
@@ -5335,7 +5348,7 @@ Model.prototype = {
 					var _this = HxOverrides.substr(tstr,tname.length + 1,null);
 					tparam = HxOverrides.substr(_this,0,-1);
 				}
-				throw "Unknown type " + tstr;
+				throw new js__$Boot_HaxeError("Unknown type " + tstr);
 			}
 		}
 	}
@@ -5386,7 +5399,7 @@ Model.prototype = {
 			if(pos < 0) name = line1; else {
 				name = HxOverrides.substr(line1,0,pos);
 				line1 = HxOverrides.substr(line1,pos + 1,null);
-				if(HxOverrides.cca(line1,line1.length - 1) != 41) throw "Missing closing parent in " + line1;
+				if(HxOverrides.cca(line1,line1.length - 1) != 41) throw new js__$Boot_HaxeError("Missing closing parent in " + line1);
 				line1 = HxOverrides.substr(line1,0,line1.length - 1);
 				var _g2 = 0;
 				var _g3 = line1.split(",");
@@ -5394,7 +5407,7 @@ Model.prototype = {
 					var arg = _g3[_g2];
 					++_g2;
 					var tname = arg.split(":");
-					if(tname.length != 2) throw "Required name:type in '" + arg + "'";
+					if(tname.length != 2) throw new js__$Boot_HaxeError("Required name:type in '" + arg + "'");
 					var opt = false;
 					var id = StringTools.trim(tname[0]);
 					if(id.charAt(0) == "?") {
@@ -5402,14 +5415,14 @@ Model.prototype = {
 						id = StringTools.trim(HxOverrides.substr(id,1,null));
 					}
 					var t = StringTools.trim(tname[1]);
-					if(!this.r_ident.match(id)) throw "Invalid identifier " + id;
+					if(!this.r_ident.match(id)) throw new js__$Boot_HaxeError("Invalid identifier " + id);
 					var c = { name : id, type : this.parseType(t), typeStr : null};
 					if(opt) c.opt = true;
 					args.push(c);
 				}
 			}
-			if(!this.r_ident.match(name)) throw "Invalid identifier " + line1;
-			if(__map_reserved[name] != null?cmap.existsReserved(name):cmap.h.hasOwnProperty(name)) throw "Duplicate identifier " + name;
+			if(!this.r_ident.match(name)) throw new js__$Boot_HaxeError("Invalid identifier " + line1);
+			if(__map_reserved[name] != null?cmap.existsReserved(name):cmap.h.hasOwnProperty(name)) throw new js__$Boot_HaxeError("Duplicate identifier " + name);
 			if(__map_reserved[name] != null) cmap.setReserved(name,true); else cmap.h[name] = true;
 			cases.push({ name : name, args : args});
 		}
@@ -5697,7 +5710,7 @@ Model.prototype = {
 				var b = [a.b];
 				var a1 = a.a;
 				var c = this.getConvFunction(a1.type,b[0].type);
-				if(c == null) throw "Cannot convert " + p.a.name + "." + a1.name + ":" + this.typeStr(a1.type) + " to " + p.b.name + "." + b[0].name + ":" + this.typeStr(b[0].type);
+				if(c == null) throw new js__$Boot_HaxeError("Cannot convert " + p.a.name + "." + a1.name + ":" + this.typeStr(a1.type) + " to " + p.b.name + "." + b[0].name + ":" + this.typeStr(b[0].type));
 				var f = [c.f];
 				if(f[0] == null) f[0] = (function() {
 					return function(x) {
@@ -5855,6 +5868,7 @@ Model.prototype = {
 	,__class__: Model
 };
 var Main = function() {
+	this.hasResolveError = false;
 	Model.call(this);
 	this.window = nodejs_webkit_Window.get();
 	this.window.on("resize",$bind(this,this.onResize));
@@ -7137,6 +7151,7 @@ Main.prototype = $extend(Model.prototype,{
 								try {
 									val2 = _g.parseTypeVal(_g.tmap.get(t1),nv);
 								} catch( e2 ) {
+									if (e2 instanceof js__$Boot_HaxeError) e2 = e2.val;
 									val2 = null;
 								}
 								break;
@@ -7144,6 +7159,7 @@ Main.prototype = $extend(Model.prototype,{
 								try {
 									val2 = _g.parseDynamic(nv);
 								} catch( e3 ) {
+									if (e3 instanceof js__$Boot_HaxeError) e3 = e3.val;
 									val2 = null;
 								}
 								break;
@@ -7180,6 +7196,7 @@ Main.prototype = $extend(Model.prototype,{
 								_g.setErrorMessage();
 								i.removeClass("error");
 							} catch( msg ) {
+								if (msg instanceof js__$Boot_HaxeError) msg = msg.val;
 								if( js_Boot.__instanceof(msg,String) ) {
 									_g.setErrorMessage(msg);
 									i.addClass("error");
@@ -7369,7 +7386,7 @@ Main.prototype = $extend(Model.prototype,{
 			case 15:
 				break;
 			case 8:case 11:case 12:case 13:case 14:
-				throw "assert2";
+				throw new js__$Boot_HaxeError("assert2");
 				break;
 			}
 		}
@@ -8059,6 +8076,7 @@ Main.prototype = $extend(Model.prototype,{
 				try {
 					t2.cases = _g.parseTypeCases(descs.shift());
 				} catch( msg ) {
+					if (msg instanceof js__$Boot_HaxeError) msg = msg.val;
 					errors.push(msg);
 				}
 			}
@@ -8138,6 +8156,7 @@ Main.prototype = $extend(Model.prototype,{
 				if(p2.b == null) HxOverrides.remove(_g.data.customTypes,p2.a); else try {
 					_g.updateType(p2.a,p2.b);
 				} catch( msg1 ) {
+					if (msg1 instanceof js__$Boot_HaxeError) msg1 = msg1.val;
 					if( js_Boot.__instanceof(msg1,String) ) {
 						_g.error("Error while updating " + p2.b.name + " : " + msg1);
 						return;
@@ -8621,24 +8640,148 @@ Main.prototype = $extend(Model.prototype,{
 		try {
 			return js_Node.require("fs").statSync(this.prefs.curFile).mtime.getTime() * 1.;
 		} catch( e ) {
+			if (e instanceof js__$Boot_HaxeError) e = e.val;
 			return 0.;
 		}
 	}
 	,checkTime: function() {
 		if(this.prefs.curFile == null) return;
 		var fileTime = this.getFileTime();
-		if(fileTime != this.lastSave && fileTime != 0) {
-			if(window.confirm("The CDB file has been modified. Reload?")) {
-				if(sys_io_File.getContent(this.prefs.curFile).indexOf("<<<<<<<") >= 0) {
-					this.error("The file has conflicts, please resolve them before reloading");
-					return;
-				}
-				this.load();
-			} else this.lastSave = fileTime;
+		if(fileTime != this.lastSave && fileTime != 0) this.load();
+	}
+	,resolveConflict: function() {
+		var minRev = 0;
+		var maxRev = 0;
+		var basePath = this.prefs.curFile.split("\\").join("/").split("/").pop();
+		var _g = 0;
+		var _g1 = sys_FileSystem.readDirectory(HxOverrides.substr(this.prefs.curFile,0,-basePath.length));
+		while(_g < _g1.length) {
+			var f = _g1[_g];
+			++_g;
+			if(StringTools.startsWith(f,basePath + ".r")) {
+				var rev = Std.parseInt(HxOverrides.substr(f,basePath.length + 2,null));
+				if(minRev == 0 || minRev > rev) minRev = rev;
+				if(maxRev == 0 || maxRev < rev) maxRev = rev;
+			}
 		}
+		var merged = sys_io_File.getContent(this.prefs.curFile).split("<<<<<<< .mine");
+		if(merged.length == 1) return true;
+		var endConflict = new EReg(">>>>>>> \\.r[0-9]+[\r\n]+","");
+		var _g11 = 1;
+		var _g2 = merged.length;
+		while(_g11 < _g2) {
+			var i = _g11++;
+			endConflict.match(merged[i]);
+			merged[i] = endConflict.matchedLeft().split("=======").shift() + endConflict.matchedRight();
+		}
+		var mine = haxe_Json.parse(merged.join(""));
+		var origin = haxe_Json.parse(sys_io_File.getContent(this.prefs.curFile + ".r" + minRev));
+		var other = haxe_Json.parse(sys_io_File.getContent(this.prefs.curFile + ".r" + maxRev));
+		this.hasResolveError = false;
+		try {
+			this.resolveRec(mine,origin,other,[]);
+		} catch( e ) {
+			if (e instanceof js__$Boot_HaxeError) e = e.val;
+			if( js_Boot.__instanceof(e,String) ) {
+				this.error(e);
+				this.hasResolveError = true;
+			} else throw(e);
+		}
+		if(this.hasResolveError) return false;
+		try {
+			sys_io_File.saveContent(Sys.getEnv("TEMP") + "/" + basePath + ".merged" + minRev + "_" + maxRev,sys_io_File.getContent(this.prefs.curFile));
+		} catch( e1 ) {
+			if (e1 instanceof js__$Boot_HaxeError) e1 = e1.val;
+		}
+		sys_io_File.saveContent(this.prefs.curFile,js_Node.stringify(other,null,"\t"));
+		js_Node.require("fs").unlinkSync(this.prefs.curFile + ".mine");
+		js_Node.require("fs").unlinkSync(this.prefs.curFile + ".r" + minRev);
+		js_Node.require("fs").unlinkSync(this.prefs.curFile + ".r" + maxRev);
+		return true;
+	}
+	,resolveError: function(message,path) {
+		this.error(message + "\n  in\n" + path.join("."));
+		this.hasResolveError = true;
+	}
+	,resolveRec: function(mine,origin,other,path) {
+		if(mine == origin || mine == other) return other;
+		if(other == origin) return mine;
+		if((mine instanceof Array) && mine.__enum__ == null) {
+			var target = other;
+			if(origin == null) {
+				origin = [];
+				if(target == null) target = other = [];
+			} else if(target == null) target = []; else if(other.length != mine.length) this.resolveError("Array resize conflict",path);
+			var _g1 = 0;
+			var _g = mine.length;
+			while(_g1 < _g) {
+				var i = _g1++;
+				var mv = mine[i];
+				var name = Reflect.field(mv,"id");
+				if(name == null) name = Reflect.field(mv,"name");
+				path.push(typeof(name) == "string"?name + "#" + i:"[" + i + "]");
+				target[i] = this.resolveRec(mv,origin[i],target[i],path);
+				path.pop();
+			}
+		} else if(Reflect.isObject(mine) && !(typeof(mine) == "string")) {
+			var target1 = other;
+			if(origin == null) {
+				origin = { };
+				if(other == null) target1 = other = { };
+			} else if(target1 == null) target1 = { };
+			var _g2 = 0;
+			var _g11 = Reflect.fields(target1);
+			while(_g2 < _g11.length) {
+				var f = _g11[_g2];
+				++_g2;
+				if(!Object.prototype.hasOwnProperty.call(mine,f)) mine[f] = null;
+			}
+			var _g3 = 0;
+			var _g12 = Reflect.fields(mine);
+			while(_g3 < _g12.length) {
+				var f1 = _g12[_g3];
+				++_g3;
+				path.push(f1);
+				Reflect.setField(target1,f1,this.resolveRec(Reflect.field(mine,f1),Reflect.field(origin,f1),Reflect.field(target1,f1),path));
+				path.pop();
+			}
+		} else {
+			if(typeof(mine) == "string" && typeof(other) == "string") try {
+				var dorigin = cdb_Lz4Reader.decodeString(origin);
+				var dmine = cdb_Lz4Reader.decodeString(mine);
+				var dother = cdb_Lz4Reader.decodeString(other);
+				if(dorigin.length != dmine.length || dorigin.length != dother.length) throw new js__$Boot_HaxeError("resized");
+				var _g13 = 0;
+				var _g4 = dorigin.length;
+				while(_g13 < _g4) {
+					var i1 = _g13++;
+					var mine1 = dmine.b[i1];
+					var origin1 = dorigin.b[i1];
+					var other1 = dother.b[i1];
+					if(mine1 == origin1 || mine1 == other1) continue;
+					if(other1 == origin1) dother.b[i1] = mine1; else throw new js__$Boot_HaxeError("conflict");
+				}
+				return cdb_Lz4Reader.encodeBytes(dother,other.substr(0,5) == "BCJNG");
+			} catch( e ) {
+				if (e instanceof js__$Boot_HaxeError) e = e.val;
+			}
+			var display = function(v) {
+				var str = Std.string(v);
+				if(str.length > 50) str = HxOverrides.substr(str,0,50) + "...";
+				return str;
+			};
+			var r = window.confirm("A conflict has been found in " + path.join(".") + "\nOrigin = " + display(origin) + "    Mine = " + display(mine) + "    Other = " + display(other) + "\nDo you want to keep your changes (OK) or discard them (CANCEL) ?\n\n");
+			if(!window.confirm("Are you sure ?")) throw new js__$Boot_HaxeError("Resolve aborted");
+			if(r) other = mine;
+		}
+		return other;
 	}
 	,load: function(noError) {
 		if(noError == null) noError = false;
+		if(js_Node.require("fs").existsSync(this.prefs.curFile + ".mine") && !this.resolveConflict()) {
+			this.error("CDB file has unresolved conflict, merge by hand before reloading.");
+			return;
+		}
 		Model.prototype.load.call(this,noError);
 		this.lastSave = this.getFileTime();
 		this.mcompress.checked = this.data.compress;
@@ -8658,6 +8801,7 @@ Reflect.field = function(o,field) {
 	try {
 		return o[field];
 	} catch( e ) {
+		if (e instanceof js__$Boot_HaxeError) e = e.val;
 		return null;
 	}
 };
@@ -8682,6 +8826,11 @@ Reflect.isFunction = function(f) {
 };
 Reflect.compare = function(a,b) {
 	if(a == b) return 0; else if(a > b) return 1; else return -1;
+};
+Reflect.isObject = function(v) {
+	if(v == null) return false;
+	var t = typeof(v);
+	return t == "string" || t == "object" && v.__enum__ == null || t == "function" && (v.__name__ || v.__ename__) != null;
 };
 Reflect.deleteField = function(o,field) {
 	if(!Object.prototype.hasOwnProperty.call(o,field)) return false;
@@ -8851,12 +9000,12 @@ Type.createEmptyInstance = function(cl) {
 };
 Type.createEnum = function(e,constr,params) {
 	var f = Reflect.field(e,constr);
-	if(f == null) throw "No such constructor " + constr;
+	if(f == null) throw new js__$Boot_HaxeError("No such constructor " + constr);
 	if(Reflect.isFunction(f)) {
-		if(params == null) throw "Constructor " + constr + " need parameters";
+		if(params == null) throw new js__$Boot_HaxeError("Constructor " + constr + " need parameters");
 		return Reflect.callMethod(e,f,params);
 	}
-	if(params != null && params.length != 0) throw "Constructor " + constr + " does not need parameters";
+	if(params != null && params.length != 0) throw new js__$Boot_HaxeError("Constructor " + constr + " does not need parameters");
 	return f;
 };
 Type.getEnumConstructs = function(e) {
@@ -8902,6 +9051,7 @@ Type.enumEq = function(a,b) {
 		var e = a.__enum__;
 		if(e != b.__enum__ || e == null) return false;
 	} catch( e1 ) {
+		if (e1 instanceof js__$Boot_HaxeError) e1 = e1.val;
 		return false;
 	}
 	return true;
@@ -9037,7 +9187,7 @@ cdb_Lz4Reader.uncompress = function(src,srcPos,srcLen,out,outPos) {
 			}
 		}
 	}
-	if(srcPos != srcEnd) throw "Read too much data " + (srcPos - srcLen);
+	if(srcPos != srcEnd) throw new js__$Boot_HaxeError("Read too much data " + (srcPos - srcLen));
 	return [srcPos,outPos,0];
 };
 cdb_Lz4Reader.decodeString = function(s) {
@@ -9095,21 +9245,21 @@ cdb_Lz4Reader.prototype = {
 	,read: function(bytes) {
 		this.bytes = bytes;
 		this.pos = 0;
-		if(this.bytes.get(this.pos++) != 4 || this.bytes.get(this.pos++) != 34 || this.bytes.get(this.pos++) != 77 || this.bytes.get(this.pos++) != 24) throw "Invalid header";
+		if(this.bytes.get(this.pos++) != 4 || this.bytes.get(this.pos++) != 34 || this.bytes.get(this.pos++) != 77 || this.bytes.get(this.pos++) != 24) throw new js__$Boot_HaxeError("Invalid header");
 		var flags = this.bytes.get(this.pos++);
-		if(flags >> 6 != 1) throw "Invalid version " + (flags >> 6);
+		if(flags >> 6 != 1) throw new js__$Boot_HaxeError("Invalid version " + (flags >> 6));
 		var blockChecksum = (flags & 16) != 0;
 		var streamSize = (flags & 8) != 0;
 		var streamChecksum = (flags & 4) != 0;
-		if((flags & 2) != 0) throw "assert";
+		if((flags & 2) != 0) throw new js__$Boot_HaxeError("assert");
 		var presetDict = (flags & 1) != 0;
 		var bd = this.bytes.get(this.pos++);
-		if((bd & 128) != 0) throw "assert";
+		if((bd & 128) != 0) throw new js__$Boot_HaxeError("assert");
 		var maxBlockSize = [0,0,0,0,65536,262144,1048576,4194304][bd >> 4 & 7];
-		if(maxBlockSize == 0) throw "assert";
-		if((bd & 15) != 0) throw "assert";
+		if(maxBlockSize == 0) throw new js__$Boot_HaxeError("assert");
+		if((bd & 15) != 0) throw new js__$Boot_HaxeError("assert");
 		if(streamSize) this.pos += 8;
-		if(presetDict) throw "Preset dictionary not supported";
+		if(presetDict) throw new js__$Boot_HaxeError("Preset dictionary not supported");
 		var headerChk = this.bytes.get(this.pos++);
 		var out = haxe_io_Bytes.alloc(128);
 		var outPos = 0;
@@ -9223,11 +9373,11 @@ cdb_Parser.getType = function(str) {
 	case 16:
 		return cdb_ColumnType.TDynamic;
 	default:
-		throw "Unknown type " + str;
-	} else throw "Unknown type " + str;
+		throw new js__$Boot_HaxeError("Unknown type " + str);
+	} else throw new js__$Boot_HaxeError("Unknown type " + str);
 };
 cdb_Parser.parse = function(content) {
-	if(content == null) throw "CDB content is null";
+	if(content == null) throw new js__$Boot_HaxeError("CDB content is null");
 	var data = js_Node.parse(content);
 	var _g = 0;
 	var _g1 = data.sheets;
@@ -10057,7 +10207,7 @@ var cdb_Index = function(data,name) {
 			break;
 		}
 	}
-	if(this.sheet == null) throw "'" + name + "' not found in CDB data";
+	if(this.sheet == null) throw new js__$Boot_HaxeError("'" + name + "' not found in CDB data");
 };
 $hxClasses["cdb.Index"] = cdb_Index;
 cdb_Index.__name__ = ["cdb","Index"];
@@ -10107,7 +10257,7 @@ cdb_IndexId.prototype = $extend(cdb_Index.prototype,{
 	,resolve: function(id,opt) {
 		if(id == null) return null;
 		var v = this.byId.get(id);
-		if(v == null && !opt) throw "Missing " + this.name + "." + id; else return v;
+		if(v == null && !opt) throw new js__$Boot_HaxeError("Missing " + this.name + "." + id); else return v;
 	}
 	,__class__: cdb_IndexId
 });
@@ -10387,10 +10537,10 @@ haxe_Serializer.prototype = {
 				if(this.useCache) this.cache.push(v);
 				break;
 			case 5:
-				throw "Cannot serialize function";
+				throw new js__$Boot_HaxeError("Cannot serialize function");
 				break;
 			default:
-				throw "Cannot serialize " + Std.string(v);
+				throw new js__$Boot_HaxeError("Cannot serialize " + Std.string(v));
 			}
 		}
 	}
@@ -10491,17 +10641,17 @@ haxe_Unserializer.prototype = {
 	}
 	,unserializeObject: function(o) {
 		while(true) {
-			if(this.pos >= this.length) throw "Invalid object";
+			if(this.pos >= this.length) throw new js__$Boot_HaxeError("Invalid object");
 			if(this.buf.charCodeAt(this.pos) == 103) break;
 			var k = this.unserialize();
-			if(!(typeof(k) == "string")) throw "Invalid object key";
+			if(!(typeof(k) == "string")) throw new js__$Boot_HaxeError("Invalid object key");
 			var v = this.unserialize();
 			o[k] = v;
 		}
 		this.pos++;
 	}
 	,unserializeEnum: function(edecl,tag) {
-		if(this.get(this.pos++) != 58) throw "Invalid enum format";
+		if(this.get(this.pos++) != 58) throw new js__$Boot_HaxeError("Invalid enum format");
 		var nargs = this.readDigits();
 		if(nargs == 0) return Type.createEnum(edecl,tag);
 		var args = [];
@@ -10525,7 +10675,7 @@ haxe_Unserializer.prototype = {
 			return this.readFloat();
 		case 121:
 			var len = this.readDigits();
-			if(this.get(this.pos++) != 58 || this.length - this.pos < len) throw "Invalid string length";
+			if(this.get(this.pos++) != 58 || this.length - this.pos < len) throw new js__$Boot_HaxeError("Invalid string length");
 			var s = HxOverrides.substr(this.buf,this.pos,len);
 			this.pos += len;
 			s = decodeURIComponent(s.split("+").join(" "));
@@ -10561,19 +10711,19 @@ haxe_Unserializer.prototype = {
 			return o;
 		case 114:
 			var n1 = this.readDigits();
-			if(n1 < 0 || n1 >= this.cache.length) throw "Invalid reference";
+			if(n1 < 0 || n1 >= this.cache.length) throw new js__$Boot_HaxeError("Invalid reference");
 			return this.cache[n1];
 		case 82:
 			var n2 = this.readDigits();
-			if(n2 < 0 || n2 >= this.scache.length) throw "Invalid string reference";
+			if(n2 < 0 || n2 >= this.scache.length) throw new js__$Boot_HaxeError("Invalid string reference");
 			return this.scache[n2];
 		case 120:
-			throw this.unserialize();
+			throw new js__$Boot_HaxeError(this.unserialize());
 			break;
 		case 99:
 			var name = this.unserialize();
 			var cl = this.resolver.resolveClass(name);
-			if(cl == null) throw "Class not found " + name;
+			if(cl == null) throw new js__$Boot_HaxeError("Class not found " + name);
 			var o1 = Type.createEmptyInstance(cl);
 			this.cache.push(o1);
 			this.unserializeObject(o1);
@@ -10581,18 +10731,18 @@ haxe_Unserializer.prototype = {
 		case 119:
 			var name1 = this.unserialize();
 			var edecl = this.resolver.resolveEnum(name1);
-			if(edecl == null) throw "Enum not found " + name1;
+			if(edecl == null) throw new js__$Boot_HaxeError("Enum not found " + name1);
 			var e = this.unserializeEnum(edecl,this.unserialize());
 			this.cache.push(e);
 			return e;
 		case 106:
 			var name2 = this.unserialize();
 			var edecl1 = this.resolver.resolveEnum(name2);
-			if(edecl1 == null) throw "Enum not found " + name2;
+			if(edecl1 == null) throw new js__$Boot_HaxeError("Enum not found " + name2);
 			this.pos++;
 			var index = this.readDigits();
 			var tag = Type.getEnumConstructs(edecl1)[index];
-			if(tag == null) throw "Unknown enum index " + name2 + "@" + index;
+			if(tag == null) throw new js__$Boot_HaxeError("Unknown enum index " + name2 + "@" + index);
 			var e1 = this.unserializeEnum(edecl1,tag);
 			this.cache.push(e1);
 			return e1;
@@ -10623,7 +10773,7 @@ haxe_Unserializer.prototype = {
 				h1.set(i,this.unserialize());
 				c1 = this.get(this.pos++);
 			}
-			if(c1 != 104) throw "Invalid IntMap format";
+			if(c1 != 104) throw new js__$Boot_HaxeError("Invalid IntMap format");
 			return h1;
 		case 77:
 			var h2 = new haxe_ds_ObjectMap();
@@ -10652,7 +10802,7 @@ haxe_Unserializer.prototype = {
 		case 115:
 			var len1 = this.readDigits();
 			var buf5 = this.buf;
-			if(this.get(this.pos++) != 58 || this.length - this.pos < len1) throw "Invalid bytes length";
+			if(this.get(this.pos++) != 58 || this.length - this.pos < len1) throw new js__$Boot_HaxeError("Invalid bytes length");
 			var codes = haxe_Unserializer.CODES;
 			if(codes == null) {
 				codes = haxe_Unserializer.initCodes();
@@ -10689,26 +10839,26 @@ haxe_Unserializer.prototype = {
 		case 67:
 			var name3 = this.unserialize();
 			var cl1 = this.resolver.resolveClass(name3);
-			if(cl1 == null) throw "Class not found " + name3;
+			if(cl1 == null) throw new js__$Boot_HaxeError("Class not found " + name3);
 			var o2 = Type.createEmptyInstance(cl1);
 			this.cache.push(o2);
 			o2.hxUnserialize(this);
-			if(this.get(this.pos++) != 103) throw "Invalid custom data";
+			if(this.get(this.pos++) != 103) throw new js__$Boot_HaxeError("Invalid custom data");
 			return o2;
 		case 65:
 			var name4 = this.unserialize();
 			var cl2 = this.resolver.resolveClass(name4);
-			if(cl2 == null) throw "Class not found " + name4;
+			if(cl2 == null) throw new js__$Boot_HaxeError("Class not found " + name4);
 			return cl2;
 		case 66:
 			var name5 = this.unserialize();
 			var e2 = this.resolver.resolveEnum(name5);
-			if(e2 == null) throw "Enum not found " + name5;
+			if(e2 == null) throw new js__$Boot_HaxeError("Enum not found " + name5);
 			return e2;
 		default:
 		}
 		this.pos--;
-		throw "Invalid char " + this.buf.charAt(this.pos) + " at position " + this.pos;
+		throw new js__$Boot_HaxeError("Invalid char " + this.buf.charAt(this.pos) + " at position " + this.pos);
 	}
 	,__class__: haxe_Unserializer
 };
@@ -10738,11 +10888,11 @@ haxe_io_Bytes.prototype = {
 		this.b[pos] = v;
 	}
 	,blit: function(pos,src,srcpos,len) {
-		if(pos < 0 || srcpos < 0 || len < 0 || pos + len > this.length || srcpos + len > src.length) throw haxe_io_Error.OutsideBounds;
+		if(pos < 0 || srcpos < 0 || len < 0 || pos + len > this.length || srcpos + len > src.length) throw new js__$Boot_HaxeError(haxe_io_Error.OutsideBounds);
 		src.b.copy(this.b,pos,srcpos,srcpos + len);
 	}
 	,sub: function(pos,len) {
-		if(pos < 0 || len < 0 || pos + len > this.length) throw haxe_io_Error.OutsideBounds;
+		if(pos < 0 || len < 0 || pos + len > this.length) throw new js__$Boot_HaxeError(haxe_io_Error.OutsideBounds);
 		var nb = new Buffer(len);
 		var slice = this.b.slice(pos,pos + len);
 		slice.copy(nb,0,0,len);
@@ -10761,7 +10911,7 @@ haxe_io_Bytes.prototype = {
 		return this.length - other.length;
 	}
 	,readString: function(pos,len) {
-		if(pos < 0 || len < 0 || pos + len > this.length) throw haxe_io_Error.OutsideBounds;
+		if(pos < 0 || len < 0 || pos + len > this.length) throw new js__$Boot_HaxeError(haxe_io_Error.OutsideBounds);
 		var s = "";
 		var b = this.b;
 		var fcc = String.fromCharCode;
@@ -10840,7 +10990,7 @@ var haxe_crypto_BaseCode = function(base) {
 	var len = base.length;
 	var nbits = 1;
 	while(len > 1 << nbits) nbits++;
-	if(nbits > 8 || len != 1 << nbits) throw "BaseCode : base length must be a power of two.";
+	if(nbits > 8 || len != 1 << nbits) throw new js__$Boot_HaxeError("BaseCode : base length must be a power of two.");
 	this.base = base;
 	this.nbits = nbits;
 };
@@ -10900,7 +11050,7 @@ haxe_crypto_BaseCode.prototype = {
 				curbits += nbits;
 				buf <<= nbits;
 				var i = tbl[b.get(pin++)];
-				if(i == -1) throw "BaseCode : invalid encoded char";
+				if(i == -1) throw new js__$Boot_HaxeError("BaseCode : invalid encoded char");
 				buf |= i;
 			}
 			curbits -= 8;
@@ -11223,7 +11373,7 @@ haxe_io_BytesBuffer.prototype = {
 		}
 	}
 	,addBytes: function(src,pos,len) {
-		if(pos < 0 || len < 0 || pos + len > src.length) throw haxe_io_Error.OutsideBounds;
+		if(pos < 0 || len < 0 || pos + len > src.length) throw new js__$Boot_HaxeError(haxe_io_Error.OutsideBounds);
 		var b1 = this.b;
 		var b2 = src.b;
 		var _g1 = pos;
@@ -11249,10 +11399,10 @@ $hxClasses["haxe.io.Output"] = haxe_io_Output;
 haxe_io_Output.__name__ = ["haxe","io","Output"];
 haxe_io_Output.prototype = {
 	writeByte: function(c) {
-		throw "Not implemented";
+		throw new js__$Boot_HaxeError("Not implemented");
 	}
 	,writeUInt16: function(x) {
-		if(x < 0 || x >= 65536) throw haxe_io_Error.Overflow;
+		if(x < 0 || x >= 65536) throw new js__$Boot_HaxeError(haxe_io_Error.Overflow);
 		if(this.bigEndian) {
 			this.writeByte(x >> 8);
 			this.writeByte(x & 255);
@@ -11329,6 +11479,18 @@ haxe_io_Path.__name__ = ["haxe","io","Path"];
 haxe_io_Path.prototype = {
 	__class__: haxe_io_Path
 };
+var js__$Boot_HaxeError = function(val) {
+	Error.call(this);
+	this.val = val;
+	this.message = String(val);
+	if(Error.captureStackTrace) Error.captureStackTrace(this,js__$Boot_HaxeError);
+};
+$hxClasses["js._Boot.HaxeError"] = js__$Boot_HaxeError;
+js__$Boot_HaxeError.__name__ = ["js","_Boot","HaxeError"];
+js__$Boot_HaxeError.__super__ = Error;
+js__$Boot_HaxeError.prototype = $extend(Error.prototype,{
+	__class__: js__$Boot_HaxeError
+});
 var js_Boot = function() { };
 $hxClasses["js.Boot"] = js_Boot;
 js_Boot.__name__ = ["js","Boot"];
@@ -11377,6 +11539,7 @@ js_Boot.__string_rec = function(o,s) {
 		try {
 			tostr = o.toString;
 		} catch( e ) {
+			if (e instanceof js__$Boot_HaxeError) e = e.val;
 			return "???";
 		}
 		if(tostr != null && tostr != Object.toString && typeof(tostr) == "function") {
@@ -11453,7 +11616,7 @@ js_Boot.__instanceof = function(o,cl) {
 	}
 };
 js_Boot.__cast = function(o,t) {
-	if(js_Boot.__instanceof(o,t)) return o; else throw "Cannot cast " + Std.string(o) + " to " + Std.string(t);
+	if(js_Boot.__instanceof(o,t)) return o; else throw new js__$Boot_HaxeError("Cannot cast " + Std.string(o) + " to " + Std.string(t));
 };
 js_Boot.__nativeClassName = function(o) {
 	var name = js_Boot.__toStr.call(o).slice(8,-1);
@@ -11475,6 +11638,7 @@ js_Browser.getLocalStorage = function() {
 		s.getItem("");
 		return s;
 	} catch( e ) {
+		if (e instanceof js__$Boot_HaxeError) e = e.val;
 		return null;
 	}
 };
@@ -11824,16 +11988,16 @@ lvl_Image3D.prototype = $extend(lvl_Image.prototype,{
 		var vertex = this.gl.createShader(35633);
 		this.gl.shaderSource(vertex,"\r\n\t\t\tvarying vec2 tuv;\r\n\t\t\tattribute vec2 pos;\r\n\t\t\tattribute vec2 uv;\r\n\t\t\tuniform vec2 scroll;\r\n\t\t\tvoid main() {\r\n\t\t\t\ttuv = uv;\r\n\t\t\t\tgl_Position = vec4(pos + vec2(-1.,1.) + scroll, 0, 1);\r\n\t\t\t}\r\n\t\t");
 		this.gl.compileShader(vertex);
-		if(this.gl.getShaderParameter(vertex,35713) != 1) throw this.gl.getShaderInfoLog(vertex);
+		if(this.gl.getShaderParameter(vertex,35713) != 1) throw new js__$Boot_HaxeError(this.gl.getShaderInfoLog(vertex));
 		var frag = this.gl.createShader(35632);
 		this.gl.shaderSource(frag,"\r\n\t\t\tvarying mediump vec2 tuv;\r\n\t\t\tuniform sampler2D texture;\r\n\t\t\tuniform lowp float alpha;\r\n\t\t\tvoid main() {\r\n\t\t\t\tlowp vec4 color = texture2D(texture, tuv);\r\n\t\t\t\tcolor.a *= alpha;\r\n\t\t\t\tgl_FragColor = color;\r\n\t\t\t}\r\n\t\t");
 		this.gl.compileShader(frag);
-		if(this.gl.getShaderParameter(frag,35713) != 1) throw this.gl.getShaderInfoLog(frag);
+		if(this.gl.getShaderParameter(frag,35713) != 1) throw new js__$Boot_HaxeError(this.gl.getShaderInfoLog(frag));
 		var p = this.gl.createProgram();
 		this.gl.attachShader(p,vertex);
 		this.gl.attachShader(p,frag);
 		this.gl.linkProgram(p);
-		if(this.gl.getProgramParameter(p,35714) != 1) throw this.gl.getProgramInfoLog(p);
+		if(this.gl.getProgramParameter(p,35714) != 1) throw new js__$Boot_HaxeError(this.gl.getProgramInfoLog(p));
 		this.gl.useProgram(p);
 		this.gl.enableVertexAttribArray(0);
 		this.gl.enableVertexAttribArray(1);
@@ -12262,6 +12426,7 @@ lvl_LayerData.prototype = $extend(lvl_LayerGfx.prototype,{
 		try {
 			state = haxe_Unserializer.run(js_Browser.getLocalStorage().getItem(this.level.sheetPath + ":" + this.name));
 		} catch( e ) {
+			if (e instanceof js__$Boot_HaxeError) e = e.val;
 			state = null;
 		}
 		if(state != null) {
@@ -12294,7 +12459,7 @@ lvl_LayerData.prototype = $extend(lvl_LayerGfx.prototype,{
 			return $r;
 		}(this))); else {
 			var a = cdb_Lz4Reader.decodeString(val);
-			if(a.length != this.level.width * this.level.height) throw "Invalid layer data";
+			if(a.length != this.level.width * this.level.height) throw new js__$Boot_HaxeError("Invalid layer data");
 			this.data = lvl_LayerInnerData.Layer((function($this) {
 				var $r;
 				var _g11 = [];
@@ -12310,7 +12475,7 @@ lvl_LayerData.prototype = $extend(lvl_LayerGfx.prototype,{
 				return $r;
 			}(this)));
 		}
-		if(this.sheet.lines.length > 256) throw "Too many lines";
+		if(this.sheet.lines.length > 256) throw new js__$Boot_HaxeError("Too many lines");
 	}
 	,getTileProp: function(mode) {
 		if(this.tileProps == null) return null;
@@ -12427,7 +12592,7 @@ lvl_LayerData.prototype = $extend(lvl_LayerGfx.prototype,{
 			case "objects":
 				var insts = [];
 				var p = 1;
-				if(data[0] != 65535) throw "assert";
+				if(data[0] != 65535) throw new js__$Boot_HaxeError("assert");
 				while(p < data.length) {
 					var x = data[p++];
 					var y = data[p++];
@@ -12679,7 +12844,7 @@ var sys_io_File = function() { };
 $hxClasses["sys.io.File"] = sys_io_File;
 sys_io_File.__name__ = ["sys","io","File"];
 sys_io_File.append = function(path,binary) {
-	throw "Not implemented";
+	throw new js__$Boot_HaxeError("Not implemented");
 	return null;
 };
 sys_io_File.copy = function(src,dst) {
@@ -12707,7 +12872,7 @@ sys_io_File.saveContent = function(path,content) {
 	js_Node.require("fs").writeFileSync(path,content);
 };
 sys_io_File.write = function(path,binary) {
-	throw "Not implemented";
+	throw new js__$Boot_HaxeError("Not implemented");
 	return null;
 };
 function $iterator(o) { if( o instanceof Array ) return function() { return HxOverrides.iter(o); }; return typeof(o.iterator) == 'function' ? $bind(o,o.iterator) : o.iterator; }
