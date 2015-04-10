@@ -4265,11 +4265,12 @@ Model.prototype = {
 	}
 	,save: function(history) {
 		if(history == null) history = true;
-		var _g = 0;
-		var _g1 = this.data.sheets;
-		while(_g < _g1.length) {
-			var s = _g1[_g];
-			++_g;
+		var _g = this;
+		var _g1 = 0;
+		var _g11 = this.data.sheets;
+		while(_g1 < _g11.length) {
+			var s = _g11[_g1];
+			++_g1;
 			var _g2 = 0;
 			var _g3 = Reflect.fields(s.props);
 			while(_g2 < _g3.length) {
@@ -4315,7 +4316,13 @@ Model.prototype = {
 			this.curSavedData = sdata;
 		}
 		if(this.prefs.curFile == null) return;
-		sys_io_File.saveContent(this.prefs.curFile,sdata.d);
+		try {
+			sys_io_File.saveContent(this.prefs.curFile,sdata.d);
+		} catch( e ) {
+			haxe_Timer.delay(function() {
+				sys_io_File.saveContent(_g.prefs.curFile,sdata.d);
+			},500);
+		}
 	}
 	,saveImages: function() {
 		if(this.prefs.curFile == null) return;

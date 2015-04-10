@@ -214,7 +214,14 @@ class Model {
 		}
 		if( prefs.curFile == null )
 			return;
-		sys.io.File.saveContent(prefs.curFile, sdata.d);
+		try {
+			sys.io.File.saveContent(prefs.curFile, sdata.d);
+		} catch( e : Dynamic ) {
+			// retry once after EBUSY
+			haxe.Timer.delay(function() {
+				sys.io.File.saveContent(prefs.curFile, sdata.d);
+			},500);
+		}
 	}
 
 	function saveImages() {
