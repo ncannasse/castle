@@ -4306,19 +4306,15 @@ Model.prototype = {
 				}
 			}
 		}
-		if(history) {
-			var sdata = this.quickSave();
-			if(sdata != this.curSavedData) {
-				if(this.curSavedData != null) {
-					this.history.push(this.curSavedData);
-					this.redo = [];
-					if(this.history.length > 100 || this.curSavedData.length * this.history.length * 2 > 314572800) this.history.shift();
-				}
-				this.curSavedData = sdata;
-			}
+		var sdata = this.quickSave();
+		if(history && (this.curSavedData == null || sdata.d != this.curSavedData.d || sdata.o != this.curSavedData.o)) {
+			this.history.push(this.curSavedData);
+			this.redo = [];
+			if(this.history.length > 100 || sdata.d.length * (this.history.length + this.redo.length) * 2 > 314572800) this.history.shift();
+			this.curSavedData = sdata;
 		}
 		if(this.prefs.curFile == null) return;
-		sys_io_File.saveContent(this.prefs.curFile,cdb_Parser.save(this.data));
+		sys_io_File.saveContent(this.prefs.curFile,sdata.d);
 	}
 	,saveImages: function() {
 		if(this.prefs.curFile == null) return;
@@ -4328,12 +4324,11 @@ Model.prototype = {
 		if(this.imageBank == null) js_Node.require("fs").unlinkSync(path); else sys_io_File.saveContent(path,js_Node.stringify(this.imageBank,null,"\t"));
 	}
 	,quickSave: function() {
-		return haxe_Serializer.run({ d : this.data, o : this.openedList});
+		return { d : cdb_Parser.save(this.data), o : haxe_Serializer.run(this.openedList)};
 	}
 	,quickLoad: function(sdata) {
-		var t = haxe_Unserializer.run(sdata);
-		this.data = t.d;
-		this.openedList = t.o;
+		this.data = cdb_Parser.parse(sdata.d);
+		this.openedList = haxe_Unserializer.run(sdata.o);
 	}
 	,moveLine: function(sheet,index,delta) {
 		if(delta < 0 && index > 0) {

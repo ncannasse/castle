@@ -8,6 +8,8 @@ typedef Prefs = {
 
 typedef Index = { id : String, disp : String, obj : Dynamic }
 
+typedef HistoryElement = { d : String, o : String };
+
 class Model {
 
 	var prefs : Prefs;
@@ -17,9 +19,9 @@ class Model {
 	var tmap : Map< String, CustomType >;
 	var openedList : Map<String,Bool>;
 
-	var curSavedData : String;
-	var history : Array<String>;
-	var redo : Array<String>;
+	var curSavedData : HistoryElement;
+	var history : Array<HistoryElement>;
+	var redo : Array<HistoryElement>;
 	var r_ident : EReg;
 
 	function new() {
@@ -203,20 +205,16 @@ class Model {
 			}
 		}
 
-		if( history ) {
-			var sdata = quickSave();
-			if( sdata != curSavedData ) {
-				if( curSavedData != null ) {
-					this.history.push(curSavedData);
-					this.redo = [];
-					if( this.history.length > 100 || curSavedData.length * this.history.length * 2 > 300<<20 ) this.history.shift();
-				}
-				curSavedData = sdata;
-			}
+		var sdata = quickSave();
+		if( history && (curSavedData == null || sdata.d != curSavedData.d || sdata.o != curSavedData.o) ) {
+			this.history.push(curSavedData);
+			this.redo = [];
+			if( this.history.length > 100 || sdata.d.length * (this.history.length + this.redo.length) * 2 > 300<<20 ) this.history.shift();
+			curSavedData = sdata;
 		}
 		if( prefs.curFile == null )
 			return;
-		sys.io.File.saveContent(prefs.curFile, cdb.Parser.save(data));
+		sys.io.File.saveContent(prefs.curFile, sdata.d);
 	}
 
 	function saveImages() {
@@ -231,14 +229,16 @@ class Model {
 			sys.io.File.saveContent(path, untyped haxe.Json.stringify(imageBank, null, "\t"));
 	}
 
-	function quickSave() {
-		return haxe.Serializer.run({ d : data, o : openedList });
+	function quickSave() : HistoryElement {
+		return {
+			d : cdb.Parser.save(data),
+			o : haxe.Serializer.run(openedList),
+		};
 	}
 
-	function quickLoad(sdata) {
-		var t = haxe.Unserializer.run(sdata);
-		data = t.d;
-		openedList = t.o;
+	function quickLoad(sdata:HistoryElement) {
+		data = cdb.Parser.parse(sdata.d);
+		openedList = haxe.Unserializer.run(sdata.o);
 	}
 
 	function moveLine( sheet : Sheet, index : Int, delta : Int ) : Null<Int> {
