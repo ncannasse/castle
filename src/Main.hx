@@ -1026,6 +1026,9 @@ class Main extends Model {
 			});
 			i.blur(function(_) {
 				var nv = i.val();
+				var old = val;
+				var prevObj = c.type == TId && old != null ? smap.get(sheet.name).index.get(val) : null;
+				var prevTarget = null;
 				if( nv == "" && c.opt ) {
 					if( val != null ) {
 						val = html = null;
@@ -1050,7 +1053,8 @@ class Main extends Model {
 					}
 					if( val2 != val && val2 != null ) {
 
-						if( c.type == TId && val != null ) {
+						prevTarget = smap.get(sheet.name).index.get(val2);
+						if( c.type == TId && val != null && (prevObj == null || prevObj.obj == obj) ) {
 							var m = new Map();
 							m.set(val, val2);
 							updateRefs(sheet, m);
@@ -1063,6 +1067,11 @@ class Main extends Model {
 					}
 				}
 				editDone();
+				// handle #DUP in case we change the first element (creates a dup or removes one)
+				if( c.type == TId && prevObj != null && old != val && ((prevObj.obj == obj && smap.get(sheet.name).index.get(old) != null) || (prevTarget != null && smap.get(sheet.name).index.get(val).obj != prevTarget.obj)) ) {
+					refresh();
+					return;
+				}
 			});
 			switch( c.type ) {
 			case TCustom(t):

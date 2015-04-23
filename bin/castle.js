@@ -7125,6 +7125,14 @@ Main.prototype = $extend(Model.prototype,{
 				});
 				i.blur(function(_) {
 					var nv = i.val();
+					var old1 = val;
+					var prevObj;
+					if(c.type == cdb_ColumnType.TId && old1 != null) {
+						var this1 = _g.smap.get(sheet.name).index;
+						var key = val;
+						prevObj = this1.get(key);
+					} else prevObj = null;
+					var prevTarget = null;
 					if(nv == "" && c.opt) {
 						if(val != null) {
 							val = html = null;
@@ -7168,11 +7176,14 @@ Main.prototype = $extend(Model.prototype,{
 							}
 						}
 						if(val2 != val && val2 != null) {
-							if(c.type == cdb_ColumnType.TId && val != null) {
+							var this2 = _g.smap.get(sheet.name).index;
+							var key1 = val2;
+							prevTarget = this2.get(key1);
+							if(c.type == cdb_ColumnType.TId && val != null && (prevObj == null || prevObj.obj == obj)) {
 								var m = new haxe_ds_StringMap();
-								var key = val;
+								var key2 = val;
 								var value = val2;
-								if(__map_reserved[key] != null) m.setReserved(key,value); else m.h[key] = value;
+								if(__map_reserved[key2] != null) m.setReserved(key2,value); else m.h[key2] = value;
 								_g.updateRefs(sheet,m);
 							}
 							val = val2;
@@ -7182,6 +7193,21 @@ Main.prototype = $extend(Model.prototype,{
 						}
 					}
 					editDone();
+					if(c.type == cdb_ColumnType.TId && prevObj != null && old1 != val && (prevObj.obj == obj && (function($this) {
+						var $r;
+						var this3 = _g.smap.get(sheet.name).index;
+						$r = this3.get(old1);
+						return $r;
+					}(this)) != null || prevTarget != null && ((function($this) {
+						var $r;
+						var this4 = _g.smap.get(sheet.name).index;
+						var key3 = val;
+						$r = this4.get(key3);
+						return $r;
+					}(this))).obj != prevTarget.obj)) {
+						_g.refresh();
+						return;
+					}
 				});
 				{
 					var _g14 = c.type;
