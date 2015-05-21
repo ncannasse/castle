@@ -436,7 +436,7 @@ Level.prototype = {
 		}
 		if(a.data != null) callb(a.data.w,a.data.h,a.data.img,a.data.blanks); else a.pending.push(callb);
 	}
-	,getTileProps: function(file,stride) {
+	,getTileProps: function(file,stride,max) {
 		var p = Reflect.field(this.sheet.props.level.tileSets,file);
 		if(p == null) {
 			p = { stride : stride, sets : [], props : []};
@@ -458,9 +458,17 @@ Level.prototype = {
 						out[x + y * stride] = p.props[x + y * p.stride];
 					}
 				}
-				while(out.length > 0 && out[out.length - 1] == null) out.pop();
+				while(out.length > 0 && (out[out.length - 1] == null || out.length > max)) out.pop();
 				p.props = out;
 				p.stride = stride;
+			}
+			if(p.props.length > max) p.props.splice(max,p.props.length - max);
+			var _g4 = 0;
+			var _g11 = p.sets.slice();
+			while(_g4 < _g11.length) {
+				var s = _g11[_g4];
+				++_g4;
+				if(s.x + s.w > stride || (s.y + s.h) * stride > max) HxOverrides.remove(p.sets,s);
 			}
 		}
 		return p;
@@ -4064,7 +4072,27 @@ List.prototype = {
 		}
 		return false;
 	}
+	,iterator: function() {
+		return new _$List_ListIterator(this.h);
+	}
 	,__class__: List
+};
+var _$List_ListIterator = function(head) {
+	this.head = head;
+	this.val = null;
+};
+$hxClasses["_List.ListIterator"] = _$List_ListIterator;
+_$List_ListIterator.__name__ = ["_List","ListIterator"];
+_$List_ListIterator.prototype = {
+	hasNext: function() {
+		return this.head != null;
+	}
+	,next: function() {
+		this.val = this.head[0];
+		this.head = this.head[1];
+		return this.val;
+	}
+	,__class__: _$List_ListIterator
 };
 var K = function() { };
 $hxClasses["K"] = K;
@@ -7176,9 +7204,9 @@ Main.prototype = $extend(Model.prototype,{
 							}
 						}
 						if(val2 != val && val2 != null) {
-							var this2 = _g.smap.get(sheet.name).index;
+							var this11 = _g.smap.get(sheet.name).index;
 							var key1 = val2;
-							prevTarget = this2.get(key1);
+							prevTarget = this11.get(key1);
 							if(c.type == cdb_ColumnType.TId && val != null && (prevObj == null || prevObj.obj == obj)) {
 								var m = new haxe_ds_StringMap();
 								var key2 = val;
@@ -7195,14 +7223,14 @@ Main.prototype = $extend(Model.prototype,{
 					editDone();
 					if(c.type == cdb_ColumnType.TId && prevObj != null && old1 != val && (prevObj.obj == obj && (function($this) {
 						var $r;
-						var this3 = _g.smap.get(sheet.name).index;
-						$r = this3.get(old1);
+						var this12 = _g.smap.get(sheet.name).index;
+						$r = this12.get(old1);
 						return $r;
 					}(this)) != null || prevTarget != null && ((function($this) {
 						var $r;
-						var this4 = _g.smap.get(sheet.name).index;
+						var this13 = _g.smap.get(sheet.name).index;
 						var key3 = val;
-						$r = this4.get(key3);
+						$r = this13.get(key3);
 						return $r;
 					}(this))).obj != prevTarget.obj)) {
 						_g.refresh();
@@ -11653,7 +11681,7 @@ js_Boot.__isNativeObj = function(o) {
 	return js_Boot.__nativeClassName(o) != null;
 };
 js_Boot.__resolveNativeClass = function(name) {
-	if(typeof window != "undefined") return window[name]; else return global[name];
+	return (Function("return typeof " + name + " != \"undefined\" ? " + name + " : null"))();
 };
 var js_Browser = function() { };
 $hxClasses["js.Browser"] = js_Browser;
@@ -11981,7 +12009,7 @@ var lvl_Image3D = function(w,h) {
 	this.canvas.setAttribute("width",2048 + "px");
 	this.canvas.setAttribute("height",2048 + "px");
 	this.colorCache = new haxe_ds_IntMap();
-	this.curDraw = new Float32Array(16 * Math.ceil(10922.666666666666));
+	this.curDraw = new Float32Array(174768);
 	this.curIndex = new Uint16Array(65536);
 };
 $hxClasses["lvl.Image3D"] = lvl_Image3D;
@@ -12645,7 +12673,7 @@ lvl_LayerData.prototype = $extend(lvl_LayerGfx.prototype,{
 			}
 			_g1.stride = d.stride = w;
 			_g1.height = h;
-			_g1.tileProps = _g1.level.getTileProps(file,w);
+			_g1.tileProps = _g1.level.getTileProps(file,w,w * h);
 			_g1.loadState();
 			_g1.level.waitDone();
 		});

@@ -209,7 +209,7 @@ class LayerData extends LayerGfx {
 			}
 			this.stride = d.stride = w;
 			height = h;
-			tileProps = level.getTileProps(file, w);
+			tileProps = level.getTileProps(file, w, w*h);
 			loadState();
 			level.waitDone();
 		});

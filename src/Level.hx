@@ -284,7 +284,7 @@ class Level {
 			a.pending.push(callb);
 	}
 
-	public function getTileProps(file,stride) {
+	public function getTileProps(file,stride,max) {
 		var p : TilesetProps = Reflect.field(sheet.props.level.tileSets,file);
 		if( p == null ) {
 			p = {
@@ -302,11 +302,15 @@ class Level {
 				for( y in 0...Math.ceil(p.props.length / p.stride) )
 					for( x in 0...p.stride )
 						out[x + y * stride] = p.props[x + y * p.stride];
-				while( out.length > 0 && out[out.length - 1] == null )
+				while( out.length > 0 && (out[out.length - 1] == null || out.length > max) )
 					out.pop();
 				p.props = out;
 				p.stride = stride;
 			}
+			if( p.props.length > max ) p.props.splice(max, p.props.length - max);
+			for( s in p.sets.copy() )
+				if( s.x + s.w > stride || (s.y+s.h)*stride > max )
+					p.sets.remove(s);
 		}
 		return p;
 	}
