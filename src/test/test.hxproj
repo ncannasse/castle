@@ -8,7 +8,7 @@
     <movie fps="30" />
     <movie width="800" />
     <movie height="600" />
-    <movie version="9" />
+    <movie version="10" />
     <movie minorVersion="0" />
     <movie platform="Flash Player" />
     <movie background="#FFFFFF" />
@@ -21,6 +21,7 @@
   <build>
     <option directives="" />
     <option flashStrict="True" />
+    <option noInlineOnDebug="False" />
     <option mainClass="Test" />
     <option enabledebug="False" />
     <option additional="-lib castle&#xA;-resource test.cdb&#xA;--next&#xA;-js test.js&#xA;-lib castle&#xA;-dce full&#xA;-resource test.cdb&#xA;-main Test" />
