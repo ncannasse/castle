@@ -60,6 +60,10 @@ class Image3D extends Image {
 			return;
 		}
 		gl = canvas.getContextWebGL( { alpha : false, antialias : false } );
+
+		if( gl == null )
+			js.Browser.alert("Cannot initialize WebGL context ! (windows user : install DirectX redist)");
+
 		untyped canvas.gl = gl;
 		gl.disable(GL.CULL_FACE);
 		gl.disable(GL.DEPTH_TEST);
