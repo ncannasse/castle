@@ -225,10 +225,6 @@ class LayerData extends LayerGfx {
 		current = v;
 		currentWidth = 1;
 		currentHeight = 1;
-
-		if( images != null && comp != null )
-			comp.find("div.img").html("").append(new js.JQuery(images[current].getCanvas()));
-
 		saveState();
 		return v;
 	}
@@ -239,8 +235,6 @@ class LayerData extends LayerGfx {
 		Reflect.setField(this, "current", id);
 		currentWidth = w;
 		currentHeight = h;
-		if( images != null && comp != null )
-			comp.find("div.img").html("").append(new js.JQuery(images[current].getCanvas()));
 		saveState(false);
 	}
 

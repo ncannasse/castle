@@ -118,16 +118,25 @@ div.modal #col_options.t_custom .custom {
 	z-index : 100;
 	width : 16px;
 	height : 16px;
-	border : 1px solid black;
+	border : 1px solid white;
+	outline : 1px solid black;
 }
 .modal.tileSelect .tileCursor.current {
 	border : 2px solid red;
+	outline : none;
 }
 .modal.tileSelect .tileView {
 	min-height : 64px;
 	background-color : #eee;
 	background-repeat : no-repeat;
+}
+.modal.tileSelect .tileScroll {
+	background-color : #555;
+	position : relative;
 	border : 1px solid black;
+	max-width : 640px;
+	max-height : 640px;
+	overflow : auto;
 }
 #newtype.modal .content {
 	width : 500px;

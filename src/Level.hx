@@ -104,8 +104,8 @@ class Level {
 		for( c in sheet.columns ) {
 			var v : Dynamic = Reflect.field(obj, c.name);
 			switch( c.type ) {
-			case TString if( c.name == sheet.props.displayColumn && v != null && v != "" ):
-				return v;
+			case TString | TRef(_) if( c.name == sheet.props.displayColumn && v != null && v != "" ):
+				return v+"#"+index;
 			case TId:
 				name = v;
 			default:
@@ -539,7 +539,12 @@ class Level {
 			var m = cast(model, Main);
 			m.chooseFile(function(path) {
 				switch( currentLayer.data ) {
-				case Tiles(t, data):
+				case Tiles(t, _), TileInstances(t, _):
+					if( t.file == null ) {
+						var size = this.props.tileSize;
+						t.stride = Std.int(t.size * t.stride / size);
+						t.size = size;
+					}
 					t.file = path;
 					currentLayer.dirty = true;
 					save();
@@ -564,7 +569,7 @@ class Level {
 			draw();
 		case 'size':
 			switch( l.data ) {
-			case Tiles(t, _):
+			case Tiles(t, _), TileInstances(t,_):
 				var size : Int = val;
 				t.stride = Std.int(t.size * t.stride / size);
 				t.size = size;
@@ -738,7 +743,8 @@ class Level {
 			});
 			J("<span>").text(l.name).appendTo(td);
 			if( l.images != null ) {
-				var isel = J("<div class='img'>").appendTo(td);
+				td.find("span").css("margin-top", "10px");
+				/*var isel = J("<div class='img'>").appendTo(td);
 				if( l.images.length > 0 ) isel.append(J(l.images[l.current].getCanvas()));
 				isel.click(function(e) {
 					setLayer(l);
@@ -755,7 +761,7 @@ class Level {
 					}
 					J(js.Browser.window).bind("click", function(_) remove());
 					e.stopPropagation();
-				});
+				});*/
 				continue;
 			}
 			var id = UID++;
@@ -2067,9 +2073,6 @@ class Level {
 			default:
 			}
 		}
-		var canvas = content.find("canvas");
-		canvas.attr("width", (width * tileSize) + "px");
-		canvas.attr("height", (height * tileSize) + "px");
 		setCursor();
 		save();
 		draw();
@@ -2746,7 +2749,7 @@ class Level {
 						m.find("[name=priority]").val("" + (tobj.opts.priority == null ? 0 : tobj.opts.priority));
 					case Group:
 						m.find("[name=name]").val(tobj.opts.name == null ? "" : tobj.opts.name);
-						m.find("[name=value]").val(tobj.opts.value == null ? "" : haxe.Json.stringify(tobj.opts.value));
+						m.find("[name=value]").val(tobj.opts.value == null ? "" : haxe.Json.stringify(tobj.opts.value)).width(80).width(m.parent().width() - 300);
 					case Border:
 						var opts = [for( g in grounds ) '<option value="$g">$g</option>'].join("");
 						m.find("[name=border_in]").html("<option value='null'>upper</option><option value='lower'>lower</option>" + opts).val(Std.string(tobj.opts.borderIn));

@@ -190,16 +190,22 @@ Level.prototype = {
 			var c = _g1[_g];
 			++_g;
 			var v = Reflect.field(this.obj,c.name);
-			var _g2 = c.type;
-			switch(_g2[1]) {
-			case 1:
-				if(c.name == this.sheet.props.displayColumn && v != null && v != "") return v; else {
+			{
+				var _g2 = c.type;
+				switch(_g2[1]) {
+				case 1:
+					if(c.name == this.sheet.props.displayColumn && v != null && v != "") return Std.string(v) + "#" + this.index; else {
+					}
+					break;
+				case 6:
+					if(c.name == this.sheet.props.displayColumn && v != null && v != "") return Std.string(v) + "#" + this.index; else {
+					}
+					break;
+				case 0:
+					name = v;
+					break;
+				default:
 				}
-				break;
-			case 0:
-				name = v;
-				break;
-			default:
 			}
 		}
 		return name;
@@ -744,9 +750,25 @@ Level.prototype = {
 					var _g1 = _g.currentLayer.data;
 					switch(_g1[1]) {
 					case 2:
-						var data = _g1[3];
 						var t = _g1[2];
+						if(t.file == null) {
+							var size = _g.props.tileSize;
+							t.stride = t.size * t.stride / size | 0;
+							t.size = size;
+						}
 						t.file = path;
+						_g.currentLayer.dirty = true;
+						_g.save();
+						_g.reload();
+						break;
+					case 3:
+						var t1 = _g1[2];
+						if(t1.file == null) {
+							var size1 = _g.props.tileSize;
+							t1.stride = t1.size * t1.stride / size1 | 0;
+							t1.size = size1;
+						}
+						t1.file = path;
 						_g.currentLayer.dirty = true;
 						_g.save();
 						_g.reload();
@@ -780,10 +802,19 @@ Level.prototype = {
 				var _g2 = l.data;
 				switch(_g2[1]) {
 				case 2:
-					var t1 = _g2[2];
-					var size = val;
-					t1.stride = t1.size * t1.stride / size | 0;
-					t1.size = size;
+					var t2 = _g2[2];
+					var size2 = val;
+					t2.stride = t2.size * t2.stride / size2 | 0;
+					t2.size = size2;
+					l.dirty = true;
+					this.save();
+					this.reload();
+					break;
+				case 3:
+					var t3 = _g2[2];
+					var size3 = val;
+					t3.stride = t3.size * t3.stride / size3 | 0;
+					t3.size = size3;
 					l.dirty = true;
 					this.save();
 					this.reload();
@@ -1003,12 +1034,12 @@ Level.prototype = {
 		while(_g14 < _g4) {
 			var index = _g14++;
 			var l2 = [this.layers[index]];
-			var td = [js.JQuery("<li class='item layer'>").appendTo(mlayers)];
-			l2[0].comp = td[0];
-			td[0].data("index",index);
-			if(!l2[0].visible) td[0].addClass("hidden");
-			if(l2[0].lock) td[0].addClass("locked");
-			td[0].mousedown((function(l2) {
+			var td = js.JQuery("<li class='item layer'>").appendTo(mlayers);
+			l2[0].comp = td;
+			td.data("index",index);
+			if(!l2[0].visible) td.addClass("hidden");
+			if(l2[0].lock) td.addClass("locked");
+			td.mousedown((function(l2) {
 				return function(e) {
 					var _g24 = e.which;
 					switch(_g24) {
@@ -1023,55 +1054,9 @@ Level.prototype = {
 					}
 				};
 			})(l2));
-			js.JQuery("<span>").text(l2[0].name).appendTo(td[0]);
+			js.JQuery("<span>").text(l2[0].name).appendTo(td);
 			if(l2[0].images != null) {
-				var isel = js.JQuery("<div class='img'>").appendTo(td[0]);
-				if(l2[0].images.length > 0) isel.append((function($this) {
-					var $r;
-					var html2 = l2[0].images[l2[0].current].getCanvas();
-					$r = js.JQuery(html2);
-					return $r;
-				}(this)));
-				isel.click((function(td,l2) {
-					return function(e1) {
-						_g3.setLayer(l2[0]);
-						var list = js.JQuery("<div class='imglist'>");
-						var _g41 = 0;
-						var _g25 = l2[0].images.length;
-						while(_g41 < _g25) {
-							var i3 = [_g41++];
-							list.append(js.JQuery("<img>").attr("src",l2[0].images[i3[0]].getCanvas().toDataURL()).click((function(i3,l2) {
-								return function(_2) {
-									l2[0].set_current(i3[0]);
-									_g3.setLayer(l2[0]);
-								};
-							})(i3,l2)));
-						}
-						td[0].append(list);
-						var remove = (function() {
-							return function() {
-								list.detach();
-								((function($this) {
-									var $r;
-									var html3 = window;
-									$r = js.JQuery(html3);
-									return $r;
-								}(this))).unbind("click");
-							};
-						})();
-						((function($this) {
-							var $r;
-							var html4 = window;
-							$r = js.JQuery(html4);
-							return $r;
-						}(this))).bind("click",(function() {
-							return function(_3) {
-								remove();
-							};
-						})());
-						e1.stopPropagation();
-					};
-				})(td,l2));
+				td.find("span").css("margin-top","10px");
 				continue;
 			}
 			var id = Level.UID++;
@@ -1080,29 +1065,29 @@ Level.prototype = {
 				var html1 = "<input type=\"text\" id=\"_" + Level.UID++ + "\">";
 				$r = js.JQuery(html1);
 				return $r;
-			}(this))).appendTo(td[0]);
+			}(this))).appendTo(td);
 			this.spectrum(t,{ color : this.toColor(l2[0].colors[l2[0].current]), clickoutFiresChange : true, showButtons : false, showPaletteOnly : true, showPalette : true, palette : (function($this) {
 				var $r;
-				var _g26 = [];
+				var _g25 = [];
 				{
 					var _g31 = 0;
-					var _g42 = l2[0].colors;
-					while(_g31 < _g42.length) {
-						var c = _g42[_g31];
+					var _g41 = l2[0].colors;
+					while(_g31 < _g41.length) {
+						var c = _g41[_g31];
 						++_g31;
-						_g26.push($this.toColor(c));
+						_g25.push($this.toColor(c));
 					}
 				}
-				$r = _g26;
+				$r = _g25;
 				return $r;
 			}(this))},this.allocRef((function(l2) {
 				return function(color) {
-					var _g43 = 0;
+					var _g42 = 0;
 					var _g32 = l2[0].colors.length;
-					while(_g43 < _g32) {
-						var i4 = _g43++;
-						if(l2[0].colors[i4] == color) {
-							l2[0].set_current(i4);
+					while(_g42 < _g32) {
+						var i3 = _g42++;
+						if(l2[0].colors[i3] == color) {
+							l2[0].set_current(i3);
 							_g3.setLayer(l2[0]);
 							return;
 						}
@@ -1110,7 +1095,7 @@ Level.prototype = {
 					_g3.setLayer(l2[0]);
 				};
 			})(l2)),this.allocRef((function(l2) {
-				return function(_4) {
+				return function(_2) {
 					_g3.setLayer(l2[0]);
 				};
 			})(l2)));
@@ -1180,12 +1165,12 @@ Level.prototype = {
 		var scont = this.content.find(".scrollContent");
 		this.view = lvl_Image3D.getInstance();
 		scont.append(this.view.viewport);
-		scroll.scroll(function(_5) {
+		scroll.scroll(function(_3) {
 			_g3.savePrefs();
 			_g3.view.setScrollPos(scroll.scrollLeft() - 20,scroll.scrollTop() - 20);
 		});
-		scroll[0].onmousewheel = function(e2) {
-			if(e2.shiftKey) _g3.updateZoom(e2.wheelDelta > 0);
+		scroll[0].onmousewheel = function(e1) {
+			if(e1.shiftKey) _g3.updateZoom(e1.wheelDelta > 0);
 		};
 		this.spectrum(this.content.find("[name=color]"),{ clickoutFiresChange : true, showButtons : false},this.allocRef(function(c1) {
 			_g3.currentLayer.props.color = c1;
@@ -1199,27 +1184,27 @@ Level.prototype = {
 		this.tmpImage = new lvl_Image(0,0);
 		this.cursor[0].appendChild(this.cursorImage.getCanvas());
 		this.cursor.hide();
-		scont.mouseleave(function(_6) {
+		scont.mouseleave(function(_4) {
 			_g3.curPos = null;
 			if(_g3.selection == null) _g3.cursor.hide();
 			js.JQuery(".cursorPosition").text("");
 		});
-		scont.mousemove(function(e3) {
-			_g3.mousePos.x = e3.pageX;
-			_g3.mousePos.y = e3.pageY;
+		scont.mousemove(function(e2) {
+			_g3.mousePos.x = e2.pageX;
+			_g3.mousePos.y = e2.pageY;
 			_g3.updateCursorPos();
 		});
 		var onMouseUp = function(_1) {
 			_g3.mouseDown = null;
 			if(_g3.needSave) _g3.save();
 		};
-		scroll.mousedown(function(e4) {
+		scroll.mousedown(function(e3) {
 			if(_g3.paletteMode != null) {
 				_g3.paletteMode = null;
 				_g3.setCursor();
 				return;
 			}
-			var _g5 = e4.which;
+			var _g5 = e3.which;
 			switch(_g5) {
 			case 1:
 				var l3 = _g3.currentLayer;
@@ -1233,7 +1218,7 @@ Level.prototype = {
 				_g3.mouseDown = { rx : _g3.curPos == null?0:_g3.curPos.x % w, ry : _g3.curPos == null?0:_g3.curPos.y % h, w : w, h : h};
 				_g3.set_mouseCapture(scroll);
 				if(_g3.curPos != null) {
-					_g3.set(_g3.curPos.x,_g3.curPos.y,e4.ctrlKey);
+					_g3.set(_g3.curPos.x,_g3.curPos.y,e3.ctrlKey);
 					_g3.startPos = Reflect.copy(_g3.curPos);
 				}
 				break;
@@ -1251,17 +1236,17 @@ Level.prototype = {
 						switch(_g15[1]) {
 						case 3:
 							var insts = _g15[3];
-							var i5 = insts[p.index];
+							var i4 = insts[p.index];
 							var obj;
 							var this1 = p.layer.getTileObjects();
-							obj = this1.get(i5.o);
+							obj = this1.get(i4.o);
 							if(obj != null) {
 								p.layer.currentWidth = obj.w;
 								p.layer.currentHeight = obj.h;
 								p.layer.saveState();
 							}
-							_g3.flipMode = i5.flip;
-							_g3.rotation = i5.rot;
+							_g3.flipMode = i4.flip;
+							_g3.rotation = i4.rot;
 							break;
 						default:
 						}
@@ -1271,14 +1256,14 @@ Level.prototype = {
 				break;
 			}
 		});
-		this.content.mouseup(function(e5) {
+		this.content.mouseup(function(e4) {
 			_g3.set_mouseCapture(null);
-			onMouseUp(e5);
+			onMouseUp(e4);
 			if(_g3.curPos == null) {
 				_g3.startPos = null;
 				return;
 			}
-			if(e5.which == 1 && _g3.selection == null && _g3.currentLayer.enabled() && _g3.curPos.x >= 0 && _g3.curPos.y >= 0) _g3.setObject();
+			if(e4.which == 1 && _g3.selection == null && _g3.currentLayer.enabled() && _g3.curPos.x >= 0 && _g3.curPos.y >= 0) _g3.setObject();
 			_g3.startPos = null;
 			if(_g3.selection != null) {
 				_g3.moveSelection();
@@ -2954,9 +2939,6 @@ Level.prototype = {
 				}
 			}
 		}
-		var canvas = this.content.find("canvas");
-		canvas.attr("width",this.width * this.tileSize + "px");
-		canvas.attr("height",this.height * this.tileSize + "px");
 		this.setCursor();
 		this.save();
 		this.draw();
@@ -3924,7 +3906,7 @@ Level.prototype = {
 						break;
 					case "group":
 						m.find("[name=name]").val(tobj.opts.name == null?"":tobj.opts.name);
-						m.find("[name=value]").val(tobj.opts.value == null?"":haxe_Json.stringify(tobj.opts.value,null,null));
+						m.find("[name=value]").val(tobj.opts.value == null?"":haxe_Json.stringify(tobj.opts.value,null,null)).width(80).width(m.parent().width() - 300);
 						break;
 					case "border":
 						var opts = ((function($this) {
@@ -7909,7 +7891,7 @@ Main.prototype = $extend(Model.prototype,{
 									return function(_8) {
 										maxWidth = i1.width;
 										maxHeight = i1.height;
-										dialog.find(".tileView").height(i1.height);
+										dialog.find(".tileView").height(i1.height).width(i1.width);
 									};
 								})();
 								i1.src = _g4.getAbsPath(file);
@@ -12036,6 +12018,7 @@ lvl_Image3D.prototype = $extend(lvl_Image.prototype,{
 			return;
 		}
 		this.gl = js_html__$CanvasElement_CanvasUtil.getContextWebGL(this.canvas,{ alpha : false, antialias : false});
+		if(this.gl == null) js_Browser.alert("Cannot initialize WebGL context ! (windows user : install DirectX redist)");
 		this.canvas.gl = this.gl;
 		this.gl.disable(2884);
 		this.gl.disable(2929);
@@ -12687,7 +12670,6 @@ lvl_LayerData.prototype = $extend(lvl_LayerGfx.prototype,{
 		this.current = v;
 		this.currentWidth = 1;
 		this.currentHeight = 1;
-		if(this.images != null && this.comp != null) this.comp.find("div.img").html("").append(js.JQuery(this.images[this.current].getCanvas()));
 		this.saveState();
 		return v;
 	}
@@ -12696,7 +12678,6 @@ lvl_LayerData.prototype = $extend(lvl_LayerGfx.prototype,{
 		this.current = id;
 		this.currentWidth = w;
 		this.currentHeight = h;
-		if(this.images != null && this.comp != null) this.comp.find("div.img").html("").append(js.JQuery(this.images[this.current].getCanvas()));
 		this.saveState(false);
 	}
 	,saveState: function(sync) {

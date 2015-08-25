@@ -1629,7 +1629,7 @@ class Main extends Model {
 						i.onload = function(_) {
 							maxWidth = i.width;
 							maxHeight = i.height;
-							dialog.find(".tileView").height(i.height);
+							dialog.find(".tileView").height(i.height).width(i.width);
 						};
 						i.src = getAbsPath(file);
 

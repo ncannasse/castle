@@ -132,16 +132,25 @@ div.modal {
 		z-index : 100;
 		width : 16px;
 		height : 16px;
-		border : 1px solid black;
+		border : 1px solid white;
+		outline : 1px solid black;
 	}
 	.tileCursor.current {
 		border : 2px solid red;
+		outline : none;
 	}
 	.tileView {
 		min-height : 64px;
 		background-color : #eee;
 		background-repeat : no-repeat;
+	}
+	.tileScroll {
+		background-color : #555;
+		position:relative;
 		border : 1px solid black;
+		max-width: 640px;
+		max-height : 640px;
+		overflow : auto;
 	}
 }
 
