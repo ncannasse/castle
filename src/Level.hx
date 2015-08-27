@@ -24,12 +24,6 @@ typedef LevelState = {
 class Level {
 
 	static var UID = 0;
-	static var colorPalette = [
-		0xFF0000, 0x00FF00,
-		0xFF00FF, 0x00FFFF, 0xFFFF00,
-		0xFFFFFF,
-		0x0080FF, 0x00FF80, 0x8000FF, 0x80FF00, 0xFF0080, 0xFF8000,
-	];
 
 	public var sheetPath : String;
 	public var index : Int;
@@ -39,6 +33,7 @@ class Level {
 	public var tileSize : Int;
 	public var sheet : Sheet;
 	public var layers : Array<LayerData>;
+	public var palette : lvl.Palette;
 
 	var obj : Dynamic;
 	var content : js.JQuery;
@@ -53,7 +48,6 @@ class Level {
 	var mouseDown : { rx : Int, ry : Int, w : Int, h : Int };
 	var deleteMode : { l : LayerData };
 	var needSave : Bool;
-	var smallPalette : Bool = false;
 	var waitCount : Int;
 	var mouseCapture(default,set) : js.JQuery;
 
@@ -62,21 +56,9 @@ class Level {
 	var mousePos = { x : 0, y : 0 };
 	var startPos : { x : Int, y : Int, xf : Float, yf : Float } = null;
 	var newLayer : Column;
-
-	var palette : js.JQuery;
-	var paletteZoom : Int;
-	var paletteSelect : lvl.Image;
-	var paintMode : Bool = false;
-	var randomMode : Bool = false;
-	var paletteMode : Null<String> = null;
-	var paletteModeCursor : Int = 0;
 	var spaceDown : Bool;
-
 	var flipMode : Bool = false;
 	var rotation = 0;
-
-	var perTileProps : Array<Column>;
-	var perTileGfx : Map<String, lvl.LayerGfx>;
 
 	var watchList : Array<{ path : String, time : Float, callb : Array<Void -> Void> }>;
 	var watchTimer : haxe.Timer;
@@ -92,11 +74,8 @@ class Level {
 		this.index = index;
 		this.obj = sheet.lines[index];
 		this.model = model;
-		perTileProps = [];
-		for( c in sheet.columns )
-			if( c.name == "tileProps" && c.type == TList )
-				perTileProps = model.getPseudoSheet(sheet, c).columns;
 		references = [];
+		palette = new lvl.Palette(this);
 	}
 
 	public function getName() {
@@ -229,17 +208,7 @@ class Level {
 			if( t != null ) title = t;
 		}
 
-		// load tile props gfxs
-		perTileGfx = new Map();
-		for( c in perTileProps )
-			switch( c.type ) {
-			case TRef(s):
-				var g = new lvl.LayerGfx(this);
-				g.fromSheet(model.getSheet(s), 0xFF0000);
-				perTileGfx.set(c.name, g);
-			default:
-			}
-
+		palette.init();
 		waitDone();
 	}
 
@@ -282,37 +251,6 @@ class Level {
 			callb(a.data.w, a.data.h, a.data.img, a.data.blanks);
 		else
 			a.pending.push(callb);
-	}
-
-	public function getTileProps(file,stride,max) {
-		var p : TilesetProps = Reflect.field(sheet.props.level.tileSets,file);
-		if( p == null ) {
-			p = {
-				stride : stride,
-				sets : [],
-				props : [],
-			};
-			Reflect.setField(sheet.props.level.tileSets, file, p);
-		} else {
-			if( p.sets == null ) p.sets = [];
-			if( p.props == null ) p.props = [];
-			Reflect.deleteField(p, "tags");
-			if( p.stride == null ) p.stride = stride else if( p.stride != stride ) {
-				var out = [];
-				for( y in 0...Math.ceil(p.props.length / p.stride) )
-					for( x in 0...p.stride )
-						out[x + y * stride] = p.props[x + y * p.stride];
-				while( out.length > 0 && (out[out.length - 1] == null || out.length > max) )
-					out.pop();
-				p.props = out;
-				p.stride = stride;
-			}
-			if( p.props.length > max ) p.props.splice(max, p.props.length - max);
-			for( s in p.sets.copy() )
-				if( s.x + s.w > stride || (s.y+s.h)*stride > max )
-					p.sets.remove(s);
-		}
-		return p;
 	}
 
 	var reloading = false;
@@ -391,15 +329,15 @@ class Level {
 					break;
 				}
 			zoomView = state.zoomView;
-			paintMode = state.paintMode;
-			randomMode = state.randomMode;
-			paletteMode = state.paletteMode;
-			paletteModeCursor = state.paletteModeCursor;
-			smallPalette = state.smallPalette;
+			palette.paintMode = state.paintMode;
+			palette.randomMode = state.randomMode;
+			palette.mode = state.paletteMode;
+			palette.modeCursor = state.paletteModeCursor;
+			palette.small = state.smallPalette;
 			flipMode = state.flipMode;
 			rotation = state.rotation;
 			if( rotation == null ) rotation = 0;
-			if( smallPalette == null ) smallPalette = false;
+			if( palette.small == null ) palette.small = false;
 		}
 
 		setLayer(layer);
@@ -413,7 +351,7 @@ class Level {
 		sc.scroll();
 	}
 
-	function toColor( v : Int ) {
+	public function toColor( v : Int ) {
 		return "#" + StringTools.hex(v, 6);
 	}
 
@@ -734,7 +672,7 @@ class Level {
 			td.mousedown(function(e) {
 				switch( e.which ) {
 				case 1:
-					paletteMode = null;
+					palette.mode = null;
 					setLayer(l);
 				case 3:
 					popupLayer(l, e.pageX, e.pageY);
@@ -866,8 +804,8 @@ class Level {
 			if( needSave ) save();
 		}
 		scroll.mousedown(function(e) {
-			if( paletteMode != null ) {
-				paletteMode = null;
+			if( palette.mode != null ) {
+				palette.mode = null;
 				setCursor();
 				return;
 			}
@@ -879,7 +817,7 @@ class Level {
 				var o = l.getSelObjects()[0];
 				var w = o == null ? currentLayer.currentWidth : o.w;
 				var h = o == null ? currentLayer.currentHeight : o.h;
-				if( o == null && randomMode )
+				if( o == null && palette.randomMode )
 					w = h = 1;
 				mouseDown = { rx : curPos == null ? 0 : (curPos.x % w), ry : curPos == null ? 0 : (curPos.y % h), w : w, h : h };
 				mouseCapture = scroll;
@@ -1344,7 +1282,7 @@ class Level {
 				if( data[x + y * width] != k ) continue;
 				var dx = (x - px) % l.currentWidth; if( dx < 0 ) dx += l.currentWidth;
 				var dy = (y - py) % l.currentHeight; if( dy < 0 ) dy += l.currentHeight;
-				var t = l.current + (randomMode ? Std.random(l.currentWidth) + Std.random(l.currentHeight) * l.stride : dx + dy * l.stride);
+				var t = l.current + (palette.randomMode ? Std.random(l.currentWidth) + Std.random(l.currentHeight) * l.stride : dx + dy * l.stride);
 				if( l.blanks[t] )
 					zero.push(x + y * width);
 				data[x + y * width] = t + 1;
@@ -1643,7 +1581,7 @@ class Level {
 		case Tiles(_, data):
 			var changed = false;
 			var w = currentLayer.currentWidth, h = currentLayer.currentHeight;
-			if( randomMode ) w = h = 1;
+			if( palette.randomMode ) w = h = 1;
 			for( dy in 0...h )
 				for( dx in 0...w ) {
 					var i = p.index + dx + dy * width;
@@ -1692,7 +1630,7 @@ class Level {
 	function set( x, y, replace ) {
 		if( selection != null )
 			return;
-		if( paintMode ) {
+		if( palette.paintMode ) {
 			paint(x,y);
 			return;
 		}
@@ -1707,7 +1645,7 @@ class Level {
 			draw();
 		case Tiles(_, data):
 			var changed = false;
-			if( randomMode ) {
+			if( palette.randomMode ) {
 				var putObjs = l.getSelObjects();
 				var putObj = putObjs[Std.random(putObjs.length)];
 				if( putObj != null ) {
@@ -1808,144 +1746,18 @@ class Level {
 		}
 	}
 
-	inline function initMatrix( m : { a : Float, b : Float, c : Float, d : Float, x : Float, y : Float }, w : Int, h : Int, rot : Int, flip : Bool ) {
-		m.a = 1;
-		m.b = 0;
-		m.c = 0;
-		m.d = 1;
-		m.x = -w * 0.5;
-		m.y = -h * 0.5;
-		if( rot != 0 ) {
-			var a = Math.PI * rot / 2;
-			var c = Math.cos(a);
-			var s = Math.sin(a);
-			var x = m.x, y = m.y;
-			m.a = c;
-			m.b = s;
-			m.c = -s;
-			m.d = c;
-			m.x = x * c - y * s;
-			m.y = x * s + y * c;
-		}
-		if( flip ) {
-			m.a = -m.a;
-			m.c = -m.c;
-			m.x = -m.x;
-		}
-		m.x += Math.abs(m.a * w * 0.5 + m.c * h * 0.5);
-		m.y += Math.abs(m.b * w * 0.5 + m.d * h * 0.5);
-	}
-
-
 	public function draw() {
 		view.fill(0xFF909090);
 		for( index in 0...layers.length ) {
 			var l = layers[index];
-			view.alpha = l.props.alpha;
 			if( !l.visible )
 				continue;
-			switch( l.data ) {
-			case Layer(data):
-				var first = index == 0;
-				for( y in 0...height )
-					for( x in 0...width ) {
-						var k = data[x + y * width];
-						if( k == 0 && !first ) continue;
-						if( l.images != null ) {
-							var i = l.images[k];
-							view.draw(i, x * tileSize - ((i.width - tileSize) >> 1), y * tileSize - (i.height - tileSize));
-							continue;
-						}
-						view.fillRect(x * tileSize, y * tileSize, tileSize, tileSize, l.colors[k] | 0xFF000000);
-					}
-			case Tiles(t, data):
-				for( y in 0...height )
-					for( x in 0...width ) {
-						var k = data[x + y * width] - 1;
-						if( k < 0 ) continue;
-						view.draw(l.images[k], x * tileSize, y * tileSize);
-					}
-				if( l.props.mode == Ground ) {
-					var b = new cdb.TileBuilder(l.tileProps, l.stride, l.images.length);
-					var a = b.buildGrounds(data, width);
-					var p = 0, max = a.length;
-					while( p < max ) {
-						var x = a[p++];
-						var y = a[p++];
-						var id = a[p++];
-						view.draw(l.images[id], x * tileSize, y * tileSize);
-					}
-				}
-			case TileInstances(_, insts):
-				var objs = l.getTileObjects();
-				var mat = { a : 1., b : 0., c : 0., d : 1., x : 0., y : 0. };
-				for( i in insts ) {
-					var x = Std.int(i.x * tileSize), y = Std.int(i.y * tileSize);
-					var obj = objs.get(i.o);
-					var w = obj == null ? 1 : obj.w;
-					var h = obj == null ? 1 : obj.h;
-					initMatrix(mat, w * tileSize, h * tileSize, i.rot, i.flip);
-					mat.x += x;
-					mat.y += y;
-					if( obj == null ) {
-						view.drawMat(l.images[i.o], mat);
-						view.fillRect(x, y, tileSize, tileSize, 0x80FF0000);
-					} else {
-						var px = mat.x;
-						var py = mat.y;
-						for( dy in 0...obj.h )
-							for( dx in 0...obj.w ) {
-								mat.x = px + dx * tileSize * mat.a + dy * tileSize * mat.c;
-								mat.y = py + dx * tileSize * mat.b + dy * tileSize * mat.d;
-								view.drawMat(l.images[i.o + dx + dy * l.stride], mat);
-							}
-					}
-				}
-			case Objects(idCol, objs):
-				if( idCol == null ) {
-					var col = l.props.color | 0xA0000000;
-					for( o in objs ) {
-						var w = l.hasSize ? o.width * tileSize : tileSize;
-						var h = l.hasSize ? o.height * tileSize : tileSize;
-						view.fillRect(Std.int(o.x * tileSize), Std.int(o.y * tileSize), Std.int(w), Std.int(h), col);
-					}
-					var col = l.props.color | 0xFF000000;
-					for( o in objs ) {
-						var w = l.hasSize ? Std.int(o.width * tileSize) : tileSize;
-						var h = l.hasSize ? Std.int(o.height * tileSize) : tileSize;
-						var px = Std.int(o.x * tileSize);
-						var py = Std.int(o.y * tileSize);
-						view.fillRect(px, py, w, 1, col);
-						view.fillRect(px, py + h - 1, w, 1, col);
-						view.fillRect(px, py + 1, 1, h - 2, col);
-						view.fillRect(px + w - 1, py + 1, 1, h - 2, col);
-					}
-				} else {
-					for( o in objs ) {
-						var id : String = Reflect.field(o, idCol);
-						var k = l.idToIndex.get(id);
-						if( k == null ) {
-							var w = l.hasSize ? o.width * tileSize : tileSize;
-							var h = l.hasSize ? o.height * tileSize : tileSize;
-							view.fillRect(Std.int(o.x * tileSize), Std.int(o.y * tileSize), Std.int(w), Std.int(h), 0xFFFF00FF);
-							continue;
-						}
-						if( l.images != null ) {
-							var i = l.images[k];
-							view.draw(i, Std.int(o.x * tileSize) - ((i.width - tileSize) >> 1), Std.int(o.y * tileSize) - (i.height - tileSize));
-							continue;
-						}
-						var w = l.hasSize ? o.width * tileSize : tileSize;
-						var h = l.hasSize ? o.height * tileSize : tileSize;
-						view.fillRect(Std.int(o.x * tileSize), Std.int(o.y * tileSize), Std.int(w), Std.int(h), l.colors[k] | 0xFF000000);
-					}
-				}
-			}
+			l.draw(view);
 		}
 		view.flush();
 	}
 
-	function save() {
+	public function save() {
 		if( mouseDown != null || deleteMode != null ) {
 			needSave = true;
 			return;
@@ -1956,18 +1768,18 @@ class Level {
 		model.save();
 	}
 
-	function savePrefs() {
+	public function savePrefs() {
 		var sc = content.find(".scroll");
 		var state : LevelState = {
 			zoomView : zoomView,
 			curLayer : currentLayer == null ? null : currentLayer.name,
 			scrollX : sc.scrollLeft(),
 			scrollY : sc.scrollTop(),
-			paintMode : paintMode,
-			randomMode : randomMode,
-			paletteMode : paletteMode,
-			paletteModeCursor : paletteModeCursor,
-			smallPalette : smallPalette,
+			paintMode : palette.paintMode,
+			randomMode : palette.randomMode,
+			paletteMode : palette.mode,
+			paletteModeCursor : palette.modeCursor,
+			smallPalette : palette.small,
 			rotation : rotation,
 			flipMode : flipMode,
 		};
@@ -1980,35 +1792,7 @@ class Level {
 		for( l in layers ) {
 			if( !l.visible ) continue;
 			l.dirty = true;
-			switch( l.data ) {
-			case Tiles(_, data), Layer(data):
-				var ndata = [];
-				for( y in 0...height )
-					for( x in 0...width ) {
-						var tx = Std.int(x / s);
-						var ty = Std.int(y / s);
-						var k = if( tx >= width || ty >= height ) 0 else data[tx + ty * width];
-						ndata.push(k);
-					}
-				for( i in 0...width * height )
-					data[i] = ndata[i];
-			case Objects(_, objs):
-				var m = l.floatCoord ? tileSize : 1;
-				for( o in objs.copy() ) {
-					o.x = Std.int(o.x * s * m) / m;
-					o.y = Std.int(o.y * s * m) / m;
-					if( o.x < 0 || o.y < 0 || o.x >= width || o.y >= height )
-						objs.remove(o);
-				}
-			case TileInstances(_, insts):
-				var m = l.floatCoord ? tileSize : 1;
-				for( i in insts.copy() ) {
-					i.x = Std.int(i.x * s * m) / m;
-					i.y = Std.int(i.y * s * m) / m;
-					if( i.x < 0 || i.y < 0 || i.x >= width || i.y >= height )
-						insts.remove(i);
-				}
-			}
+			l.scale(s);
 		}
 		save();
 		draw();
@@ -2020,37 +1804,7 @@ class Level {
 		for( l in layers ) {
 			if( !l.visible ) continue;
 			l.dirty = true;
-			switch( l.data ) {
-			case Tiles(_, data), Layer(data):
-				var ndata = [];
-				for( y in 0...height )
-					for( x in 0...width ) {
-						var tx = x - dx;
-						var ty = y - dy;
-						var k;
-						if( tx < 0 || ty < 0 || tx >= width || ty >= height )
-							k = 0;
-						else
-							k = data[tx + ty * width];
-						ndata.push(k);
-					}
-				for( i in 0...width * height )
-					data[i] = ndata[i];
-			case Objects(_, objs):
-				for( o in objs.copy() ) {
-					o.x += dx;
-					o.y += dy;
-					if( o.x < 0 || o.y < 0 || o.x >= width || o.y >= height )
-						objs.remove(o);
-				}
-			case TileInstances(_, insts):
-				for( i in insts.copy() ) {
-					i.x += dx;
-					i.y += dy;
-					if( i.x < 0 || i.y < 0 || i.x >= width || i.y >= height )
-						insts.remove(i);
-				}
-			}
+			l.scroll(dx, dy);
 		}
 		save();
 		draw();
@@ -2079,242 +1833,20 @@ class Level {
 	}
 
 	function setLayerMode( mode : LayerMode ) {
-		var l = currentLayer;
-		if( l.tileProps == null ) {
+		if( currentLayer.tileProps == null ) {
 			js.Browser.alert("Choose file first");
 			return;
 		}
-		var old = l.props.mode;
-		if( old == null ) old = Tiles;
-		switch( [old, mode] ) {
-		case [(Ground | Tiles), (Tiles | Ground)], [Objects, Objects]:
-			// nothing
-		case [(Ground | Tiles), Objects]:
-			switch( l.data ) {
-			case Tiles(td, data):
-				var oids = new Map();
-				for( p in l.tileProps.sets )
-					if( p.t == Object )
-						oids.set(p.x + p.y * l.stride, p);
-				var objs = [];
-				var p = -1;
-				for( y in 0...height )
-					for( x in 0...width ) {
-						var d = data[++p] - 1;
-						if( d < 0 ) continue;
-						var o = oids.get(d);
-						if( o != null ) {
-							for( dy in 0...o.h ) {
-								for( dx in 0...o.w ) {
-									var tp = p + dx + dy * width;
-									if( x + dx >= width || y + dy >= height ) continue;
-									var id = d + dx + dy * l.stride;
-									if( data[tp] != id + 1 ) {
-										if( data[tp] == 0 && l.blanks[id] ) continue;
-										o = null;
-										break;
-									}
-								}
-								if( o == null ) break;
-							}
-						}
-						if( o == null )
-							objs.push({ x : x, y : y, b : y, id : d });
-						else {
-							for( dy in 0...o.h )
-								for( dx in 0...o.w ) {
-									if( x + dx >= width || y + dy >= height ) continue;
-									data[p + dx + dy * width] = 0;
-								}
-							objs.push( { x : x, y : y, b : y + o.w - 1, id : d } );
-						}
-					}
-				objs.sort(function(o1,o2) return o1.b - o2.b);
-				l.data = TileInstances(td, [for( o in objs ) { x : o.x, y : o.y, o : o.id, flip : false, rot : 0 }]);
-				l.dirty = true;
-			default:
-				throw "assert0";
-			}
-		case [Objects, (Ground | Tiles)]:
-			switch( l.data ) {
-			case TileInstances(td,insts):
-				var objs = l.getTileObjects();
-				var data = [for( i in 0...width * height ) 0];
-				for( i in insts ) {
-					var x = Std.int(i.x), y = Std.int(i.y);
-					var obj = objs.get(i.o);
-					if( obj == null ) {
-						data[x + y * width] = i.o + 1;
-					} else {
-						for( dy in 0...obj.h )
-							for( dx in 0...obj.w ) {
-								var x = x + dx, y = y + dy;
-								if( x < width && y < height )
-									data[x + y * width] = i.o + dx + dy * l.stride + 1;
-							}
-					}
-				}
-				l.data = Tiles(td, data);
-				l.dirty = true;
-			default:
-				throw "assert1";
-			}
-		}
-		l.props.mode = mode;
-		if( mode == Tiles ) Reflect.deleteField(currentLayer.props, "mode");
+		currentLayer.setMode(mode);
 		save();
 		reload();
 	}
 
 	@:keep function paletteOption(name, ?val:String) {
-		if( palette == null )
-			return;
-		var m = TileMode.ofString(paletteMode == null ? "" : paletteMode.substr(2));
-		var l = currentLayer;
-		if( val != null ) val = StringTools.trim(val);
-		switch( name ) {
-		case "random":
-			randomMode = !randomMode;
-			if( l.data.match(TileInstances(_)) ) randomMode = false;
-			palette.find(".icon.random").toggleClass("active", randomMode);
-			savePrefs();
-			setCursor();
-			return;
-		case "paint":
-			paintMode = !paintMode;
-			if( l.data.match(TileInstances(_)) ) paintMode = false;
-			savePrefs();
-			palette.find(".icon.paint").toggleClass("active", paintMode);
-			return;
-		case "mode":
-			paletteMode = val == "t_tile" ? null : val;
-			paletteModeCursor = 0;
-			savePrefs();
-			setCursor();
-		case "toggleMode":
-			var s = l.getTileProp(m);
-			if( s == null ) {
-				s = { x : l.current % l.stride, y : Std.int(l.current / l.stride), w : l.currentWidth, h : l.currentHeight, t : m, opts : {} };
-				l.tileProps.sets.push(s);
-			} else
-				l.tileProps.sets.remove(s);
-			setCursor();
-		case "name":
-			var s = l.getTileProp(m);
-			if( s != null )
-				s.opts.name = val;
-		case "value":
-			var p = getPaletteProp();
-			if( p != null ) {
-				var t = getTileProp(l.current % l.stride, Std.int(l.current / l.stride));
-				var v : Dynamic = switch( p.type ) {
-				case TInt: Std.parseInt(val);
-				case TFloat: Std.parseFloat(val);
-				case TString: val;
-				case TDynamic: try model.parseDynamic(val) catch( e : Dynamic ) null;
-				default: throw "assert";
-				}
-				if( v == null )
-					Reflect.deleteField(t, p.name);
-				else
-					Reflect.setField(t, p.name, v);
-				saveTileProps();
-				return;
-			}
-			var s = l.getTileProp(m);
-			if( s != null ) {
-				var v = val == null ? s.opts.value : try model.parseDynamic(val) catch( e : Dynamic ) null;
-				if( v == null )
-					Reflect.deleteField(s.opts, "value");
-				else
-					s.opts.value = v;
-				palette.find("[name=value]").val(v == null ? "" : haxe.Json.stringify(v));
-			}
-		case "priority":
-			var s = l.getTileProp(m);
-			if( s != null )
-				s.opts.priority = Std.parseInt(val);
-		case "border_in":
-			var s = l.getTileProp(m);
-			if( s != null ) {
-				if( val == "null" )
-					Reflect.deleteField(s.opts,"borderIn");
-				else
-					s.opts.borderIn = val;
-			}
-		case "border_out":
-			var s = l.getTileProp(m);
-			if( s != null ) {
-				if( val == "null" )
-					Reflect.deleteField(s.opts,"borderOut");
-				else
-					s.opts.borderOut = val;
-			}
-		case "border_mode":
-			var s = l.getTileProp(m);
-			if( s != null ) {
-				if( val == "null" )
-					Reflect.deleteField(s.opts,"borderMode");
-				else
-					s.opts.borderMode = val;
-			}
-		case "small":
-			smallPalette = !smallPalette;
-			savePrefs();
-			palette.toggleClass("small", smallPalette);
-			palette.find(".icon.small").toggleClass("active", smallPalette);
-			return;
+		if( palette.option(name, val) ) {
+			save();
+			draw();
 		}
-		save();
-		draw();
-	}
-
-	function getPaletteProp() {
-		if( paletteMode == null || paletteMode.substr(0, 2) == "t_" || currentLayer.tileProps == null )
-			return null;
-		for( c in perTileProps )
-			if( c.name == paletteMode )
-				return c;
-		return null;
-	}
-
-
-	function getTileProp(x, y,create=true) {
-		var l = currentLayer;
-		var a = x + y * l.stride;
-		var p = currentLayer.tileProps.props[a];
-		if( p == null ) {
-			if( !create ) return null;
-			p = { };
-			for( c in perTileProps ) {
-				var v = model.getDefault(c);
-				if( v != null ) Reflect.setField(p, c.name, v);
-			}
-			currentLayer.tileProps.props[a] = p;
-		}
-		return p;
-	}
-
-	function saveTileProps() {
-		var pr = currentLayer.tileProps.props;
-		for( i in 0...pr.length ) {
-			var p = pr[i];
-			if( p == null ) continue;
-			var def = true;
-			for( c in perTileProps ) {
-				var v = Reflect.field(p, c.name);
-				if( v != null && v != model.getDefault(c) ) {
-					def = false;
-					break;
-				}
-			}
-			if( def )
-				pr[i] = null;
-		}
-		while( pr.length > 0 && pr[pr.length - 1] == null )
-			pr.pop();
-		save();
-		setCursor();
 	}
 
 	function setLayer( l : LayerData ) {
@@ -2346,187 +1878,23 @@ class Level {
 		}
 
 		if( l.data.match(TileInstances(_)) ) {
-			randomMode = false;
-			paintMode = false;
+			palette.randomMode = false;
+			palette.paintMode = false;
 			savePrefs();
 		}
 
-		if( palette != null ) {
-			palette.remove();
-			paletteSelect = null;
-		}
+		palette.reset();
 
 		if( l.images == null ) {
 			setCursor();
 			return;
 		}
 
-		palette = J(J("#paletteContent").html()).appendTo(content);
-		palette.toggleClass("small", smallPalette);
-		var i = lvl.Image.fromCanvas(cast palette.find("canvas.view")[0]);
-		paletteZoom = 1;
-
-		while( paletteZoom < 4 && l.stride * paletteZoom * tileSize < 256 && l.height * paletteZoom * tileSize < 256 )
-			paletteZoom++;
-
-		var tsize = tileSize * paletteZoom;
-		i.setSize(l.stride * (tsize + 1), l.height * (tsize + 1));
-		for( n in 0...l.images.length ) {
-			var x = (n % l.stride) * (tsize + 1);
-			var y = Std.int(n / l.stride) * (tsize + 1);
-			var li = l.images[n];
-			if( li.width == tsize && li.height == tsize )
-				i.draw(li, x, y);
-			else
-				i.drawScaled(li, x, y, tsize, tsize);
-		}
-		var jsel = palette.find("canvas.select");
-		var jpreview = palette.find(".preview").hide();
-		var ipreview = lvl.Image.fromCanvas(cast jpreview.find("canvas")[0]);
-		var select = lvl.Image.fromCanvas(cast jsel[0]);
-		select.setSize(i.width, i.height);
-
-		palette.find(".icon.random").toggleClass("active",randomMode);
-		palette.find(".icon.paint").toggleClass("active", paintMode);
-		palette.find(".icon.small").toggleClass("active", smallPalette);
-		palette.mousedown(function(e) e.stopPropagation());
-		palette.mouseup(function(e) e.stopPropagation());
-
-		var curPreview = -1;
-		var start = { x : l.current % l.stride, y : Std.int(l.current / l.stride), down : false };
-		jsel.mousedown(function(e) {
-
-			palette.find("input[type=text]:focus").blur();
-
-			var o = jsel.offset();
-			var x = Std.int((e.pageX - o.left) / (tileSize*paletteZoom + 1));
-			var y = Std.int((e.pageY - o.top) / (tileSize*paletteZoom + 1));
-			if( x + y * l.stride >= l.images.length ) return;
-
-			if( e.shiftKey ) {
-				var x0 = x < start.x ? x : start.x;
-				var y0 = y < start.y ? y : start.y;
-				var x1 = x < start.x ? start.x : x;
-				var y1 = y < start.y ? start.y : y;
-				l.current = x0 + y0 * l.stride;
-				l.currentWidth = x1 - x0 + 1;
-				l.currentHeight = y1 - y0 + 1;
-				l.saveState();
-				setCursor();
-			} else {
-				start.x = x;
-				start.y = y;
-				if( l.tileProps != null && (paletteMode == null || paletteMode == "t_objects") )
-					for( p in l.tileProps.sets )
-						if( x >= p.x && y >= p.y && x < p.x + p.w && y < p.y + p.h && p.t == Object ) {
-							l.current = p.x + p.y * l.stride;
-							l.currentWidth = p.w;
-							l.currentHeight = p.h;
-							l.saveState();
-							setCursor();
-							return;
-						}
-				start.down = true;
-				mouseCapture = jsel;
-				l.current = x + y * l.stride;
-				setCursor();
-			}
-
-			var prop = getPaletteProp();
-			if( prop != null ) {
-				switch( prop.type ) {
-				case TBool:
-					var v = getTileProp(x, y);
-					Reflect.setField(v, prop.name, !Reflect.field(v, prop.name));
-					saveTileProps();
-				case TRef(_):
-					var c = perTileGfx.get(prop.name);
-					var v;
-					if( paletteModeCursor < 0 )
-						v = model.getDefault(prop);
-					else
-						v = c.indexToId[paletteModeCursor];
-					if( v == null )
-						Reflect.deleteField(getTileProp(x, y), prop.name);
-					else
-						Reflect.setField(getTileProp(x, y), prop.name, v);
-					saveTileProps();
-				case TEnum(_):
-					var v;
-					if( paletteModeCursor < 0 )
-						v = model.getDefault(prop);
-					else
-						v = paletteModeCursor;
-					if( v == null )
-						Reflect.deleteField(getTileProp(x, y), prop.name);
-					else
-						Reflect.setField(getTileProp(x, y), prop.name, v);
-					saveTileProps();
-				default:
-				}
-			}
-		});
-
-		jsel.mousemove(function(e) {
-			mousePos.x = e.pageX;
-			mousePos.y = e.pageY;
-			updateCursorPos();
-			if( selection == null ) cursor.hide();
-
-			var o = jsel.offset();
-			var x = Std.int((e.pageX - o.left) / (tileSize * paletteZoom + 1));
-			var y = Std.int((e.pageY - o.top) / (tileSize * paletteZoom + 1));
-			var infos = x + "," + y;
-
-			var id = x + y * l.stride;
-			if( id >= l.images.length || l.blanks[id] ) {
-				curPreview = -1;
-				jpreview.hide();
-			} else {
-				if( curPreview != id ) {
-					curPreview = id;
-					jpreview.show();
-					ipreview.fill(0xFF400040);
-					ipreview.copyFrom(l.images[id]);
-				}
-				if( l.names != null )
-					infos += " "+l.names[id];
-			}
-			if( l.tileProps != null )
-				content.find(".cursorPosition").text(infos);
-			else
-				palette.find(".infos").text(infos);
-
-			if( !start.down ) return;
-			var x0 = x < start.x ? x : start.x;
-			var y0 = y < start.y ? y : start.y;
-			var x1 = x < start.x ? start.x : x;
-			var y1 = y < start.y ? start.y : y;
-			l.current = x0 + y0 * l.stride;
-			l.currentWidth = x1 - x0 + 1;
-			l.currentHeight = y1 - y0 + 1;
-			l.saveState();
-			setCursor();
-		});
-
-		jsel.mouseleave(function(e) {
-			if( l.tileProps != null )
-				content.find(".cursorPosition").text("");
-			else
-				palette.find(".infos").text("");
-			curPreview = -1;
-			jpreview.hide();
-		});
-
-		jsel.mouseup(function(e) {
-			start.down = false;
-			mouseCapture = null;
-		});
-		paletteSelect = select;
+		palette.layerChanged(l);
 		setCursor();
 	}
 
-	function setCursor() {
+	public function setCursor() {
 		var l = currentLayer;
 		if( l == null ) {
 			cursor.hide();
@@ -2535,231 +1903,7 @@ class Level {
 
 		content.find(".menu .item.selected").removeClass("selected");
 		l.comp.addClass("selected");
-
-		if( paletteSelect != null ) {
-			paletteSelect.clear();
-			var used = [];
-			switch( l.data ) {
-			case Tiles(_, data):
-				for( k in data ) {
-					if( k == 0 ) continue;
-					used[k - 1] = true;
-				}
-			case Layer(data):
-				for( k in data )
-					used[k] = true;
-			case Objects(id, objs):
-				for( o in objs ) {
-					var id = l.idToIndex.get(Reflect.field(o, id));
-					if( id != null ) used[id] = true;
-				}
-			case TileInstances(_, insts):
-				var objs = l.getTileObjects();
-				for( i in insts ) {
-					var t = objs.get(i.o);
-					if( t == null ) {
-						used[i.o] = true;
-						continue;
-					}
-					for( dy in 0...t.h )
-						for( dx in 0...t.w )
-							used[i.o + dx + dy * l.stride] = true;
-				}
-			}
-
-			var tsize = tileSize * paletteZoom;
-
-			for( i in 0...l.images.length ) {
-				if( used[i] ) continue;
-				paletteSelect.fillRect( (i % l.stride) * (tsize + 1), Std.int(i / l.stride) * (tsize + 1), tsize, tsize, 0x30000000);
-			}
-
-			var prop = getPaletteProp();
-			if( prop == null || !prop.type.match(TBool | TRef(_) | TEnum(_)) ) {
-				var objs = paletteMode == null ? l.getSelObjects() : [];
-				if( objs.length > 1 )
-					for( o in objs )
-						paletteSelect.fillRect( o.x * (tsize + 1), o.y * (tsize + 1), (tsize + 1) * o.w - 1, (tsize + 1) * o.h - 1, 0x805BA1FB);
-				else
-					paletteSelect.fillRect( (l.current % l.stride) * (tsize + 1), Std.int(l.current / l.stride) * (tsize + 1), (tsize + 1) * l.currentWidth - 1, (tsize + 1) * l.currentHeight - 1, 0x805BA1FB);
-			}
-			if( prop != null ) {
-				var def : Dynamic = model.getDefault(prop);
-				switch( prop.type ) {
-				case TBool:
-					var k = 0;
-					for( y in 0...l.height )
-						for( x in 0...l.stride ) {
-							var p = l.tileProps.props[k++];
-							if( p == null ) continue;
-							var v = Reflect.field(p, prop.name);
-							if( v == def ) continue;
-							paletteSelect.fillRect( x * (tsize + 1), y * (tsize + 1), tsize, tsize, v ? 0x80FB5BA1 : 0x805BFBA1);
-						}
-				case TRef(_):
-					var gfx = perTileGfx.get(prop.name);
-					var k = 0;
-					paletteSelect.alpha = 0.5;
-					for( y in 0...l.height )
-						for( x in 0...l.stride ) {
-							var p = l.tileProps.props[k++];
-							if( p == null ) continue;
-							var r = Reflect.field(p, prop.name);
-							var v = gfx.idToIndex.get(r);
-							if( v == null || r == def ) continue;
-							paletteSelect.drawScaled(gfx.images[v], x * (tsize + 1), y * (tsize + 1), tsize, tsize);
-						}
-					paletteSelect.alpha = 1;
-				case TEnum(_):
-					var k = 0;
-					for( y in 0...l.height )
-						for( x in 0...l.stride ) {
-							var p = l.tileProps.props[k++];
-							if( p == null ) continue;
-							var v = Reflect.field(p, prop.name);
-							if( v == null || v == def ) continue;
-							paletteSelect.fillRect(x * (tsize + 1), y * (tsize + 1), tsize, tsize, colorPalette[v] | 0x80000000);
-						}
-				case TInt, TFloat, TString, TColor, TFile, TDynamic:
-					var k = 0;
-					for( y in 0...l.height )
-						for( x in 0...l.stride ) {
-							var p = l.tileProps.props[k++];
-							if( p == null ) continue;
-							var v = Reflect.field(p, prop.name);
-							if( v == null || v == def ) continue;
-							paletteSelect.fillRect(x * (tsize + 1), y * (tsize + 1), tsize, 1, 0xFFFFFFFF);
-							paletteSelect.fillRect(x * (tsize + 1), y * (tsize + 1), 1, tsize, 0xFFFFFFFF);
-							paletteSelect.fillRect(x * (tsize + 1), (y + 1) * (tsize + 1) - 1, tsize, 1, 0xFFFFFFFF);
-							paletteSelect.fillRect((x + 1) * (tsize + 1) - 1, y * (tsize + 1), 1, tsize, 0xFFFFFFFF);
-						}
-				default:
-					// no per-tile display
-				}
-			}
-
-			var m = palette.find(".mode");
-			var sel = palette.find(".sel");
-			if( l.tileProps == null ) {
-				m.hide();
-				sel.show();
-			} else {
-				sel.hide();
-
-				var grounds = [];
-
-				for( s in l.tileProps.sets ) {
-					var color;
-					switch( s.t ) {
-					case Tile:
-						continue;
-					case Ground:
-						if( s.opts.name != null && s.opts.name != "" ) {
-							grounds.remove(s.opts.name);
-							grounds.push(s.opts.name);
-						}
-						if( paletteMode != null && paletteMode != "t_ground" ) continue;
-						color = paletteMode == null ? 0x00A000 : 0x00FF00;
-					case Border:
-						if( paletteMode != "t_border" ) continue;
-						color = 0x00FFFF;
-					case Object:
-						if( paletteMode != null && paletteMode != "t_object" ) continue;
-						color = paletteMode == null ? 0x800000 : 0xFF0000;
-					case Group:
-						if( paletteMode != "t_group" ) continue;
-						color = 0xFFFFFF;
-					}
-					color |= 0xFF000000;
-					var tsize = tileSize * paletteZoom;
-					var px = s.x * (tsize + 1);
-					var py = s.y * (tsize + 1);
-					var w = s.w * (tsize + 1) - 1;
-					var h = s.h * (tsize + 1) - 1;
-					paletteSelect.fillRect(px, py, w, 1, color);
-					paletteSelect.fillRect(px, py + h - 1, w, 1, color);
-					paletteSelect.fillRect(px, py, 1, h, color);
-					paletteSelect.fillRect(px + w - 1, py, 1, h, color);
-				}
-
-				var mode = TileMode.ofString(paletteMode == null ? "" : paletteMode.substr(2));
-				var tobj = l.getTileProp(mode);
-				if( tobj == null )
-					tobj = { x : 0, y : 0, w : 0, h : 0, t : Tile, opts : { } };
-
-				var baseModes = [for( m in ["tile", "object", "ground", "border", "group"] ) '<option value="t_$m">${m.substr(0,1).toUpperCase()+m.substr(1)}</option>'].join("\n");
-				var props = [for( t in perTileProps ) '<option value="${t.name}">${t.name}</option>'].join("\n");
-				m.find("[name=mode]").html(baseModes + props).val(paletteMode == null ? "t_tile" : paletteMode);
-				m.attr("class", "").addClass("mode");
-				if( prop != null ) {
-					switch( prop.type ) {
-					case TRef(_):
-						var gfx = perTileGfx.get(prop.name);
-						m.addClass("m_ref");
-						var refList = m.find(".opt.refList");
-						refList.html("");
-						if( prop.opt )
-							J("<div>").addClass("icon").addClass("delete").appendTo(refList).toggleClass("active", paletteModeCursor < 0).click(function() {
-								paletteModeCursor = -1;
-								setCursor();
-							});
-						for( i in 0...gfx.images.length ) {
-							var d = J("<div>").addClass("icon").css( { background : "url('" + gfx.images[i].getCanvas().toDataURL() + "')" } );
-							d.appendTo(refList);
-							d.toggleClass("active", paletteModeCursor == i);
-							d.attr("title", gfx.names[i]);
-							d.click(function() {
-								paletteModeCursor = i;
-								setCursor();
-							});
-						}
-					case TEnum(values):
-						m.addClass("m_ref");
-						var refList = m.find(".opt.refList");
-						refList.html("");
-						if( prop.opt )
-							J("<div>").addClass("icon").addClass("delete").appendTo(refList).toggleClass("active", paletteModeCursor < 0).click(function() {
-								paletteModeCursor = -1;
-								setCursor();
-							});
-						for( i in 0...values.length ) {
-							var d = J("<div>").addClass("icon").css( { background : toColor(colorPalette[i]), width : "auto" } ).text(values[i]);
-							d.appendTo(refList);
-							d.toggleClass("active", paletteModeCursor == i);
-							d.click(function() {
-								paletteModeCursor = i;
-								setCursor();
-							});
-						}
-					case TInt, TFloat, TString, TDynamic:
-						m.addClass("m_value");
-						var p = getTileProp(l.current % l.stride, Std.int(l.current / l.stride),false);
-						var v = p == null ? null : Reflect.field(p, prop.name);
-						m.find("[name=value]").val(prop.type == TDynamic ? haxe.Json.stringify(v) : v == null ? "" : "" + v);
-					default:
-					}
-				} else if( "t_" + tobj.t != paletteMode ) {
-					if( paletteMode == null ) m.addClass("m_tile") else m.addClass("m_create").addClass("c_"+paletteMode.substr(2));
-				} else {
-					m.addClass("m_"+paletteMode.substr(2)).addClass("m_exists");
-					switch( tobj.t ) {
-					case Tile, Object:
-					case Ground:
-						m.find("[name=name]").val(tobj.opts.name == null ? "" : tobj.opts.name);
-						m.find("[name=priority]").val("" + (tobj.opts.priority == null ? 0 : tobj.opts.priority));
-					case Group:
-						m.find("[name=name]").val(tobj.opts.name == null ? "" : tobj.opts.name);
-						m.find("[name=value]").val(tobj.opts.value == null ? "" : haxe.Json.stringify(tobj.opts.value)).width(80).width(m.parent().width() - 300);
-					case Border:
-						var opts = [for( g in grounds ) '<option value="$g">$g</option>'].join("");
-						m.find("[name=border_in]").html("<option value='null'>upper</option><option value='lower'>lower</option>" + opts).val(Std.string(tobj.opts.borderIn));
-						m.find("[name=border_out]").html("<option value='null'>lower</option><option value='upper'>upper</option>" + opts).val(Std.string(tobj.opts.borderOut));
-						m.find("[name=border_mode]").val(Std.string(tobj.opts.borderMode));
-					}
-				}
-				m.show();
-			}
-		}
+		palette.updateSelect();
 
 		var size = zoomView < 1 ? Std.int(tileSize * zoomView) : Math.ceil(tileSize * zoomView);
 
@@ -2777,8 +1921,8 @@ class Level {
 		}
 
 		var cur = l.current;
-		var w = randomMode ? 1 : l.currentWidth;
-		var h = randomMode ? 1 : l.currentHeight;
+		var w = palette.randomMode ? 1 : l.currentWidth;
+		var h = palette.randomMode ? 1 : l.currentHeight;
 		if( l.data.match(TileInstances(_)) ) {
 			var o = l.getSelObjects();
 			if( o.length > 0 ) {
@@ -2812,7 +1956,7 @@ class Level {
 					var tw = size * w, th = size * h;
 					tmpImage.setSize(tw, th);
 					var m = { a : 0., b : 0., c : 0., d : 0., x : 0., y : 0. };
-					initMatrix(m, tw, th, rotation, flipMode);
+					l.initMatrix(m, tw, th, rotation, flipMode);
 					tmpImage.clear();
 					tmpImage.draw(cursorImage, 0, 0);
 					var cw = Std.int(tw * m.a + th * m.c);

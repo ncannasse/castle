@@ -209,7 +209,7 @@ class LayerData extends LayerGfx {
 			}
 			this.stride = d.stride = w;
 			height = h;
-			tileProps = level.getTileProps(file, w, w*h);
+			tileProps = level.palette.getTileProps(file, w, w*h);
 			loadState();
 			level.waitDone();
 		});
@@ -302,6 +302,291 @@ class LayerData extends LayerGfx {
 		}
 	}
 
+	public function scale( s : Float ) {
+		var width = level.width;
+		var height = level.height;
+		switch( data ) {
+		case Tiles(_, data), Layer(data):
+			var ndata = [];
+			for( y in 0...height )
+				for( x in 0...width ) {
+					var tx = Std.int(x / s);
+					var ty = Std.int(y / s);
+					var k = if( tx >= width || ty >= height ) 0 else data[tx + ty * width];
+					ndata.push(k);
+				}
+			for( i in 0...width * height )
+				data[i] = ndata[i];
+		case Objects(_, objs):
+			var m = floatCoord ? level.tileSize : 1;
+			for( o in objs.copy() ) {
+				o.x = Std.int(o.x * s * m) / m;
+				o.y = Std.int(o.y * s * m) / m;
+				if( o.x < 0 || o.y < 0 || o.x >= width || o.y >= height )
+					objs.remove(o);
+			}
+		case TileInstances(_, insts):
+			var m = floatCoord ? level.tileSize : 1;
+			for( i in insts.copy() ) {
+				i.x = Std.int(i.x * s * m) / m;
+				i.y = Std.int(i.y * s * m) / m;
+				if( i.x < 0 || i.y < 0 || i.x >= width || i.y >= height )
+					insts.remove(i);
+			}
+		}
+	}
+
+	public function scroll( dx : Int, dy : Int ) {
+		var width = level.width;
+		var height = level.height;
+		switch( data ) {
+		case Tiles(_, data), Layer(data):
+			var ndata = [];
+			for( y in 0...height )
+				for( x in 0...width ) {
+					var tx = x - dx;
+					var ty = y - dy;
+					var k;
+					if( tx < 0 || ty < 0 || tx >= width || ty >= height )
+						k = 0;
+					else
+						k = data[tx + ty * width];
+					ndata.push(k);
+				}
+			for( i in 0...width * height )
+				data[i] = ndata[i];
+		case Objects(_, objs):
+			for( o in objs.copy() ) {
+				o.x += dx;
+				o.y += dy;
+				if( o.x < 0 || o.y < 0 || o.x >= width || o.y >= height )
+					objs.remove(o);
+			}
+		case TileInstances(_, insts):
+			for( i in insts.copy() ) {
+				i.x += dx;
+				i.y += dy;
+				if( i.x < 0 || i.y < 0 || i.x >= width || i.y >= height )
+					insts.remove(i);
+			}
+		}
+	}
+
+	public function setMode( mode : LayerMode ) {
+		var old = props.mode;
+		if( old == null ) old = Tiles;
+		var width = level.width;
+		var height = level.height;
+		switch( [old, mode] ) {
+		case [(Ground | Tiles), (Tiles | Ground)], [Objects, Objects]:
+			// nothing
+		case [(Ground | Tiles), Objects]:
+			switch( data ) {
+			case Tiles(td, data):
+				var oids = new Map();
+				for( p in tileProps.sets )
+					if( p.t == Object )
+						oids.set(p.x + p.y * stride, p);
+				var objs = [];
+				var p = -1;
+				for( y in 0...height )
+					for( x in 0...width ) {
+						var d = data[++p] - 1;
+						if( d < 0 ) continue;
+						var o = oids.get(d);
+						if( o != null ) {
+							for( dy in 0...o.h ) {
+								for( dx in 0...o.w ) {
+									var tp = p + dx + dy * width;
+									if( x + dx >= width || y + dy >= height ) continue;
+									var id = d + dx + dy * stride;
+									if( data[tp] != id + 1 ) {
+										if( data[tp] == 0 && blanks[id] ) continue;
+										o = null;
+										break;
+									}
+								}
+								if( o == null ) break;
+							}
+						}
+						if( o == null )
+							objs.push({ x : x, y : y, b : y, id : d });
+						else {
+							for( dy in 0...o.h )
+								for( dx in 0...o.w ) {
+									if( x + dx >= width || y + dy >= height ) continue;
+									data[p + dx + dy * width] = 0;
+								}
+							objs.push( { x : x, y : y, b : y + o.w - 1, id : d } );
+						}
+					}
+				objs.sort(function(o1,o2) return o1.b - o2.b);
+				this.data = TileInstances(td, [for( o in objs ) { x : o.x, y : o.y, o : o.id, flip : false, rot : 0 }]);
+				dirty = true;
+			default:
+				throw "assert0";
+			}
+		case [Objects, (Ground | Tiles)]:
+			switch( data ) {
+			case TileInstances(td,insts):
+				var objs = getTileObjects();
+				var data = [for( i in 0...width * height ) 0];
+				for( i in insts ) {
+					var x = Std.int(i.x), y = Std.int(i.y);
+					var obj = objs.get(i.o);
+					if( obj == null ) {
+						data[x + y * width] = i.o + 1;
+					} else {
+						for( dy in 0...obj.h )
+							for( dx in 0...obj.w ) {
+								var x = x + dx, y = y + dy;
+								if( x < width && y < height )
+									data[x + y * width] = i.o + dx + dy * stride + 1;
+							}
+					}
+				}
+				this.data = Tiles(td, data);
+				dirty = true;
+			default:
+				throw "assert1";
+			}
+		}
+		props.mode = mode;
+		if( mode == Tiles ) Reflect.deleteField(props, "mode");
+	}
+
+
+	public inline function initMatrix( m : { a : Float, b : Float, c : Float, d : Float, x : Float, y : Float }, w : Int, h : Int, rot : Int, flip : Bool ) {
+		m.a = 1;
+		m.b = 0;
+		m.c = 0;
+		m.d = 1;
+		m.x = -w * 0.5;
+		m.y = -h * 0.5;
+		if( rot != 0 ) {
+			var a = Math.PI * rot / 2;
+			var c = Math.cos(a);
+			var s = Math.sin(a);
+			var x = m.x, y = m.y;
+			m.a = c;
+			m.b = s;
+			m.c = -s;
+			m.d = c;
+			m.x = x * c - y * s;
+			m.y = x * s + y * c;
+		}
+		if( flip ) {
+			m.a = -m.a;
+			m.c = -m.c;
+			m.x = -m.x;
+		}
+		m.x += Math.abs(m.a * w * 0.5 + m.c * h * 0.5);
+		m.y += Math.abs(m.b * w * 0.5 + m.d * h * 0.5);
+	}
+
+	public function draw( view : lvl.Image3D ) {
+		view.alpha = props.alpha;
+		var width = level.width;
+		var height = level.height;
+		var size = level.tileSize;
+		switch( data ) {
+		case Layer(data):
+			var first = @:privateAccess level.layers[0] == this; // firstLayer : no transparency
+			for( y in 0...height )
+				for( x in 0...width ) {
+					var k = data[x + y * width];
+					if( k == 0 && !first ) continue;
+					if( images != null ) {
+						var i = images[k];
+						view.draw(i, x * size - ((i.width - size) >> 1), y * size - (i.height - size));
+						continue;
+					}
+					view.fillRect(x * size, y * size, size, size, colors[k] | 0xFF000000);
+				}
+		case Tiles(t, data):
+			for( y in 0...height )
+				for( x in 0...width ) {
+					var k = data[x + y * width] - 1;
+					if( k < 0 ) continue;
+					view.draw(images[k], x * size, y * size);
+				}
+			if( props.mode == Ground ) {
+				var b = new cdb.TileBuilder(tileProps, stride, images.length);
+				var a = b.buildGrounds(data, width);
+				var p = 0, max = a.length;
+				while( p < max ) {
+					var x = a[p++];
+					var y = a[p++];
+					var id = a[p++];
+					view.draw(images[id], x * size, y * size);
+				}
+			}
+		case TileInstances(_, insts):
+			var objs = getTileObjects();
+			var mat = { a : 1., b : 0., c : 0., d : 1., x : 0., y : 0. };
+			for( i in insts ) {
+				var x = Std.int(i.x * size), y = Std.int(i.y * size);
+				var obj = objs.get(i.o);
+				var w = obj == null ? 1 : obj.w;
+				var h = obj == null ? 1 : obj.h;
+				initMatrix(mat, w * size, h * size, i.rot, i.flip);
+				mat.x += x;
+				mat.y += y;
+				if( obj == null ) {
+					view.drawMat(images[i.o], mat);
+					view.fillRect(x, y, size, size, 0x80FF0000);
+				} else {
+					var px = mat.x;
+					var py = mat.y;
+					for( dy in 0...obj.h )
+						for( dx in 0...obj.w ) {
+							mat.x = px + dx * size * mat.a + dy * size * mat.c;
+							mat.y = py + dx * size * mat.b + dy * size * mat.d;
+							view.drawMat(images[i.o + dx + dy * stride], mat);
+						}
+				}
+			}
+		case Objects(idCol, objs):
+			if( idCol == null ) {
+				var col = props.color | 0xA0000000;
+				for( o in objs ) {
+					var w = hasSize ? o.width * size : size;
+					var h = hasSize ? o.height * size : size;
+					view.fillRect(Std.int(o.x * size), Std.int(o.y * size), Std.int(w), Std.int(h), col);
+				}
+				var col = props.color | 0xFF000000;
+				for( o in objs ) {
+					var w = hasSize ? Std.int(o.width * size) : size;
+					var h = hasSize ? Std.int(o.height * size) : size;
+					var px = Std.int(o.x * size);
+					var py = Std.int(o.y * size);
+					view.fillRect(px, py, w, 1, col);
+					view.fillRect(px, py + h - 1, w, 1, col);
+					view.fillRect(px, py + 1, 1, h - 2, col);
+					view.fillRect(px + w - 1, py + 1, 1, h - 2, col);
+				}
+			} else {
+				for( o in objs ) {
+					var id : String = Reflect.field(o, idCol);
+					var k = idToIndex.get(id);
+					if( k == null ) {
+						var w = hasSize ? o.width * size : size;
+						var h = hasSize ? o.height * size : size;
+						view.fillRect(Std.int(o.x * size), Std.int(o.y * size), Std.int(w), Std.int(h), 0xFFFF00FF);
+						continue;
+					}
+					if( images != null ) {
+						var i = images[k];
+						view.draw(i, Std.int(o.x * size) - ((i.width - size) >> 1), Std.int(o.y * size) - (i.height - size));
+						continue;
+					}
+					var w = hasSize ? o.width * size : size;
+					var h = hasSize ? o.height * size : size;
+					view.fillRect(Std.int(o.x * size), Std.int(o.y * size), Std.int(w), Std.int(h), colors[k] | 0xFF000000);
+				}
+			}
+		}
+	}
 
 }
 
