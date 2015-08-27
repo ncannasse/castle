@@ -47,6 +47,8 @@ input[type="submit"]:hover, input[type="submit"]:disabled {
 
 div.modal {
 	position : fixed;
+	left : 0;
+	top : 0;
 	width : 100%;
 	height : 100%;
 	z-index : 10;
@@ -345,6 +347,20 @@ div#menu {
 
 	td.t_enum {
 		padding-left : 5px;
+	}
+
+	td.t_color {
+		text-align : center;
+		.modal {
+			opacity : 0.;
+		}
+		.color {
+			display : inline-block;
+			width : 20px;
+			height : 20px;
+			border : 2px solid white;
+			outline : 1px solid black;
+		}
 	}
 
 	.flagValues {

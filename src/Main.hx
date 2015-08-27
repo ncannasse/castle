@@ -116,8 +116,12 @@ class Main extends Model {
 		updateCursor();
 	}
 
+	function isInput() {
+		return js.Browser.document.activeElement != null && js.Browser.document.activeElement.nodeName == "INPUT";
+	}
+
 	function onKeyPress( e : js.html.KeyboardEvent ) {
-		if( !e.ctrlKey )
+		if( !e.ctrlKey && !isInput() )
 			J(".cursor").not(".edit").dblclick();
 	}
 
@@ -142,6 +146,10 @@ class Main extends Model {
 	}
 
 	function onKey( e : js.html.KeyboardEvent ) {
+
+		if( isInput() )
+			return;
+
 		switch( e.keyCode ) {
 		case K.INSERT if( level == null ):
 			if( cursor.s != null )
@@ -309,7 +317,7 @@ class Main extends Model {
 	}
 
 	function onKeyUp( e : js.html.KeyboardEvent ) {
-		if( level != null ) level.onKeyUp(e);
+		if( level != null && !isInput() ) level.onKeyUp(e);
 	}
 
 	function getLine( sheet : Sheet, index : Int ) {
@@ -639,7 +647,7 @@ class Main extends Model {
 			flags.length == 0 ? String.fromCharCode(0x2205) : flags.join("|");
 		case TColor:
 			var id = UID++;
-			'<input type="text" id="_c${id}"/><script>$("#_c${id}").spectrum({ color : "#${StringTools.hex(v,6)}", showInput: true, clickoutFiresChange : true, showButtons: false, change : function(e) { _.colorChangeEvent(e,$(this),"${c.name}"); } })</script>';
+			'<div class="color" style="background-color:#${StringTools.hex(v,6)}"></div>';
 		case TFile:
 			var path = getAbsPath(v);
 			var ext = v.split(".").pop().toLowerCase();
@@ -675,16 +683,6 @@ class Main extends Model {
 			if( str.length > 50 ) str = str.substr(0, 47) + "...";
 			str;
 		}
-	}
-
-	@:keep function colorChangeEvent(value, comp:js.JQuery, col:String ) {
-		var color = Std.parseInt("0x" + value.toHex());
-		var line = comp.parent().parent();
-		var idx = line.data("index");
-		var sheet = getSheet(line.parent().parent().attr("sheet"));
-		var obj = sheet.lines[idx];
-		Reflect.setField(obj, col, color);
-		save();
 	}
 
 	function popupLine( sheet : Sheet, index : Int ) {
@@ -1242,7 +1240,18 @@ class Main extends Model {
 			};
 		case TTileLayer:
 			// nothing
-		case TList, TColor, TLayer(_), TFile, TTilePos:
+		case TColor:
+			var id = Std.random(0x1);
+			v.html('<div class="modal" onclick="$(\'#_c${id}\').spectrum(\'toggle\')"></div><input type="text" id="_c${id}"/>');
+			var spect : Dynamic = J('#_c$id');
+			spect.spectrum( { color : "#" + StringTools.hex(val, 6), showInput: true, showButtons: false, change : function(vcol:Dynamic) {
+				spect.spectrum('hide');
+				var color = Std.parseInt("0x" + vcol.toHex());
+				val = color;
+				Reflect.setField(obj, c.name, color);
+				v.html(getValue());
+			}}).spectrum("show");
+		case TList, TLayer(_), TFile, TTilePos:
 			throw "assert2";
 		}
 	}
@@ -1512,7 +1521,7 @@ class Main extends Model {
 					});
 					if( openedList.get(key) )
 						todo.push(function() v.click());
-				case TColor, TLayer(_):
+				case TLayer(_):
 					// nothing
 				case TFile:
 					v.find("input").addClass("deletable").change(function(e) {

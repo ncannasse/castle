@@ -4650,8 +4650,11 @@ Main.prototype = $extend(Model.prototype,{
 		this.cursor.select = null;
 		this.updateCursor();
 	}
+	,isInput: function() {
+		return window.document.activeElement != null && window.document.activeElement.nodeName == "INPUT";
+	}
 	,onKeyPress: function(e) {
-		if(!e.ctrlKey) js.JQuery(".cursor").not(".edit").dblclick();
+		if(!e.ctrlKey && !this.isInput()) js.JQuery(".cursor").not(".edit").dblclick();
 	}
 	,getSelection: function() {
 		if(this.cursor.s == null) return null;
@@ -4675,6 +4678,7 @@ Main.prototype = $extend(Model.prototype,{
 		return { x1 : x1, x2 : x2, y1 : y1, y2 : y2};
 	}
 	,onKey: function(e) {
+		if(this.isInput()) return;
 		var _g = e.keyCode;
 		switch(_g) {
 		case 45:
@@ -4903,7 +4907,7 @@ Main.prototype = $extend(Model.prototype,{
 		if(this.level != null) this.level.onKey(e);
 	}
 	,onKeyUp: function(e) {
-		if(this.level != null) this.level.onKeyUp(e);
+		if(this.level != null && !this.isInput()) this.level.onKeyUp(e);
 	}
 	,getLine: function(sheet,index) {
 		return ((function($this) {
@@ -5376,7 +5380,7 @@ Main.prototype = $extend(Model.prototype,{
 				break;
 			case 11:
 				var id = Main.UID++;
-				return "<input type=\"text\" id=\"_c" + id + "\"/><script>$(\"#_c" + id + "\").spectrum({ color : \"#" + StringTools.hex(v,6) + "\", showInput: true, clickoutFiresChange : true, showButtons: false, change : function(e) { _.colorChangeEvent(e,$(this),\"" + c.name + "\"); } })</script>";
+				return "<div class=\"color\" style=\"background-color:#" + StringTools.hex(v,6) + "\"></div>";
 			case 13:
 				var path = this.getAbsPath(v);
 				var ext = v.split(".").pop().toLowerCase();
@@ -5408,15 +5412,6 @@ Main.prototype = $extend(Model.prototype,{
 				return str1;
 			}
 		}
-	}
-	,colorChangeEvent: function(value,comp,col) {
-		var color = Std.parseInt("0x" + value.toHex());
-		var line = comp.parent().parent();
-		var idx = line.data("index");
-		var sheet = this.getSheet(line.parent().parent().attr("sheet"));
-		var obj = sheet.lines[idx];
-		obj[col] = color;
-		this.save();
 	}
 	,popupLine: function(sheet,index) {
 		var _g = this;
@@ -6125,7 +6120,19 @@ Main.prototype = $extend(Model.prototype,{
 				break;
 			case 15:
 				break;
-			case 8:case 11:case 12:case 13:case 14:
+			case 11:
+				var id = Std.random(1);
+				v.html("<div class=\"modal\" onclick=\"$('#_c" + id + "').spectrum('toggle')\"></div><input type=\"text\" id=\"_c" + id + "\"/>");
+				var spect = js.JQuery("#_c" + id);
+				spect.spectrum({ color : "#" + StringTools.hex(val,6), showInput : true, showButtons : false, change : function(vcol) {
+					spect.spectrum("hide");
+					var color = Std.parseInt("0x" + Std.string(vcol.toHex()));
+					val = color;
+					obj[c.name] = color;
+					v.html(_g.valueHtml(c,val,sheet,obj));
+				}}).spectrum("show");
+				break;
+			case 8:case 12:case 13:case 14:
 				throw new js__$Boot_HaxeError("assert2");
 				break;
 			}
@@ -6435,7 +6442,7 @@ Main.prototype = $extend(Model.prototype,{
 							};
 						})(v));
 						break;
-					case 11:case 12:
+					case 12:
 						break;
 					case 13:
 						v[0].find("input").addClass("deletable").change((function(obj,c) {
