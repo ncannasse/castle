@@ -1,4 +1,5 @@
 import cdb.Data;
+using SheetData;
 
 import js.JQuery.JQueryHelper.*;
 import nodejs.webkit.Menu;
@@ -88,7 +89,7 @@ class Main extends Model {
 
 	function setClipBoard( schema : Array<Column>, data : Array<Dynamic> ) {
 		clipboard = {
-			text : Std.string([for( o in data ) objToString(cursor.s,o,true)]),
+			text : Std.string([for( o in data ) cursor.s.objToString(o,true)]),
 			data : data,
 			schema : schema,
 		};
@@ -161,7 +162,7 @@ class Main extends Model {
 					var s = getSelection();
 					var y = s.y2;
 					while( y >= s.y1 ) {
-						deleteLine(cursor.s, y);
+						cursor.s.deleteLine(y);
 						y--;
 					}
 					cursor.y = s.y1;
@@ -237,7 +238,7 @@ class Main extends Model {
 			var posY = cursor.y < 0 ? 0 : cursor.y;
 			for( obj1 in clipboard.data ) {
 				if( posY == sheet.lines.length )
-					super.newLine(sheet);
+					sheet.newLine();
 				var obj2 = sheet.lines[posY];
 				for( cid in 0...clipboard.schema.length ) {
 					var c1 = clipboard.schema[cid];
@@ -321,52 +322,15 @@ class Main extends Model {
 	}
 
 	function getLine( sheet : Sheet, index : Int ) {
-		return J("table[sheet='"+getPath(sheet)+"'] > tbody > tr").not(".head,.separator,.list").eq(index);
+		return J("table[sheet='"+sheet.getPath()+"'] > tbody > tr").not(".head,.separator,.list").eq(index);
 	}
 
 	function showReferences( sheet : Sheet, index : Int ) {
-		var id = null;
-		for( c in sheet.columns ) {
-			switch( c.type ) {
-			case TId:
-				id = Reflect.field(sheet.lines[index], c.name);
-				break;
-			default:
-			}
-		}
-		if( id == "" || id == null )
+		var results = sheet.getReferences(index);
+		if( results == null )
 			return;
-
-		var results = [];
-		for( s in data.sheets ) {
-			for( c in s.columns )
-				switch( c.type ) {
-				case TRef(sname) if( sname == sheet.name ):
-					var sheets = [];
-					var p = { s : s, c : c.name, id : null };
-					while( true ) {
-						for( c in p.s.columns )
-							switch( c.type ) {
-							case TId: p.id = c.name; break;
-							default:
-							}
-						sheets.unshift(p);
-						var p2 = getParentSheet(p.s);
-						if( p2 == null ) break;
-						p = { s : p2.s, c : p2.c, id : null };
-					}
-					for( o in getSheetObjects(s) ) {
-						var obj = o.path[o.path.length - 1];
-						if( Reflect.field(obj, c.name) == id )
-							results.push({ s : sheets, o : o });
-					}
-				case TCustom(tname):
-					// todo : lookup in custom types
-				default:
-				}
-		}
 		if( results.length == 0 ) {
-			setErrorMessage(id + " not found");
+			setErrorMessage("Not found");
 			haxe.Timer.delay(setErrorMessage.bind(), 500);
 			return;
 		}
@@ -378,7 +342,7 @@ class Main extends Model {
 
 		var res = J("<tr>").addClass("list");
 		J("<td>").appendTo(res);
-		var cell = J("<td>").attr("colspan", "" + (sheet.columns.length + (sheet.props.level != null ? 1 : 0))).appendTo(res);
+		var cell = J("<td>").attr("colspan", "" + (sheet.columns.length + (sheet.isLevel() ? 1 : 0))).appendTo(res);
 		var div = J("<div>").appendTo(cell);
 		div.hide();
 		var content = J("<table>").appendTo(div);
@@ -410,7 +374,7 @@ class Main extends Model {
 				var key = null;
 				for( i in 0...rs.s.length - 1 ) {
 					var p = rs.s[i];
-					key = getPath(p.s) + "@" + p.c + ":" + rs.o.indexes[i];
+					key = p.s.getPath() + "@" + p.c + ":" + rs.o.indexes[i];
 					openedList.set(key, true);
 				}
 				var starget = rs.s[0].s;
@@ -434,98 +398,21 @@ class Main extends Model {
 	}
 
 
-	override function moveLine( sheet : Sheet, index : Int, delta : Int ) {
+	function moveLine( sheet : Sheet, index : Int, delta : Int ) {
 		// remove opened list
 		getLine(sheet, index).next("tr.list").change();
-		var index = super.moveLine(sheet, index, delta);
+		var index = sheet.moveLine(index, delta);
 		if( index != null ) {
 			setCursor(sheet, -1, index, false);
 			refresh();
 			save();
 		}
-		return index;
 	}
 
 	function changed( sheet : Sheet, c : Column, index : Int, old : Dynamic ) {
 		switch( c.type ) {
-		case TId:
-			makeSheet(sheet);
 		case TImage:
 			saveImages();
-		case TInt if( sheet.props.level != null && (c.name == "width" || c.name == "height") ):
-			var obj = sheet.lines[index];
-			var newW : Int = Reflect.field(obj, "width");
-			var newH : Int = Reflect.field(obj, "height");
-			var oldW = newW;
-			var oldH = newH;
-			if( c.name == "width" )
-				oldW = old;
-			else
-				oldH = old;
-
-			function remapTileLayer( v : cdb.Types.TileLayer ) {
-
-				if( v == null ) return null;
-
-				var odat = v.data.decode();
-				var ndat = [];
-
-				// object layer
-				if( odat[0] == 0xFFFF )
-					ndat = odat;
-				else {
-					var pos = 0;
-					for( y in 0...newH ) {
-						if( y >= oldH ) {
-							for( x in 0...newW )
-								ndat.push(0);
-						} else if( newW <= oldW ) {
-							for( x in 0...newW )
-								ndat.push(odat[pos++]);
-							pos += oldW - newW;
-						} else {
-							for( x in 0...oldW )
-								ndat.push(odat[pos++]);
-							for( x in oldW...newW )
-								ndat.push(0);
-						}
-					}
-				}
-				return { file : v.file, size : v.size, stride : v.stride, data : cdb.Types.TileLayerData.encode(ndat, data.compress) };
-			}
-
-			for( c in sheet.columns ) {
-				var v : Dynamic = Reflect.field(obj, c.name);
-				if( v == null ) continue;
-				switch( c.type ) {
-				case TLayer(_):
-					var v : cdb.Types.Layer<Int> = v;
-					var odat = v.decode([for( i in 0...256 ) i]);
-					var ndat = [];
-					for( y in 0...newH )
-						for( x in 0...newW ) {
-							var k = y < oldH && x < oldW ? odat[x + y * oldW] : 0;
-							ndat.push(k);
-						}
-					v = cdb.Types.Layer.encode(ndat, data.compress);
-					Reflect.setField(obj, c.name, v);
-				case TList:
-					var s = getPseudoSheet(sheet, c);
-					if( hasColumn(s, "x", [TInt,TFloat]) && hasColumn(s, "y", [TInt,TFloat]) ) {
-						var elts : Array<{ x : Float, y : Float }> = Reflect.field(obj, c.name);
-						for( e in elts.copy() )
-							if( e.x >= newW || e.y >= newH )
-								elts.remove(e);
-					} else if( hasColumn(s, "data", [TTileLayer]) ) {
-						var a : Array<{ data : cdb.Types.TileLayer }> = v;
-						for( o in a )
-							o.data = remapTileLayer(o.data);
-					}
-				case TTileLayer:
-					Reflect.setField(obj, c.name, remapTileLayer(v));
-				default:
-				}
-			}
 		case TTilePos:
 			// if we change a file that has moved, change it for all instances having the same file
 			var obj = sheet.lines[index];
@@ -543,19 +430,7 @@ class Main extends Model {
 				if( change ) refresh();
 			}
 		default:
-			if( sheet.props.displayColumn == c.name ) {
-				var obj = sheet.lines[index];
-				var s = smap.get(sheet.name);
-				for( cid in sheet.columns )
-					if( cid.type == TId ) {
-						var id = Reflect.field(obj, cid.name);
-						if( id != null ) {
-							var disp = Reflect.field(obj, c.name);
-							if( disp == null ) disp = "#" + id;
-							s.index.get(id).disp = disp;
-						}
-					}
-			}
+			sheet.updateValue(c, index, old);
 		}
 		save();
 	}
@@ -609,7 +484,7 @@ class Main extends Model {
 			}
 		case TList:
 			var a : Array<Dynamic> = v;
-			var ps = getPseudoSheet(sheet, c);
+			var ps = sheet.getSub(c);
 			var out : Array<Dynamic> = [];
 			for( v in a ) {
 				var vals = [];
@@ -707,7 +582,7 @@ class Main extends Model {
 			moveLine(sheet, index, 1);
 		};
 		ndel.click = function() {
-			deleteLine(sheet,index);
+			sheet.deleteLine(index);
 			refresh();
 			save();
 		};
@@ -767,7 +642,7 @@ class Main extends Model {
 							values[i] = k.f(values[i]);
 					default:
 						var refMap = new Map();
-						for( obj in getSheetLines(sheet) ) {
+						for( obj in sheet.getLines() ) {
 							var t = Reflect.field(obj, c.name);
 							if( t != null && t != "" ) {
 								var t2 = k.f(t);
@@ -805,7 +680,7 @@ class Main extends Model {
 			] ) {
 				var m = new MenuItem( { label : k.n } );
 				m.click = function() {
-					for( obj in getSheetLines(sheet) ) {
+					for( obj in sheet.getLines() ) {
 						var t = Reflect.field(obj, c.name);
 						if( t != null ) {
 							var t2 = k.f(t);
@@ -919,7 +794,7 @@ class Main extends Model {
 		nindex.checked = s.props.hasIndex;
 		nindex.click = function() {
 			if( s.props.hasIndex ) {
-				for( o in getSheetLines(s) )
+				for( o in s.getLines() )
 					Reflect.deleteField(o, "index");
 				s.props.hasIndex = false;
 			} else {
@@ -935,7 +810,7 @@ class Main extends Model {
 		ngroup.checked = s.props.hasGroup;
 		ngroup.click = function() {
 			if( s.props.hasGroup ) {
-				for( o in getSheetLines(s) )
+				for( o in s.getLines() )
 					Reflect.deleteField(o, "group");
 				s.props.hasGroup = false;
 			} else {
@@ -951,12 +826,12 @@ class Main extends Model {
 		nren.click = function() {
 			li.dblclick();
 		};
-		if( s.props.level != null || (hasColumn(s, "width", [TInt]) && hasColumn(s, "height", [TInt]) && hasColumn(s,"props",[TDynamic])) ) {
+		if( s.isLevel() || (s.hasColumn("width", [TInt]) && s.hasColumn("height", [TInt]) && s.hasColumn("props",[TDynamic])) ) {
 			var nlevel = new MenuItem( { label : "Level", type : MenuItemType.checkbox } );
-			nlevel.checked = s.props.level != null;
+			nlevel.checked = s.isLevel();
 			n.append(nlevel);
 			nlevel.click = function() {
-				if( s.props.level != null )
+				if( s.isLevel() )
 					Reflect.deleteField(s.props, "level");
 				else
 					s.props.level = {
@@ -1367,7 +1242,7 @@ class Main extends Model {
 		});
 
 		content.addClass("sheet");
-		content.attr("sheet", getPath(sheet));
+		content.attr("sheet", sheet.getPath());
 		content.click(function(e) {
 			e.stopPropagation();
 		});
@@ -1395,7 +1270,7 @@ class Main extends Model {
 		}];
 
 		var colCount = sheet.columns.length;
-		if( sheet.props.level != null ) colCount++;
+		if( sheet.isLevel() ) colCount++;
 
 		for( cindex in 0...sheet.columns.length ) {
 			var c = sheet.columns[cindex];
@@ -1461,7 +1336,7 @@ class Main extends Model {
 					});
 					v.dblclick(function(_) editCell(c, v, sheet, index));
 				case TList:
-					var key = getPath(sheet) + "@" + c.name + ":" + index;
+					var key = sheet.getPath() + "@" + c.name + ":" + index;
 					v.click(function(e) {
 						var next = l.next("tr.list");
 						if( next.length > 0 ) {
@@ -1478,7 +1353,7 @@ class Main extends Model {
 						if( !inTodo )
 							div.hide();
 						var content = J("<table>").appendTo(div);
-						var psheet = getPseudoSheet(sheet, c);
+						var psheet = sheet.getSub(c);
 						if( val == null ) {
 							val = [];
 							Reflect.setField(obj, c.name, val);
@@ -1509,7 +1384,7 @@ class Main extends Model {
 						});
 						if( inTodo ) {
 							// make sure we use the same instance
-							if( cursor.s != null && getPath(cursor.s) == getPath(psheet) ) {
+							if( cursor.s != null && cursor.s.getPath() == psheet.getPath() ) {
 								cursor.s = psheet;
 								checkCursor = false;
 							}
@@ -1657,7 +1532,7 @@ class Main extends Model {
 			lines.push(l);
 		}
 
-		if( sheet.props.level != null ) {
+		if( sheet.isLevel() ) {
 			var col = J("<td style='width:35px'>");
 			cols.prepend(col);
 			for( index in 0...sheet.lines.length ) {
@@ -1784,17 +1659,16 @@ class Main extends Model {
 		J("#newsheet").show();
 	}
 
-	override function deleteColumn( sheet : Sheet, ?cname) {
+	function deleteColumn( sheet : Sheet, ?cname) {
 		if( cname == null ) {
 			sheet = getSheet(colProps.sheet);
 			cname = colProps.ref.name;
 		}
-		if( !super.deleteColumn(sheet, cname) )
-			return false;
+		if( !sheet.deleteColumn(cname) )
+			return;
 		J("#newcol").hide();
 		refresh();
 		save();
-		return true;
 	}
 
 	function editTypes() {
@@ -1951,8 +1825,8 @@ class Main extends Model {
 		J("#newcol").show();
 	}
 
-	override function newLine( sheet : Sheet, ?index : Int ) {
-		super.newLine(sheet,index);
+	function newLine( sheet : Sheet, ?index : Int ) {
+		sheet.newLine(index);
 		refresh();
 		save();
 	}
@@ -2074,7 +1948,7 @@ class Main extends Model {
 				return;
 			}
 		} else {
-			var err = super.addColumn(sheet, c, colProps.index);
+			var err = sheet.addColumn(c, colProps.index);
 			if( err != null ) {
 				error(err);
 				return;

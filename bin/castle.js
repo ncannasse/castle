@@ -1,5 +1,5 @@
 (function (console) { "use strict";
-var $hxClasses = {},$estr = function() { return js_Boot.__string_rec(this,''); };
+var $hxClasses = {};
 function $extend(from, fields) {
 	function Inherit() {} Inherit.prototype = from; var proto = new Inherit();
 	for (var name in fields) proto[name] = fields[name];
@@ -152,6 +152,74 @@ Lambda.find = function(it,f) {
 	}
 	return null;
 };
+var haxe_IMap = function() { };
+$hxClasses["haxe.IMap"] = haxe_IMap;
+haxe_IMap.__name__ = ["haxe","IMap"];
+haxe_IMap.prototype = {
+	__class__: haxe_IMap
+};
+var haxe_ds_StringMap = function() {
+	this.h = { };
+};
+$hxClasses["haxe.ds.StringMap"] = haxe_ds_StringMap;
+haxe_ds_StringMap.__name__ = ["haxe","ds","StringMap"];
+haxe_ds_StringMap.__interfaces__ = [haxe_IMap];
+haxe_ds_StringMap.prototype = {
+	set: function(key,value) {
+		if(__map_reserved[key] != null) this.setReserved(key,value); else this.h[key] = value;
+	}
+	,get: function(key) {
+		if(__map_reserved[key] != null) return this.getReserved(key);
+		return this.h[key];
+	}
+	,exists: function(key) {
+		if(__map_reserved[key] != null) return this.existsReserved(key);
+		return this.h.hasOwnProperty(key);
+	}
+	,setReserved: function(key,value) {
+		if(this.rh == null) this.rh = { };
+		this.rh["$" + key] = value;
+	}
+	,getReserved: function(key) {
+		if(this.rh == null) return null; else return this.rh["$" + key];
+	}
+	,existsReserved: function(key) {
+		if(this.rh == null) return false;
+		return this.rh.hasOwnProperty("$" + key);
+	}
+	,remove: function(key) {
+		if(__map_reserved[key] != null) {
+			key = "$" + key;
+			if(this.rh == null || !this.rh.hasOwnProperty(key)) return false;
+			delete(this.rh[key]);
+			return true;
+		} else {
+			if(!this.h.hasOwnProperty(key)) return false;
+			delete(this.h[key]);
+			return true;
+		}
+	}
+	,keys: function() {
+		var _this = this.arrayKeys();
+		return HxOverrides.iter(_this);
+	}
+	,arrayKeys: function() {
+		var out = [];
+		for( var key in this.h ) {
+		if(this.h.hasOwnProperty(key)) out.push(key);
+		}
+		if(this.rh != null) {
+			for( var key in this.rh ) {
+			if(key.charCodeAt(0) == 36) out.push(key.substr(1));
+			}
+		}
+		return out;
+	}
+	,iterator: function() {
+		return new haxe_ds__$StringMap_StringMapIterator(this,this.arrayKeys());
+	}
+	,__class__: haxe_ds_StringMap
+};
 var Level = function(model,sheet,index) {
 	this.reloading = false;
 	this.rotation = 0;
@@ -160,7 +228,7 @@ var Level = function(model,sheet,index) {
 	this.mousePos = { x : 0, y : 0};
 	this.zoomView = 1.;
 	this.sheet = sheet;
-	this.sheetPath = model.getPath(sheet);
+	this.sheetPath = SheetData.getPath(sheet);
 	this.index = index;
 	this.obj = sheet.lines[index];
 	this.model = model;
@@ -287,9 +355,9 @@ Level.prototype = {
 					this.layers.push(l);
 					break;
 				case 8:
-					var sheet = this.model.smap.get(this.sheet.name + "@" + c.name).s;
+					var sheet = SheetData.model.smap.get(this.sheet.name + "@" + c.name).s;
 					var floatCoord = false;
-					if(this.model.hasColumn(sheet,"x",[cdb_ColumnType.TInt]) && this.model.hasColumn(sheet,"y",[cdb_ColumnType.TInt]) || (floatCoord = this.model.hasColumn(sheet,"x",[cdb_ColumnType.TFloat]) && this.model.hasColumn(sheet,"y",[cdb_ColumnType.TFloat]))) {
+					if(SheetData.hasColumn(sheet,"x",[cdb_ColumnType.TInt]) && SheetData.hasColumn(sheet,"y",[cdb_ColumnType.TInt]) || (floatCoord = SheetData.hasColumn(sheet,"x",[cdb_ColumnType.TFloat]) && SheetData.hasColumn(sheet,"y",[cdb_ColumnType.TFloat]))) {
 						var sid = null;
 						var idCol = null;
 						var _g3 = 0;
@@ -317,9 +385,9 @@ Level.prototype = {
 						l1.baseSheet = sheet;
 						l1.loadSheetData(sid);
 						l1.setObjectsData(idCol,val);
-						l1.hasSize = this.model.hasColumn(sheet,"width",[floatCoord?cdb_ColumnType.TFloat:cdb_ColumnType.TInt]) && this.model.hasColumn(sheet,"height",[floatCoord?cdb_ColumnType.TFloat:cdb_ColumnType.TInt]);
+						l1.hasSize = SheetData.hasColumn(sheet,"width",[floatCoord?cdb_ColumnType.TFloat:cdb_ColumnType.TInt]) && SheetData.hasColumn(sheet,"height",[floatCoord?cdb_ColumnType.TFloat:cdb_ColumnType.TInt]);
 						this.layers.push(l1);
-					} else if(this.model.hasColumn(sheet,"name",[cdb_ColumnType.TString]) && this.model.hasColumn(sheet,"data",[cdb_ColumnType.TTileLayer])) {
+					} else if(SheetData.hasColumn(sheet,"name",[cdb_ColumnType.TString]) && SheetData.hasColumn(sheet,"data",[cdb_ColumnType.TTileLayer])) {
 						var val1 = val;
 						var _g31 = 0;
 						while(_g31 < val1.length) {
@@ -766,7 +834,7 @@ Level.prototype = {
 		var _g = this.newLayer.type;
 		switch(_g[1]) {
 		case 8:
-			var s = this.model.smap.get(this.sheet.name + "@" + this.newLayer.name).s;
+			var s = SheetData.model.smap.get(this.sheet.name + "@" + this.newLayer.name).s;
 			var o = { name : null, data : null};
 			var _g1 = 0;
 			var _g2 = s.columns;
@@ -1675,7 +1743,7 @@ Level.prototype = {
 			var td = [js.JQuery("<td>").html(main.valueHtml(c[0],Reflect.field(o,c[0].name),l.baseSheet,o)).appendTo(tr)];
 			td[0].click((function(td,c) {
 				return function(e3) {
-					var psheet = { columns : l.baseSheet.columns, props : l.baseSheet.props, name : l.baseSheet.name, path : _g.model.getPath(l.baseSheet) + ":" + index, parent : { sheet : _g.sheet, column : Lambda.indexOf(_g.sheet.columns,Lambda.find(_g.sheet.columns,(function() {
+					var psheet = { columns : l.baseSheet.columns, props : l.baseSheet.props, name : l.baseSheet.name, path : SheetData.getPath(l.baseSheet) + ":" + index, parent : { sheet : _g.sheet, column : Lambda.indexOf(_g.sheet.columns,Lambda.find(_g.sheet.columns,(function() {
 						return function(c1) {
 							return c1.name == l.name;
 						};
@@ -2788,6 +2856,7 @@ var Model = function() {
 	this.r_ident = new EReg("^[A-Za-z_][A-Za-z0-9_]*$","");
 	this.prefs = { windowPos : { x : 50, y : 50, w : 800, h : 600, max : false}, curFile : null, curSheet : 0};
 	this.loadPrefs();
+	SheetData.model = this;
 };
 $hxClasses["Model"] = Model;
 Model.__name__ = ["Model"];
@@ -2800,129 +2869,6 @@ Model.prototype = {
 	}
 	,getSheet: function(name) {
 		return this.smap.get(name).s;
-	}
-	,getPseudoSheet: function(sheet,c) {
-		return this.smap.get(sheet.name + "@" + c.name).s;
-	}
-	,getParentSheet: function(sheet) {
-		if(!sheet.props.hide) return null;
-		var parts = sheet.name.split("@");
-		var colName = parts.pop();
-		return { s : this.getSheet(parts.join("@")), c : colName};
-	}
-	,getSheetLines: function(sheet) {
-		var p = this.getParentSheet(sheet);
-		if(p == null) return sheet.lines;
-		if(p.s.props.level != null && p.c == "tileProps") {
-			var all1 = [];
-			var sets = p.s.props.level.tileSets;
-			var _g = 0;
-			var _g1 = Reflect.fields(sets);
-			while(_g < _g1.length) {
-				var f = _g1[_g];
-				++_g;
-				var t = Reflect.field(sets,f);
-				if(t.props == null) continue;
-				var _g2 = 0;
-				var _g3 = t.props;
-				while(_g2 < _g3.length) {
-					var p1 = _g3[_g2];
-					++_g2;
-					if(p1 != null) all1.push(p1);
-				}
-			}
-			return all1;
-		}
-		var all = [];
-		var _g4 = 0;
-		var _g11 = this.getSheetLines(p.s);
-		while(_g4 < _g11.length) {
-			var obj = _g11[_g4];
-			++_g4;
-			var v = Reflect.field(obj,p.c);
-			if(v != null) {
-				var _g21 = 0;
-				while(_g21 < v.length) {
-					var v1 = v[_g21];
-					++_g21;
-					all.push(v1);
-				}
-			}
-		}
-		return all;
-	}
-	,getSheetObjects: function(sheet) {
-		var p = this.getParentSheet(sheet);
-		if(p == null) {
-			var _g = [];
-			var _g2 = 0;
-			var _g1 = sheet.lines.length;
-			while(_g2 < _g1) {
-				var i = _g2++;
-				_g.push({ path : [sheet.lines[i]], indexes : [i]});
-			}
-			return _g;
-		}
-		var all = [];
-		var _g11 = 0;
-		var _g21 = this.getSheetObjects(p.s);
-		while(_g11 < _g21.length) {
-			var obj = _g21[_g11];
-			++_g11;
-			var v = Reflect.field(obj.path[obj.path.length - 1],p.c);
-			if(v != null) {
-				var _g4 = 0;
-				var _g3 = v.length;
-				while(_g4 < _g3) {
-					var i1 = _g4++;
-					var sobj = v[i1];
-					var p1 = obj.path.slice();
-					var idx = obj.indexes.slice();
-					p1.push(sobj);
-					idx.push(i1);
-					all.push({ path : p1, indexes : idx});
-				}
-			}
-		}
-		return all;
-	}
-	,newLine: function(sheet,index) {
-		var o = { };
-		var _g = 0;
-		var _g1 = sheet.columns;
-		while(_g < _g1.length) {
-			var c = _g1[_g];
-			++_g;
-			var d = this.getDefault(c);
-			if(d != null) o[c.name] = d;
-		}
-		if(index == null) sheet.lines.push(o); else {
-			var _g11 = 0;
-			var _g2 = sheet.separators.length;
-			while(_g11 < _g2) {
-				var i = _g11++;
-				var s = sheet.separators[i];
-				if(s > index) sheet.separators[i] = s + 1;
-			}
-			sheet.lines.splice(index + 1,0,o);
-			this.changeLineOrder(sheet,(function($this) {
-				var $r;
-				var _g3 = [];
-				{
-					var _g21 = 0;
-					var _g12 = sheet.lines.length;
-					while(_g21 < _g12) {
-						var i1 = _g21++;
-						_g3.push(i1 <= index?i1:i1 + 1);
-					}
-				}
-				$r = _g3;
-				return $r;
-			}(this)));
-		}
-	}
-	,getPath: function(sheet) {
-		if(sheet.path == null) return sheet.name; else return sheet.path;
 	}
 	,getDefault: function(c) {
 		if(c.opt) return null;
@@ -2964,27 +2910,6 @@ Model.prototype = {
 		s = new EReg("([{,]) *([a-zA-Z_][a-zA-Z0-9_]*) *:","g").replace(s,"$1\"$2\":");
 		return js_Node.parse(s);
 	}
-	,hasColumn: function(s,name,types) {
-		var _g = 0;
-		var _g1 = s.columns;
-		while(_g < _g1.length) {
-			var c = _g1[_g];
-			++_g;
-			if(c.name == name) {
-				if(types != null) {
-					var _g2 = 0;
-					while(_g2 < types.length) {
-						var t = types[_g2];
-						++_g2;
-						if(Type.enumEq(c.type,t)) return true;
-					}
-					return false;
-				}
-				return true;
-			}
-		}
-		return false;
-	}
 	,save: function(history) {
 		if(history == null) history = true;
 		var _g = this;
@@ -3002,7 +2927,7 @@ Model.prototype = {
 				if(v == null || v == false) Reflect.deleteField(s.props,p);
 			}
 			if(s.props.hasIndex) {
-				var lines = this.getSheetLines(s);
+				var lines = SheetData.getLines(s);
 				var _g31 = 0;
 				var _g21 = lines.length;
 				while(_g31 < _g21) {
@@ -3011,7 +2936,7 @@ Model.prototype = {
 				}
 			}
 			if(s.props.hasGroup) {
-				var lines1 = this.getSheetLines(s);
+				var lines1 = SheetData.getLines(s);
 				var gid = 0;
 				var sindex = 0;
 				var titles = s.props.separatorTitles;
@@ -3061,117 +2986,6 @@ Model.prototype = {
 		this.data = cdb_Parser.parse(sdata.d);
 		this.openedList = haxe_Unserializer.run(sdata.o);
 	}
-	,moveLine: function(sheet,index,delta) {
-		if(delta < 0 && index > 0) {
-			var _g1 = 0;
-			var _g = sheet.separators.length;
-			while(_g1 < _g) {
-				var i = _g1++;
-				if(sheet.separators[i] == index) {
-					sheet.separators[i]++;
-					return index;
-				}
-			}
-			var l = sheet.lines[index];
-			sheet.lines.splice(index,1);
-			sheet.lines.splice(index - 1,0,l);
-			var arr;
-			var _g2 = [];
-			var _g21 = 0;
-			var _g11 = sheet.lines.length;
-			while(_g21 < _g11) {
-				var i1 = _g21++;
-				_g2.push(i1);
-			}
-			arr = _g2;
-			arr[index] = index - 1;
-			arr[index - 1] = index;
-			this.changeLineOrder(sheet,arr);
-			return index - 1;
-		} else if(delta > 0 && sheet != null && index < sheet.lines.length - 1) {
-			var _g12 = 0;
-			var _g3 = sheet.separators.length;
-			while(_g12 < _g3) {
-				var i2 = _g12++;
-				if(sheet.separators[i2] == index + 1) {
-					sheet.separators[i2]--;
-					return index;
-				}
-			}
-			var l1 = sheet.lines[index];
-			sheet.lines.splice(index,1);
-			sheet.lines.splice(index + 1,0,l1);
-			var arr1;
-			var _g4 = [];
-			var _g22 = 0;
-			var _g13 = sheet.lines.length;
-			while(_g22 < _g13) {
-				var i3 = _g22++;
-				_g4.push(i3);
-			}
-			arr1 = _g4;
-			arr1[index] = index + 1;
-			arr1[index + 1] = index;
-			this.changeLineOrder(sheet,arr1);
-			return index + 1;
-		}
-		return null;
-	}
-	,deleteLine: function(sheet,index) {
-		var arr;
-		var _g = [];
-		var _g2 = 0;
-		var _g1 = sheet.lines.length;
-		while(_g2 < _g1) {
-			var i = _g2++;
-			_g.push(i < index?i:i - 1);
-		}
-		arr = _g;
-		arr[index] = -1;
-		this.changeLineOrder(sheet,arr);
-		sheet.lines.splice(index,1);
-		var prev = -1;
-		var toRemove = null;
-		var _g21 = 0;
-		var _g11 = sheet.separators.length;
-		while(_g21 < _g11) {
-			var i1 = _g21++;
-			var s = sheet.separators[i1];
-			if(s > index) {
-				if(prev == s) toRemove = i1;
-				sheet.separators[i1] = s - 1;
-			} else prev = s;
-		}
-		if(toRemove != null) {
-			sheet.separators.splice(toRemove,1);
-			if(sheet.props.separatorTitles != null) sheet.props.separatorTitles.splice(toRemove,1);
-		}
-	}
-	,deleteColumn: function(sheet,cname) {
-		var _g = 0;
-		var _g1 = sheet.columns;
-		while(_g < _g1.length) {
-			var c = _g1[_g];
-			++_g;
-			if(c.name == cname) {
-				HxOverrides.remove(sheet.columns,c);
-				var _g2 = 0;
-				var _g3 = this.getSheetLines(sheet);
-				while(_g2 < _g3.length) {
-					var o = _g3[_g2];
-					++_g2;
-					Reflect.deleteField(o,c.name);
-				}
-				if(sheet.props.displayColumn == c.name) {
-					sheet.props.displayColumn = null;
-					this.makeSheet(sheet);
-				}
-				if(c.type == cdb_ColumnType.TList) this.deleteSheet(this.smap.get(sheet.name + "@" + c.name).s);
-				return true;
-			}
-		}
-		return false;
-	}
 	,deleteSheet: function(sheet) {
 		HxOverrides.remove(this.data.sheets,sheet);
 		this.smap.remove(sheet.name);
@@ -3183,7 +2997,7 @@ Model.prototype = {
 			var _g2 = c.type;
 			switch(_g2[1]) {
 			case 8:
-				this.deleteSheet(this.smap.get(sheet.name + "@" + c.name).s);
+				this.deleteSheet(SheetData.model.smap.get(sheet.name + "@" + c.name).s);
 				break;
 			default:
 			}
@@ -3202,32 +3016,6 @@ Model.prototype = {
 				return t;
 			}
 		});
-	}
-	,addColumn: function(sheet,c,index) {
-		var _g = 0;
-		var _g1 = sheet.columns;
-		while(_g < _g1.length) {
-			var c2 = _g1[_g];
-			++_g;
-			if(c2.name == c.name) return "Column already exists"; else if(c2.type == cdb_ColumnType.TId && c.type == cdb_ColumnType.TId) return "Only one ID allowed";
-		}
-		if(c.name == "index" && sheet.props.hasIndex) return "Sheet already has an index";
-		if(c.name == "group" && sheet.props.hasGroup) return "Sheet already has a group";
-		if(index == null) sheet.columns.push(c); else sheet.columns.splice(index,0,c);
-		var _g2 = 0;
-		var _g11 = this.getSheetLines(sheet);
-		while(_g2 < _g11.length) {
-			var i = _g11[_g2];
-			++_g2;
-			var def = this.getDefault(c);
-			if(def != null) i[c.name] = def;
-		}
-		if(c.type == cdb_ColumnType.TList) {
-			var s = { name : sheet.name + "@" + c.name, props : { hide : true}, separators : [], lines : [], columns : []};
-			this.data.sheets.push(s);
-			this.makeSheet(s);
-		}
-		return null;
 	}
 	,getConvFunction: function(old,t) {
 		var conv = null;
@@ -3484,7 +3272,7 @@ Model.prototype = {
 			if(c.name == "index" && sheet.props.hasIndex) return "Sheet already has an index";
 			if(c.name == "group" && sheet.props.hasGroup) return "Sheet already has a group";
 			var _g2 = 0;
-			var _g12 = this.getSheetLines(sheet);
+			var _g12 = SheetData.getLines(sheet);
 			while(_g2 < _g12.length) {
 				var o = _g12[_g2];
 				++_g2;
@@ -3495,13 +3283,13 @@ Model.prototype = {
 			var renameRec;
 			var renameRec1 = null;
 			renameRec1 = function(sheet1,col) {
-				var s = _g.smap.get(sheet1.name + "@" + col.name).s;
+				var s = SheetData.model.smap.get(sheet1.name + "@" + col.name).s;
 				s.name = sheet1.name + "@" + c.name;
-				var _g13 = 0;
-				var _g21 = s.columns;
-				while(_g13 < _g21.length) {
-					var c1 = _g21[_g13];
-					++_g13;
+				var _g3 = 0;
+				var _g13 = s.columns;
+				while(_g3 < _g13.length) {
+					var c1 = _g13[_g3];
+					++_g3;
 					if(c1.type == cdb_ColumnType.TList) renameRec1(s,c1);
 				}
 				_g.makeSheet(s);
@@ -3515,11 +3303,11 @@ Model.prototype = {
 			if(conv == null) return "Cannot convert " + this.typeStr(old.type) + " to " + this.typeStr(c.type);
 			var conv1 = conv.f;
 			if(conv1 != null) {
-				var _g3 = 0;
-				var _g14 = this.getSheetLines(sheet);
-				while(_g3 < _g14.length) {
-					var o1 = _g14[_g3];
-					++_g3;
+				var _g4 = 0;
+				var _g14 = SheetData.getLines(sheet);
+				while(_g4 < _g14.length) {
+					var o1 = _g14[_g4];
+					++_g4;
 					var v1 = Reflect.field(o1,c.name);
 					if(v1 != null) {
 						v1 = conv1(v1);
@@ -3532,11 +3320,11 @@ Model.prototype = {
 		}
 		if(old.opt != c.opt) {
 			if(old.opt) {
-				var _g4 = 0;
-				var _g15 = this.getSheetLines(sheet);
-				while(_g4 < _g15.length) {
-					var o2 = _g15[_g4];
-					++_g4;
+				var _g5 = 0;
+				var _g15 = SheetData.getLines(sheet);
+				while(_g5 < _g15.length) {
+					var o2 = _g15[_g5];
+					++_g5;
 					var v2 = Reflect.field(o2,c.name);
 					if(v2 == null) {
 						v2 = this.getDefault(c);
@@ -3544,16 +3332,16 @@ Model.prototype = {
 					}
 				}
 			} else {
-				var _g5 = old.type;
-				switch(_g5[1]) {
+				var _g6 = old.type;
+				switch(_g6[1]) {
 				case 5:
 					break;
 				default:
 					var def = this.getDefault(old);
 					var _g16 = 0;
-					var _g22 = this.getSheetLines(sheet);
-					while(_g16 < _g22.length) {
-						var o3 = _g22[_g16];
+					var _g21 = SheetData.getLines(sheet);
+					while(_g16 < _g21.length) {
+						var o3 = _g21[_g16];
 						++_g16;
 						var v3 = Reflect.field(o3,c.name);
 						var _g31 = c.type;
@@ -3591,7 +3379,7 @@ Model.prototype = {
 					switch(_g4[1]) {
 					case 12:
 						var _g5 = 0;
-						var _g6 = this.getSheetLines(s);
+						var _g6 = SheetData.getLines(s);
 						while(_g5 < _g6.length) {
 							var obj = _g6[_g5];
 							++_g5;
@@ -3616,7 +3404,7 @@ Model.prototype = {
 						break;
 					case 15:
 						var _g51 = 0;
-						var _g61 = this.getSheetLines(s);
+						var _g61 = SheetData.getLines(s);
 						while(_g51 < _g61.length) {
 							var obj1 = _g61[_g51];
 							++_g51;
@@ -3686,7 +3474,7 @@ Model.prototype = {
 	,makeSheet: function(s) {
 		var sdat = { s : s, index : new haxe_ds_StringMap(), all : []};
 		var cid = null;
-		var lines = this.getSheetLines(s);
+		var lines = SheetData.getLines(s);
 		var _g = 0;
 		var _g1 = s.columns;
 		while(_g < _g1.length) {
@@ -3732,7 +3520,7 @@ Model.prototype = {
 				switch(_g4[1]) {
 				case 7:
 					var _g5 = 0;
-					var _g6 = this.getSheetLines(s);
+					var _g6 = SheetData.getLines(s);
 					while(_g5 < _g6.length) {
 						var obj = _g6[_g5];
 						++_g5;
@@ -3763,49 +3551,6 @@ Model.prototype = {
 	}
 	,savePrefs: function() {
 		js_Browser.getLocalStorage().setItem("prefs",haxe_Serializer.run(this.prefs));
-	}
-	,objToString: function(sheet,obj,esc) {
-		if(esc == null) esc = false;
-		if(obj == null) return "null";
-		var fl = [];
-		var _g = 0;
-		var _g1 = sheet.columns;
-		while(_g < _g1.length) {
-			var c = _g1[_g];
-			++_g;
-			var v = Reflect.field(obj,c.name);
-			if(v == null) continue;
-			fl.push(c.name + " : " + this.colToString(sheet,c,v,esc));
-		}
-		if(fl.length == 0) return "{}";
-		return "{ " + fl.join(", ") + " }";
-	}
-	,colToString: function(sheet,c,v,esc) {
-		if(esc == null) esc = false;
-		if(v == null) return "null";
-		var _g = c.type;
-		switch(_g[1]) {
-		case 8:
-			var a = v;
-			if(a.length == 0) return "[]";
-			var s = this.smap.get(sheet.name + "@" + c.name).s;
-			return "[ " + ((function($this) {
-				var $r;
-				var _g1 = [];
-				{
-					var _g2 = 0;
-					while(_g2 < a.length) {
-						var v1 = a[_g2];
-						++_g2;
-						_g1.push($this.objToString(s,v1,esc));
-					}
-				}
-				$r = _g1;
-				return $r;
-			}(this))).join(", ") + " ]";
-		default:
-			return this.valToString(c.type,v,esc);
-		}
 	}
 	,valToString: function(t,val,esc) {
 		if(esc == null) esc = false;
@@ -4256,63 +4001,6 @@ Model.prototype = {
 			}
 		}
 	}
-	,changeLineOrder: function(sheet,remap) {
-		var _g = 0;
-		var _g1 = this.data.sheets;
-		while(_g < _g1.length) {
-			var s = _g1[_g];
-			++_g;
-			var _g2 = 0;
-			var _g3 = s.columns;
-			while(_g2 < _g3.length) {
-				var c = _g3[_g2];
-				++_g2;
-				{
-					var _g4 = c.type;
-					switch(_g4[1]) {
-					case 12:
-						var t = _g4[2];
-						if(t == sheet.name) {
-							var _g5 = 0;
-							var _g6 = this.getSheetLines(s);
-							while(_g5 < _g6.length) {
-								var obj = _g6[_g5];
-								++_g5;
-								var ldat = Reflect.field(obj,c.name);
-								if(ldat == null || ldat == "") continue;
-								var d = cdb__$Types_Layer_$Impl_$.decode(ldat,(function($this) {
-									var $r;
-									var _g7 = [];
-									{
-										var _g8 = 0;
-										while(_g8 < 256) {
-											var i = _g8++;
-											_g7.push(i);
-										}
-									}
-									$r = _g7;
-									return $r;
-								}(this)));
-								var _g9 = 0;
-								var _g81 = d.length;
-								while(_g9 < _g81) {
-									var i1 = _g9++;
-									var r = remap[d[i1]];
-									if(r < 0) r = 0;
-									d[i1] = r;
-								}
-								ldat = cdb__$Types_Layer_$Impl_$.encode(d,this.data.compress);
-								obj[c.name] = ldat;
-							}
-						} else {
-						}
-						break;
-					default:
-					}
-				}
-			}
-		}
-	}
 	,updateRefs: function(sheet,refMap) {
 		var _g3 = this;
 		var convertTypeRec;
@@ -4366,7 +4054,7 @@ Model.prototype = {
 						var n1 = _g41[2];
 						if(n1 == sheet.name) {
 							var _g5 = 0;
-							var _g6 = this.getSheetLines(s);
+							var _g6 = SheetData.getLines(s);
 							while(_g5 < _g6.length) {
 								var obj = _g6[_g5];
 								++_g5;
@@ -4382,7 +4070,7 @@ Model.prototype = {
 					case 9:
 						var t1 = _g41[2];
 						var _g51 = 0;
-						var _g61 = this.getSheetLines(s);
+						var _g61 = SheetData.getLines(s);
 						while(_g51 < _g61.length) {
 							var obj1 = _g61[_g51];
 							++_g51;
@@ -4520,7 +4208,7 @@ Model.prototype = {
 						var tname1 = _g41[2];
 						var t2 = this.tmap.get(tname1);
 						var _g51 = 0;
-						var _g6 = this.getSheetLines(s);
+						var _g6 = SheetData.getLines(s);
 						while(_g51 < _g6.length) {
 							var obj = _g6[_g51];
 							++_g51;
@@ -4582,7 +4270,6 @@ Model.prototype = {
 	,__class__: Model
 };
 var Main = function() {
-	this.hasResolveError = false;
 	Model.call(this);
 	this.window = nodejs_webkit_Window.get();
 	this.window.on("resize",$bind(this,this.onResize));
@@ -4628,7 +4315,7 @@ Main.prototype = $extend(Model.prototype,{
 				while(_g1 < data.length) {
 					var o = data[_g1];
 					++_g1;
-					_g.push($this.objToString($this.cursor.s,o,true));
+					_g.push(SheetData.objToString($this.cursor.s,o,true));
 				}
 			}
 			$r = _g;
@@ -4695,7 +4382,7 @@ Main.prototype = $extend(Model.prototype,{
 						var s = this.getSelection();
 						var y = s.y2;
 						while(y >= s.y1) {
-							this.deleteLine(this.cursor.s,y);
+							SheetData.deleteLine(this.cursor.s,y);
 							y--;
 						}
 						this.cursor.y = s.y1;
@@ -4820,7 +4507,7 @@ Main.prototype = $extend(Model.prototype,{
 				while(_g13 < _g23.length) {
 					var obj11 = _g23[_g13];
 					++_g13;
-					if(posY == sheet.lines.length) Model.prototype.newLine.call(this,sheet);
+					if(posY == sheet.lines.length) SheetData.newLine(sheet);
 					var obj2 = sheet.lines[posY];
 					var _g42 = 0;
 					var _g33 = this.clipboard.schema.length;
@@ -4912,93 +4599,17 @@ Main.prototype = $extend(Model.prototype,{
 	,getLine: function(sheet,index) {
 		return ((function($this) {
 			var $r;
-			var html = "table[sheet='" + $this.getPath(sheet) + "'] > tbody > tr";
+			var html = "table[sheet='" + SheetData.getPath(sheet) + "'] > tbody > tr";
 			$r = js.JQuery(html);
 			return $r;
 		}(this))).not(".head,.separator,.list").eq(index);
 	}
 	,showReferences: function(sheet,index) {
 		var _g3 = this;
-		var id = null;
-		var _g = 0;
-		var _g1 = sheet.columns;
-		try {
-			while(_g < _g1.length) {
-				var c = _g1[_g];
-				++_g;
-				var _g2 = c.type;
-				switch(_g2[1]) {
-				case 0:
-					id = Reflect.field(sheet.lines[index],c.name);
-					throw "__break__";
-					break;
-				default:
-				}
-			}
-		} catch( e ) { if( e != "__break__" ) throw e; }
-		if(id == "" || id == null) return;
-		var results = [];
-		var _g4 = 0;
-		var _g11 = this.data.sheets;
-		while(_g4 < _g11.length) {
-			var s = _g11[_g4];
-			++_g4;
-			var _g21 = 0;
-			var _g31 = s.columns;
-			while(_g21 < _g31.length) {
-				var c1 = _g31[_g21];
-				++_g21;
-				{
-					var _g41 = c1.type;
-					switch(_g41[1]) {
-					case 6:
-						var sname = _g41[2];
-						if(sname == sheet.name) {
-							var sheets = [];
-							var p = { s : s, c : c1.name, id : null};
-							while(true) {
-								var _g5 = 0;
-								var _g6 = p.s.columns;
-								try {
-									while(_g5 < _g6.length) {
-										var c2 = _g6[_g5];
-										++_g5;
-										var _g7 = c2.type;
-										switch(_g7[1]) {
-										case 0:
-											p.id = c2.name;
-											throw "__break__";
-											break;
-										default:
-										}
-									}
-								} catch( e ) { if( e != "__break__" ) throw e; }
-								sheets.unshift(p);
-								var p2 = this.getParentSheet(p.s);
-								if(p2 == null) break;
-								p = { s : p2.s, c : p2.c, id : null};
-							}
-							var _g51 = 0;
-							var _g61 = this.getSheetObjects(s);
-							while(_g51 < _g61.length) {
-								var o = _g61[_g51];
-								++_g51;
-								var obj = o.path[o.path.length - 1];
-								if(Reflect.field(obj,c1.name) == id) results.push({ s : sheets, o : o});
-							}
-						} else {
-						}
-						break;
-					case 9:
-						var tname = _g41[2];
-						break;
-					default:
-					}
-				}
-			}
-		}
+		var results = SheetData.getReferences(sheet,index);
+		if(results == null) return;
 		if(results.length == 0) {
-			this.setErrorMessage(id + " not found");
+			this.setErrorMessage("Not found");
 			haxe_Timer.delay((function(f) {
 				return function() {
 					f();
@@ -5018,42 +4629,42 @@ Main.prototype = $extend(Model.prototype,{
 		js.JQuery("<td>").addClass("start").appendTo(cols).click(function(_) {
 			res.change();
 		});
-		var _g8 = 0;
-		var _g12 = ["path","id"];
-		while(_g8 < _g12.length) {
-			var name = _g12[_g8];
-			++_g8;
+		var _g = 0;
+		var _g1 = ["path","id"];
+		while(_g < _g1.length) {
+			var name = _g1[_g];
+			++_g;
 			js.JQuery("<td>").text(name).appendTo(cols);
 		}
 		content.append(cols);
 		var index1 = 0;
-		var _g9 = 0;
-		while(_g9 < results.length) {
-			var rs = [results[_g9]];
-			++_g9;
+		var _g2 = 0;
+		while(_g2 < results.length) {
+			var rs = [results[_g2]];
+			++_g2;
 			var l = js.JQuery("<tr>").appendTo(content).addClass("clickable");
 			js.JQuery("<td>").text("" + index1++).appendTo(l);
 			var slast = [rs[0].s[rs[0].s.length - 1]];
 			js.JQuery("<td>").text(slast[0].s.name.split("@").join(".") + "." + slast[0].c).appendTo(l);
 			var path = [];
-			var _g22 = 0;
-			var _g13 = rs[0].s.length;
-			while(_g22 < _g13) {
-				var i = _g22++;
-				var s1 = rs[0].s[i];
-				var oid = Reflect.field(rs[0].o.path[i],s1.id);
-				if(oid == null || oid == "") path.push(s1.s.name.split("@").pop() + "[" + rs[0].o.indexes[i] + "]"); else path.push(oid);
+			var _g21 = 0;
+			var _g11 = rs[0].s.length;
+			while(_g21 < _g11) {
+				var i = _g21++;
+				var s = rs[0].s[i];
+				var oid = Reflect.field(rs[0].o.path[i],s.id);
+				if(oid == null || oid == "") path.push(s.s.name.split("@").pop() + "[" + rs[0].o.indexes[i] + "]"); else path.push(oid);
 			}
 			js.JQuery("<td>").text(path.join(".")).appendTo(l);
 			l.click((function(slast,rs) {
 				return function(e) {
 					var key = null;
-					var _g23 = 0;
-					var _g14 = rs[0].s.length - 1;
-					while(_g23 < _g14) {
-						var i1 = _g23++;
-						var p1 = rs[0].s[i1];
-						key = _g3.getPath(p1.s) + "@" + p1.c + ":" + rs[0].o.indexes[i1];
+					var _g22 = 0;
+					var _g12 = rs[0].s.length - 1;
+					while(_g22 < _g12) {
+						var i1 = _g22++;
+						var p = rs[0].s[i1];
+						key = SheetData.getPath(p.s) + "@" + p.c + ":" + rs[0].o.indexes[i1];
 						_g3.openedList.set(key,true);
 					}
 					var starget = rs[0].s[0].s;
@@ -5074,168 +4685,30 @@ Main.prototype = $extend(Model.prototype,{
 	}
 	,moveLine: function(sheet,index,delta) {
 		this.getLine(sheet,index).next("tr.list").change();
-		var index1 = Model.prototype.moveLine.call(this,sheet,index,delta);
+		var index1 = SheetData.moveLine(sheet,index,delta);
 		if(index1 != null) {
 			this.setCursor(sheet,-1,index1,null,false);
 			this.refresh();
 			this.save();
 		}
-		return index1;
 	}
 	,changed: function(sheet,c,index,old) {
-		var _g1 = this;
 		var _g = c.type;
 		switch(_g[1]) {
-		case 0:
-			this.makeSheet(sheet);
-			break;
 		case 7:
 			this.saveImages();
 			break;
-		case 3:
-			if(sheet.props.level != null && (c.name == "width" || c.name == "height")) {
-				var obj = sheet.lines[index];
-				var newW = Reflect.field(obj,"width");
-				var newH = Reflect.field(obj,"height");
-				var oldW = newW;
-				var oldH = newH;
-				if(c.name == "width") oldW = old; else oldH = old;
-				var remapTileLayer = function(v) {
-					if(v == null) return null;
-					var odat = cdb__$Types_TileLayerData_$Impl_$.decode(v.data);
-					var ndat = [];
-					if(odat[0] == 65535) ndat = odat; else {
-						var pos = 0;
-						var _g11 = 0;
-						while(_g11 < newH) {
-							var y = _g11++;
-							if(y >= oldH) {
-								var _g2 = 0;
-								while(_g2 < newW) {
-									var x = _g2++;
-									ndat.push(0);
-								}
-							} else if(newW <= oldW) {
-								var _g21 = 0;
-								while(_g21 < newW) {
-									var x1 = _g21++;
-									ndat.push(odat[pos++]);
-								}
-								pos += oldW - newW;
-							} else {
-								var _g22 = 0;
-								while(_g22 < oldW) {
-									var x2 = _g22++;
-									ndat.push(odat[pos++]);
-								}
-								var _g23 = oldW;
-								while(_g23 < newW) {
-									var x3 = _g23++;
-									ndat.push(0);
-								}
-							}
-						}
-					}
-					return { file : v.file, size : v.size, stride : v.stride, data : cdb__$Types_TileLayerData_$Impl_$.encode(ndat,_g1.data.compress)};
-				};
-				var _g12 = 0;
-				var _g24 = sheet.columns;
-				while(_g12 < _g24.length) {
-					var c1 = _g24[_g12];
-					++_g12;
-					var v1 = Reflect.field(obj,c1.name);
-					if(v1 == null) continue;
-					{
-						var _g3 = c1.type;
-						switch(_g3[1]) {
-						case 12:
-							var v2 = v1;
-							var odat1 = cdb__$Types_Layer_$Impl_$.decode(v2,(function($this) {
-								var $r;
-								var _g4 = [];
-								{
-									var _g5 = 0;
-									while(_g5 < 256) {
-										var i = _g5++;
-										_g4.push(i);
-									}
-								}
-								$r = _g4;
-								return $r;
-							}(this)));
-							var ndat1 = [];
-							var _g51 = 0;
-							while(_g51 < newH) {
-								var y1 = _g51++;
-								var _g6 = 0;
-								while(_g6 < newW) {
-									var x4 = _g6++;
-									var k;
-									if(y1 < oldH && x4 < oldW) k = odat1[x4 + y1 * oldW]; else k = 0;
-									ndat1.push(k);
-								}
-							}
-							v2 = cdb__$Types_Layer_$Impl_$.encode(ndat1,this.data.compress);
-							obj[c1.name] = v2;
-							break;
-						case 8:
-							var s = this.smap.get(sheet.name + "@" + c1.name).s;
-							if(this.hasColumn(s,"x",[cdb_ColumnType.TInt,cdb_ColumnType.TFloat]) && this.hasColumn(s,"y",[cdb_ColumnType.TInt,cdb_ColumnType.TFloat])) {
-								var elts = Reflect.field(obj,c1.name);
-								var _g41 = 0;
-								var _g52 = elts.slice();
-								while(_g41 < _g52.length) {
-									var e = _g52[_g41];
-									++_g41;
-									if(e.x >= newW || e.y >= newH) HxOverrides.remove(elts,e);
-								}
-							} else if(this.hasColumn(s,"data",[cdb_ColumnType.TTileLayer])) {
-								var a = v1;
-								var _g42 = 0;
-								while(_g42 < a.length) {
-									var o = a[_g42];
-									++_g42;
-									o.data = remapTileLayer(o.data);
-								}
-							}
-							break;
-						case 15:
-							Reflect.setField(obj,c1.name,remapTileLayer(v1));
-							break;
-						default:
-						}
-					}
-				}
-			} else if(sheet.props.displayColumn == c.name) {
-				var obj1 = sheet.lines[index];
-				var s1 = this.smap.get(sheet.name);
-				var _g13 = 0;
-				var _g25 = sheet.columns;
-				while(_g13 < _g25.length) {
-					var cid = _g25[_g13];
-					++_g13;
-					if(cid.type == cdb_ColumnType.TId) {
-						var id = Reflect.field(obj1,cid.name);
-						if(id != null) {
-							var disp = Reflect.field(obj1,c.name);
-							if(disp == null) disp = "#" + id;
-							s1.index.get(id).disp = disp;
-						}
-					}
-				}
-			}
-			break;
 		case 14:
-			var obj2 = sheet.lines[index];
+			var obj = sheet.lines[index];
 			var oldV = old;
-			var newV = Reflect.field(obj2,c.name);
+			var newV = Reflect.field(obj,c.name);
 			if(newV != null && oldV != null && oldV.file != newV.file && !sys_FileSystem.exists(this.getAbsPath(oldV.file)) && sys_FileSystem.exists(this.getAbsPath(newV.file))) {
 				var change = false;
-				var _g26 = 0;
-				var _g14 = sheet.lines.length;
-				while(_g26 < _g14) {
-					var i1 = _g26++;
-					var t = Reflect.field(sheet.lines[i1],c.name);
+				var _g2 = 0;
+				var _g1 = sheet.lines.length;
+				while(_g2 < _g1) {
+					var i = _g2++;
+					var t = Reflect.field(sheet.lines[i],c.name);
 					if(t != null && t.file == oldV.file) {
 						t.file = newV.file;
 						change = true;
@@ -5245,24 +4718,7 @@ Main.prototype = $extend(Model.prototype,{
 			}
 			break;
 		default:
-			if(sheet.props.displayColumn == c.name) {
-				var obj3 = sheet.lines[index];
-				var s2 = this.smap.get(sheet.name);
-				var _g15 = 0;
-				var _g27 = sheet.columns;
-				while(_g15 < _g27.length) {
-					var cid1 = _g27[_g15];
-					++_g15;
-					if(cid1.type == cdb_ColumnType.TId) {
-						var id1 = Reflect.field(obj3,cid1.name);
-						if(id1 != null) {
-							var disp1 = Reflect.field(obj3,c.name);
-							if(disp1 == null) disp1 = "#" + id1;
-							s2.index.get(id1).disp = disp1;
-						}
-					}
-				}
-			}
+			SheetData.updateValue(sheet,c,index,old);
 		}
 		this.save();
 	}
@@ -5322,7 +4778,7 @@ Main.prototype = $extend(Model.prototype,{
 				break;
 			case 8:
 				var a = v;
-				var ps = this.smap.get(sheet.name + "@" + c.name).s;
+				var ps = SheetData.model.smap.get(sheet.name + "@" + c.name).s;
 				var out = [];
 				var _g11 = 0;
 				while(_g11 < a.length) {
@@ -5441,7 +4897,7 @@ Main.prototype = $extend(Model.prototype,{
 			_g.moveLine(sheet,index,1);
 		};
 		ndel.click = function() {
-			_g.deleteLine(sheet,index);
+			SheetData.deleteLine(sheet,index);
 			_g.refresh();
 			_g.save();
 		};
@@ -5533,11 +4989,11 @@ Main.prototype = $extend(Model.prototype,{
 									break;
 								default:
 									var refMap = new haxe_ds_StringMap();
-									var _g52 = 0;
-									var _g6 = _g4.getSheetLines(sheet);
-									while(_g52 < _g6.length) {
-										var obj = _g6[_g52];
-										++_g52;
+									var _g43 = 0;
+									var _g52 = SheetData.getLines(sheet);
+									while(_g43 < _g52.length) {
+										var obj = _g52[_g43];
+										++_g43;
 										var t = Reflect.field(obj,c.name);
 										if(t != null && t != "") {
 											var t2 = k[0].f(t);
@@ -5583,9 +5039,9 @@ Main.prototype = $extend(Model.prototype,{
 					m2.click = (function(k1) {
 						return function() {
 							var _g31 = 0;
-							var _g53 = _g4.getSheetLines(sheet);
-							while(_g31 < _g53.length) {
-								var obj1 = _g53[_g31];
+							var _g44 = SheetData.getLines(sheet);
+							while(_g31 < _g44.length) {
+								var obj1 = _g44[_g31];
 								++_g31;
 								var t1 = Reflect.field(obj1,c.name);
 								if(t1 != null) {
@@ -5706,20 +5162,20 @@ Main.prototype = $extend(Model.prototype,{
 		nindex.checked = s.props.hasIndex;
 		nindex.click = function() {
 			if(s.props.hasIndex) {
-				var _g14 = 0;
-				var _g22 = _g.getSheetLines(s);
-				while(_g14 < _g22.length) {
-					var o = _g22[_g14];
-					++_g14;
+				var _g3 = 0;
+				var _g14 = SheetData.getLines(s);
+				while(_g3 < _g14.length) {
+					var o = _g14[_g3];
+					++_g3;
 					Reflect.deleteField(o,"index");
 				}
 				s.props.hasIndex = false;
 			} else {
-				var _g3 = 0;
+				var _g4 = 0;
 				var _g15 = s.columns;
-				while(_g3 < _g15.length) {
-					var c = _g15[_g3];
-					++_g3;
+				while(_g4 < _g15.length) {
+					var c = _g15[_g4];
+					++_g4;
 					if(c.name == "index") {
 						_g.error("Column 'index' already exists");
 						return;
@@ -5732,20 +5188,20 @@ Main.prototype = $extend(Model.prototype,{
 		ngroup.checked = s.props.hasGroup;
 		ngroup.click = function() {
 			if(s.props.hasGroup) {
-				var _g16 = 0;
-				var _g23 = _g.getSheetLines(s);
-				while(_g16 < _g23.length) {
-					var o1 = _g23[_g16];
-					++_g16;
+				var _g5 = 0;
+				var _g16 = SheetData.getLines(s);
+				while(_g5 < _g16.length) {
+					var o1 = _g16[_g5];
+					++_g5;
 					Reflect.deleteField(o1,"group");
 				}
 				s.props.hasGroup = false;
 			} else {
-				var _g4 = 0;
+				var _g6 = 0;
 				var _g17 = s.columns;
-				while(_g4 < _g17.length) {
-					var c1 = _g17[_g4];
-					++_g4;
+				while(_g6 < _g17.length) {
+					var c1 = _g17[_g6];
+					++_g6;
 					if(c1.name == "group") {
 						_g.error("Column 'group' already exists");
 						return;
@@ -5758,7 +5214,7 @@ Main.prototype = $extend(Model.prototype,{
 		nren.click = function() {
 			li.dblclick();
 		};
-		if(s.props.level != null || this.hasColumn(s,"width",[cdb_ColumnType.TInt]) && this.hasColumn(s,"height",[cdb_ColumnType.TInt]) && this.hasColumn(s,"props",[cdb_ColumnType.TDynamic])) {
+		if(s.props.level != null || SheetData.hasColumn(s,"width",[cdb_ColumnType.TInt]) && SheetData.hasColumn(s,"height",[cdb_ColumnType.TInt]) && SheetData.hasColumn(s,"props",[cdb_ColumnType.TDynamic])) {
 			var nlevel = new nodejs_webkit_MenuItem({ label : "Level", type : "checkbox"});
 			nlevel.checked = s.props.level != null;
 			n.append(nlevel);
@@ -6246,7 +5702,7 @@ Main.prototype = $extend(Model.prototype,{
 			if(sheet.props.hide) content.change(); else js.JQuery("tr.list table").change();
 		});
 		content.addClass("sheet");
-		content.attr("sheet",this.getPath(sheet));
+		content.attr("sheet",SheetData.getPath(sheet));
 		content.click(function(e) {
 			e.stopPropagation();
 		});
@@ -6380,7 +5836,7 @@ Main.prototype = $extend(Model.prototype,{
 						})(v,index,c));
 						break;
 					case 8:
-						var key = [this.getPath(sheet) + "@" + c[0].name + ":" + index[0]];
+						var key = [SheetData.getPath(sheet) + "@" + c[0].name + ":" + index[0]];
 						v[0].click((function(key,html,l1,v,val,obj,index,c,cindex) {
 							return function(e7) {
 								var next = l1[0].next("tr.list");
@@ -6397,7 +5853,7 @@ Main.prototype = $extend(Model.prototype,{
 								var div = js.JQuery("<div>").appendTo(cell);
 								if(!inTodo) div.hide();
 								var content1 = js.JQuery("<table>").appendTo(div);
-								var psheet = _g4.smap.get(sheet.name + "@" + c[0].name).s;
+								var psheet = SheetData.model.smap.get(sheet.name + "@" + c[0].name).s;
 								if(val[0] == null) {
 									val[0] = [];
 									obj[0][c[0].name] = val[0];
@@ -6425,7 +5881,7 @@ Main.prototype = $extend(Model.prototype,{
 									};
 								})(key,html,v,val,obj,c));
 								if(inTodo) {
-									if(_g4.cursor.s != null && _g4.getPath(_g4.cursor.s) == _g4.getPath(psheet)) {
+									if(_g4.cursor.s != null && SheetData.getPath(_g4.cursor.s) == SheetData.getPath(psheet)) {
 										_g4.cursor.s = psheet;
 										_g4.checkCursor = false;
 									}
@@ -6770,11 +6226,10 @@ Main.prototype = $extend(Model.prototype,{
 			sheet = this.smap.get(this.colProps.sheet).s;
 			cname = this.colProps.ref.name;
 		}
-		if(!Model.prototype.deleteColumn.call(this,sheet,cname)) return false;
+		if(!SheetData.deleteColumn(sheet,cname)) return;
 		js.JQuery("#newcol").hide();
 		this.refresh();
 		this.save();
-		return true;
 	}
 	,editTypes: function() {
 		var _g = this;
@@ -6990,7 +6445,7 @@ Main.prototype = $extend(Model.prototype,{
 		js.JQuery("#newcol").show();
 	}
 	,newLine: function(sheet,index) {
-		Model.prototype.newLine.call(this,sheet,index);
+		SheetData.newLine(sheet,index);
 		this.refresh();
 		this.save();
 	}
@@ -7151,7 +6606,7 @@ Main.prototype = $extend(Model.prototype,{
 				return;
 			}
 		} else {
-			var err1 = Model.prototype.addColumn.call(this,sheet,c,this.colProps.index);
+			var err1 = SheetData.addColumn(sheet,c,this.colProps.index);
 			if(err1 != null) {
 				this.error(err1);
 				return;
@@ -7396,12 +6851,93 @@ Main.prototype = $extend(Model.prototype,{
 		var fileTime = this.getFileTime();
 		if(fileTime != this.lastSave && fileTime != 0) this.load();
 	}
-	,resolveConflict: function() {
+	,load: function(noError) {
+		if(noError == null) noError = false;
+		if(js_Node.require("fs").existsSync(this.prefs.curFile + ".mine") && !Resolver.resolveConflict(this.prefs.curFile)) {
+			this.error("CDB file has unresolved conflict, merge by hand before reloading.");
+			return;
+		}
+		Model.prototype.load.call(this,noError);
+		this.lastSave = this.getFileTime();
+		this.mcompress.checked = this.data.compress;
+	}
+	,save: function(history) {
+		if(history == null) history = true;
+		Model.prototype.save.call(this,history);
+		this.lastSave = this.getFileTime();
+	}
+	,__class__: Main
+});
+Math.__name__ = ["Math"];
+var Reflect = function() { };
+$hxClasses["Reflect"] = Reflect;
+Reflect.__name__ = ["Reflect"];
+Reflect.field = function(o,field) {
+	try {
+		return o[field];
+	} catch( e ) {
+		if (e instanceof js__$Boot_HaxeError) e = e.val;
+		return null;
+	}
+};
+Reflect.setField = function(o,field,value) {
+	o[field] = value;
+};
+Reflect.callMethod = function(o,func,args) {
+	return func.apply(o,args);
+};
+Reflect.fields = function(o) {
+	var a = [];
+	if(o != null) {
+		var hasOwnProperty = Object.prototype.hasOwnProperty;
+		for( var f in o ) {
+		if(f != "__id__" && f != "hx__closures__" && hasOwnProperty.call(o,f)) a.push(f);
+		}
+	}
+	return a;
+};
+Reflect.isFunction = function(f) {
+	return typeof(f) == "function" && !(f.__name__ || f.__ename__);
+};
+Reflect.compare = function(a,b) {
+	if(a == b) return 0; else if(a > b) return 1; else return -1;
+};
+Reflect.isObject = function(v) {
+	if(v == null) return false;
+	var t = typeof(v);
+	return t == "string" || t == "object" && v.__enum__ == null || t == "function" && (v.__name__ || v.__ename__) != null;
+};
+Reflect.deleteField = function(o,field) {
+	if(!Object.prototype.hasOwnProperty.call(o,field)) return false;
+	delete(o[field]);
+	return true;
+};
+Reflect.copy = function(o) {
+	var o2 = { };
+	var _g = 0;
+	var _g1 = Reflect.fields(o);
+	while(_g < _g1.length) {
+		var f = _g1[_g];
+		++_g;
+		Reflect.setField(o2,f,Reflect.field(o,f));
+	}
+	return o2;
+};
+var Resolver = function() {
+	this.hasError = false;
+};
+$hxClasses["Resolver"] = Resolver;
+Resolver.__name__ = ["Resolver"];
+Resolver.resolveConflict = function(file) {
+	return new Resolver().check(file);
+};
+Resolver.prototype = {
+	check: function(file) {
 		var minRev = 0;
 		var maxRev = 0;
-		var basePath = this.prefs.curFile.split("\\").join("/").split("/").pop();
+		var basePath = file.split("\\").join("/").split("/").pop();
 		var _g = 0;
-		var _g1 = sys_FileSystem.readDirectory(HxOverrides.substr(this.prefs.curFile,0,-basePath.length));
+		var _g1 = sys_FileSystem.readDirectory(HxOverrides.substr(file,0,-basePath.length));
 		while(_g < _g1.length) {
 			var f = _g1[_g];
 			++_g;
@@ -7411,7 +6947,7 @@ Main.prototype = $extend(Model.prototype,{
 				if(maxRev == 0 || maxRev < rev) maxRev = rev;
 			}
 		}
-		var merged = sys_io_File.getContent(this.prefs.curFile).split("<<<<<<< .mine");
+		var merged = sys_io_File.getContent(file).split("<<<<<<< .mine");
 		if(merged.length == 1) return true;
 		var endConflict = new EReg(">>>>>>> \\.r[0-9]+[\r\n]+","");
 		var _g11 = 1;
@@ -7422,33 +6958,33 @@ Main.prototype = $extend(Model.prototype,{
 			merged[i] = endConflict.matchedLeft().split("=======").shift() + endConflict.matchedRight();
 		}
 		var mine = haxe_Json.parse(merged.join(""));
-		var origin = haxe_Json.parse(sys_io_File.getContent(this.prefs.curFile + ".r" + minRev));
-		var other = haxe_Json.parse(sys_io_File.getContent(this.prefs.curFile + ".r" + maxRev));
-		this.hasResolveError = false;
+		var origin = haxe_Json.parse(sys_io_File.getContent(file + ".r" + minRev));
+		var other = haxe_Json.parse(sys_io_File.getContent(file + ".r" + maxRev));
+		this.hasError = false;
 		try {
 			this.resolveRec(mine,origin,other,[]);
 		} catch( e ) {
 			if (e instanceof js__$Boot_HaxeError) e = e.val;
 			if( js_Boot.__instanceof(e,String) ) {
 				this.error(e);
-				this.hasResolveError = true;
+				this.hasError = true;
 			} else throw(e);
 		}
-		if(this.hasResolveError) return false;
+		if(this.hasError) return false;
 		try {
-			sys_io_File.saveContent(Sys.getEnv("TEMP") + "/" + basePath + ".merged" + minRev + "_" + maxRev,sys_io_File.getContent(this.prefs.curFile));
+			sys_io_File.saveContent(Sys.getEnv("TEMP") + "/" + basePath + ".merged" + minRev + "_" + maxRev,sys_io_File.getContent(file));
 		} catch( e1 ) {
 			if (e1 instanceof js__$Boot_HaxeError) e1 = e1.val;
 		}
-		sys_io_File.saveContent(this.prefs.curFile,js_Node.stringify(other,null,"\t"));
-		js_Node.require("fs").unlinkSync(this.prefs.curFile + ".mine");
-		js_Node.require("fs").unlinkSync(this.prefs.curFile + ".r" + minRev);
-		js_Node.require("fs").unlinkSync(this.prefs.curFile + ".r" + maxRev);
+		sys_io_File.saveContent(file,js_Node.stringify(other,null,"\t"));
+		js_Node.require("fs").unlinkSync(file + ".mine");
+		js_Node.require("fs").unlinkSync(file + ".r" + minRev);
+		js_Node.require("fs").unlinkSync(file + ".r" + maxRev);
 		return true;
 	}
 	,resolveError: function(message,path) {
 		this.error(message + "\n  in\n" + path.join("."));
-		this.hasResolveError = true;
+		this.hasError = true;
 	}
 	,resolveRec: function(mine,origin,other,path) {
 		if(mine == origin || mine == other) return other;
@@ -7523,77 +7059,641 @@ Main.prototype = $extend(Model.prototype,{
 		}
 		return other;
 	}
-	,load: function(noError) {
-		if(noError == null) noError = false;
-		if(js_Node.require("fs").existsSync(this.prefs.curFile + ".mine") && !this.resolveConflict()) {
-			this.error("CDB file has unresolved conflict, merge by hand before reloading.");
-			return;
+	,error: function(msg) {
+		js_Browser.alert(msg);
+	}
+	,__class__: Resolver
+};
+var SheetData = function() { };
+$hxClasses["SheetData"] = SheetData;
+SheetData.__name__ = ["SheetData"];
+SheetData.getSheet = function(name) {
+	return SheetData.model.smap.get(name).s;
+};
+SheetData.isLevel = function(sheet) {
+	return sheet.props.level != null;
+};
+SheetData.getSub = function(sheet,c) {
+	return SheetData.model.smap.get(sheet.name + "@" + c.name).s;
+};
+SheetData.getParent = function(sheet) {
+	if(!sheet.props.hide) return null;
+	var parts = sheet.name.split("@");
+	var colName = parts.pop();
+	return { s : SheetData.getSheet(parts.join("@")), c : colName};
+};
+SheetData.getLines = function(sheet) {
+	var p = SheetData.getParent(sheet);
+	if(p == null) return sheet.lines;
+	if(p.s.props.level != null && p.c == "tileProps") {
+		var all1 = [];
+		var sets = p.s.props.level.tileSets;
+		var _g = 0;
+		var _g1 = Reflect.fields(sets);
+		while(_g < _g1.length) {
+			var f = _g1[_g];
+			++_g;
+			var t = Reflect.field(sets,f);
+			if(t.props == null) continue;
+			var _g2 = 0;
+			var _g3 = t.props;
+			while(_g2 < _g3.length) {
+				var p1 = _g3[_g2];
+				++_g2;
+				if(p1 != null) all1.push(p1);
+			}
 		}
-		Model.prototype.load.call(this,noError);
-		this.lastSave = this.getFileTime();
-		this.mcompress.checked = this.data.compress;
+		return all1;
 	}
-	,save: function(history) {
-		if(history == null) history = true;
-		Model.prototype.save.call(this,history);
-		this.lastSave = this.getFileTime();
-	}
-	,__class__: Main
-});
-Math.__name__ = ["Math"];
-var Reflect = function() { };
-$hxClasses["Reflect"] = Reflect;
-Reflect.__name__ = ["Reflect"];
-Reflect.field = function(o,field) {
-	try {
-		return o[field];
-	} catch( e ) {
-		if (e instanceof js__$Boot_HaxeError) e = e.val;
-		return null;
-	}
-};
-Reflect.setField = function(o,field,value) {
-	o[field] = value;
-};
-Reflect.callMethod = function(o,func,args) {
-	return func.apply(o,args);
-};
-Reflect.fields = function(o) {
-	var a = [];
-	if(o != null) {
-		var hasOwnProperty = Object.prototype.hasOwnProperty;
-		for( var f in o ) {
-		if(f != "__id__" && f != "hx__closures__" && hasOwnProperty.call(o,f)) a.push(f);
+	var all = [];
+	var _g4 = 0;
+	var _g11 = SheetData.getLines(p.s);
+	while(_g4 < _g11.length) {
+		var obj = _g11[_g4];
+		++_g4;
+		var v = Reflect.field(obj,p.c);
+		if(v != null) {
+			var _g21 = 0;
+			while(_g21 < v.length) {
+				var v1 = v[_g21];
+				++_g21;
+				all.push(v1);
+			}
 		}
 	}
-	return a;
+	return all;
 };
-Reflect.isFunction = function(f) {
-	return typeof(f) == "function" && !(f.__name__ || f.__ename__);
+SheetData.getObjects = function(sheet) {
+	var p = SheetData.getParent(sheet);
+	if(p == null) {
+		var _g = [];
+		var _g2 = 0;
+		var _g1 = sheet.lines.length;
+		while(_g2 < _g1) {
+			var i = _g2++;
+			_g.push({ path : [sheet.lines[i]], indexes : [i]});
+		}
+		return _g;
+	}
+	var all = [];
+	var _g11 = 0;
+	var _g21 = SheetData.getObjects(p.s);
+	while(_g11 < _g21.length) {
+		var obj = _g21[_g11];
+		++_g11;
+		var v = Reflect.field(obj.path[obj.path.length - 1],p.c);
+		if(v != null) {
+			var _g4 = 0;
+			var _g3 = v.length;
+			while(_g4 < _g3) {
+				var i1 = _g4++;
+				var sobj = v[i1];
+				var p1 = obj.path.slice();
+				var idx = obj.indexes.slice();
+				p1.push(sobj);
+				idx.push(i1);
+				all.push({ path : p1, indexes : idx});
+			}
+		}
+	}
+	return all;
 };
-Reflect.compare = function(a,b) {
-	if(a == b) return 0; else if(a > b) return 1; else return -1;
-};
-Reflect.isObject = function(v) {
-	if(v == null) return false;
-	var t = typeof(v);
-	return t == "string" || t == "object" && v.__enum__ == null || t == "function" && (v.__name__ || v.__ename__) != null;
-};
-Reflect.deleteField = function(o,field) {
-	if(!Object.prototype.hasOwnProperty.call(o,field)) return false;
-	delete(o[field]);
-	return true;
-};
-Reflect.copy = function(o) {
-	var o2 = { };
+SheetData.newLine = function(sheet,index) {
+	var o = { };
 	var _g = 0;
-	var _g1 = Reflect.fields(o);
+	var _g1 = sheet.columns;
 	while(_g < _g1.length) {
-		var f = _g1[_g];
+		var c = _g1[_g];
 		++_g;
-		Reflect.setField(o2,f,Reflect.field(o,f));
+		var d = SheetData.model.getDefault(c);
+		if(d != null) o[c.name] = d;
 	}
-	return o2;
+	if(index == null) sheet.lines.push(o); else {
+		var _g11 = 0;
+		var _g2 = sheet.separators.length;
+		while(_g11 < _g2) {
+			var i = _g11++;
+			var s = sheet.separators[i];
+			if(s > index) sheet.separators[i] = s + 1;
+		}
+		sheet.lines.splice(index + 1,0,o);
+		SheetData.changeLineOrder(sheet,(function($this) {
+			var $r;
+			var _g3 = [];
+			{
+				var _g21 = 0;
+				var _g12 = sheet.lines.length;
+				while(_g21 < _g12) {
+					var i1 = _g21++;
+					_g3.push(i1 <= index?i1:i1 + 1);
+				}
+			}
+			$r = _g3;
+			return $r;
+		}(this)));
+	}
+};
+SheetData.getPath = function(sheet) {
+	if(sheet.path == null) return sheet.name; else return sheet.path;
+};
+SheetData.hasColumn = function(s,name,types) {
+	var _g = 0;
+	var _g1 = s.columns;
+	while(_g < _g1.length) {
+		var c = _g1[_g];
+		++_g;
+		if(c.name == name) {
+			if(types != null) {
+				var _g2 = 0;
+				while(_g2 < types.length) {
+					var t = types[_g2];
+					++_g2;
+					if(Type.enumEq(c.type,t)) return true;
+				}
+				return false;
+			}
+			return true;
+		}
+	}
+	return false;
+};
+SheetData.moveLine = function(sheet,index,delta) {
+	if(delta < 0 && index > 0) {
+		var _g1 = 0;
+		var _g = sheet.separators.length;
+		while(_g1 < _g) {
+			var i = _g1++;
+			if(sheet.separators[i] == index) {
+				sheet.separators[i]++;
+				return index;
+			}
+		}
+		var l = sheet.lines[index];
+		sheet.lines.splice(index,1);
+		sheet.lines.splice(index - 1,0,l);
+		var arr;
+		var _g2 = [];
+		var _g21 = 0;
+		var _g11 = sheet.lines.length;
+		while(_g21 < _g11) {
+			var i1 = _g21++;
+			_g2.push(i1);
+		}
+		arr = _g2;
+		arr[index] = index - 1;
+		arr[index - 1] = index;
+		SheetData.changeLineOrder(sheet,arr);
+		return index - 1;
+	} else if(delta > 0 && sheet != null && index < sheet.lines.length - 1) {
+		var _g12 = 0;
+		var _g3 = sheet.separators.length;
+		while(_g12 < _g3) {
+			var i2 = _g12++;
+			if(sheet.separators[i2] == index + 1) {
+				sheet.separators[i2]--;
+				return index;
+			}
+		}
+		var l1 = sheet.lines[index];
+		sheet.lines.splice(index,1);
+		sheet.lines.splice(index + 1,0,l1);
+		var arr1;
+		var _g4 = [];
+		var _g22 = 0;
+		var _g13 = sheet.lines.length;
+		while(_g22 < _g13) {
+			var i3 = _g22++;
+			_g4.push(i3);
+		}
+		arr1 = _g4;
+		arr1[index] = index + 1;
+		arr1[index + 1] = index;
+		SheetData.changeLineOrder(sheet,arr1);
+		return index + 1;
+	}
+	return null;
+};
+SheetData.deleteLine = function(sheet,index) {
+	var arr;
+	var _g = [];
+	var _g2 = 0;
+	var _g1 = sheet.lines.length;
+	while(_g2 < _g1) {
+		var i = _g2++;
+		_g.push(i < index?i:i - 1);
+	}
+	arr = _g;
+	arr[index] = -1;
+	SheetData.changeLineOrder(sheet,arr);
+	sheet.lines.splice(index,1);
+	var prev = -1;
+	var toRemove = null;
+	var _g21 = 0;
+	var _g11 = sheet.separators.length;
+	while(_g21 < _g11) {
+		var i1 = _g21++;
+		var s = sheet.separators[i1];
+		if(s > index) {
+			if(prev == s) toRemove = i1;
+			sheet.separators[i1] = s - 1;
+		} else prev = s;
+	}
+	if(toRemove != null) {
+		sheet.separators.splice(toRemove,1);
+		if(sheet.props.separatorTitles != null) sheet.props.separatorTitles.splice(toRemove,1);
+	}
+};
+SheetData.deleteColumn = function(sheet,cname) {
+	var _g = 0;
+	var _g1 = sheet.columns;
+	while(_g < _g1.length) {
+		var c = _g1[_g];
+		++_g;
+		if(c.name == cname) {
+			HxOverrides.remove(sheet.columns,c);
+			var _g2 = 0;
+			var _g3 = SheetData.getLines(sheet);
+			while(_g2 < _g3.length) {
+				var o = _g3[_g2];
+				++_g2;
+				Reflect.deleteField(o,c.name);
+			}
+			if(sheet.props.displayColumn == c.name) {
+				sheet.props.displayColumn = null;
+				SheetData.model.makeSheet(sheet);
+			}
+			if(c.type == cdb_ColumnType.TList) SheetData.model.deleteSheet(SheetData.model.smap.get(sheet.name + "@" + c.name).s);
+			return true;
+		}
+	}
+	return false;
+};
+SheetData.addColumn = function(sheet,c,index) {
+	var _g = 0;
+	var _g1 = sheet.columns;
+	while(_g < _g1.length) {
+		var c2 = _g1[_g];
+		++_g;
+		if(c2.name == c.name) return "Column already exists"; else if(c2.type == cdb_ColumnType.TId && c.type == cdb_ColumnType.TId) return "Only one ID allowed";
+	}
+	if(c.name == "index" && sheet.props.hasIndex) return "Sheet already has an index";
+	if(c.name == "group" && sheet.props.hasGroup) return "Sheet already has a group";
+	if(index == null) sheet.columns.push(c); else sheet.columns.splice(index,0,c);
+	var _g2 = 0;
+	var _g11 = SheetData.getLines(sheet);
+	while(_g2 < _g11.length) {
+		var i = _g11[_g2];
+		++_g2;
+		var def = SheetData.model.getDefault(c);
+		if(def != null) i[c.name] = def;
+	}
+	if(c.type == cdb_ColumnType.TList) {
+		var s = { name : sheet.name + "@" + c.name, props : { hide : true}, separators : [], lines : [], columns : []};
+		SheetData.model.data.sheets.push(s);
+		SheetData.model.makeSheet(s);
+	}
+	return null;
+};
+SheetData.objToString = function(sheet,obj,esc) {
+	if(esc == null) esc = false;
+	if(obj == null) return "null";
+	var fl = [];
+	var _g = 0;
+	var _g1 = sheet.columns;
+	while(_g < _g1.length) {
+		var c = _g1[_g];
+		++_g;
+		var v = Reflect.field(obj,c.name);
+		if(v == null) continue;
+		fl.push(c.name + " : " + SheetData.colToString(sheet,c,v,esc));
+	}
+	if(fl.length == 0) return "{}";
+	return "{ " + fl.join(", ") + " }";
+};
+SheetData.colToString = function(sheet,c,v,esc) {
+	if(esc == null) esc = false;
+	if(v == null) return "null";
+	var _g = c.type;
+	switch(_g[1]) {
+	case 8:
+		var a = v;
+		if(a.length == 0) return "[]";
+		var s = SheetData.model.smap.get(sheet.name + "@" + c.name).s;
+		return "[ " + ((function($this) {
+			var $r;
+			var _g1 = [];
+			{
+				var _g2 = 0;
+				while(_g2 < a.length) {
+					var v1 = a[_g2];
+					++_g2;
+					_g1.push(SheetData.objToString(s,v1,esc));
+				}
+			}
+			$r = _g1;
+			return $r;
+		}(this))).join(", ") + " ]";
+	default:
+		return SheetData.model.valToString(c.type,v,esc);
+	}
+};
+SheetData.changeLineOrder = function(sheet,remap) {
+	var _g = 0;
+	var _g1 = SheetData.model.data.sheets;
+	while(_g < _g1.length) {
+		var s = _g1[_g];
+		++_g;
+		var _g2 = 0;
+		var _g3 = s.columns;
+		while(_g2 < _g3.length) {
+			var c = _g3[_g2];
+			++_g2;
+			{
+				var _g4 = c.type;
+				switch(_g4[1]) {
+				case 12:
+					var t = _g4[2];
+					if(t == sheet.name) {
+						var _g5 = 0;
+						var _g6 = SheetData.getLines(s);
+						while(_g5 < _g6.length) {
+							var obj = _g6[_g5];
+							++_g5;
+							var ldat = Reflect.field(obj,c.name);
+							if(ldat == null || ldat == "") continue;
+							var d = cdb__$Types_Layer_$Impl_$.decode(ldat,(function($this) {
+								var $r;
+								var _g7 = [];
+								{
+									var _g8 = 0;
+									while(_g8 < 256) {
+										var i = _g8++;
+										_g7.push(i);
+									}
+								}
+								$r = _g7;
+								return $r;
+							}(this)));
+							var _g9 = 0;
+							var _g81 = d.length;
+							while(_g9 < _g81) {
+								var i1 = _g9++;
+								var r = remap[d[i1]];
+								if(r < 0) r = 0;
+								d[i1] = r;
+							}
+							ldat = cdb__$Types_Layer_$Impl_$.encode(d,SheetData.model.data.compress);
+							obj[c.name] = ldat;
+						}
+					} else {
+					}
+					break;
+				default:
+				}
+			}
+		}
+	}
+};
+SheetData.getReferences = function(sheet,index) {
+	var id = null;
+	var _g = 0;
+	var _g1 = sheet.columns;
+	try {
+		while(_g < _g1.length) {
+			var c = _g1[_g];
+			++_g;
+			var _g2 = c.type;
+			switch(_g2[1]) {
+			case 0:
+				id = Reflect.field(sheet.lines[index],c.name);
+				throw "__break__";
+				break;
+			default:
+			}
+		}
+	} catch( e ) { if( e != "__break__" ) throw e; }
+	if(id == "" || id == null) return null;
+	var results = [];
+	var _g3 = 0;
+	var _g11 = SheetData.model.data.sheets;
+	while(_g3 < _g11.length) {
+		var s = _g11[_g3];
+		++_g3;
+		var _g21 = 0;
+		var _g31 = s.columns;
+		while(_g21 < _g31.length) {
+			var c1 = _g31[_g21];
+			++_g21;
+			{
+				var _g4 = c1.type;
+				switch(_g4[1]) {
+				case 6:
+					var sname = _g4[2];
+					if(sname == sheet.name) {
+						var sheets = [];
+						var p = { s : s, c : c1.name, id : null};
+						while(true) {
+							var _g5 = 0;
+							var _g6 = p.s.columns;
+							try {
+								while(_g5 < _g6.length) {
+									var c2 = _g6[_g5];
+									++_g5;
+									var _g7 = c2.type;
+									switch(_g7[1]) {
+									case 0:
+										p.id = c2.name;
+										throw "__break__";
+										break;
+									default:
+									}
+								}
+							} catch( e ) { if( e != "__break__" ) throw e; }
+							sheets.unshift(p);
+							var p2 = SheetData.getParent(p.s);
+							if(p2 == null) break;
+							p = { s : p2.s, c : p2.c, id : null};
+						}
+						var _g51 = 0;
+						var _g61 = SheetData.getObjects(s);
+						while(_g51 < _g61.length) {
+							var o = _g61[_g51];
+							++_g51;
+							var obj = o.path[o.path.length - 1];
+							if(Reflect.field(obj,c1.name) == id) results.push({ s : sheets, o : o});
+						}
+					} else {
+					}
+					break;
+				case 9:
+					var tname = _g4[2];
+					break;
+				default:
+				}
+			}
+		}
+	}
+	return results;
+};
+SheetData.updateValue = function(sheet,c,index,old) {
+	var _g = c.type;
+	switch(_g[1]) {
+	case 0:
+		SheetData.model.makeSheet(sheet);
+		break;
+	case 3:
+		if(sheet.props.level != null && (c.name == "width" || c.name == "height")) {
+			var obj = sheet.lines[index];
+			var newW = Reflect.field(obj,"width");
+			var newH = Reflect.field(obj,"height");
+			var oldW = newW;
+			var oldH = newH;
+			if(c.name == "width") oldW = old; else oldH = old;
+			var remapTileLayer = function(v) {
+				if(v == null) return null;
+				var odat = cdb__$Types_TileLayerData_$Impl_$.decode(v.data);
+				var ndat = [];
+				if(odat[0] == 65535) ndat = odat; else {
+					var pos = 0;
+					var _g1 = 0;
+					while(_g1 < newH) {
+						var y = _g1++;
+						if(y >= oldH) {
+							var _g2 = 0;
+							while(_g2 < newW) {
+								var x = _g2++;
+								ndat.push(0);
+							}
+						} else if(newW <= oldW) {
+							var _g21 = 0;
+							while(_g21 < newW) {
+								var x1 = _g21++;
+								ndat.push(odat[pos++]);
+							}
+							pos += oldW - newW;
+						} else {
+							var _g22 = 0;
+							while(_g22 < oldW) {
+								var x2 = _g22++;
+								ndat.push(odat[pos++]);
+							}
+							var _g23 = oldW;
+							while(_g23 < newW) {
+								var x3 = _g23++;
+								ndat.push(0);
+							}
+						}
+					}
+				}
+				return { file : v.file, size : v.size, stride : v.stride, data : cdb__$Types_TileLayerData_$Impl_$.encode(ndat,SheetData.model.data.compress)};
+			};
+			var _g11 = 0;
+			var _g24 = sheet.columns;
+			while(_g11 < _g24.length) {
+				var c1 = _g24[_g11];
+				++_g11;
+				var v1 = Reflect.field(obj,c1.name);
+				if(v1 == null) continue;
+				{
+					var _g3 = c1.type;
+					switch(_g3[1]) {
+					case 12:
+						var v2 = v1;
+						var odat1 = cdb__$Types_Layer_$Impl_$.decode(v2,(function($this) {
+							var $r;
+							var _g4 = [];
+							{
+								var _g5 = 0;
+								while(_g5 < 256) {
+									var i = _g5++;
+									_g4.push(i);
+								}
+							}
+							$r = _g4;
+							return $r;
+						}(this)));
+						var ndat1 = [];
+						var _g51 = 0;
+						while(_g51 < newH) {
+							var y1 = _g51++;
+							var _g6 = 0;
+							while(_g6 < newW) {
+								var x4 = _g6++;
+								var k;
+								if(y1 < oldH && x4 < oldW) k = odat1[x4 + y1 * oldW]; else k = 0;
+								ndat1.push(k);
+							}
+						}
+						v2 = cdb__$Types_Layer_$Impl_$.encode(ndat1,SheetData.model.data.compress);
+						obj[c1.name] = v2;
+						break;
+					case 8:
+						var s = SheetData.model.smap.get(sheet.name + "@" + c1.name).s;
+						if(SheetData.hasColumn(s,"x",[cdb_ColumnType.TInt,cdb_ColumnType.TFloat]) && SheetData.hasColumn(s,"y",[cdb_ColumnType.TInt,cdb_ColumnType.TFloat])) {
+							var elts = Reflect.field(obj,c1.name);
+							var _g41 = 0;
+							var _g52 = elts.slice();
+							while(_g41 < _g52.length) {
+								var e = _g52[_g41];
+								++_g41;
+								if(e.x >= newW || e.y >= newH) HxOverrides.remove(elts,e);
+							}
+						} else if(SheetData.hasColumn(s,"data",[cdb_ColumnType.TTileLayer])) {
+							var a = v1;
+							var _g42 = 0;
+							while(_g42 < a.length) {
+								var o = a[_g42];
+								++_g42;
+								o.data = remapTileLayer(o.data);
+							}
+						}
+						break;
+					case 15:
+						Reflect.setField(obj,c1.name,remapTileLayer(v1));
+						break;
+					default:
+					}
+				}
+			}
+		} else if(sheet.props.displayColumn == c.name) {
+			var obj1 = sheet.lines[index];
+			var s1 = SheetData.model.smap.get(sheet.name);
+			var _g12 = 0;
+			var _g25 = sheet.columns;
+			while(_g12 < _g25.length) {
+				var cid = _g25[_g12];
+				++_g12;
+				if(cid.type == cdb_ColumnType.TId) {
+					var id = Reflect.field(obj1,cid.name);
+					if(id != null) {
+						var disp = Reflect.field(obj1,c.name);
+						if(disp == null) disp = "#" + id;
+						s1.index.get(id).disp = disp;
+					}
+				}
+			}
+		}
+		break;
+	default:
+		if(sheet.props.displayColumn == c.name) {
+			var obj2 = sheet.lines[index];
+			var s2 = SheetData.model.smap.get(sheet.name);
+			var _g13 = 0;
+			var _g26 = sheet.columns;
+			while(_g13 < _g26.length) {
+				var cid1 = _g26[_g13];
+				++_g13;
+				if(cid1.type == cdb_ColumnType.TId) {
+					var id1 = Reflect.field(obj2,cid1.name);
+					if(id1 != null) {
+						var disp1 = Reflect.field(obj2,c.name);
+						if(disp1 == null) disp1 = "#" + id1;
+						s2.index.get(id1).disp = disp1;
+					}
+				}
+			}
+		}
+	}
 };
 var Std = function() { };
 $hxClasses["Std"] = Std;
@@ -7697,27 +7797,20 @@ Sys.time = function() {
 };
 var ValueType = $hxClasses["ValueType"] = { __ename__ : ["ValueType"], __constructs__ : ["TNull","TInt","TFloat","TBool","TObject","TFunction","TClass","TEnum","TUnknown"] };
 ValueType.TNull = ["TNull",0];
-ValueType.TNull.toString = $estr;
 ValueType.TNull.__enum__ = ValueType;
 ValueType.TInt = ["TInt",1];
-ValueType.TInt.toString = $estr;
 ValueType.TInt.__enum__ = ValueType;
 ValueType.TFloat = ["TFloat",2];
-ValueType.TFloat.toString = $estr;
 ValueType.TFloat.__enum__ = ValueType;
 ValueType.TBool = ["TBool",3];
-ValueType.TBool.toString = $estr;
 ValueType.TBool.__enum__ = ValueType;
 ValueType.TObject = ["TObject",4];
-ValueType.TObject.toString = $estr;
 ValueType.TObject.__enum__ = ValueType;
 ValueType.TFunction = ["TFunction",5];
-ValueType.TFunction.toString = $estr;
 ValueType.TFunction.__enum__ = ValueType;
-ValueType.TClass = function(c) { var $x = ["TClass",6,c]; $x.__enum__ = ValueType; $x.toString = $estr; return $x; };
-ValueType.TEnum = function(e) { var $x = ["TEnum",7,e]; $x.__enum__ = ValueType; $x.toString = $estr; return $x; };
+ValueType.TClass = function(c) { var $x = ["TClass",6,c]; $x.__enum__ = ValueType; return $x; };
+ValueType.TEnum = function(e) { var $x = ["TEnum",7,e]; $x.__enum__ = ValueType; return $x; };
 ValueType.TUnknown = ["TUnknown",8];
-ValueType.TUnknown.toString = $estr;
 ValueType.TUnknown.__enum__ = ValueType;
 var Type = function() { };
 $hxClasses["Type"] = Type;
@@ -7805,45 +7898,33 @@ Type.enumEq = function(a,b) {
 };
 var cdb_ColumnType = $hxClasses["cdb.ColumnType"] = { __ename__ : ["cdb","ColumnType"], __constructs__ : ["TId","TString","TBool","TInt","TFloat","TEnum","TRef","TImage","TList","TCustom","TFlags","TColor","TLayer","TFile","TTilePos","TTileLayer","TDynamic"] };
 cdb_ColumnType.TId = ["TId",0];
-cdb_ColumnType.TId.toString = $estr;
 cdb_ColumnType.TId.__enum__ = cdb_ColumnType;
 cdb_ColumnType.TString = ["TString",1];
-cdb_ColumnType.TString.toString = $estr;
 cdb_ColumnType.TString.__enum__ = cdb_ColumnType;
 cdb_ColumnType.TBool = ["TBool",2];
-cdb_ColumnType.TBool.toString = $estr;
 cdb_ColumnType.TBool.__enum__ = cdb_ColumnType;
 cdb_ColumnType.TInt = ["TInt",3];
-cdb_ColumnType.TInt.toString = $estr;
 cdb_ColumnType.TInt.__enum__ = cdb_ColumnType;
 cdb_ColumnType.TFloat = ["TFloat",4];
-cdb_ColumnType.TFloat.toString = $estr;
 cdb_ColumnType.TFloat.__enum__ = cdb_ColumnType;
-cdb_ColumnType.TEnum = function(values) { var $x = ["TEnum",5,values]; $x.__enum__ = cdb_ColumnType; $x.toString = $estr; return $x; };
-cdb_ColumnType.TRef = function(sheet) { var $x = ["TRef",6,sheet]; $x.__enum__ = cdb_ColumnType; $x.toString = $estr; return $x; };
+cdb_ColumnType.TEnum = function(values) { var $x = ["TEnum",5,values]; $x.__enum__ = cdb_ColumnType; return $x; };
+cdb_ColumnType.TRef = function(sheet) { var $x = ["TRef",6,sheet]; $x.__enum__ = cdb_ColumnType; return $x; };
 cdb_ColumnType.TImage = ["TImage",7];
-cdb_ColumnType.TImage.toString = $estr;
 cdb_ColumnType.TImage.__enum__ = cdb_ColumnType;
 cdb_ColumnType.TList = ["TList",8];
-cdb_ColumnType.TList.toString = $estr;
 cdb_ColumnType.TList.__enum__ = cdb_ColumnType;
-cdb_ColumnType.TCustom = function(name) { var $x = ["TCustom",9,name]; $x.__enum__ = cdb_ColumnType; $x.toString = $estr; return $x; };
-cdb_ColumnType.TFlags = function(values) { var $x = ["TFlags",10,values]; $x.__enum__ = cdb_ColumnType; $x.toString = $estr; return $x; };
+cdb_ColumnType.TCustom = function(name) { var $x = ["TCustom",9,name]; $x.__enum__ = cdb_ColumnType; return $x; };
+cdb_ColumnType.TFlags = function(values) { var $x = ["TFlags",10,values]; $x.__enum__ = cdb_ColumnType; return $x; };
 cdb_ColumnType.TColor = ["TColor",11];
-cdb_ColumnType.TColor.toString = $estr;
 cdb_ColumnType.TColor.__enum__ = cdb_ColumnType;
-cdb_ColumnType.TLayer = function(type) { var $x = ["TLayer",12,type]; $x.__enum__ = cdb_ColumnType; $x.toString = $estr; return $x; };
+cdb_ColumnType.TLayer = function(type) { var $x = ["TLayer",12,type]; $x.__enum__ = cdb_ColumnType; return $x; };
 cdb_ColumnType.TFile = ["TFile",13];
-cdb_ColumnType.TFile.toString = $estr;
 cdb_ColumnType.TFile.__enum__ = cdb_ColumnType;
 cdb_ColumnType.TTilePos = ["TTilePos",14];
-cdb_ColumnType.TTilePos.toString = $estr;
 cdb_ColumnType.TTilePos.__enum__ = cdb_ColumnType;
 cdb_ColumnType.TTileLayer = ["TTileLayer",15];
-cdb_ColumnType.TTileLayer.toString = $estr;
 cdb_ColumnType.TTileLayer.__enum__ = cdb_ColumnType;
 cdb_ColumnType.TDynamic = ["TDynamic",16];
-cdb_ColumnType.TDynamic.toString = $estr;
 cdb_ColumnType.TDynamic.__enum__ = cdb_ColumnType;
 var cdb__$Data_TileMode_$Impl_$ = {};
 $hxClasses["cdb._Data.TileMode_Impl_"] = cdb__$Data_TileMode_$Impl_$;
@@ -9008,12 +9089,6 @@ cdb_IndexId.prototype = $extend(cdb_Index.prototype,{
 	}
 	,__class__: cdb_IndexId
 });
-var haxe_IMap = function() { };
-$hxClasses["haxe.IMap"] = haxe_IMap;
-haxe_IMap.__name__ = ["haxe","IMap"];
-haxe_IMap.prototype = {
-	__class__: haxe_IMap
-};
 var haxe_Json = function() { };
 $hxClasses["haxe.Json"] = haxe_Json;
 haxe_Json.__name__ = ["haxe","Json"];
@@ -10038,68 +10113,6 @@ haxe_ds__$StringMap_StringMapIterator.prototype = {
 	}
 	,__class__: haxe_ds__$StringMap_StringMapIterator
 };
-var haxe_ds_StringMap = function() {
-	this.h = { };
-};
-$hxClasses["haxe.ds.StringMap"] = haxe_ds_StringMap;
-haxe_ds_StringMap.__name__ = ["haxe","ds","StringMap"];
-haxe_ds_StringMap.__interfaces__ = [haxe_IMap];
-haxe_ds_StringMap.prototype = {
-	set: function(key,value) {
-		if(__map_reserved[key] != null) this.setReserved(key,value); else this.h[key] = value;
-	}
-	,get: function(key) {
-		if(__map_reserved[key] != null) return this.getReserved(key);
-		return this.h[key];
-	}
-	,exists: function(key) {
-		if(__map_reserved[key] != null) return this.existsReserved(key);
-		return this.h.hasOwnProperty(key);
-	}
-	,setReserved: function(key,value) {
-		if(this.rh == null) this.rh = { };
-		this.rh["$" + key] = value;
-	}
-	,getReserved: function(key) {
-		if(this.rh == null) return null; else return this.rh["$" + key];
-	}
-	,existsReserved: function(key) {
-		if(this.rh == null) return false;
-		return this.rh.hasOwnProperty("$" + key);
-	}
-	,remove: function(key) {
-		if(__map_reserved[key] != null) {
-			key = "$" + key;
-			if(this.rh == null || !this.rh.hasOwnProperty(key)) return false;
-			delete(this.rh[key]);
-			return true;
-		} else {
-			if(!this.h.hasOwnProperty(key)) return false;
-			delete(this.h[key]);
-			return true;
-		}
-	}
-	,keys: function() {
-		var _this = this.arrayKeys();
-		return HxOverrides.iter(_this);
-	}
-	,arrayKeys: function() {
-		var out = [];
-		for( var key in this.h ) {
-		if(this.h.hasOwnProperty(key)) out.push(key);
-		}
-		if(this.rh != null) {
-			for( var key in this.rh ) {
-			if(key.charCodeAt(0) == 36) out.push(key.substr(1));
-			}
-		}
-		return out;
-	}
-	,iterator: function() {
-		return new haxe_ds__$StringMap_StringMapIterator(this,this.arrayKeys());
-	}
-	,__class__: haxe_ds_StringMap
-};
 var haxe_io_BytesBuffer = function() {
 	this.b = [];
 };
@@ -10186,15 +10199,12 @@ haxe_io_Eof.prototype = {
 };
 var haxe_io_Error = $hxClasses["haxe.io.Error"] = { __ename__ : ["haxe","io","Error"], __constructs__ : ["Blocked","Overflow","OutsideBounds","Custom"] };
 haxe_io_Error.Blocked = ["Blocked",0];
-haxe_io_Error.Blocked.toString = $estr;
 haxe_io_Error.Blocked.__enum__ = haxe_io_Error;
 haxe_io_Error.Overflow = ["Overflow",1];
-haxe_io_Error.Overflow.toString = $estr;
 haxe_io_Error.Overflow.__enum__ = haxe_io_Error;
 haxe_io_Error.OutsideBounds = ["OutsideBounds",2];
-haxe_io_Error.OutsideBounds.toString = $estr;
 haxe_io_Error.OutsideBounds.__enum__ = haxe_io_Error;
-haxe_io_Error.Custom = function(e) { var $x = ["Custom",3,e]; $x.__enum__ = haxe_io_Error; $x.toString = $estr; return $x; };
+haxe_io_Error.Custom = function(e) { var $x = ["Custom",3,e]; $x.__enum__ = haxe_io_Error; return $x; };
 var haxe_io_Path = function(path) {
 	switch(path) {
 	case ".":case "..":
@@ -10987,10 +10997,10 @@ lvl_Image3D.prototype = $extend(lvl_Image.prototype,{
 	,__class__: lvl_Image3D
 });
 var lvl_LayerInnerData = $hxClasses["lvl.LayerInnerData"] = { __ename__ : ["lvl","LayerInnerData"], __constructs__ : ["Layer","Objects","Tiles","TileInstances"] };
-lvl_LayerInnerData.Layer = function(a) { var $x = ["Layer",0,a]; $x.__enum__ = lvl_LayerInnerData; $x.toString = $estr; return $x; };
-lvl_LayerInnerData.Objects = function(idCol,objs) { var $x = ["Objects",1,idCol,objs]; $x.__enum__ = lvl_LayerInnerData; $x.toString = $estr; return $x; };
-lvl_LayerInnerData.Tiles = function(t,data) { var $x = ["Tiles",2,t,data]; $x.__enum__ = lvl_LayerInnerData; $x.toString = $estr; return $x; };
-lvl_LayerInnerData.TileInstances = function(t,insts) { var $x = ["TileInstances",3,t,insts]; $x.__enum__ = lvl_LayerInnerData; $x.toString = $estr; return $x; };
+lvl_LayerInnerData.Layer = function(a) { var $x = ["Layer",0,a]; $x.__enum__ = lvl_LayerInnerData; return $x; };
+lvl_LayerInnerData.Objects = function(idCol,objs) { var $x = ["Objects",1,idCol,objs]; $x.__enum__ = lvl_LayerInnerData; return $x; };
+lvl_LayerInnerData.Tiles = function(t,data) { var $x = ["Tiles",2,t,data]; $x.__enum__ = lvl_LayerInnerData; return $x; };
+lvl_LayerInnerData.TileInstances = function(t,insts) { var $x = ["TileInstances",3,t,insts]; $x.__enum__ = lvl_LayerInnerData; return $x; };
 var lvl_LayerGfx = function(level) {
 	this.height = 0;
 	this.stride = 0;
@@ -12037,7 +12047,7 @@ lvl_Palette.prototype = {
 		while(_g < _g1.length) {
 			var c = _g1[_g];
 			++_g;
-			if(c.name == "tileProps" && c.type == cdb_ColumnType.TList) this.perTileProps = this.level.model.smap.get(this.level.sheet.name + "@" + c.name).s.columns;
+			if(c.name == "tileProps" && c.type == cdb_ColumnType.TList) this.perTileProps = SheetData.model.smap.get(this.level.sheet.name + "@" + c.name).s.columns;
 		}
 		this.perTileGfx = new haxe_ds_StringMap();
 		var _g2 = 0;
@@ -12958,6 +12968,7 @@ function $bind(o,m) { if( m == null ) return null; if( m.__id__ == null ) m.__id
 if(Array.prototype.indexOf) HxOverrides.indexOf = function(a,o,i) {
 	return Array.prototype.indexOf.call(a,o,i);
 };
+var __map_reserved = {}
 $hxClasses.Math = Math;
 String.prototype.__class__ = $hxClasses.String = String;
 String.__name__ = ["String"];
@@ -12994,7 +13005,6 @@ if(Array.prototype.filter == null) Array.prototype.filter = function(f1) {
 	}
 	return a1;
 };
-var __map_reserved = {}
 var q = window.jQuery;
 var js = js || {}
 js.JQuery = q;

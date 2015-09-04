@@ -7,6 +7,8 @@ import nodejs.webkit.Menu;
 import nodejs.webkit.MenuItem;
 import nodejs.webkit.MenuItemType;
 
+using SheetData;
+
 typedef LevelState = {
 	var curLayer : String;
 	var zoomView : Float;
@@ -70,7 +72,7 @@ class Level {
 
 	public function new( model : Model, sheet : Sheet, index : Int ) {
 		this.sheet = sheet;
-		this.sheetPath = model.getPath(sheet);
+		this.sheetPath = sheet.getPath();
 		this.index = index;
 		this.obj = sheet.lines[index];
 		this.model = model;
@@ -162,9 +164,9 @@ class Level {
 				l.setLayerData(val);
 				layers.push(l);
 			case TList:
-				var sheet = model.getPseudoSheet(sheet, c);
+				var sheet = sheet.getSub(c);
 				var floatCoord = false;
-				if( (model.hasColumn(sheet, "x", [TInt]) && model.hasColumn(sheet, "y", [TInt])) || (floatCoord = true && model.hasColumn(sheet, "x", [TFloat]) && model.hasColumn(sheet, "y", [TFloat])) ) {
+				if( (sheet.hasColumn("x", [TInt]) && sheet.hasColumn("y", [TInt])) || (floatCoord = true && sheet.hasColumn("x", [TFloat]) && sheet.hasColumn("y", [TFloat])) ) {
 					var sid = null, idCol = null;
 					for( cid in sheet.columns )
 						switch( cid.type ) {
@@ -179,9 +181,9 @@ class Level {
 					l.baseSheet = sheet;
 					l.loadSheetData(sid);
 					l.setObjectsData(idCol, val);
-					l.hasSize = model.hasColumn(sheet, "width", [floatCoord?TFloat:TInt]) && model.hasColumn(sheet, "height", [floatCoord?TFloat:TInt]);
+					l.hasSize = sheet.hasColumn("width", [floatCoord?TFloat:TInt]) && sheet.hasColumn("height", [floatCoord?TFloat:TInt]);
 					layers.push(l);
-				} else if( model.hasColumn(sheet, "name", [TString]) && model.hasColumn(sheet, "data", [TTileLayer]) ) {
+				} else if( sheet.hasColumn("name", [TString]) && sheet.hasColumn("data", [TTileLayer]) ) {
 					var val : Array<{ name : String, data : Dynamic }> = val;
 					for( lobj in val ) {
 						if( lobj.name == null ) continue;
@@ -526,7 +528,7 @@ class Level {
 	@:keep function addNewLayer( name ) {
 		switch( newLayer.type ) {
 		case TList:
-			var s = model.getPseudoSheet(sheet, newLayer);
+			var s = sheet.getSub(newLayer);
 			var o = { name : null, data : null };
 			for( c in s.columns ) {
 				var v = model.getDefault(c);
@@ -1187,7 +1189,7 @@ class Level {
 					columns : l.baseSheet.columns, // SHARE
 					props : l.baseSheet.props, // SHARE
 					name : l.baseSheet.name, // same
-					path : model.getPath(l.baseSheet) + ":" + index, // unique
+					path : l.baseSheet.getPath() + ":" + index, // unique
 					parent : { sheet : sheet, column : Lambda.indexOf(sheet.columns,Lambda.find(sheet.columns,function(c) return c.name == l.name)), line : index },
 					lines : Reflect.field(obj, l.name), // ref
 					separators : [], // none

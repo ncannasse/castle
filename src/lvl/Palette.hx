@@ -1,6 +1,7 @@
 package lvl;
 import cdb.Data;
 import js.JQuery.JQueryHelper.*;
+using SheetData;
 
 class Palette {
 
@@ -33,7 +34,7 @@ class Palette {
 		perTileProps = [];
 		for( c in level.sheet.columns )
 			if( c.name == "tileProps" && c.type == TList )
-				perTileProps = level.model.getPseudoSheet(level.sheet, c).columns;
+				perTileProps = level.sheet.getSub(c).columns;
 
 		perTileGfx = new Map();
 		for( c in perTileProps )

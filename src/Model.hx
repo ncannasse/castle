@@ -1,4 +1,5 @@
 import cdb.Data;
+using SheetData;
 
 typedef Prefs = {
 	windowPos : { x : Int, y : Int, w : Int, h : Int, max : Bool },
@@ -12,8 +13,8 @@ typedef HistoryElement = { d : String, o : String };
 
 class Model {
 
+	public var data : Data;
 	var prefs : Prefs;
-	var data : Data;
 	var imageBank : Dynamic<String>;
 	var smap : Map< String, { s : Sheet, index : Map<String,Index> , all : Array<Index> } >;
 	var tmap : Map< String, CustomType >;
@@ -33,6 +34,7 @@ class Model {
 			curSheet : 0,
 		};
 		loadPrefs();
+		@:privateAccess SheetData.model = this;
 	}
 
 	public function getImageData( key : String ) : String {
@@ -45,89 +47,6 @@ class Model {
 
 	public inline function getSheet( name : String ) {
 		return smap.get(name).s;
-	}
-
-	public inline function getPseudoSheet( sheet : Sheet, c : Column ) {
-		return getSheet(sheet.name + "@" + c.name);
-	}
-
-	function getParentSheet( sheet : Sheet ) {
-		if( !sheet.props.hide )
-			return null;
-		var parts = sheet.name.split("@");
-		var colName = parts.pop();
-		return { s : getSheet(parts.join("@")), c : colName };
-	}
-
-	function getSheetLines( sheet : Sheet ) : Array<Dynamic> {
-		var p = getParentSheet(sheet);
-		if( p == null ) return sheet.lines;
-
-		if( p.s.props.level != null && p.c == "tileProps" ) {
-			var all = [];
-			var sets = p.s.props.level.tileSets;
-			for( f in Reflect.fields(sets) ) {
-				var t : cdb.Data.TilesetProps = Reflect.field(sets, f);
-				if( t.props == null ) continue;
-				for( p in t.props )
-					if( p != null )
-						all.push(p);
-			}
-			return all;
-		}
-
-		var all = [];
-		for( obj in getSheetLines(p.s) ) {
-			var v : Array<Dynamic> = Reflect.field(obj, p.c);
-			if( v != null )
-				for( v in v )
-					all.push(v);
-		}
-		return all;
-	}
-
-	function getSheetObjects( sheet : Sheet ) : Array<{ path : Array<Dynamic>, indexes : Array<Int> }> {
-		var p = getParentSheet(sheet);
-		if( p == null )
-			return [for( i in 0...sheet.lines.length ) { path : [sheet.lines[i]], indexes : [i] }];
-		var all = [];
-		for( obj in getSheetObjects(p.s) ) {
-			var v : Array<Dynamic> = Reflect.field(obj.path[obj.path.length-1], p.c);
-			if( v != null )
-				for( i in 0...v.length ) {
-					var sobj = v[i];
-					var p = obj.path.copy();
-					var idx = obj.indexes.copy();
-					p.push(sobj);
-					idx.push(i);
-					all.push({ path : p, indexes : idx });
-				}
-		}
-		return all;
-	}
-
-	function newLine( sheet : Sheet, ?index : Int ) {
-		var o = {
-		};
-		for( c in sheet.columns ) {
-			var d = getDefault(c);
-			if( d != null )
-				Reflect.setField(o, c.name, d);
-		}
-		if( index == null )
-			sheet.lines.push(o);
-		else {
-			for( i in 0...sheet.separators.length ) {
-				var s = sheet.separators[i];
-				if( s > index ) sheet.separators[i] = s + 1;
-			}
-			sheet.lines.insert(index + 1, o);
-			changeLineOrder(sheet, [for( i in 0...sheet.lines.length ) i <= index ? i : i + 1]);
-		}
-	}
-
-	public function getPath( sheet : Sheet ) {
-		return sheet.path == null ? sheet.name : sheet.path;
 	}
 
 	public function getDefault( c : Column ) : Dynamic {
@@ -158,20 +77,6 @@ class Model {
 		return haxe.Json.parse(s);
 	}
 
-	public function hasColumn( s : Sheet, name : String, ?types : Array<ColumnType> ) {
-		for( c in s.columns )
-			if( c.name == name ) {
-				if( types != null ) {
-					for( t in types )
-						if( c.type.equals(t) )
-							return true;
-					return false;
-				}
-				return true;
-			}
-		return false;
-	}
-
 	public function save( history = true ) {
 
 		// process
@@ -182,12 +87,12 @@ class Model {
 				if( v == null || v == false ) Reflect.deleteField(s.props, p);
 			}
 			if( s.props.hasIndex ) {
-				var lines = getSheetLines(s);
+				var lines = s.getLines();
 				for( i in 0...lines.length )
 					lines[i].index = i;
 			}
 			if( s.props.hasGroup ) {
-				var lines = getSheetLines(s);
+				var lines = s.getLines();
 				var gid = 0;
 				var sindex = 0;
 				var titles = s.props.separatorTitles;
@@ -248,96 +153,13 @@ class Model {
 		openedList = haxe.Unserializer.run(sdata.o);
 	}
 
-	function moveLine( sheet : Sheet, index : Int, delta : Int ) : Null<Int> {
-		if( delta < 0 && index > 0 ) {
-
-			for( i in 0...sheet.separators.length )
-				if( sheet.separators[i] == index ) {
-					sheet.separators[i]++;
-					return index;
-				}
-
-			var l = sheet.lines[index];
-			sheet.lines.splice(index, 1);
-			sheet.lines.insert(index - 1, l);
-
-			var arr = [for( i in 0...sheet.lines.length ) i];
-			arr[index] = index - 1;
-			arr[index - 1] = index;
-			changeLineOrder(sheet, arr);
-
-			return index - 1;
-		} else if( delta > 0 && sheet != null && index < sheet.lines.length - 1 ) {
-
-
-			for( i in 0...sheet.separators.length )
-				if( sheet.separators[i] == index + 1 ) {
-					sheet.separators[i]--;
-					return index;
-				}
-
-			var l = sheet.lines[index];
-			sheet.lines.splice(index, 1);
-			sheet.lines.insert(index + 1, l);
-
-			var arr = [for( i in 0...sheet.lines.length ) i];
-			arr[index] = index + 1;
-			arr[index + 1] = index;
-			changeLineOrder(sheet, arr);
-
-			return index + 1;
-		}
-		return null;
-	}
-
-	function deleteLine( sheet : Sheet, index : Int ) {
-
-		var arr = [for( i in 0...sheet.lines.length ) if( i < index ) i else i - 1];
-		arr[index] = -1;
-		changeLineOrder(sheet, arr);
-
-		sheet.lines.splice(index, 1);
-
-		var prev = -1, toRemove = null;
-		for( i in 0...sheet.separators.length ) {
-			var s = sheet.separators[i];
-			if( s > index ) {
-				if( prev == s ) toRemove = i;
-				sheet.separators[i] = s - 1;
-			} else
-				prev = s;
-		}
-		// prevent duplicates
-		if( toRemove != null ) {
-			sheet.separators.splice(toRemove, 1);
-			if( sheet.props.separatorTitles != null ) sheet.props.separatorTitles.splice(toRemove, 1);
-		}
-	}
-
-	function deleteColumn( sheet : Sheet, ?cname : String ) {
-		for( c in sheet.columns )
-			if( c.name == cname ) {
-				sheet.columns.remove(c);
-				for( o in getSheetLines(sheet) )
-					Reflect.deleteField(o, c.name);
-				if( sheet.props.displayColumn == c.name ) {
-					sheet.props.displayColumn = null;
-					makeSheet(sheet);
-				}
-				if( c.type == TList )
-					deleteSheet(getPseudoSheet(sheet, c));
-				return true;
-			}
-		return false;
-	}
-
-	function deleteSheet( sheet : Sheet ) {
+	public function deleteSheet( sheet : Sheet ) {
 		data.sheets.remove(sheet);
 		smap.remove(sheet.name);
 		for( c in sheet.columns )
 			switch( c.type ) {
 			case TList:
-				deleteSheet(getPseudoSheet(sheet, c));
+				deleteSheet(sheet.getSub(c));
 			default:
 			}
 		mapType(function(t) {
@@ -346,40 +168,6 @@ class Model {
 			default: t;
 			}
 		});
-	}
-
-	function addColumn( sheet : Sheet, c : Column, ?index : Int ) {
-		// create
-		for( c2 in sheet.columns )
-			if( c2.name == c.name )
-				return "Column already exists";
-			else if( c2.type == TId && c.type == TId )
-				return "Only one ID allowed";
-		if( c.name == "index" && sheet.props.hasIndex )
-			return "Sheet already has an index";
-		if( c.name == "group" && sheet.props.hasGroup )
-			return "Sheet already has a group";
-		if( index == null )
-			sheet.columns.push(c);
-		else
-			sheet.columns.insert(index, c);
-		for( i in getSheetLines(sheet) ) {
-			var def = getDefault(c);
-			if( def != null ) Reflect.setField(i, c.name, def);
-		}
-		if( c.type == TList ) {
-			// create an hidden sheet for the model
-			var s : Sheet = {
-				name : sheet.name + "@" + c.name,
-				props : { hide : true },
-				separators : [],
-				lines : [],
-				columns : [],
-			};
-			data.sheets.push(s);
-			makeSheet(s);
-		}
-		return null;
 	}
 
 	function getConvFunction( old : ColumnType, t : ColumnType ) {
@@ -463,15 +251,15 @@ class Model {
 			if( c.name == "group" && sheet.props.hasGroup )
 				return "Sheet already has a group";
 
-			for( o in getSheetLines(sheet) ) {
+			for( o in sheet.getLines() ) {
 				var v = Reflect.field(o, old.name);
 				Reflect.deleteField(o, old.name);
 				if( v != null )
 					Reflect.setField(o, c.name, v);
 			}
 
-			function renameRec(sheet, col) {
-				var s = getPseudoSheet(sheet, col);
+			function renameRec(sheet:Sheet, col) {
+				var s = sheet.getSub(col);
 				s.name = sheet.name + "@" + c.name;
 				for( c in s.columns )
 					if( c.type == TList )
@@ -488,7 +276,7 @@ class Model {
 				return "Cannot convert " + typeStr(old.type) + " to " + typeStr(c.type);
 			var conv = conv.f;
 			if( conv != null )
-				for( o in getSheetLines(sheet) ) {
+				for( o in sheet.getLines() ) {
 					var v = Reflect.field(o, c.name);
 					if( v != null ) {
 						v = conv(v);
@@ -501,7 +289,7 @@ class Model {
 
 		if( old.opt != c.opt ) {
 			if( old.opt ) {
-				for( o in getSheetLines(sheet) ) {
+				for( o in sheet.getLines() ) {
 					var v = Reflect.field(o, c.name);
 					if( v == null ) {
 						v = getDefault(c);
@@ -514,7 +302,7 @@ class Model {
 					// first choice should not be removed
 				default:
 					var def = getDefault(old);
-					for( o in getSheetLines(sheet) ) {
+					for( o in sheet.getLines() ) {
 						var v = Reflect.field(o, c.name);
 						switch( c.type ) {
 						case TList:
@@ -546,7 +334,7 @@ class Model {
 			for( c in s.columns )
 				switch( c.type ) {
 				case TLayer(_):
-					for( obj in getSheetLines(s) ) {
+					for( obj in s.getLines() ) {
 						var ldat : cdb.Types.Layer<Int> = Reflect.field(obj, c.name);
 						if( ldat == null || ldat == cast "" ) continue;
 						var d = ldat.decode([for( i in 0...256 ) i]);
@@ -554,7 +342,7 @@ class Model {
 						Reflect.setField(obj, c.name, ldat);
 					}
 				case TTileLayer:
-					for( obj in getSheetLines(s) ) {
+					for( obj in s.getLines() ) {
 						var ldat : cdb.Types.TileLayer = Reflect.field(obj, c.name);
 						if( ldat == null || ldat == cast "" ) continue;
 						var d = ldat.data.decode();
@@ -611,14 +399,14 @@ class Model {
 		return if( a.disp > b.disp ) 1 else -1;
 	}
 
-	function makeSheet( s : Sheet ) {
+	public function makeSheet( s : Sheet ) {
 		var sdat = {
 			s : s,
 			index : new Map(),
 			all : [],
 		};
 		var cid = null;
-		var lines = getSheetLines(s);
+		var lines = s.getLines();
 		for( c in s.columns )
 			if( c.type == TId ) {
 				for( l in lines ) {
@@ -649,7 +437,7 @@ class Model {
 			for( c in s.columns ) {
 				switch( c.type ) {
 				case TImage:
-					for( obj in getSheetLines(s) ) {
+					for( obj in s.getLines() ) {
 						var v = Reflect.field(obj, c.name);
 						if( v != null ) used.set(v, true);
 					}
@@ -672,35 +460,7 @@ class Model {
 		js.Browser.getLocalStorage().setItem("prefs", haxe.Serializer.run(prefs));
 	}
 
-	function objToString( sheet : Sheet, obj : Dynamic, esc = false ) {
-		if( obj == null )
-			return "null";
-		var fl = [];
-		for( c in sheet.columns ) {
-			var v = Reflect.field(obj, c.name);
-			if( v == null ) continue;
-			fl.push(c.name + " : " + colToString(sheet, c, v, esc));
-		}
-		if( fl.length == 0 )
-			return "{}";
-		return "{ " + fl.join(", ") + " }";
-	}
-
-	function colToString( sheet : Sheet, c : Column, v : Dynamic, esc = false ) {
-		if( v == null )
-			return "null";
-		switch( c.type ) {
-		case TList:
-			var a : Array<Dynamic> = v;
-			if( a.length == 0 ) return "[]";
-			var s = getPseudoSheet(sheet, c);
-			return "[ " + [for( v in a ) objToString(s, v, esc)].join(", ") + " ]";
-		default:
-			return valToString(c.type, v, esc);
-		}
-	}
-
-	function valToString( t : ColumnType, val : Dynamic, esc = false ) {
+	public function valToString( t : ColumnType, val : Dynamic, esc = false ) {
 		if( val == null )
 			return "null";
 		return switch( t ) {
@@ -1033,27 +793,6 @@ class Model {
 				}
 	}
 
-	function changeLineOrder( sheet : Sheet, remap : Array<Int> ) {
-		for( s in data.sheets )
-			for( c in s.columns )
-				switch( c.type ) {
-				case TLayer(t) if( t == sheet.name ):
-					for( obj in getSheetLines(s) ) {
-						var ldat : cdb.Types.Layer<Int> = Reflect.field(obj, c.name);
-						if( ldat == null || ldat == cast "" ) continue;
-						var d = ldat.decode([for( i in 0...256 ) i]);
-						for( i in 0...d.length ) {
-							var r = remap[d[i]];
-							if( r < 0 ) r = 0; // removed
-							d[i] = r;
-						}
-						ldat = cdb.Types.Layer.encode(d, data.compress);
-						Reflect.setField(obj, c.name, ldat);
-					}
-				default:
-				}
-	}
-
 	function updateRefs( sheet : Sheet, refMap : Map < String, String > ) {
 
 		function convertTypeRec( t : CustomType, o : Array<Dynamic> ) {
@@ -1077,7 +816,7 @@ class Model {
 			for( c in s.columns )
 				switch( c.type ) {
 				case TRef(n) if( n == sheet.name ):
-					for( obj in getSheetLines(s) ) {
+					for( obj in s.getLines() ) {
 						var id = Reflect.field(obj, c.name);
 						if( id == null ) continue;
 						id = refMap.get(id);
@@ -1085,7 +824,7 @@ class Model {
 						Reflect.setField(obj, c.name, id);
 					}
 				case TCustom(t):
-					for( obj in getSheetLines(s) ) {
+					for( obj in s.getLines() ) {
 						var o = Reflect.field(obj, c.name);
 						if( o == null ) continue;
 						convertTypeRec(tmap.get(t), o);
@@ -1173,7 +912,7 @@ class Model {
 				switch( c.type ) {
 				case TCustom(tname):
 					var t2 = tmap.get(tname);
-					for( obj in getSheetLines(s) ) {
+					for( obj in s.getLines() ) {
 						var v = Reflect.field(obj, c.name);
 						if( v != null ) {
 							v = convertTypeRec(t2, v);
