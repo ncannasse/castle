@@ -202,13 +202,27 @@ class Palette {
 
 			var prop = getProp();
 			if( prop != null ) {
+
+
+				var pick = e.which == 3;
+
 				switch( prop.type ) {
 				case TBool:
-					var v = getTileProp(x, y);
-					Reflect.setField(v, prop.name, !Reflect.field(v, prop.name));
-					saveTileProps();
+					if( !pick ) {
+						var v = getTileProp(x, y);
+						Reflect.setField(v, prop.name, !Reflect.field(v, prop.name));
+						saveTileProps();
+					}
 				case TRef(_):
 					var c = perTileGfx.get(prop.name);
+
+					if( pick ) {
+						var idx = c.idToIndex.get(Reflect.field(getTileProp(x, y), prop.name));
+						modeCursor = idx == null ? -1 : idx;
+						level.setCursor();
+						return;
+					}
+
 					var v;
 					if( modeCursor < 0 )
 						v = getDefault(prop);
@@ -220,6 +234,14 @@ class Palette {
 						Reflect.setField(getTileProp(x, y), prop.name, v);
 					saveTileProps();
 				case TEnum(_):
+
+					if( pick ) {
+						var idx : Null<Int> = Reflect.field(getTileProp(x, y), prop.name);
+						modeCursor = idx == null ? -1 : idx;
+						level.setCursor();
+						return;
+					}
+
 					var v;
 					if( modeCursor < 0 )
 						v = getDefault(prop);
