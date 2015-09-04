@@ -803,6 +803,7 @@ class Level {
 		});
 		function onMouseUp(_) {
 			mouseDown = null;
+			if( currentLayer.hasSize ) setCursor();
 			if( needSave ) save();
 		}
 		scroll.mousedown(function(e) {
