@@ -54,6 +54,7 @@ class Main extends Model {
 	var levels : Array<Level>;
 	var level : Level;
 	var mcompress : MenuItem;
+	var pages : JqPages;
 
 	function new() {
 		super();
@@ -73,6 +74,7 @@ class Main extends Model {
 			x : 0,
 			y : 0,
 		};
+		pages = new JqPages(this);
 		load(true);
 		var t = new haxe.Timer(1000);
 		t.run = checkTime;
@@ -1619,6 +1621,7 @@ class Main extends Model {
 
 	function selectSheet( s : Sheet, manual = true ) {
 		viewSheet = s;
+		pages.curPage = -1;
 		cursor = sheetCursors.get(s.name);
 		if( cursor == null ) {
 			cursor = {
@@ -1639,6 +1642,7 @@ class Main extends Model {
 
 	function selectLevel( l : Level ) {
 		if( level != null ) level.dispose();
+		pages.curPage = -1;
 		level = l;
 		level.init();
 		J("#sheets li").removeClass("active").filter("#level_" + l.sheetPath.split(".").join("_") + "_" + l.index).addClass("active");
@@ -2018,13 +2022,10 @@ class Main extends Model {
 				}
 			});
 		}
-		if( data.sheets.length == 0 ) {
-			J("#content").html("<a href='javascript:_.newSheet()'>Create a sheet</a>");
-			return;
-		}
+		pages.updateTabs();
 		var s = data.sheets[prefs.curSheet];
 		if( s == null ) s = data.sheets[0];
-		selectSheet(s, false);
+		if( s != null ) selectSheet(s, false);
 
 		var old = levels;
 		var lcur = null;
@@ -2042,8 +2043,13 @@ class Main extends Model {
 			if( name == "" ) name = "???";
 			li.text(name).attr("id", "level_" + l.sheetPath.split(".").join("_") + "_" + l.index).appendTo(sheets).click(selectLevel.bind(l));
 		}
-		if( lcur != null )
+
+		if( pages.curPage >= 0 )
+			pages.select();
+		else if( lcur != null )
 			selectLevel(lcur);
+		else if( data.sheets.length == 0 )
+			J("#content").html("<a href='javascript:_.newSheet()'>Create a sheet</a>");
 		else
 			refresh();
 	}
