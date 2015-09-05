@@ -2,9 +2,9 @@ import cdb.Data;
 using SheetData;
 
 import js.JQuery.JQueryHelper.*;
-import nodejs.webkit.Menu;
-import nodejs.webkit.MenuItem;
-import nodejs.webkit.MenuItemType;
+import js.node.webkit.Menu;
+import js.node.webkit.MenuItem;
+import js.node.webkit.MenuItemType;
 
 private typedef Cursor = {
 	s : Sheet,
@@ -37,7 +37,7 @@ class Main extends Model {
 
 	static var UID = 0;
 
-	var window : nodejs.webkit.Window;
+	var window : js.node.webkit.Window;
 	var viewSheet : Sheet;
 	var mousePos : { x : Int, y : Int };
 	var typesStr : String;
@@ -57,7 +57,7 @@ class Main extends Model {
 
 	function new() {
 		super();
-		window = nodejs.webkit.Window.get();
+		window = js.node.webkit.Window.get();
 		window.on("resize", onResize);
 		initMenu();
 		levels = [];
@@ -93,7 +93,7 @@ class Main extends Model {
 			data : data,
 			schema : schema,
 		};
-		nodejs.webkit.Clipboard.getInstance().set(clipboard.text, "text");
+		js.node.webkit.Clipboard.getInstance().set(clipboard.text, "text");
 	}
 
 	function moveCursor( dx : Int, dy : Int, shift : Bool, ctrl : Bool ) {
@@ -231,7 +231,7 @@ class Main extends Model {
 			onKey(cast { keyCode : 'C'.code, ctrlKey : true });
 			onKey(cast { keyCode : K.DELETE } );
 		case 'V'.code if( e.ctrlKey ):
-			if( cursor.s == null || clipboard == null || nodejs.webkit.Clipboard.getInstance().get("text")  != clipboard.text )
+			if( cursor.s == null || clipboard == null || js.node.webkit.Clipboard.getInstance().get("text")  != clipboard.text )
 				return;
 			var sheet = cursor.s;
 			var posX = cursor.x < 0 ? 0 : cursor.x;
@@ -1601,7 +1601,7 @@ class Main extends Model {
 	}
 
 	@:keep function openFile( file : String ) {
-		nodejs.webkit.Shell.openItem(file);
+		js.node.webkit.Shell.openItem(file);
 	}
 
 	function setCursor( ?s, ?x=0, ?y=0, ?sel, update = true ) {

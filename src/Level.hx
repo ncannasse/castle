@@ -3,9 +3,9 @@ import js.JQuery.JQueryHelper.*;
 import Main.K;
 import lvl.LayerData;
 
-import nodejs.webkit.Menu;
-import nodejs.webkit.MenuItem;
-import nodejs.webkit.MenuItemType;
+import js.node.webkit.Menu;
+import js.node.webkit.MenuItem;
+import js.node.webkit.MenuItemType;
 
 using SheetData;
 
@@ -633,7 +633,7 @@ class Level {
 
 
 	public function onResize() {
-		var win = nodejs.webkit.Window.get();
+		var win = js.node.webkit.Window.get();
 		content.find(".scroll").css("height", (win.height - 240) + "px");
 	}
 
