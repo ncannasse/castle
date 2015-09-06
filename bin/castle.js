@@ -107,6 +107,122 @@ HxOverrides.iter = function(a) {
 		return this.arr[this.cur++];
 	}};
 };
+var cdb_jq_Server = function(root) {
+	this.root = root;
+	this.nodes = [root];
+};
+$hxClasses["cdb.jq.Server"] = cdb_jq_Server;
+cdb_jq_Server.__name__ = ["cdb","jq","Server"];
+cdb_jq_Server.prototype = {
+	dock: function(parent,e,dir,size) {
+		throw new js__$Boot_HaxeError("Not implemented");
+	}
+	,onMessage: function(msg) {
+		switch(msg[1]) {
+		case 0:
+			var attr = msg[4];
+			var name = msg[3];
+			var id = msg[2];
+			var n = window.document.createElement(name);
+			if(attr != null) {
+				var _g = 0;
+				while(_g < attr.length) {
+					var a = attr[_g];
+					++_g;
+					n.setAttribute(a.name,a.value);
+				}
+			}
+			this.nodes[id] = n;
+			break;
+		case 1:
+			var name1 = msg[3];
+			var id1 = msg[2];
+			this.nodes[id1].classList.add(name1);
+			break;
+		case 2:
+			var to = msg[3];
+			var id2 = msg[2];
+			this.nodes[to].appendChild(this.nodes[id2]);
+			break;
+		case 3:
+			var pid = msg[4];
+			var text = msg[3];
+			var id3 = msg[2];
+			var t = window.document.createTextNode(text);
+			this.nodes[id3] = t;
+			if(pid != null) this.nodes[pid].appendChild(t);
+			break;
+		case 4:
+			var text1 = msg[2];
+			var curCss = window.document.getElementById("jqcss");
+			if(curCss == null) {
+				curCss = window.document.createElement("style");
+				this.root.insertBefore(curCss,this.root.firstChild);
+			}
+			curCss.innerText = text1;
+			break;
+		case 5:
+			var id4 = msg[2];
+			var n1 = this.nodes[id4];
+			while(n1.firstChild != null) n1.removeChild(n1.firstChild);
+			break;
+		case 6:
+			var size = msg[5];
+			var dir = msg[4];
+			var e = msg[3];
+			var p = msg[2];
+			this.dock(this.nodes[p],this.nodes[e],dir,size);
+			break;
+		}
+	}
+	,__class__: cdb_jq_Server
+};
+var JqPage = function() {
+	cdb_jq_Server.call(this,window.document.createElement("div"));
+	this.page = window.document.createElement("div");
+	this.page.setAttribute("class","jqpage");
+	this.page.appendChild(this.root);
+	window.document.body.appendChild(this.page);
+	this.page.style.visibility = "hidden";
+	this.name = "";
+	this.panels = new haxe_ds_ObjectMap();
+	this.dnodes = new haxe_ds_ObjectMap();
+	this.dockManager = new dockspawn.DockManager(this.page);
+	this.dockManager.initialize();
+	this.dockManager.resize(800,600);
+	this.dnodes.set(this.root,this.dockManager.context.model.documentManagerNode);
+};
+$hxClasses["JqPage"] = JqPage;
+JqPage.__name__ = ["JqPage"];
+JqPage.__super__ = cdb_jq_Server;
+JqPage.prototype = $extend(cdb_jq_Server.prototype,{
+	dock: function(parent,e,dir,size) {
+		var p = this.panels.h[e.__id__];
+		if(p == null) {
+			p = new dockspawn.PanelContainer(e,this.dockManager);
+			this.panels.set(e,p);
+		}
+		var n = this.dnodes.h[parent.__id__];
+		switch(dir[1]) {
+		case 0:
+			this.dockManager.dockLeft(n,p,size);
+			break;
+		case 1:
+			this.dockManager.dockRight(n,p,size);
+			break;
+		case 2:
+			this.dockManager.dockUp(n,p,size);
+			break;
+		case 3:
+			this.dockManager.dockDown(n,p,size);
+			break;
+		case 4:
+			this.dockManager.dockFill(n,p);
+			break;
+		}
+	}
+	,__class__: JqPage
+});
 var JqPages = function(main) {
 	this.curPage = -1;
 	this.main = main;
@@ -138,12 +254,21 @@ JqPages.prototype = {
 		}
 	}
 	,select: function() {
-		js.JQuery("#content").html("").append(this.pages[this.curPage].root);
+		var p = this.pages[this.curPage];
+		js.JQuery("#content").html("").append(p.page);
+		p.page.style.visibility = "";
+		this.onResize();
+	}
+	,onResize: function() {
+		if(this.curPage >= 0) {
+			var p = this.pages[this.curPage];
+			p.page.style.width = "100%";
+			p.page.style.height = "100%";
+			p.dockManager.resize(p.page.clientWidth,p.page.clientHeight - 30);
+		}
 	}
 	,onClient: function(sock) {
-		var _g = this;
-		var p = { root : window.document.createElement("div"), name : "", j : null};
-		p.j = new cdb_jq_Server(p.root);
+		var p = new JqPage();
 		this.pages.push(p);
 		this.updateTabs();
 		sock.setNoDelay(true);
@@ -151,29 +276,21 @@ JqPages.prototype = {
 			sock.end();
 		});
 		sock.on("close",function() {
-			var cur = _g.curPage == Lambda.indexOf(_g.pages,p);
-			HxOverrides.remove(_g.pages,p);
-			_g.updateTabs();
-			if(cur) {
-				_g.curPage--;
-				_g.main.initContent();
-			}
 		});
 		sock.on("data",function(e) {
 			var pos = 0;
 			while(pos < e.length) {
 				var size = e.readInt32LE(pos);
 				pos += 4;
-				haxe_Log.trace(pos,{ fileName : "JqPages.hx", lineNumber : 55, className : "JqPages", methodName : "onClient", customParams : [size,e.length]});
 				var msg = haxe_io_Bytes.alloc(size);
-				var _g1 = 0;
-				while(_g1 < size) {
-					var i = _g1++;
+				var _g = 0;
+				while(_g < size) {
+					var i = _g++;
 					msg.set(i,e.readUInt8(pos++));
 				}
 				var msg1 = cdb_BinSerializer.doUnserialize(msg,1);
-				haxe_Log.trace(msg1,{ fileName : "JqPages.hx", lineNumber : 60, className : "JqPages", methodName : "onClient"});
-				p.j.onMessage(msg1);
+				haxe_Log.trace(">" + Std.string(msg1),{ fileName : "JqPages.hx", lineNumber : 145, className : "JqPages", methodName : "onClient"});
+				p.onMessage(msg1);
 			}
 		});
 	}
@@ -2861,13 +2978,27 @@ var Model = function() {
 	this.openedList = new haxe_ds_StringMap();
 	this.r_ident = new EReg("^[A-Za-z_][A-Za-z0-9_]*$","");
 	this.prefs = { windowPos : { x : 50, y : 50, w : 800, h : 600, max : false}, curFile : null, curSheet : 0};
+	this.existsCache = new haxe_ds_StringMap();
 	this.loadPrefs();
 	SheetData.model = this;
 };
 $hxClasses["Model"] = Model;
 Model.__name__ = ["Model"];
 Model.prototype = {
-	getImageData: function(key) {
+	quickExists: function(path) {
+		var c = this.existsCache.get(path);
+		if(c == null) {
+			c = { t : -1e9, r : false};
+			this.existsCache.set(path,c);
+		}
+		var t = haxe_Timer.stamp();
+		if(c.t < t - 10) {
+			c.r = js_node_Fs.existsSync(path);
+			c.t = t;
+		}
+		return c.r;
+	}
+	,getImageData: function(key) {
 		return Reflect.field(this.imageBank,key);
 	}
 	,getAbsPath: function(file) {
@@ -4308,6 +4439,7 @@ Main.__super__ = Model;
 Main.prototype = $extend(Model.prototype,{
 	onResize: function(_) {
 		if(this.level != null) this.level.onResize();
+		this.pages.onResize();
 	}
 	,onMouseMove: function(e) {
 		this.mousePos.x = e.clientX;
@@ -4787,6 +4919,7 @@ Main.prototype = $extend(Model.prototype,{
 				var a = v;
 				var ps = SheetData.model.smap.get(sheet.name + "@" + c.name).s;
 				var out = [];
+				var size = 0;
 				var _g11 = 0;
 				while(_g11 < a.length) {
 					var v1 = a[_g11];
@@ -4806,7 +4939,14 @@ Main.prototype = $extend(Model.prototype,{
 							vals.push(this.valueHtml(c1,Reflect.field(v1,c1.name),ps,v1));
 						}
 					}
-					out.push(vals.length == 1?vals[0]:vals);
+					var v2;
+					if(vals.length == 1) v2 = vals[0]; else v2 = "" + Std.string(vals);
+					if(size > 100) {
+						out.push("...");
+						break;
+					}
+					size += v2.length;
+					out.push(v2);
 				}
 				return Std.string(out);
 			case 9:
@@ -4831,13 +4971,13 @@ Main.prototype = $extend(Model.prototype,{
 				return str;
 			case 10:
 				var values1 = _g[2];
-				var v2 = v;
+				var v3 = v;
 				var flags = [];
 				var _g22 = 0;
 				var _g13 = values1.length;
 				while(_g22 < _g13) {
 					var i2 = _g22++;
-					if((v2 & 1 << i2) != 0) flags.push(StringTools.htmlEscape(values1[i2]));
+					if((v3 & 1 << i2) != 0) flags.push(StringTools.htmlEscape(values1[i2]));
 				}
 				if(flags.length == 0) return String.fromCharCode(8709); else return flags.join("|");
 				break;
@@ -4849,25 +4989,25 @@ Main.prototype = $extend(Model.prototype,{
 				var ext = v.split(".").pop().toLowerCase();
 				var html;
 				if(v == "") html = "<span class=\"error\">#MISSING</span>"; else html = StringTools.htmlEscape(v);
-				if(v != "" && !js_node_Fs.existsSync(path)) html = "<span class=\"error\">" + html + "</span>"; else if(ext == "png" || ext == "jpg" || ext == "jpeg" || ext == "gif") html = "<span class=\"preview\">" + html + "<div class=\"previewContent\"><div class=\"label\"></div><img src=\"" + path + "\" onload=\"$(this).parent().find('.label').text(this.width+'x'+this.height)\"/></div></span>";
+				if(v != "" && !this.quickExists(path)) html = "<span class=\"error\">" + html + "</span>"; else if(ext == "png" || ext == "jpg" || ext == "jpeg" || ext == "gif") html = "<span class=\"preview\">" + html + "<div class=\"previewContent\"><div class=\"label\"></div><img src=\"" + path + "\" onload=\"$(this).parent().find('.label').text(this.width+'x'+this.height)\"/></div></span>";
 				if(v != "") html += " <input type=\"submit\" value=\"open\" onclick=\"_.openFile('" + path + "')\"/>";
 				return html;
 			case 14:
-				var v3 = v;
-				var path1 = this.getAbsPath(v3.file);
-				if(!js_node_Fs.existsSync(path1)) return "<span class=\"error\">" + v3.file + "</span>"; else {
+				var v4 = v;
+				var path1 = this.getAbsPath(v4.file);
+				if(!this.quickExists(path1)) return "<span class=\"error\">" + v4.file + "</span>"; else {
 					var id1 = Main.UID++;
 					var zoom = 2;
 					var html1;
-					html1 = "<div id=\"_c" + id1 + "\" style=\"width : " + v3.size * zoom * (v3.width == null?1:v3.width) + "px; height : " + v3.size * zoom * (v3.height == null?1:v3.height) + "px; background : url('" + path1 + "') -" + v3.size * v3.x * zoom + "px -" + v3.size * v3.y * zoom + "px; border : 1px solid black;\"></div>";
+					html1 = "<div id=\"_c" + id1 + "\" style=\"width : " + v4.size * zoom * (v4.width == null?1:v4.width) + "px; height : " + v4.size * zoom * (v4.height == null?1:v4.height) + "px; background : url('" + path1 + "') -" + v4.size * v4.x * zoom + "px -" + v4.size * v4.y * zoom + "px; border : 1px solid black;\"></div>";
 					html1 += "<img src=\"" + path1 + "\" style=\"display:none\" onload=\"$('#_c" + id1 + "').css({backgroundSize : (this.width*" + zoom + ")+'px ' + (this.height*" + zoom + ")+'px'}); if( this.parentNode != null ) this.parentNode.removeChild(this)\"/>";
 					return html1;
 				}
 				break;
 			case 15:
-				var v4 = v;
-				var path2 = this.getAbsPath(v4.file);
-				if(!js_node_Fs.existsSync(path2)) return "<span class=\"error\">" + v4.file + "</span>"; else return "#DATA";
+				var v5 = v;
+				var path2 = this.getAbsPath(v5.file);
+				if(!this.quickExists(path2)) return "<span class=\"error\">" + v5.file + "</span>"; else return "#DATA";
 				break;
 			case 16:
 				var str1 = Std.string(v).split("\n").join(" ").split("\t").join("");
@@ -5348,9 +5488,9 @@ Main.prototype = $extend(Model.prototype,{
 							}
 						}
 						if(val2 != val && val2 != null) {
-							var this2 = _g.smap.get(sheet.name).index;
+							var this11 = _g.smap.get(sheet.name).index;
 							var key1 = val2;
-							prevTarget = this2.get(key1);
+							prevTarget = this11.get(key1);
 							if(c.type == cdb_ColumnType.TId && val != null && (prevObj == null || prevObj.obj == obj)) {
 								var m = new haxe_ds_StringMap();
 								var key2 = val;
@@ -5367,14 +5507,14 @@ Main.prototype = $extend(Model.prototype,{
 					editDone();
 					if(c.type == cdb_ColumnType.TId && prevObj != null && old1 != val && (prevObj.obj == obj && (function($this) {
 						var $r;
-						var this3 = _g.smap.get(sheet.name).index;
-						$r = this3.get(old1);
+						var this12 = _g.smap.get(sheet.name).index;
+						$r = this12.get(old1);
 						return $r;
 					}(this)) != null || prevTarget != null && ((function($this) {
 						var $r;
-						var this4 = _g.smap.get(sheet.name).index;
+						var this13 = _g.smap.get(sheet.name).index;
 						var key3 = val;
-						$r = this4.get(key3);
+						$r = this13.get(key3);
 						return $r;
 					}(this))).obj != prevTarget.obj)) {
 						_g.refresh();
@@ -5763,7 +5903,7 @@ Main.prototype = $extend(Model.prototype,{
 			var cindex = [_g31++];
 			var c = [sheet.columns[cindex[0]]];
 			var col = js.JQuery("<td>");
-			col.html(c[0].name);
+			col.text(c[0].name);
 			col.css("width",(100 / colCount | 0) + "%");
 			if(sheet.props.displayColumn == c[0].name) col.addClass("display");
 			col.mousedown((function(c) {
@@ -5795,7 +5935,7 @@ Main.prototype = $extend(Model.prototype,{
 				var l1 = [lines[index[0]]];
 				v[0].appendTo(l1[0]);
 				var html = [this.valueHtml(c[0],val[0],sheet,obj[0])];
-				v[0].html(html[0]);
+				if(html[0].indexOf("<") < 0) v[0].text(html[0]); else v[0].html(html[0]);
 				v[0].data("index",cindex[0]);
 				v[0].click((function(index,cindex) {
 					return function(e4) {
@@ -5868,7 +6008,7 @@ Main.prototype = $extend(Model.prototype,{
 								psheet = { columns : psheet.columns, props : psheet.props, name : psheet.name, path : key[0], parent : { sheet : sheet, column : cindex[0], line : index[0]}, lines : val[0], separators : []};
 								_g4.fillTable(content1,psheet);
 								next.insertAfter(l1[0]);
-								v[0].html("...");
+								v[0].text("...");
 								_g4.openedList.set(key[0],true);
 								next.change((function(key,html,v,val,obj,c) {
 									return function(e8) {
@@ -8268,6 +8408,7 @@ cdb__$BinSerializer_Schema.prototype = {
 		s.serialize(this.kind);
 		var b = haxe_crypto_Md5.make(haxe_io_Bytes.ofString(this.name + s.toString()));
 		this.hash = b.b[0] | b.b[1] << 8 | b.b[2] << 16 | b.b[3] << 24;
+		haxe_Log.trace(this.hash,{ fileName : "BinSerializer.hx", lineNumber : 84, className : "cdb._BinSerializer.Schema", methodName : "finalize", customParams : [s.toString()]});
 	}
 	,__class__: cdb__$BinSerializer_Schema
 };
@@ -8640,7 +8781,6 @@ cdb_BinSerializer.prototype = {
 			h |= this.bytes.get(this.position++) << 8;
 			h |= this.bytes.get(this.position++) << 16;
 			h |= this.bytes.get(this.position++) << 24;
-			if(h != s.hash) throw new js__$Boot_HaxeError(new cdb_SchemaError(s));
 			s.tag = this.tag;
 		}
 		{
@@ -9886,54 +10026,30 @@ cdb_IndexId.prototype = $extend(cdb_Index.prototype,{
 	}
 	,__class__: cdb_IndexId
 });
-var cdb_jq_Message = $hxClasses["cdb.jq.Message"] = { __ename__ : ["cdb","jq","Message"], __constructs__ : ["Create","AddClass","Append","SetText","SetCSS"] };
-cdb_jq_Message.Create = function(id,name) { var $x = ["Create",0,id,name]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
+var cdb_jq_Message = $hxClasses["cdb.jq.Message"] = { __ename__ : ["cdb","jq","Message"], __constructs__ : ["Create","AddClass","Append","CreateText","SetCSS","Reset","Dock"] };
+cdb_jq_Message.Create = function(id,name,attr) { var $x = ["Create",0,id,name,attr]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
 cdb_jq_Message.AddClass = function(id,name) { var $x = ["AddClass",1,id,name]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
 cdb_jq_Message.Append = function(id,to) { var $x = ["Append",2,id,to]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
-cdb_jq_Message.SetText = function(id,text) { var $x = ["SetText",3,id,text]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
+cdb_jq_Message.CreateText = function(id,text,pid) { var $x = ["CreateText",3,id,text,pid]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
 cdb_jq_Message.SetCSS = function(css) { var $x = ["SetCSS",4,css]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
-var cdb_jq_Server = function(root) {
-	this.root = root;
-	this.nodes = [root];
-};
-$hxClasses["cdb.jq.Server"] = cdb_jq_Server;
-cdb_jq_Server.__name__ = ["cdb","jq","Server"];
-cdb_jq_Server.prototype = {
-	onMessage: function(msg) {
-		switch(msg[1]) {
-		case 0:
-			var name = msg[3];
-			var id = msg[2];
-			this.nodes[id] = window.document.createElement(name);
-			break;
-		case 1:
-			var name1 = msg[3];
-			var id1 = msg[2];
-			this.nodes[id1].classList.add(name1);
-			break;
-		case 2:
-			var to = msg[3];
-			var id2 = msg[2];
-			this.nodes[to].appendChild(this.nodes[id2]);
-			break;
-		case 3:
-			var text = msg[3];
-			var id3 = msg[2];
-			this.nodes[id3].innerText = text;
-			break;
-		case 4:
-			var text1 = msg[2];
-			var curCss = window.document.getElementById("jqcss");
-			if(curCss == null) {
-				curCss = window.document.createElement("style");
-				this.root.insertBefore(curCss,this.root.firstChild);
-			}
-			curCss.innerText = text1;
-			break;
-		}
-	}
-	,__class__: cdb_jq_Server
-};
+cdb_jq_Message.Reset = function(id) { var $x = ["Reset",5,id]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
+cdb_jq_Message.Dock = function(pid,id,dir,size) { var $x = ["Dock",6,pid,id,dir,size]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
+var cdb_jq_DockDirection = $hxClasses["cdb.jq.DockDirection"] = { __ename__ : ["cdb","jq","DockDirection"], __constructs__ : ["Left","Right","Up","Down","Fill"] };
+cdb_jq_DockDirection.Left = ["Left",0];
+cdb_jq_DockDirection.Left.toString = $estr;
+cdb_jq_DockDirection.Left.__enum__ = cdb_jq_DockDirection;
+cdb_jq_DockDirection.Right = ["Right",1];
+cdb_jq_DockDirection.Right.toString = $estr;
+cdb_jq_DockDirection.Right.__enum__ = cdb_jq_DockDirection;
+cdb_jq_DockDirection.Up = ["Up",2];
+cdb_jq_DockDirection.Up.toString = $estr;
+cdb_jq_DockDirection.Up.__enum__ = cdb_jq_DockDirection;
+cdb_jq_DockDirection.Down = ["Down",3];
+cdb_jq_DockDirection.Down.toString = $estr;
+cdb_jq_DockDirection.Down.__enum__ = cdb_jq_DockDirection;
+cdb_jq_DockDirection.Fill = ["Fill",4];
+cdb_jq_DockDirection.Fill.toString = $estr;
+cdb_jq_DockDirection.Fill.__enum__ = cdb_jq_DockDirection;
 var haxe_IMap = function() { };
 $hxClasses["haxe.IMap"] = haxe_IMap;
 haxe_IMap.__name__ = ["haxe","IMap"];
@@ -9987,6 +10103,9 @@ haxe_Timer.delay = function(f,time_ms) {
 		f();
 	};
 	return t;
+};
+haxe_Timer.stamp = function() {
+	return new Date().getTime() / 1000;
 };
 haxe_Timer.prototype = {
 	stop: function() {
@@ -13826,7 +13945,7 @@ if(Array.prototype.filter == null) Array.prototype.filter = function(f1) {
 	}
 	return a1;
 };
-haxe_Resource.content = [{ name : "$bin", data : "YWN5MjU6Y2RiLl9CaW5TZXJpYWxpemVyLlNjaGVtYXk0Omhhc2hpMjI0NTE4MzgxeTQ6a2luZGp5Mjk6Y2RiLl9CaW5TZXJpYWxpemVyLlNjaGVtYUtpbmQ6MDoxYWFqeTI0OmNkYi5fQmluU2VyaWFsaXplci5TRGF0YTowOjBqUjQ6MjowaGFyNHI1aGFyNHI0aGFyNHI1aGFyNWhoeTQ6bmFtZXkxNDpjZGIuanEuTWVzc2FnZXkyOmlkaTFnaA"}];
+haxe_Resource.content = [{ name : "$bin", data : "YWN5MjU6Y2RiLl9CaW5TZXJpYWxpemVyLlNjaGVtYXk0Omhhc2hpLTE4MzcwMzA0MDl5NDpraW5kankyOTpjZGIuX0JpblNlcmlhbGl6ZXIuU2NoZW1hS2luZDowOjFhYWp5MjQ6Y2RiLl9CaW5TZXJpYWxpemVyLlNEYXRhOjA6MGpSNDoyOjBqUjQ6NjoxalI0Ojc6MWpSNDo5OjFhb3kxOmRyNXkxOm55NDpuYW1lZ29SNXI1UjZ5NTp2YWx1ZWdoaGFyNHI1aGFyNHI0aGFyNHI1alI0OjY6MXI0aGFyNWhhcjRoYXI0cjRqUjQ6ODoxY1IwUjFpNDcxMTEyNDAzUjJqUjM6MDoxYXU1aFI3eTIwOmNkYi5qcS5Eb2NrRGlyZWN0aW9ueTI6aWRpMmdqUjQ6NjoxalI0OjM6MGhoUjd5MTQ6Y2RiLmpxLk1lc3NhZ2VSMTBpMWdyMTlo"}];
 var __map_reserved = {}
 var q = window.jQuery;
 var js = js || {}

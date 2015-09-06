@@ -82,6 +82,7 @@ class Main extends Model {
 
 	function onResize(_) {
 		if( level != null ) level.onResize();
+		pages.onResize();
 	}
 
 	function onMouseMove( e : js.html.MouseEvent ) {

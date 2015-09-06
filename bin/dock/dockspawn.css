@@ -1,0 +1,256 @@
+
+/************* Panel with title bar ************/
+.panel-base {
+}
+
+.panel-titlebar {
+	background-color: #333; 
+	height: 25px;
+	width: 100%;
+	overflow: hidden;
+}
+
+.panel-titlebar-text {
+	float: left; 
+	padding-left:10px;
+	padding-top:5px;
+	font-weight: bold;
+	color:#aaa;
+}
+
+.panel-titlebar-button-close {
+	float: right; 
+	padding-top:5px;
+	padding-right:8px;
+	font-weight: bold;
+	color:#aaa;
+}
+
+.panel-titlebar-button-close:hover {
+	float: right; 
+	padding-top:5px;
+	padding-right:8px;
+	font-weight: bold;
+	color:#fff;
+}
+
+.panel-content {
+	background-color: #FFF; 
+	width: 100%;
+}
+
+.panel-content * {
+    margin: 0px;
+}
+
+/***************** Floating dialog box ****************/
+.dialog-floating {
+	position: absolute;
+	box-shadow: 5px 5px 20px #000;
+}
+
+/************ Resize decorator ************/
+.resize-handle {
+	position: absolute;
+	width: 6px; 
+	height: 6px; 
+}
+
+.resize-handle-corner {
+	position: absolute;
+	width: 12px; 
+	height: 12px; 
+}
+
+.resize-handle-e { cursor: e-resize; }
+.resize-handle-w { cursor: w-resize; }
+.resize-handle-s { cursor: s-resize; }
+.resize-handle-n { cursor: n-resize; }
+.resize-handle-ne { cursor: ne-resize; }
+.resize-handle-nw { cursor: nw-resize; }
+.resize-handle-se { cursor: se-resize; }
+.resize-handle-sw { cursor: sw-resize; }
+
+
+/******************* Dock Manager ********************/
+.dock-container {
+	background-color: #888; 
+}
+
+.dock-container-fill {
+
+}
+
+/******************* Document Manager ********************/
+.document-manager {
+	background-color: #666; 
+}
+
+
+/******************* Dock Wheel ********************/
+.dock-wheel-base {
+	position: absolute;
+}
+
+.dock-wheel-item {
+	position: absolute;
+	width:32px;
+	height:32px;
+}
+
+.dock-wheel-fill {
+	margin-left: -16px;
+	margin-top: -16px;
+}
+
+.dock-wheel-left {
+	margin-left: -48px;
+	margin-top: -16px;
+}
+
+.dock-wheel-right {
+	margin-left: 16px;
+	margin-top: -16px;
+}
+
+.dock-wheel-top {
+	margin-left: -16px;
+	margin-top: -48px;
+}
+
+.dock-wheel-down {
+	margin-left: -16px;
+	margin-top: 16px;
+}
+
+.dock-wheel-panel-preview {
+	position: absolute;
+	background-color:rgba(128, 128, 255, 0.5);
+}
+
+.dock-wheel-fill-icon { background:url(dock_fill.png) 0 0; }
+.dock-wheel-left-icon { background:url(dock_left.png) 0 0; }
+.dock-wheel-right-icon { background:url(dock_right.png) 0 0; }
+.dock-wheel-top-icon { background:url(dock_top.png) 0 0; }
+.dock-wheel-down-icon { background:url(dock_bottom.png) 0 0; }
+
+.dock-wheel-fill-icon-hover { background:url(dock_fill_sel.png) 0 0; }
+.dock-wheel-left-icon-hover { background:url(dock_left_sel.png) 0 0; }
+.dock-wheel-right-icon-hover { background:url(dock_right_sel.png) 0 0; }
+.dock-wheel-top-icon-hover { background:url(dock_top_sel.png) 0 0; }
+.dock-wheel-down-icon-hover { background:url(dock_bottom_sel.png) 0 0; }
+
+/**************************** Splitter *********************************/
+.splitter-container-horizontal { 
+	float:left; 
+/*	background-color: #333; */ 
+}
+
+.splitter-container-vertical { 
+/*	background-color: #333; */ 
+}
+
+.splitbar-horizontal { 
+	background-color: #000000; 
+	width:100%; 
+	height:5px; 
+	cursor:n-resize; 
+}
+	
+.splitbar-vertical { 
+	background-color: #000000; 
+	width:5px; 
+	height:100%; 
+	float:left; 
+	cursor:e-resize; 
+}
+
+/*************************** Tab Host ********************************/
+.tab-host {
+	background-color: #666; 
+}
+
+.tab-content {
+	background-color: #666; 
+}
+
+.tab-content * {
+    margin: 0px;
+}
+
+.tab-handle {
+	position: relative;
+	background-color: #05B; 
+	color:#ccf;
+	height: 22px;
+	float: left;
+	overflow: hidden;
+	pointer: default; 
+	box-shadow: 0px 5px 20px #000;
+}
+.tab-handle:hover {
+	background-color: #F90;
+	color:#400;
+}
+
+.tab-handle-selected {
+	background-color: #F90;
+	color:#400;
+}
+
+.tab-handle-text {
+	margin-top: 3px;
+	margin-left: 6px;
+	margin-right: 6px;
+	float: left;
+}
+
+.tab-handle-close-button {
+	margin-top: 3px;
+	margin-right: 6px;
+	float: right;
+}
+
+.tab-handle-close-button:hover {
+	color:#fff;
+}
+
+.tab-handle-list-container {
+	background-color: #333; 
+	height: 22px;
+	overflow: hidden;
+}
+
+.tab-handle-content-seperator {
+	background-color: #F90; 
+	height: 4px;
+}
+
+/*************************** Text Selection **************************/
+.disable-selection {
+  -moz-user-select: none;
+  -khtml-user-select: none;
+  -webkit-user-select: none;
+  user-select: none;
+  cursor: default;
+}
+
+
+/************************ Misc Utils *************************/
+.full-screen {
+	display:block;
+
+    /*set the div in the top-left corner of the screen*/
+    top:0;
+    left:0;
+    
+    /*set the width and height to 100% of the screen*/
+    width:100%;
+    height:100%;
+    
+}
+
+.rounded-corner-top {
+	border-top-right-radius: 10px;
+	border-top-left-radius: 10px;
+}
