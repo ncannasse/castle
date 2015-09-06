@@ -19,6 +19,7 @@ class Model {
 	var smap : Map< String, { s : Sheet, index : Map<String,Index> , all : Array<Index> } >;
 	var tmap : Map< String, CustomType >;
 	var openedList : Map<String,Bool>;
+	var existsCache : Map<String,{ t : Float, r : Bool }>;
 
 	var curSavedData : HistoryElement;
 	var history : Array<HistoryElement>;
@@ -33,8 +34,23 @@ class Model {
 			curFile : null,
 			curSheet : 0,
 		};
+		existsCache = new Map();
 		loadPrefs();
 		@:privateAccess SheetData.model = this;
+	}
+
+	function quickExists(path) {
+		var c = existsCache.get(path);
+		if( c == null ) {
+			c = { t : -1e9, r : false };
+			existsCache.set(path, c);
+		}
+		var t = haxe.Timer.stamp();
+		if( c.t < t - 10 ) { // cache result for 10s
+			c.r = sys.FileSystem.exists(path);
+			c.t = t;
+		}
+		return c.r;
 	}
 
 	public function getImageData( key : String ) : String {

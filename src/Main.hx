@@ -488,6 +488,7 @@ class Main extends Model {
 			var a : Array<Dynamic> = v;
 			var ps = sheet.getSub(c);
 			var out : Array<Dynamic> = [];
+			var size = 0;
 			for( v in a ) {
 				var vals = [];
 				for( c in ps.columns )
@@ -497,7 +498,13 @@ class Main extends Model {
 					default:
 						vals.push(valueHtml(c, Reflect.field(v, c.name), ps, v));
 					}
-				out.push(vals.length == 1 ? vals[0] : vals);
+				var v = vals.length == 1 ? vals[0] : ""+vals;
+				if( size > 100 ) {
+					out.push("...");
+					break;
+				}
+				size += v.length;
+				out.push(v);
 			}
 			Std.string(out);
 		case TCustom(name):
@@ -529,7 +536,7 @@ class Main extends Model {
 			var path = getAbsPath(v);
 			var ext = v.split(".").pop().toLowerCase();
 			var html = v == "" ? '<span class="error">#MISSING</span>' : StringTools.htmlEscape(v);
-			if( v != "" && !sys.FileSystem.exists(path) )
+			if( v != "" && !quickExists(path) )
 				html = '<span class="error">' + html + '</span>';
 			else if( ext == "png" || ext == "jpg" || ext == "jpeg" || ext == "gif" )
 				html = '<span class="preview">$html<div class="previewContent"><div class="label"></div><img src="$path" onload="$(this).parent().find(\'.label\').text(this.width+\'x\'+this.height)"/></div></span>';
@@ -539,7 +546,7 @@ class Main extends Model {
 		case TTilePos:
 			var v : cdb.Types.TilePos = v;
 			var path = getAbsPath(v.file);
-			if( !sys.FileSystem.exists(path) )
+			if( !quickExists(path) )
 				'<span class="error">' + v.file + '</span>';
 			else {
 				var id = UID++;
@@ -551,7 +558,7 @@ class Main extends Model {
 		case TTileLayer:
 			var v : cdb.Types.TileLayer = v;
 			var path = getAbsPath(v.file);
-			if( !sys.FileSystem.exists(path) )
+			if( !quickExists(path) )
 				'<span class="error">' + v.file + '</span>';
 			else
 				'#DATA';
@@ -1277,7 +1284,7 @@ class Main extends Model {
 		for( cindex in 0...sheet.columns.length ) {
 			var c = sheet.columns[cindex];
 			var col = J("<td>");
-			col.html(c.name);
+			col.text(c.name);
 			col.css("width", Std.int(100 / colCount) + "%");
 			if( sheet.props.displayColumn == c.name )
 				col.addClass("display");
@@ -1298,7 +1305,7 @@ class Main extends Model {
 				var l = lines[index];
 				v.appendTo(l);
 				var html = valueHtml(c, val, sheet, obj);
-				v.html(html);
+				if( html.indexOf('<') < 0 ) v.text(html) else v.html(html);
 				v.data("index", cindex);
 				v.click(function(e) {
 					if( inTodo ) {
@@ -1371,7 +1378,7 @@ class Main extends Model {
 						};
 						fillTable(content, psheet);
 						next.insertAfter(l);
-						v.html("...");
+						v.text("...");
 						openedList.set(key,true);
 						next.change(function(e) {
 							if( c.opt && val.length == 0 ) {
