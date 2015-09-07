@@ -1317,6 +1317,7 @@ Level.prototype = {
 		});
 		var onMouseUp = function(_1) {
 			_g3.mouseDown = null;
+			if(_g3.currentLayer.hasSize) _g3.setCursor();
 			if(_g3.needSave) _g3.save();
 		};
 		scroll.mousedown(function(e3) {
@@ -14020,6 +14021,7 @@ sys_io_File.getBytes = function(path) {
 	return bytes;
 };
 sys_io_File.saveContent = function(path,content) {
+	js_node_Fs.writeFileSync(path,content);
 };
 function $iterator(o) { if( o instanceof Array ) return function() { return HxOverrides.iter(o); }; return typeof(o.iterator) == 'function' ? $bind(o,o.iterator) : o.iterator; }
 var $_, $fid = 0;
