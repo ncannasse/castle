@@ -1306,7 +1306,7 @@ class Main extends Model {
 				var l = lines[index];
 				v.appendTo(l);
 				var html = valueHtml(c, val, sheet, obj);
-				if( html.indexOf('<') < 0 ) v.text(html) else v.html(html);
+				if( html == "&nbsp;" ) v.text(" ") else if( html.indexOf('<') < 0 && html.indexOf('&') < 0 ) v.text(html) else v.html(html);
 				v.data("index", cindex);
 				v.click(function(e) {
 					if( inTodo ) {
