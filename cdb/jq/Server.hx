@@ -10,6 +10,10 @@ class Server {
 		nodes = [root];
 	}
 
+	function send( msg : Message.Answer ) {
+		throw "Not implemented";
+	}
+
 	function dock( parent : js.html.Element, e : js.html.Element, dir : Message.DockDirection, size : Null<Float> ) {
 		throw "Not implemented";
 	}
@@ -43,6 +47,27 @@ class Server {
 				n.removeChild(n.firstChild);
 		case Dock(p, e, dir, size):
 			dock(nodes[p], nodes[e], dir, size);
+		case Remove(id):
+			nodes[id].remove();
+		case Event(id, name, eid):
+			nodes[id].addEventListener(name, function(_) {
+				if( name == "change" )
+					send(SetValue(id, ""+Reflect.field(nodes[id], "value")));
+				send(Event(eid));
+			});
+		case SetAttr(id, att, val):
+			nodes[id].setAttribute(att, val);
+		case SetStyle(id, s, val):
+			Reflect.setField(nodes[id].style, s, val);
+		case Trigger(id, s):
+			var m : Dynamic = Reflect.field(nodes[id], s);
+			if( m == null ) throw nodes[id] + " has no method " + m;
+			Reflect.callMethod(nodes[id], m, []);
+			if( s == "focus" && nodes[id].tagName == "SELECT" ) {
+				var event : Dynamic = cast js.Browser.document.createEvent('MouseEvents');
+				event.initMouseEvent('mousedown', true, true, js.Browser.window);
+				nodes[id].dispatchEvent(event);
+			}
 		}
 	}
 

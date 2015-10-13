@@ -621,8 +621,8 @@ class BinSerializer {
 			h |= readByte() << 8;
 			h |= readByte() << 16;
 			h |= readByte() << 24;
-			if( h != s.hash )
-				throw new SchemaError(s);
+/*			if( h != s.hash )
+				throw new SchemaError(s);*/
 			s.tag = tag;
 		}
 		switch( s.kind ) {

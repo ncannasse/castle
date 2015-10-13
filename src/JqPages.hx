@@ -1,4 +1,4 @@
-import js.JQuery.JQueryHelper.*;
+import js.jquery.Helper.*;
 
 extern class DockNode {
 }
@@ -27,13 +27,15 @@ class JqPage extends cdb.jq.Server {
 
 	public var page : js.html.Element;
 	public var name : String;
+	var sock : js.node.net.Socket;
 	var pages : JqPages;
 	var dockManager : DockManager;
 	var panels : Map<js.html.Element, Panel>;
 	var dnodes : Map<js.html.Element, DockNode>;
 
-	public function new() {
+	public function new(sock) {
 		super(js.Browser.document.createElement("div"));
+		this.sock = sock;
 		page = js.Browser.document.createElement("div");
 		page.setAttribute("class", "jqpage");
 		page.appendChild(root);
@@ -51,6 +53,16 @@ class JqPage extends cdb.jq.Server {
 		dnodes.set(root, dockManager.context.model.documentManagerNode);
 	}
 
+	override function send( msg : cdb.jq.Message.Answer ) {
+		var bytes = cdb.BinSerializer.serialize(msg);
+		var buf = new js.node.Buffer(bytes.length + 2);
+		buf[0] = bytes.length & 0xFF;
+		buf[1] = bytes.length >> 8;
+		for( i in 0...buf.length )
+			buf[i + 2] = bytes.get(i);
+		sock.write(buf);
+	}
+
 	override function dock( parent : js.html.Element, e : js.html.Element, dir : cdb.jq.Message.DockDirection, size : Null<Float> ) {
 		var p = panels.get(e);
 		if( p == null ) {
@@ -58,7 +70,9 @@ class JqPage extends cdb.jq.Server {
 			panels.set(e, p);
 		}
 		var n = dnodes.get(parent);
-		switch( dir ) {
+		if( n == null )
+			return;
+		var n = switch( dir ) {
 		case Left:
 			dockManager.dockLeft(n, p, size);
 		case Right:
@@ -70,6 +84,7 @@ class JqPage extends cdb.jq.Server {
 		case Fill:
 			dockManager.dockFill(n, p);
 		}
+		dnodes.set(e, n);
 	}
 
 }
@@ -118,7 +133,7 @@ class JqPages {
 	}
 
 	function onClient( sock : js.node.net.Socket ) {
-		var p = new JqPage();
+		var p = new JqPage(sock);
 		pages.push(p);
 		updateTabs();
 		sock.setNoDelay(true);
@@ -142,7 +157,6 @@ class JqPages {
 				for( i in 0...size )
 					msg.set(i, e.readUInt8(pos++));
 				var msg : cdb.jq.Message = cdb.BinSerializer.unserialize(msg);
-				//trace(">"+msg);
 				p.onMessage(msg);
 			}
 		});

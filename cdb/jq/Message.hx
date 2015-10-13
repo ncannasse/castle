@@ -8,6 +8,16 @@ enum Message {
 	SetCSS( css : String );
 	Reset( id : Int );
 	Dock( pid : Int, id : Int, dir : DockDirection, size : Null<Float> );
+	Remove( id : Int );
+	Event( id : Int, name : String, eid : Int );
+	SetAttr( id : Int, att : String, val : String );
+	SetStyle( id : Int, st : String, val : String );
+	Trigger( id : Int, name : String );
+}
+
+enum Answer {
+	Event( id : Int );
+	SetValue( id : Int, value : String );
 }
 
 enum DockDirection {

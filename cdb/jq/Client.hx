@@ -3,11 +3,18 @@ package cdb.jq;
 class Client {
 
 	var j : JQuery;
+	var doms : Map<Int,Dom>;
 	var root : Dom;
+	var eventID : Int = 0;
+	var events : Map<Int,Event -> Void>;
 
 	function new() {
-		root = new Dom();
+		doms = new Map();
+		root = new Dom(this);
+		doms.remove(root.id);
 		root.id = 0;
+		doms.set(root.id, root);
+		events = new Map();
 		j = new JQuery(this,root);
 	}
 
@@ -20,6 +27,21 @@ class Client {
 	}
 
 	function sendBytes( b : haxe.io.Bytes ) {
+	}
+
+	public function allocEvent( e : Event -> Void ) {
+		var id = eventID++;
+		events.set(id, e);
+		return id;
+	}
+
+	function handle( msg : Message.Answer ) {
+		switch( msg ) {
+		case Event(id):
+			events.get(id)(new Event());
+		case SetValue(id, v):
+			doms.get(id).value = v;
+		}
 	}
 
 }

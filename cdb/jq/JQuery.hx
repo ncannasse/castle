@@ -14,7 +14,7 @@ class JQuery {
 			sel = [];
 		} else if( query.charCodeAt(0) == "<".code ) {
 			if( !~/^<[A-Za-z]+>$/.match(query) ) throw "Unsupported html creation query";
-			var d = new Dom();
+			var d = new Dom(client);
 			d.name = query.substr(1, query.length - 2);
 			send(Create(d.id, d.name));
 			sel = [d];
@@ -22,6 +22,10 @@ class JQuery {
 			sel = [@:privateAccess client.root];
 			sel = find(query).sel;
 		}
+	}
+
+	public inline function get( id = 0 ) {
+		return sel[id];
 	}
 
 	public function addClass( name : String ) {
@@ -37,7 +41,7 @@ class JQuery {
 		for( s in sel ) {
 			s.childs = [];
 			send(Reset(s.id));
-			var d = new Dom();
+			var d = new Dom(client);
 			d.text = t;
 			d.parent = s;
 			send(CreateText(d.id, t, s.id));
@@ -56,23 +60,66 @@ class JQuery {
 		return this;
 	}
 
+	public function click( ?e : Event -> Void ) {
+		if( e == null ) trigger("click") else bind("click", e);
+		return this;
+	}
+
+	public function change( ?e : Event -> Void ) {
+		if( e == null ) trigger("change") else bind("change", e);
+		return this;
+	}
+
+	public function blur( ?e : Event -> Void ) {
+		if( e == null ) trigger("blur") else bind("blur", e);
+		return this;
+	}
+
+	public function dblclick( ?e : Event -> Void ) {
+		if( e == null ) trigger("dblclick") else bind("dblclick", e);
+		return this;
+	}
+
+	public function trigger( event : String ) {
+		for( s in sel )
+			send(Trigger(s.id, event));
+	}
+
+	public function getValue() {
+		if( sel.length == 0 )
+			return null;
+		return get().value;
+	}
+
+	function bind( event : String, e : Event -> Void ) {
+		for( s in sel ) {
+			var id = client.allocEvent(e);
+			s.events.push( { id : id, name : event, callb : e } );
+			send(Event(s.id, event, id));
+		}
+	}
+
 	function htmlRec( d : Dom, x : Xml ) {
 		switch( x.nodeType ) {
 		case Document:
 			for( x in x )
 				htmlRec(d, x);
 		case Element:
-			var de = new Dom();
+			var de = new Dom(client);
 			de.name = x.nodeName;
-			for( a in x.attributes() )
-				de.attributes.push( { name : a, value : x.get(a) } );
+			for( a in x.attributes() ) {
+				var v = x.get(a);
+				de.attributes.push( { name : a, value : v } );
+				if( a == "class" )
+					de.classes = v.split(" ");
+			}
 			send(Create(de.id, de.name, de.attributes));
 			de.parent = d;
 			send(Append(de.id, d.id));
 			for( x in x )
 				htmlRec(de, x);
 		case PCData, CData:
-			var dt = new Dom();
+			var dt = new Dom(client);
 			dt.text = x.nodeValue;
 			dt.parent = d;
 			send(CreateText(dt.id, dt.text, d.id));
@@ -110,9 +157,63 @@ class JQuery {
 		client.send(msg);
 	}
 
+	public function attr( a : String, ?val : String ) {
+		for( s in sel ) {
+			s.setAttr(a, val);
+			send(SetAttr(s.id, a, val));
+		}
+		return this;
+	}
+
+	public function getAttr( a : String ) {
+		if( sel.length == 0 )
+			return null;
+		return get().getAttr(a);
+	}
+
+	public function style( s : String, ?val : String ) {
+		if( val == null ) {
+			if( sel.length == 0 )
+				return null;
+			return get().getStyle(s);
+		}
+		for( d in sel ) {
+			var found = false;
+			for( st in d.style )
+				if( st.name == s ) {
+					st.value = val;
+					found = true;
+					break;
+				}
+			if( !found )
+				d.style.push( { name:s, value:val } );
+			send(SetStyle(d.id, s, val));
+		}
+		return val;
+	}
+
 	public function dock( parent : Dom, dir : DockDirection, ?size : Float ) {
 		for( s in sel )
 			send(Dock(parent.id, s.id, dir, size));
+	}
+
+	public function remove() {
+		for( s in sel ) {
+			send(Remove(s.id));
+			if( s.parent != null ) {
+				s.parent.childs.remove(s);
+				s.parent = null;
+			}
+		}
+	}
+
+	public function toggle() {
+		for( s in sel ) {
+			var d = s.getStyle("display") == "none" ? "" : "none";
+			s.setStyle("display", d);
+			send(SetStyle(s.id, "display", d));
+		}
+		return this;
 	}
 
 }
