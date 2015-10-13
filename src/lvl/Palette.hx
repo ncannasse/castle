@@ -1,6 +1,7 @@
 package lvl;
 import cdb.Data;
-import js.JQuery.JQueryHelper.*;
+import js.jquery.Helper.*;
+import js.jquery.JQuery;
 using SheetData;
 
 class Palette {
@@ -12,7 +13,7 @@ class Palette {
 		0x0080FF, 0x00FF80, 0x8000FF, 0x80FF00, 0xFF0080, 0xFF8000,
 	];
 
-	var p : js.JQuery;
+	var p : JQuery;
 	var level : Level;
 	var perTileProps : Array<Column>;
 	var perTileGfx : Map<String, lvl.LayerGfx>;
@@ -261,8 +262,8 @@ class Palette {
 
 			@:privateAccess {
 				// handle cascading
-				level.mousePos.x = e.pageX;
-				level.mousePos.y = e.pageY;
+				level.mousePos.x = Std.int(e.pageX);
+				level.mousePos.y = Std.int(e.pageY);
 				level.updateCursorPos();
 				if( level.selection == null ) level.cursor.hide();
 			}
@@ -483,7 +484,7 @@ class Palette {
 					var refList = m.find(".opt.refList");
 					refList.html("");
 					if( prop.opt )
-						J("<div>").addClass("icon").addClass("delete").appendTo(refList).toggleClass("active", modeCursor < 0).click(function() {
+						J("<div>").addClass("icon").addClass("delete").appendTo(refList).toggleClass("active", modeCursor < 0).click(function(_) {
 							modeCursor = -1;
 							level.setCursor();
 						});
@@ -492,7 +493,7 @@ class Palette {
 						d.appendTo(refList);
 						d.toggleClass("active", modeCursor == i);
 						d.attr("title", gfx.names[i]);
-						d.click(function() {
+						d.click(function(_) {
 							modeCursor = i;
 							level.setCursor();
 						});
@@ -502,7 +503,7 @@ class Palette {
 					var refList = m.find(".opt.refList");
 					refList.html("");
 					if( prop.opt )
-						J("<div>").addClass("icon").addClass("delete").appendTo(refList).toggleClass("active", modeCursor < 0).click(function() {
+						J("<div>").addClass("icon").addClass("delete").appendTo(refList).toggleClass("active", modeCursor < 0).click(function(_) {
 							modeCursor = -1;
 							level.setCursor();
 						});
@@ -510,7 +511,7 @@ class Palette {
 						var d = J("<div>").addClass("icon").css( { background : level.toColor(colorPalette[i]), width : "auto" } ).text(values[i]);
 						d.appendTo(refList);
 						d.toggleClass("active", modeCursor == i);
-						d.click(function() {
+						d.click(function(_) {
 							modeCursor = i;
 							level.setCursor();
 						});

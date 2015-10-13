@@ -1,5 +1,6 @@
 import cdb.Data;
-import js.JQuery.JQueryHelper.*;
+import js.jquery.Helper.*;
+import js.jquery.JQuery;
 import Main.K;
 import lvl.LayerData;
 
@@ -38,11 +39,11 @@ class Level {
 	public var palette : lvl.Palette;
 
 	var obj : Dynamic;
-	var content : js.JQuery;
+	var content : JQuery;
 	var props : LevelProps;
 
 	var currentLayer : LayerData;
-	var cursor : js.JQuery;
+	var cursor : JQuery;
 	var cursorImage : lvl.Image;
 	var tmpImage : lvl.Image;
 	var zoomView = 1.;
@@ -51,7 +52,7 @@ class Level {
 	var deleteMode : { l : LayerData };
 	var needSave : Bool;
 	var waitCount : Int;
-	var mouseCapture(default,set) : js.JQuery;
+	var mouseCapture(default,set) : JQuery;
 
 	var view : lvl.Image3D;
 
@@ -637,7 +638,7 @@ class Level {
 		content.find(".scroll").css("height", (win.height - 240) + "px");
 	}
 
-	function setSort( j : js.JQuery, callb : { ref : Dynamic -> Void } ) {
+	function setSort( j : JQuery, callb : { ref : Dynamic -> Void } ) {
 		(untyped j.sortable)( {
 			vertical : false,
 			onDrop : function(item, container, _super) {
@@ -647,7 +648,7 @@ class Level {
 		});
 	}
 
-	function spectrum( j : js.JQuery, options : { }, change : { ref : Dynamic -> Void }, ?show : { ref : Dynamic -> Void } ) {
+	function spectrum( j : JQuery, options : { }, change : { ref : Dynamic -> Void }, ?show : { ref : Dynamic -> Void } ) {
 		untyped options.change = function(c) {
 			change.ref(Std.parseInt("0x" + c.toHex()));
 		};
@@ -677,7 +678,7 @@ class Level {
 					palette.mode = null;
 					setLayer(l);
 				case 3:
-					popupLayer(l, e.pageX, e.pageY);
+					popupLayer(l, Std.int(e.pageX), Std.int(e.pageY));
 					e.preventDefault();
 				}
 			});
@@ -728,7 +729,7 @@ class Level {
 
 		var callb = allocRef(function(_) {
 			var indexes = [];
-			for( i in mlayers.find("li") )
+			for( i in mlayers.find("li").elements() )
 				indexes.push(i.data("index"));
 			layers = [for( i in 0...layers.length ) layers[indexes[i]]];
 			for( i in 0...layers.length )
@@ -797,8 +798,8 @@ class Level {
 			J(".cursorPosition").text("");
 		});
 		scont.mousemove(function(e) {
-			mousePos.x = e.pageX;
-			mousePos.y = e.pageY;
+			mousePos.x = Std.int(e.pageX);
+			mousePos.y = Std.int(e.pageY);
 			updateCursorPos();
 		});
 		function onMouseUp(_) {

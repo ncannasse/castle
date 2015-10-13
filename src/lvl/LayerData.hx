@@ -35,7 +35,7 @@ class LayerData extends LayerGfx {
 	public var current(default, set) : Int = 0;
 	public var currentWidth : Int = 1;
 	public var currentHeight : Int = 1;
-	public var comp : js.JQuery;
+	public var comp : js.jquery.JQuery;
 
 	public var baseSheet : Sheet;
 	public var floatCoord : Bool;

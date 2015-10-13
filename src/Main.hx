@@ -1,7 +1,8 @@
 import cdb.Data;
 using SheetData;
 
-import js.JQuery.JQueryHelper.*;
+import js.jquery.Helper.*;
+import js.jquery.JQuery;
 import js.node.webkit.Menu;
 import js.node.webkit.MenuItem;
 import js.node.webkit.MenuItemType;
@@ -750,7 +751,7 @@ class Main extends Model {
 	}
 
 
-	function popupSheet( s : Sheet, li : js.JQuery ) {
+	function popupSheet( s : Sheet, li : JQuery ) {
 		var n = new Menu();
 		var nins = new MenuItem( { label : "Add Sheet" } );
 		var nleft = new MenuItem( { label : "Move Left" } );
@@ -855,7 +856,7 @@ class Main extends Model {
 		n.popup(mousePos.x, mousePos.y);
 	}
 
-	public function editCell( c : Column, v : js.JQuery, sheet : Sheet, index : Int ) {
+	public function editCell( c : Column, v : JQuery, sheet : Sheet, index : Int ) {
 		var obj = sheet.lines[index];
 		var val : Dynamic = Reflect.field(obj, c.name);
 		var old = val;
@@ -888,7 +889,7 @@ class Main extends Model {
 					i.val(""+val);
 				}
 			i.change(function(e) e.stopPropagation());
-			i.keydown(function(e:js.JQuery.JqEvent) {
+			i.keydown(function(e:js.jquery.Event) {
 				switch( e.keyCode ) {
 				case K.ESC:
 					editDone();
@@ -1078,7 +1079,7 @@ class Main extends Model {
 		case TImage:
 			var i = J("<input>").attr("type", "file").css("display","none").change(function(e) {
 				var j = JTHIS;
-				var file = j.val();
+				var file : String = j.val();
 				var ext = file.split(".").pop().toLowerCase();
 				if( ext == "jpeg" ) ext = "jpg";
 				if( ext != "png" && ext != "gif" && ext != "jpg" ) {
@@ -1233,7 +1234,7 @@ class Main extends Model {
 		}).click();
 	}
 
-	function fillTable( content : js.JQuery, sheet : Sheet ) {
+	function fillTable( content : JQuery, sheet : Sheet ) {
 		if( sheet.columns.length == 0 ) {
 			content.html('<a href="javascript:_.newColumn(\'${sheet.name}\')">Add a column</a>');
 			return;
@@ -1506,8 +1507,8 @@ class Main extends Model {
 							height = Std.parseInt(JTHIS.val());
 							J(".tileCursor").css( { width:(size*width)+"px", height:(size*height)+"px" } );
 						}).change();
-						dialog.find("[name=cancel]").click(function() dialog.remove());
-						dialog.find("[name=file]").click(function() {
+						dialog.find("[name=cancel]").click(function(_) dialog.remove());
+						dialog.find("[name=file]").click(function(_) {
 							chooseFile(function(f) {
 								file = f;
 								dialog.remove();
@@ -1538,7 +1539,7 @@ class Main extends Model {
 
 		if( sheet.lines.length == 0 ) {
 			var l = J('<tr><td colspan="${sheet.columns.length + 1}"><a href="javascript:_.insertLine()">Insert Line</a></td></tr>');
-			l.find("a").click(function() setCursor(sheet));
+			l.find("a").click(function(_) setCursor(sheet));
 			lines.push(l);
 		}
 
@@ -1549,7 +1550,7 @@ class Main extends Model {
 				var l = lines[index];
 				var c = J("<input type='submit' value='Edit'>");
 				J("<td>").append(c).prependTo(l);
-				c.click(function() {
+				c.click(function(_) {
 					l.click();
 					var found = null;
 					for( l in levels )
@@ -1878,7 +1879,7 @@ class Main extends Model {
 
 		var v : Dynamic<String> = { };
 		var cols = J("#col_form input, #col_form select").not("[type=submit]");
-		for( i in cols )
+		for( i in cols.elements() )
 			Reflect.setField(v, i.attr("name"), i.attr("type") == "checkbox" ? (i.is(":checked")?"on":null) : i.val());
 
 		var sheet = colProps.sheet == null ? viewSheet : getSheet(colProps.sheet);
@@ -1968,7 +1969,7 @@ class Main extends Model {
 		}
 
 		J("#newcol").hide();
-		for( c in cols )
+		for( c in cols.elements() )
 			c.val("");
 		refresh();
 		save();
@@ -1983,7 +1984,7 @@ class Main extends Model {
 			var s = data.sheets[i];
 			if( s.props.hide ) continue;
 			var li = J("<li>");
-			li.text(s.name).attr("id", "sheet_" + i).appendTo(sheets).click(selectSheet.bind(s)).dblclick(function(_) {
+			li.text(s.name).attr("id", "sheet_" + i).appendTo(sheets).click(function(_) selectSheet(s)).dblclick(function(_) {
 				li.empty();
 				J("<input>").val(s.name).appendTo(li).focus().blur(function(_) {
 					li.text(s.name);
@@ -2049,7 +2050,7 @@ class Main extends Model {
 			var li = J("<li>");
 			var name = level.getName();
 			if( name == "" ) name = "???";
-			li.text(name).attr("id", "level_" + l.sheetPath.split(".").join("_") + "_" + l.index).appendTo(sheets).click(selectLevel.bind(l));
+			li.text(name).attr("id", "level_" + l.sheetPath.split(".").join("_") + "_" + l.index).appendTo(sheets).click(function(_) selectLevel(l));
 		}
 
 		if( pages.curPage >= 0 )
