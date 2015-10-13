@@ -21,7 +21,7 @@ private enum SData {
 	DDynamic;
 	DNull( d : SData );
 	DArray( d : SData );
-	DSchema( id : Schema );
+	DSchema( id : Int );
 	DAnon( a : Array<{ n : String, d : SData }> );
 	DIntMap( d : SData );
 	DStringMap( d : SData );
@@ -68,9 +68,9 @@ private class Schema {
 	public var kind : SchemaKind;
 	public var enumValue : Enum<Dynamic>;
 
-	public function new( id, name ) {
-		this.id = id;
+	public function new( name ) {
 		this.name = name;
+		this.id = DO_HASH(name);
 	}
 
 	public function finalize() {
@@ -79,18 +79,23 @@ private class Schema {
 		s.useCache = true;
 		s.useEnumIndex = true;
 		s.serialize(kind);
-		var b = haxe.crypto.Md5.make(haxe.io.Bytes.ofString(name + s.toString()));
-		hash = b.get(0) | (b.get(1) << 8) | (b.get(2) << 16) | (b.get(3) << 24);
+		hash = DO_HASH(name + s.toString());
+	}
+
+	public static function DO_HASH( data : String ) {
+		var b = haxe.crypto.Md5.make(haxe.io.Bytes.ofString(data));
+		return b.get(0) | (b.get(1) << 8) | (b.get(2) << 16) | (b.get(3) << 24);
 	}
 
 }
 
 class BinSerializer {
 
+	public static var VERSION_CHECK = false;
+
 	#if macro
-	static var SID = 0;
 	static var schemas = new Map();
-	static var allSchemas = [];
+	static var schemasById = new Map();
 	static var deps = new Map();
 
 	static function makeSchema( t : BaseType, ?extra : String ) {
@@ -103,9 +108,9 @@ class BinSerializer {
 		var path = t.pack.copy();
 		path.push(t.name);
 		if( extra != null ) path.push(extra);
-		var s = new Schema(++SID, path.join("."));
+		var s = new Schema(path.join("."));
 		schemas.set(s.name, s);
-		allSchemas.push(s);
+		schemasById.set(s.id, s);
 		return s;
 	}
 
@@ -182,7 +187,7 @@ class BinSerializer {
 				var td = tn.get();
 				switch( td.type ) {
 				case TAnonymous(_):
-					return DSchema(getSchema(t, pos));
+					return DSchema(getSchema(t, pos).id);
 				default:
 					return getData(Context.follow(t, true), pos);
 				}
@@ -197,7 +202,8 @@ class BinSerializer {
 				return DBool;
 			case "Map":
 				switch( getData(pl[0], pos) ) {
-				case DSchema(s):
+				case DSchema(sid):
+					var s = schemasById.get(sid);
 					switch( s.kind ) {
 					case SEnum(_):
 						return DEnumMap(s, getData(pl[1], pos));
@@ -229,7 +235,7 @@ class BinSerializer {
 			case "haxe.io.Bytes":
 				return DBytes;
 			default:
-				return DSchema(getSchema(t,pos));
+				return DSchema(getSchema(t,pos).id);
 			}
 		case TAnonymous(a):
 			var a = a.get();
@@ -240,7 +246,7 @@ class BinSerializer {
 			}
 			return DAnon(out);
 		case TEnum(_):
-			return DSchema(getSchema(t, pos));
+			return DSchema(getSchema(t, pos).id);
 		case TDynamic(_):
 			return DDynamic;
 		default:
@@ -295,26 +301,15 @@ class BinSerializer {
 	}
 
 	static function save() {
-		var s = new haxe.Serializer();
-		s.useEnumIndex = true;
-		s.useCache = true;
-		s.serialize(allSchemas);
-		Context.addResource("$bin", haxe.io.Bytes.ofString(s.toString()));
-	}
-
-	static var FIRST_COMPILATION = true;
-	static var INIT_DONE = false;
-	static function init() {
-		if( FIRST_COMPILATION ) {
-			FIRST_COMPILATION = false;
-			Context.onMacroContextReused(function() {
-				INIT_DONE = false;
-				init();
-				return true;
-			});
+		switch( Context.getType("cdb.BinSerializer") ) {
+		case TInst(c,_):
+			var c = c.get();
+			for( s in schemas )
+				if( s.kind != null && !c.meta.has("s_" + s.id) )
+					c.meta.add("s_" + s.id, [ { expr : EConst(CString(haxe.Serializer.run(s))), pos : c.pos } ], c.pos);
+		default:
+			throw "assert";
 		}
-		if( INIT_DONE ) return;
-		save();
 	}
 
 	#else
@@ -326,9 +321,10 @@ class BinSerializer {
 
 	static function init() {
 		if( schemas == null ) {
-			var a : Array<Schema> = haxe.Unserializer.run(haxe.Resource.getString("$bin"));
+			var metas : Dynamic = haxe.rtti.Meta.getType(BinSerializer);
 			schemas = new Map();
-			for( s in a ) {
+			for( m in Reflect.fields(metas) ) {
+				var s : Schema = haxe.Unserializer.run(Reflect.field(metas,m)[0]);
 				s.tag = 0;
 				schemas.set(s.id, s);
 				switch( s.kind ) {
@@ -411,8 +407,8 @@ class BinSerializer {
 			serializeInt(a.length);
 			for( v in a )
 				serializeData(d, v);
-		case DSchema(s):
-			serializeSchema(s, v);
+		case DSchema(sid):
+			serializeSchema(schemas.get(sid), v);
 		case DStringMap(d):
 			var m : haxe.ds.StringMap<Dynamic> = v;
 			for( k in m.keys() ) {
@@ -460,7 +456,7 @@ class BinSerializer {
 	}
 
 	function serializeSchema( s : Schema, v : Dynamic ) {
-		if( s.tag != tag ) {
+		if( VERSION_CHECK && s.tag != tag ) {
 			out.addByte(s.hash & 0xFF);
 			out.addByte((s.hash >> 8) & 0xFF);
 			out.addByte((s.hash >> 16) & 0xFF);
@@ -578,8 +574,8 @@ class BinSerializer {
 			for( f in fields )
 				fastSetField(o, f.n, unserializeData(f.d));
 			return o;
-		case DSchema(s):
-			return unserializeSchema(s);
+		case DSchema(sid):
+			return unserializeSchema(schemas.get(sid));
 		case DIntMap(d):
 			var m = new haxe.ds.IntMap();
 			while( true ) {
@@ -616,21 +612,20 @@ class BinSerializer {
 	}
 
 	function unserializeSchema( s : Schema ) : Dynamic {
-		if( s.tag != tag ) {
+		if( VERSION_CHECK && s.tag != tag ) {
 			var h = readByte();
 			h |= readByte() << 8;
 			h |= readByte() << 16;
 			h |= readByte() << 24;
-/*			if( h != s.hash )
-				throw new SchemaError(s);*/
+			if( h != s.hash )
+				throw new SchemaError(s);
 			s.tag = tag;
 		}
 		switch( s.kind ) {
 		case SEnum(constructs):
 			var id = readByte();
 			var c = constructs[id];
-			if( c == null )
-				return std.Type.createEnumIndex(s.enumValue, id);
+			if( c == null ) return std.Type.createEnumIndex(s.enumValue, id);
 			var args = [for( d in c ) unserializeData(d)];
 			return std.Type.createEnumIndex(s.enumValue, id, args);
 		case SMulti(choices):
@@ -709,7 +704,6 @@ class BinSerializer {
 
 
 	public static macro function unserialize( e : Expr ) {
-		init();
 		var t = Context.getExpectedType();
 		switch( t ) {
 		case TMono(_):
@@ -721,7 +715,6 @@ class BinSerializer {
 	}
 
 	public static macro function serialize( e : Expr ) {
-		init();
 		var schema = getSchema(Context.typeof(e), e.pos);
 		var eb = macro cdb.BinSerializer.doSerialize($e, $v { schema.id } );
 		eb.pos = Context.currentPos();
