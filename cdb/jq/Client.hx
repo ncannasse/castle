@@ -37,8 +37,11 @@ class Client {
 
 	function handle( msg : Message.Answer ) {
 		switch( msg ) {
-		case Event(id):
-			events.get(id)(new Event());
+		case Event(id, keyCode, value):
+			var e = new Event();
+			e.keyCode = keyCode;
+			e.value = value;
+			events.get(id)(e);
 		case SetValue(id, v):
 			doms.get(id).value = v;
 		}

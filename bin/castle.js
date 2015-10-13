@@ -114,10 +114,16 @@ var cdb_jq_Server = function(root) {
 $hxClasses["cdb.jq.Server"] = cdb_jq_Server;
 cdb_jq_Server.__name__ = ["cdb","jq","Server"];
 cdb_jq_Server.prototype = {
-	dock: function(parent,e,dir,size) {
+	send: function(msg) {
 		throw new js__$Boot_HaxeError("Not implemented");
 	}
+	,dock: function(parent,e,dir,size) {
+		throw new js__$Boot_HaxeError("Not implemented");
+	}
+	,handleSpecial: function(e,name,args,result) {
+	}
 	,onMessage: function(msg) {
+		var _g = this;
 		switch(msg[1]) {
 		case 0:
 			var attr = msg[4];
@@ -125,10 +131,10 @@ cdb_jq_Server.prototype = {
 			var id = msg[2];
 			var n = window.document.createElement(name);
 			if(attr != null) {
-				var _g = 0;
-				while(_g < attr.length) {
-					var a = attr[_g];
-					++_g;
+				var _g1 = 0;
+				while(_g1 < attr.length) {
+					var a = attr[_g1];
+					++_g1;
 					n.setAttribute(a.name,a.value);
 				}
 			}
@@ -140,19 +146,24 @@ cdb_jq_Server.prototype = {
 			this.nodes[id1].classList.add(name1);
 			break;
 		case 2:
-			var to = msg[3];
+			var name2 = msg[3];
 			var id2 = msg[2];
-			this.nodes[to].appendChild(this.nodes[id2]);
+			this.nodes[id2].classList.remove(name2);
 			break;
 		case 3:
-			var pid = msg[4];
-			var text = msg[3];
+			var to = msg[3];
 			var id3 = msg[2];
-			var t = window.document.createTextNode(text);
-			this.nodes[id3] = t;
-			if(pid != null) this.nodes[pid].appendChild(t);
+			this.nodes[to].appendChild(this.nodes[id3]);
 			break;
 		case 4:
+			var pid = msg[4];
+			var text = msg[3];
+			var id4 = msg[2];
+			var t = window.document.createTextNode(text);
+			this.nodes[id4] = t;
+			if(pid != null) this.nodes[pid].appendChild(t);
+			break;
+		case 5:
 			var text1 = msg[2];
 			var curCss = window.document.getElementById("jqcss");
 			if(curCss == null) {
@@ -161,24 +172,88 @@ cdb_jq_Server.prototype = {
 			}
 			curCss.innerText = text1;
 			break;
-		case 5:
-			var id4 = msg[2];
-			var n1 = this.nodes[id4];
+		case 6:
+			var id5 = msg[2];
+			var n1 = this.nodes[id5];
 			while(n1.firstChild != null) n1.removeChild(n1.firstChild);
 			break;
-		case 6:
+		case 7:
 			var size = msg[5];
 			var dir = msg[4];
 			var e = msg[3];
 			var p = msg[2];
 			this.dock(this.nodes[p],this.nodes[e],dir,size);
 			break;
+		case 8:
+			var id6 = msg[2];
+			this.nodes[id6].remove();
+			break;
+		case 9:
+			var eid = msg[4];
+			var name3 = msg[3];
+			var id7 = msg[2];
+			var n2 = this.nodes[id7];
+			n2.addEventListener(name3,function(e1) {
+				var sendValue = false;
+				switch(name3) {
+				case "change":
+					sendValue = true;
+					break;
+				case "blur":
+					if(n2.tagName == "INPUT") sendValue = true; else {
+					}
+					break;
+				case "keydown":
+					if(n2.tagName == "INPUT") sendValue = true; else {
+					}
+					break;
+				default:
+				}
+				if(sendValue) _g.send(cdb_jq_Answer.SetValue(id7,"" + Std.string(Reflect.field(n2,"value"))));
+				_g.send(cdb_jq_Answer.Event(eid,e1.keyCode));
+			});
+			break;
+		case 10:
+			var val = msg[4];
+			var att = msg[3];
+			var id8 = msg[2];
+			this.nodes[id8].setAttribute(att,val);
+			break;
+		case 11:
+			var val1 = msg[4];
+			var s = msg[3];
+			var id9 = msg[2];
+			this.nodes[id9].style[s] = val1;
+			break;
+		case 12:
+			var s1 = msg[3];
+			var id10 = msg[2];
+			var m = Reflect.field(this.nodes[id10],s1);
+			if(m == null) throw new js__$Boot_HaxeError(Std.string(this.nodes[id10]) + " has no method " + Std.string(m));
+			Reflect.callMethod(this.nodes[id10],m,[]);
+			if(s1 == "focus" && this.nodes[id10].tagName == "SELECT") {
+				var event = window.document.createEvent("MouseEvents");
+				event.initMouseEvent("mousedown",true,true,window);
+				this.nodes[id10].dispatchEvent(event);
+			}
+			break;
+		case 13:
+			var eid1 = msg[5];
+			var args = msg[4];
+			var name4 = msg[3];
+			var id11 = msg[2];
+			this.handleSpecial(this.nodes[id11],name4,args,eid1 == null?function(_) {
+			}:function(v) {
+				_g.send(cdb_jq_Answer.Event(eid1,0,v));
+			});
+			break;
 		}
 	}
 	,__class__: cdb_jq_Server
 };
-var JqPage = function() {
+var JqPage = function(sock) {
 	cdb_jq_Server.call(this,window.document.createElement("div"));
+	this.sock = sock;
 	this.page = window.document.createElement("div");
 	this.page.setAttribute("class","jqpage");
 	this.page.appendChild(this.root);
@@ -196,29 +271,87 @@ $hxClasses["JqPage"] = JqPage;
 JqPage.__name__ = ["JqPage"];
 JqPage.__super__ = cdb_jq_Server;
 JqPage.prototype = $extend(cdb_jq_Server.prototype,{
-	dock: function(parent,e,dir,size) {
+	send: function(msg) {
+		var bytes = cdb_BinSerializer.doSerialize(msg,560507292);
+		var buf = new js_node_buffer_Buffer(bytes.length + 2);
+		buf[0] = bytes.length & 255;
+		buf[1] = bytes.length >> 8;
+		var _g1 = 0;
+		var _g = buf.length;
+		while(_g1 < _g) {
+			var i = _g1++;
+			buf[i + 2] = bytes.b[i];
+		}
+		this.sock.write(buf);
+	}
+	,dock: function(parent,e,dir,size) {
 		var p = this.panels.h[e.__id__];
 		if(p == null) {
 			p = new dockspawn.PanelContainer(e,this.dockManager);
 			this.panels.set(e,p);
 		}
 		var n = this.dnodes.h[parent.__id__];
+		if(n == null) return;
+		var n1;
 		switch(dir[1]) {
 		case 0:
-			this.dockManager.dockLeft(n,p,size);
+			n1 = this.dockManager.dockLeft(n,p,size);
 			break;
 		case 1:
-			this.dockManager.dockRight(n,p,size);
+			n1 = this.dockManager.dockRight(n,p,size);
 			break;
 		case 2:
-			this.dockManager.dockUp(n,p,size);
+			n1 = this.dockManager.dockUp(n,p,size);
 			break;
 		case 3:
-			this.dockManager.dockDown(n,p,size);
+			n1 = this.dockManager.dockDown(n,p,size);
 			break;
 		case 4:
-			this.dockManager.dockFill(n,p);
+			n1 = this.dockManager.dockFill(n,p);
 			break;
+		}
+		this.dnodes.set(e,n1);
+	}
+	,handleSpecial: function(e,name,args,result) {
+		switch(name) {
+		case "colorPick":
+			var id = Std.random(1);
+			e.innerHTML = "<div class=\"modal\" onclick=\"$('#_c" + id + "').spectrum('toggle')\"></div><input type=\"text\" id=\"_c" + id + "\"/>";
+			var spect = $("#_c" + id);
+			var val = args[0];
+			var getColor = function(vcol) {
+				return Std.parseInt("0x" + Std.string(vcol.toHex())) | Std["int"](vcol.getAlpha() * 255) << 24;
+			};
+			spect.spectrum({ color : "rgba(" + [val >> 16 & 255,val >> 8 & 255,val & 255,(val >>> 24) / 255].join(",") + ")", showInput : true, showButtons : false, showAlpha : args[1], clickoutFiresChange : true, move : function(vcol1) {
+				result({ color : getColor(vcol1), done : false});
+			}, change : function(vcol2) {
+				spect.spectrum("hide");
+				result({ color : getColor(vcol2), done : true});
+			}, hide : function(vcol3) {
+				result({ color : getColor(vcol3), done : true});
+			}}).spectrum("show");
+			break;
+		case "fileSelect":
+			var path = args[0];
+			var ext;
+			if(args[1] == null) ext = []; else ext = args[1].split(",");
+			var fs = $("#fileSelect");
+			if(path != null && StringTools.startsWith(window.navigator.platform,"Win")) path = path.split("/").join("\\");
+			fs.attr("nwworkingdir",path == null?"":new haxe_io_Path(path).dir);
+			fs.change(function(_) {
+				fs.unbind("change");
+				var path1 = fs.val().split("\\").join("/");
+				fs.val("");
+				if(path1 == "") {
+					result(null);
+					return;
+				}
+				fs.attr("nwworkingdir","");
+				result(path1);
+			}).click();
+			break;
+		default:
+			throw new js__$Boot_HaxeError("Don't know how to handle " + name + "(" + args.join(",") + ")");
 		}
 	}
 	,__class__: JqPage
@@ -234,18 +367,18 @@ JqPages.__name__ = ["JqPages"];
 JqPages.prototype = {
 	updateTabs: function() {
 		var _g2 = this;
-		var sheets = js.JQuery("ul#sheets");
+		var sheets = $("ul#sheets");
 		sheets.find("li.client").remove();
 		var _g = 0;
 		var _g1 = this.pages;
 		while(_g < _g1.length) {
 			var p = [_g1[_g]];
 			++_g;
-			var jc = [js.JQuery("<li>").addClass("client").text(p[0].name == ""?"???":p[0].name).appendTo(sheets)];
+			var jc = [$("<li>").addClass("client").text(p[0].name == ""?"???":p[0].name).appendTo(sheets)];
 			jc[0].click((function(jc,p) {
 				return function(e) {
 					_g2.curPage = Lambda.indexOf(_g2.pages,p[0]);
-					js.JQuery("#sheets li").removeClass("active");
+					$("#sheets li").removeClass("active");
 					jc[0].addClass("active");
 					_g2.select();
 				};
@@ -255,7 +388,7 @@ JqPages.prototype = {
 	}
 	,select: function() {
 		var p = this.pages[this.curPage];
-		js.JQuery("#content").html("").append(p.page);
+		$("#content").html("").append(p.page);
 		p.page.style.visibility = "";
 		this.onResize();
 	}
@@ -268,7 +401,7 @@ JqPages.prototype = {
 		}
 	}
 	,onClient: function(sock) {
-		var p = new JqPage();
+		var p = new JqPage(sock);
 		this.pages.push(p);
 		this.updateTabs();
 		sock.setNoDelay(true);
@@ -282,13 +415,13 @@ JqPages.prototype = {
 			while(pos < e.length) {
 				var size = e.readInt32LE(pos);
 				pos += 4;
-				var msg = haxe_io_Bytes.alloc(size);
+				var msg = new haxe_io_Bytes(new ArrayBuffer(size));
 				var _g = 0;
 				while(_g < size) {
 					var i = _g++;
 					msg.set(i,e.readUInt8(pos++));
 				}
-				var msg1 = cdb_BinSerializer.doUnserialize(msg,1);
+				var msg1 = cdb_BinSerializer.doUnserialize(msg,1522840838);
 				p.onMessage(msg1);
 			}
 		});
@@ -950,7 +1083,7 @@ Level.prototype = {
 			this.setLayerMode(val);
 			break;
 		}
-		js.JQuery(":focus").blur();
+		$(":focus").blur();
 	}
 	,addNewLayer: function(name) {
 		var _g = this.newLayer.type;
@@ -1084,8 +1217,8 @@ Level.prototype = {
 		};
 		nrename.click = function() {
 			l.comp.find("span").remove();
-			l.comp.prepend(js.JQuery("<input type='text'>").val(l.name).focus().blur(function(_) {
-				var n1 = StringTools.trim(js.JQuery(this).val());
+			l.comp.prepend($("<input type='text'>").val(l.name).focus().blur(function(_) {
+				var n1 = StringTools.trim($(this).val());
 				var _g16 = 0;
 				var _g25 = _g.props.layers;
 				while(_g16 < _g25.length) {
@@ -1116,7 +1249,7 @@ Level.prototype = {
 				_g.save();
 				_g.reload();
 			}).keypress(function(e) {
-				if(e.keyCode == 13) js.JQuery(this).blur();
+				if(e.keyCode == 13) $(this).blur();
 			}));
 		};
 		nrename.enabled = ndel.enabled;
@@ -1143,21 +1276,16 @@ Level.prototype = {
 	}
 	,setup: function() {
 		var _g3 = this;
-		var page = js.JQuery("#content");
+		var page = $("#content");
 		page.html("");
-		this.content = ((function($this) {
-			var $r;
-			var html = js.JQuery("#levelContent").html();
-			$r = js.JQuery(html);
-			return $r;
-		}(this))).appendTo(page);
+		this.content = $($("#levelContent").html()).appendTo(page);
 		var mlayers = this.content.find(".layers");
-		var _g14 = 0;
+		var _g15 = 0;
 		var _g4 = this.layers.length;
-		while(_g14 < _g4) {
-			var index = _g14++;
+		while(_g15 < _g4) {
+			var index = _g15++;
 			var l2 = [this.layers[index]];
-			var td = js.JQuery("<li class='item layer'>").appendTo(mlayers);
+			var td = $("<li class='item layer'>").appendTo(mlayers);
 			l2[0].comp = td;
 			td.data("index",index);
 			if(!l2[0].visible) td.addClass("hidden");
@@ -1171,24 +1299,19 @@ Level.prototype = {
 						_g3.setLayer(l2[0]);
 						break;
 					case 3:
-						_g3.popupLayer(l2[0],e.pageX,e.pageY);
+						_g3.popupLayer(l2[0],e.pageX | 0,e.pageY | 0);
 						e.preventDefault();
 						break;
 					}
 				};
 			})(l2));
-			js.JQuery("<span>").text(l2[0].name).appendTo(td);
+			$("<span>").text(l2[0].name).appendTo(td);
 			if(l2[0].images != null) {
 				td.find("span").css("margin-top","10px");
 				continue;
 			}
 			var id = Level.UID++;
-			var t = ((function($this) {
-				var $r;
-				var html1 = "<input type=\"text\" id=\"_" + Level.UID++ + "\">";
-				$r = js.JQuery(html1);
-				return $r;
-			}(this))).appendTo(td);
+			var t = $("<input type=\"text\" id=\"_" + Level.UID++ + "\">").appendTo(td);
 			this.spectrum(t,{ color : this.toColor(l2[0].colors[l2[0].current]), clickoutFiresChange : true, showButtons : false, showPaletteOnly : true, showPalette : true, palette : (function($this) {
 				var $r;
 				var _g25 = [];
@@ -1225,36 +1348,33 @@ Level.prototype = {
 		}
 		var callb = this.allocRef(function(_) {
 			var indexes = [];
-			var $it0 = (function($this) {
-				var $r;
-				var _this = mlayers.find("li");
-				$r = (_this.iterator)();
-				return $r;
-			}(this));
-			while( $it0.hasNext() ) {
-				var i = $it0.next();
+			var _g;
+			var _this = mlayers.find("li");
+			_g = new js_jquery_JqEltsIterator(this);
+			while(_g.i < _g.j.length) {
+				var i = $(_g.j[_g.i++]);
 				indexes.push(i.data("index"));
 			}
-			var _g = [];
+			var _g1 = [];
 			var _g2 = 0;
-			var _g1 = _g3.layers.length;
-			while(_g2 < _g1) {
-				var i1 = _g2++;
-				_g.push(_g3.layers[indexes[i1]]);
-			}
-			_g3.layers = _g;
-			var _g21 = 0;
 			var _g11 = _g3.layers.length;
-			while(_g21 < _g11) {
+			while(_g2 < _g11) {
+				var i1 = _g2++;
+				_g1.push(_g3.layers[indexes[i1]]);
+			}
+			_g3.layers = _g1;
+			var _g21 = 0;
+			var _g12 = _g3.layers.length;
+			while(_g21 < _g12) {
 				var i2 = _g21++;
 				_g3.layers[i2].comp.data("index",i2);
 			}
 			var groups = new haxe_ds_StringMap();
-			var _g12 = 0;
+			var _g13 = 0;
 			var _g22 = _g3.layers;
-			while(_g12 < _g22.length) {
-				var l = _g22[_g12];
-				++_g12;
+			while(_g13 < _g22.length) {
+				var l = _g22[_g13];
+				++_g13;
 				if(l.listColumnn == null) continue;
 				var g = groups.get(l.listColumnn.name);
 				if(g == null) {
@@ -1263,20 +1383,20 @@ Level.prototype = {
 				}
 				g.push(l);
 			}
-			var $it1 = groups.keys();
-			while( $it1.hasNext() ) {
-				var g1 = $it1.next();
+			var $it0 = groups.keys();
+			while( $it0.hasNext() ) {
+				var g1 = $it0.next();
 				var layers;
 				layers = __map_reserved[g1] != null?groups.getReserved(g1):groups.h[g1];
 				var objs;
-				var _g13 = [];
+				var _g14 = [];
 				var _g23 = 0;
 				while(_g23 < layers.length) {
 					var l1 = layers[_g23];
 					++_g23;
-					_g13.push(l1.targetObj.o);
+					_g14.push(l1.targetObj.o);
 				}
-				objs = _g13;
+				objs = _g14;
 				_g3.obj[g1] = objs;
 			}
 			_g3.save();
@@ -1310,11 +1430,11 @@ Level.prototype = {
 		scont.mouseleave(function(_4) {
 			_g3.curPos = null;
 			if(_g3.selection == null) _g3.cursor.hide();
-			js.JQuery(".cursorPosition").text("");
+			$(".cursorPosition").text("");
 		});
 		scont.mousemove(function(e2) {
-			_g3.mousePos.x = e2.pageX;
-			_g3.mousePos.y = e2.pageY;
+			_g3.mousePos.x = e2.pageX | 0;
+			_g3.mousePos.y = e2.pageY | 0;
 			_g3.updateCursorPos();
 		});
 		var onMouseUp = function(_1) {
@@ -1356,10 +1476,10 @@ Level.prototype = {
 				if(p != null) {
 					p.layer.set_current(p.k);
 					{
-						var _g15 = p.layer.data;
-						switch(_g15[1]) {
+						var _g16 = p.layer.data;
+						switch(_g16[1]) {
 						case 3:
-							var insts = _g15[3];
+							var insts = _g16[3];
 							var i4 = insts[p.index];
 							var obj;
 							var this1 = p.layer.getTileObjects();
@@ -1691,12 +1811,7 @@ Level.prototype = {
 	}
 	,updateCursorPos: function() {
 		if(this.currentLayer == null) return;
-		var off = ((function($this) {
-			var $r;
-			var html = $this.view.getCanvas();
-			$r = js.JQuery(html);
-			return $r;
-		}(this))).parent().offset();
+		var off = $(this.view.getCanvas()).parent().offset();
 		var cxf = ((this.mousePos.x - off.left) / this.zoomView | 0) / this.tileSize;
 		var cyf = ((this.mousePos.y - off.top) / this.zoomView | 0) / this.tileSize;
 		var cx = cxf | 0;
@@ -1829,20 +1944,10 @@ Level.prototype = {
 		if(!this.hasProps(l)) return;
 		var o = Reflect.field(this.obj,l.name)[index];
 		var scroll = this.content.find(".scrollContent");
-		var popup = js.JQuery("<div>").addClass("popup").prependTo(scroll);
-		((function($this) {
-			var $r;
-			var html = window;
-			$r = js.JQuery(html);
-			return $r;
-		}(this))).bind("mousedown",function(_) {
+		var popup = $("<div>").addClass("popup").prependTo(scroll);
+		$(window).bind("mousedown",function(_) {
 			popup.remove();
-			((function($this) {
-				var $r;
-				var html1 = window;
-				$r = js.JQuery(html1);
-				return $r;
-			}(this))).unbind("mousedown");
+			$(window).unbind("mousedown");
 			if(_g.view != null) _g.draw();
 		});
 		popup.mousedown(function(e) {
@@ -1854,16 +1959,16 @@ Level.prototype = {
 		popup.click(function(e2) {
 			e2.stopPropagation();
 		});
-		var table = js.JQuery("<table>").appendTo(popup);
+		var table = $("<table>").appendTo(popup);
 		var main = Std.instance(this.model,Main);
 		var _g1 = 0;
 		var _g11 = l.baseSheet.columns;
 		while(_g1 < _g11.length) {
 			var c = [_g11[_g1]];
 			++_g1;
-			var tr = js.JQuery("<tr>").appendTo(table);
-			var th = js.JQuery("<th>").text(c[0].name).appendTo(tr);
-			var td = [js.JQuery("<td>").html(main.valueHtml(c[0],Reflect.field(o,c[0].name),l.baseSheet,o)).appendTo(tr)];
+			var tr = $("<tr>").appendTo(table);
+			var th = $("<th>").text(c[0].name).appendTo(tr);
+			var td = [$("<td>").html(main.valueHtml(c[0],Reflect.field(o,c[0].name),l.baseSheet,o)).appendTo(tr)];
 			td[0].click((function(td,c) {
 				return function(e3) {
 					var psheet = { columns : l.baseSheet.columns, props : l.baseSheet.props, name : l.baseSheet.name, path : SheetData.getPath(l.baseSheet) + ":" + index, parent : { sheet : _g.sheet, column : Lambda.indexOf(_g.sheet.columns,Lambda.find(_g.sheet.columns,(function() {
@@ -1895,7 +2000,7 @@ Level.prototype = {
 		var ty = 0;
 		var sc = this.content.find(".scroll");
 		if(f != null) {
-			js.JQuery(".popup").remove();
+			$(".popup").remove();
 			var width = sc.width();
 			var height = sc.height();
 			var cx = (sc.scrollLeft() + width * 0.5) / this.zoomView;
@@ -2019,8 +2124,8 @@ Level.prototype = {
 			}
 			return;
 		}
-		if(js.JQuery("input[type=text]:focus").length > 0 || this.currentLayer == null) return;
-		js.JQuery(".popup").remove();
+		if($("input[type=text]:focus").length > 0 || this.currentLayer == null) return;
+		$(".popup").remove();
 		var l1 = this.currentLayer;
 		var _g2 = e.keyCode;
 		switch(_g2) {
@@ -2049,15 +2154,13 @@ Level.prototype = {
 			e.preventDefault();
 			if(this.spaceDown) return;
 			this.spaceDown = true;
-			var canvas;
-			var html = this.view.getCanvas();
-			canvas = js.JQuery(html);
+			var canvas = $(this.view.getCanvas());
 			canvas.css({ cursor : "move"});
 			this.cursor.hide();
 			var s = canvas.closest(".scroll");
 			var curX = null;
 			var curY = null;
-			canvas.on("mousemove",function(e1) {
+			canvas.on("mousemove",null,function(e1) {
 				var tx = e1.pageX;
 				var ty = e1.pageY;
 				if(curX == null) {
@@ -2289,7 +2392,7 @@ Level.prototype = {
 				switch(_g18[1]) {
 				case 1:
 					var objs = _g18[3];
-					js.JQuery(".popup").remove();
+					$(".popup").remove();
 					this.editProps(p1.layer,p1.index);
 					break;
 				default:
@@ -2431,9 +2534,7 @@ Level.prototype = {
 			break;
 		case 32:
 			this.spaceDown = false;
-			var canvas;
-			var html = this.view.getCanvas();
-			canvas = js.JQuery(html);
+			var canvas = $(this.view.getCanvas());
 			canvas.unbind("mousemove");
 			canvas.css({ cursor : ""});
 			this.updateCursorPos();
@@ -4418,7 +4519,7 @@ var Main = function() {
 	this.window.window.addEventListener("keypress",$bind(this,this.onKeyPress));
 	this.window.window.addEventListener("keyup",$bind(this,this.onKeyUp));
 	this.window.window.addEventListener("mousemove",$bind(this,this.onMouseMove));
-	js.JQuery(".modal").keypress(function(e) {
+	$(".modal").keypress(function(e) {
 		e.stopPropagation();
 	}).keydown(function(e1) {
 		e1.stopPropagation();
@@ -4480,7 +4581,7 @@ Main.prototype = $extend(Model.prototype,{
 		return window.document.activeElement != null && window.document.activeElement.nodeName == "INPUT";
 	}
 	,onKeyPress: function(e) {
-		if(!e.ctrlKey && !this.isInput()) js.JQuery(".cursor").not(".edit").dblclick();
+		if(!e.ctrlKey && !this.isInput()) $(".cursor").not(".edit").dblclick();
 	}
 	,getSelection: function() {
 		if(this.cursor.s == null) return null;
@@ -4515,7 +4616,7 @@ Main.prototype = $extend(Model.prototype,{
 			break;
 		case 46:
 			if(this.level == null) {
-				js.JQuery(".selected.deletable").change();
+				$(".selected.deletable").change();
 				if(this.cursor.s != null) {
 					if(this.cursor.x < 0) {
 						var s = this.getSelection();
@@ -4690,14 +4791,14 @@ Main.prototype = $extend(Model.prototype,{
 			if(this.cursor.s != null && this.cursor.s.parent != null) {
 				var p = this.cursor.s.parent;
 				this.setCursor(p.sheet,p.column,p.line);
-				js.JQuery(".cursor").click();
+				$(".cursor").click();
 			} else if(this.cursor.select != null) {
 				this.cursor.select = null;
 				this.updateCursor();
 			}
 			break;
 		case 113:
-			js.JQuery(".cursor").not(".edit").dblclick();
+			$(".cursor").not(".edit").dblclick();
 			break;
 		case 114:
 			if(this.cursor.s != null) this.showReferences(this.cursor.s,this.cursor.y);
@@ -4736,12 +4837,7 @@ Main.prototype = $extend(Model.prototype,{
 		if(this.level != null && !this.isInput()) this.level.onKeyUp(e);
 	}
 	,getLine: function(sheet,index) {
-		return ((function($this) {
-			var $r;
-			var html = "table[sheet='" + SheetData.getPath(sheet) + "'] > tbody > tr";
-			$r = js.JQuery(html);
-			return $r;
-		}(this))).not(".head,.separator,.list").eq(index);
+		return $("table[sheet='" + SheetData.getPath(sheet) + "'] > tbody > tr").not(".head,.separator,.list").eq(index);
 	}
 	,showReferences: function(sheet,index) {
 		var _g3 = this;
@@ -4758,14 +4854,14 @@ Main.prototype = $extend(Model.prototype,{
 		}
 		var line = this.getLine(sheet,index);
 		line.next("tr.list").change();
-		var res = js.JQuery("<tr>").addClass("list");
-		js.JQuery("<td>").appendTo(res);
-		var cell = js.JQuery("<td>").attr("colspan","" + (sheet.columns.length + (sheet.props.level != null?1:0))).appendTo(res);
-		var div = js.JQuery("<div>").appendTo(cell);
+		var res = $("<tr>").addClass("list");
+		$("<td>").appendTo(res);
+		var cell = $("<td>").attr("colspan","" + (sheet.columns.length + (sheet.props.level != null?1:0))).appendTo(res);
+		var div = $("<div>").appendTo(cell);
 		div.hide();
-		var content = js.JQuery("<table>").appendTo(div);
-		var cols = js.JQuery("<tr>").addClass("head");
-		js.JQuery("<td>").addClass("start").appendTo(cols).click(function(_) {
+		var content = $("<table>").appendTo(div);
+		var cols = $("<tr>").addClass("head");
+		$("<td>").addClass("start").appendTo(cols).click(function(_) {
 			res.change();
 		});
 		var _g = 0;
@@ -4773,7 +4869,7 @@ Main.prototype = $extend(Model.prototype,{
 		while(_g < _g1.length) {
 			var name = _g1[_g];
 			++_g;
-			js.JQuery("<td>").text(name).appendTo(cols);
+			$("<td>").text(name).appendTo(cols);
 		}
 		content.append(cols);
 		var index1 = 0;
@@ -4781,10 +4877,10 @@ Main.prototype = $extend(Model.prototype,{
 		while(_g2 < results.length) {
 			var rs = [results[_g2]];
 			++_g2;
-			var l = js.JQuery("<tr>").appendTo(content).addClass("clickable");
-			js.JQuery("<td>").text("" + index1++).appendTo(l);
+			var l = $("<tr>").appendTo(content).addClass("clickable");
+			$("<td>").text("" + index1++).appendTo(l);
 			var slast = [rs[0].s[rs[0].s.length - 1]];
-			js.JQuery("<td>").text(slast[0].s.name.split("@").join(".") + "." + slast[0].c).appendTo(l);
+			$("<td>").text(slast[0].s.name.split("@").join(".") + "." + slast[0].c).appendTo(l);
 			var path = [];
 			var _g21 = 0;
 			var _g11 = rs[0].s.length;
@@ -4794,7 +4890,7 @@ Main.prototype = $extend(Model.prototype,{
 				var oid = Reflect.field(rs[0].o.path[i],s.id);
 				if(oid == null || oid == "") path.push(s.s.name.split("@").pop() + "[" + rs[0].o.indexes[i] + "]"); else path.push(oid);
 			}
-			js.JQuery("<td>").text(path.join(".")).appendTo(l);
+			$("<td>").text(path.join(".")).appendTo(l);
 			l.click((function(slast,rs) {
 				return function(e) {
 					var key = null;
@@ -4862,7 +4958,7 @@ Main.prototype = $extend(Model.prototype,{
 		this.save();
 	}
 	,setErrorMessage: function(msg) {
-		if(msg == null) js.JQuery(".errorMsg").hide(); else js.JQuery(".errorMsg").text(msg).show();
+		if(msg == null) $(".errorMsg").hide(); else $(".errorMsg").text(msg).show();
 	}
 	,valueHtml: function(c,v,sheet,obj) {
 		if(v == null) {
@@ -5390,7 +5486,7 @@ Main.prototype = $extend(Model.prototype,{
 			switch(_g1[1]) {
 			case 3:case 4:case 1:case 0:case 9:case 16:
 				v.empty();
-				var i = js.JQuery("<input>");
+				var i = $("<input>");
 				v.addClass("edit");
 				i.appendTo(v);
 				if(val != null) {
@@ -5427,7 +5523,7 @@ Main.prototype = $extend(Model.prototype,{
 						i.blur();
 						_g.moveCursor(e1.shiftKey?-1:1,0,false,false);
 						haxe_Timer.delay(function() {
-							js.JQuery(".cursor").dblclick();
+							$(".cursor").dblclick();
 						},1);
 						e1.preventDefault();
 						break;
@@ -5488,9 +5584,9 @@ Main.prototype = $extend(Model.prototype,{
 							}
 						}
 						if(val2 != val && val2 != null) {
-							var this2 = _g.smap.get(sheet.name).index;
+							var this11 = _g.smap.get(sheet.name).index;
 							var key1 = val2;
-							prevTarget = this2.get(key1);
+							prevTarget = this11.get(key1);
 							if(c.type == cdb_ColumnType.TId && val != null && (prevObj == null || prevObj.obj == obj)) {
 								var m = new haxe_ds_StringMap();
 								var key2 = val;
@@ -5507,14 +5603,14 @@ Main.prototype = $extend(Model.prototype,{
 					editDone();
 					if(c.type == cdb_ColumnType.TId && prevObj != null && old1 != val && (prevObj.obj == obj && (function($this) {
 						var $r;
-						var this3 = _g.smap.get(sheet.name).index;
-						$r = this3.get(old1);
+						var this12 = _g.smap.get(sheet.name).index;
+						$r = this12.get(old1);
 						return $r;
 					}(this)) != null || prevTarget != null && ((function($this) {
 						var $r;
-						var this4 = _g.smap.get(sheet.name).index;
+						var this13 = _g.smap.get(sheet.name).index;
 						var key3 = val;
-						$r = this4.get(key3);
+						$r = this13.get(key3);
 						return $r;
 					}(this))).obj != prevTarget.obj)) {
 						_g.refresh();
@@ -5551,15 +5647,15 @@ Main.prototype = $extend(Model.prototype,{
 			case 5:
 				var values = _g1[2];
 				v.empty();
-				var s = js.JQuery("<select>");
+				var s = $("<select>");
 				v.addClass("edit");
 				var _g2 = 0;
 				var _g15 = values.length;
 				while(_g2 < _g15) {
 					var i1 = _g2++;
-					js.JQuery("<option>").attr("value","" + i1).attr(val == i1?"selected":"_sel","selected").text(values[i1]).appendTo(s);
+					$("<option>").attr("value","" + i1).attr(val == i1?"selected":"_sel","selected").text(values[i1]).appendTo(s);
 				}
-				if(c.opt) js.JQuery("<option>").attr("value","-1").text("--- None ---").prependTo(s);
+				if(c.opt) $("<option>").attr("value","-1").text("--- None ---").prependTo(s);
 				v.append(s);
 				s.change(function(e4) {
 					val = Std.parseInt(s.val());
@@ -5582,7 +5678,7 @@ Main.prototype = $extend(Model.prototype,{
 						s.blur();
 						_g.moveCursor(e5.shiftKey?-1:1,0,false,false);
 						haxe_Timer.delay(function() {
-							js.JQuery(".cursor").dblclick();
+							$(".cursor").dblclick();
 						},1);
 						e5.preventDefault();
 						break;
@@ -5604,15 +5700,15 @@ Main.prototype = $extend(Model.prototype,{
 				if(sdat == null) return;
 				v.empty();
 				v.addClass("edit");
-				var s1 = js.JQuery("<select>");
+				var s1 = $("<select>");
 				var _g17 = 0;
 				var _g21 = sdat.all;
 				while(_g17 < _g21.length) {
 					var l = _g21[_g17];
 					++_g17;
-					js.JQuery("<option>").attr("value","" + l.id).attr(val == l.id?"selected":"_sel","selected").text(l.disp).appendTo(s1);
+					$("<option>").attr("value","" + l.id).attr(val == l.id?"selected":"_sel","selected").text(l.disp).appendTo(s1);
 				}
-				if(c.opt || val == null || val == "") js.JQuery("<option>").attr("value","").text("--- None ---").prependTo(s1);
+				if(c.opt || val == null || val == "") $("<option>").attr("value","").text("--- None ---").prependTo(s1);
 				v.append(s1);
 				s1.change(function(e6) {
 					val = s1.val();
@@ -5635,7 +5731,7 @@ Main.prototype = $extend(Model.prototype,{
 						s1.blur();
 						_g.moveCursor(e7.shiftKey?-1:1,0,false,false);
 						haxe_Timer.delay(function() {
-							js.JQuery(".cursor").dblclick();
+							$(".cursor").dblclick();
 						},1);
 						e7.preventDefault();
 						break;
@@ -5663,8 +5759,8 @@ Main.prototype = $extend(Model.prototype,{
 				_g.changed(sheet,c,index,old);
 				break;
 			case 7:
-				var i2 = js.JQuery("<input>").attr("type","file").css("display","none").change(function(e8) {
-					var j = js.JQuery(this);
+				var i2 = $("<input>").attr("type","file").css("display","none").change(function(e8) {
+					var j = $(this);
 					var file = j.val();
 					var ext = file.split(".").pop().toLowerCase();
 					if(ext == "jpeg") ext = "jpg";
@@ -5685,12 +5781,12 @@ Main.prototype = $extend(Model.prototype,{
 					_g.changed(sheet,c,index,old);
 					j.remove();
 				});
-				i2.appendTo(js.JQuery("body"));
+				i2.appendTo($("body"));
 				i2.click();
 				break;
 			case 10:
 				var values1 = _g1[2];
-				var div = js.JQuery("<div>").addClass("flagValues");
+				var div = $("<div>").addClass("flagValues");
 				div.click(function(e9) {
 					e9.stopPropagation();
 				}).dblclick(function(e10) {
@@ -5700,14 +5796,14 @@ Main.prototype = $extend(Model.prototype,{
 				var _g19 = values1.length;
 				while(_g22 < _g19) {
 					var i3 = [_g22++];
-					var f1 = js.JQuery("<input>").attr("type","checkbox").prop("checked",(val & 1 << i3[0]) != 0).change((function(i3) {
+					var f1 = $("<input>").attr("type","checkbox").prop("checked",(val & 1 << i3[0]) != 0).change((function(i3) {
 						return function(e11) {
 							val &= ~(1 << i3[0]);
-							if(js.JQuery(this).prop("checked")) val |= 1 << i3[0];
+							if($(this).prop("checked")) val |= 1 << i3[0];
 							e11.stopPropagation();
 						};
 					})(i3));
-					js.JQuery("<label>").text(values1[i3[0]]).appendTo(div).append(f1);
+					$("<label>").text(values1[i3[0]]).appendTo(div).append(f1);
 				}
 				v.empty();
 				v.append(div);
@@ -5726,8 +5822,8 @@ Main.prototype = $extend(Model.prototype,{
 			case 11:
 				var id = Std.random(1);
 				v.html("<div class=\"modal\" onclick=\"$('#_c" + id + "').spectrum('toggle')\"></div><input type=\"text\" id=\"_c" + id + "\"/>");
-				var spect = js.JQuery("#_c" + id);
-				spect.spectrum({ color : "#" + StringTools.hex(val,6), showInput : true, showButtons : false, change : function(vcol) {
+				var spect = $("#_c" + id);
+				spect.spectrum({ color : "rbga(" + Std.string(v), showInput : true, showButtons : false, change : function(vcol) {
 					spect.spectrum("hide");
 					var color = Std.parseInt("0x" + Std.string(vcol.toHex()));
 					val = color;
@@ -5742,8 +5838,8 @@ Main.prototype = $extend(Model.prototype,{
 		}
 	}
 	,updateCursor: function() {
-		js.JQuery(".selected").removeClass("selected");
-		js.JQuery(".cursor").removeClass("cursor");
+		$(".selected").removeClass("selected");
+		$(".cursor").removeClass("cursor");
 		if(this.cursor.s == null) return;
 		if(this.cursor.y < 0) {
 			this.cursor.y = 0;
@@ -5783,14 +5879,14 @@ Main.prototype = $extend(Model.prototype,{
 		if(e != null) e.scrollIntoViewIfNeeded();
 	}
 	,refresh: function() {
-		var t = js.JQuery("<table>");
+		var t = $("<table>");
 		this.checkCursor = true;
 		this.fillTable(t,this.viewSheet);
 		if(this.cursor.s != this.viewSheet && this.checkCursor) this.setCursor(this.viewSheet,null,null,null,false);
-		var content = js.JQuery("#content");
+		var content = $("#content");
 		content.empty();
 		t.appendTo(content);
-		js.JQuery("<div>").appendTo(content).addClass("tableBottom");
+		$("<div>").appendTo(content).addClass("tableBottom");
 		this.updateCursor();
 	}
 	,chooseFile: function(callb,cancel) {
@@ -5800,7 +5896,7 @@ Main.prototype = $extend(Model.prototype,{
 			if(cancel != null) cancel();
 			return;
 		}
-		var fs = js.JQuery("#fileSelect");
+		var fs = $("#fileSelect");
 		if(fs.attr("nwworkingdir") == null) fs.attr("nwworkingdir",new haxe_io_Path(this.prefs.curFile).dir);
 		fs.change(function(_) {
 			fs.unbind("change");
@@ -5834,7 +5930,7 @@ Main.prototype = $extend(Model.prototype,{
 		}
 		var todo = [];
 		var inTodo = false;
-		var cols = js.JQuery("<tr>").addClass("head");
+		var cols = $("<tr>").addClass("head");
 		var types;
 		var _g = [];
 		var _g1 = 0;
@@ -5845,8 +5941,8 @@ Main.prototype = $extend(Model.prototype,{
 			_g.push(HxOverrides.substr(t,1,null).toLowerCase());
 		}
 		types = _g;
-		js.JQuery("<td>").addClass("start").appendTo(cols).click(function(_) {
-			if(sheet.props.hide) content.change(); else js.JQuery("tr.list table").change();
+		$("<td>").addClass("start").appendTo(cols).click(function(_) {
+			if(sheet.props.hide) content.change(); else $("tr.list table").change();
 		});
 		content.addClass("sheet");
 		content.attr("sheet",SheetData.getPath(sheet));
@@ -5861,9 +5957,9 @@ Main.prototype = $extend(Model.prototype,{
 			var i = [_g3++];
 			_g11.push((function($this) {
 				var $r;
-				var l = js.JQuery("<tr>");
+				var l = $("<tr>");
 				l.data("index",i[0]);
-				var head = [js.JQuery("<td>").addClass("start").text("" + i[0])];
+				var head = [$("<td>").addClass("start").text("" + i[0])];
 				l.mousedown((function(head,i) {
 					return function(e1) {
 						if(e1.which == 3) {
@@ -5902,7 +5998,7 @@ Main.prototype = $extend(Model.prototype,{
 		while(_g31 < _g22) {
 			var cindex = [_g31++];
 			var c = [sheet.columns[cindex[0]]];
-			var col = js.JQuery("<td>");
+			var col = $("<td>");
 			col.text(c[0].name);
 			col.css("width",(100 / colCount | 0) + "%");
 			if(sheet.props.displayColumn == c[0].name) col.addClass("display");
@@ -5931,7 +6027,7 @@ Main.prototype = $extend(Model.prototype,{
 				var index = [_g5++];
 				var obj = [sheet.lines[index[0]]];
 				var val = [Reflect.field(obj[0],c[0].name)];
-				var v = [js.JQuery("<td>").addClass(ctype).addClass("c")];
+				var v = [$("<td>").addClass(ctype).addClass("c")];
 				var l1 = [lines[index[0]]];
 				v[0].appendTo(l1[0]);
 				var html = [this.valueHtml(c[0],val[0],sheet,obj[0])];
@@ -5972,7 +6068,7 @@ Main.prototype = $extend(Model.prototype,{
 							};
 						})(obj,c)).click((function() {
 							return function(e6) {
-								js.JQuery(this).addClass("selected");
+								$(this).addClass("selected");
 								e6.stopPropagation();
 							};
 						})());
@@ -5994,12 +6090,12 @@ Main.prototype = $extend(Model.prototype,{
 									}
 									next.change();
 								}
-								next = js.JQuery("<tr>").addClass("list").data("name",c[0].name);
-								js.JQuery("<td>").appendTo(next);
-								var cell = js.JQuery("<td>").attr("colspan","" + colCount).appendTo(next);
-								var div = js.JQuery("<div>").appendTo(cell);
+								next = $("<tr>").addClass("list").data("name",c[0].name);
+								$("<td>").appendTo(next);
+								var cell = $("<td>").attr("colspan","" + colCount).appendTo(next);
+								var div = $("<div>").appendTo(cell);
 								if(!inTodo) div.hide();
-								var content1 = js.JQuery("<table>").appendTo(div);
+								var content1 = $("<table>").appendTo(div);
 								var psheet = SheetData.model.smap.get(sheet.name + "@" + c[0].name).s;
 								if(val[0] == null) {
 									val[0] = [];
@@ -6125,24 +6221,19 @@ Main.prototype = $extend(Model.prototype,{
 									})(v));
 									return;
 								}
-								var dialog = ((function($this) {
-									var $r;
-									var html1 = js.JQuery(".tileSelect").parent().html();
-									$r = js.JQuery(html1);
-									return $r;
-								}(this))).prependTo(js.JQuery("body"));
+								var dialog = $($(".tileSelect").parent().html()).prependTo($("body"));
 								var maxWidth = 1000000;
 								var maxHeight = 1000000;
 								dialog.find(".tileView").css({ backgroundImage : "url(\"" + _g4.getAbsPath(file) + "\")"}).mousemove((function() {
 									return function(e11) {
-										var off = js.JQuery(this).offset();
+										var off = $(this).offset();
 										posX = (e11.pageX - off.left) / size | 0;
 										posY = (e11.pageY - off.top) / size | 0;
 										if((posX + width) * size > maxWidth) posX = (maxWidth / size | 0) - width;
 										if((posY + height) * size > maxHeight) posY = (maxHeight / size | 0) - height;
 										if(posX < 0) posX = 0;
 										if(posY < 0) posY = 0;
-										js.JQuery(".tileCursor").not(".current").css({ marginLeft : size * posX - 1 + "px", marginTop : size * posY - 1 + "px"});
+										$(".tileCursor").not(".current").css({ marginLeft : size * posX - 1 + "px", marginTop : size * posY - 1 + "px"});
 									};
 								})()).click((function() {
 									return function(_4) {
@@ -6153,30 +6244,30 @@ Main.prototype = $extend(Model.prototype,{
 								})());
 								dialog.find("[name=size]").val("" + size).change((function() {
 									return function(_5) {
-										size = Std.parseInt(js.JQuery(this).val());
-										js.JQuery(".tileCursor").css({ width : size * width + "px", height : size * height + "px"});
-										js.JQuery(".tileCursor.current").css({ marginLeft : size * posX - 2 + "px", marginTop : size * posY - 2 + "px"});
+										size = Std.parseInt($(this).val());
+										$(".tileCursor").css({ width : size * width + "px", height : size * height + "px"});
+										$(".tileCursor.current").css({ marginLeft : size * posX - 2 + "px", marginTop : size * posY - 2 + "px"});
 									};
 								})()).change();
 								dialog.find("[name=width]").val("" + width).change((function() {
 									return function(_6) {
-										width = Std.parseInt(js.JQuery(this).val());
-										js.JQuery(".tileCursor").css({ width : size * width + "px", height : size * height + "px"});
+										width = Std.parseInt($(this).val());
+										$(".tileCursor").css({ width : size * width + "px", height : size * height + "px"});
 									};
 								})()).change();
 								dialog.find("[name=height]").val("" + height).change((function() {
 									return function(_7) {
-										height = Std.parseInt(js.JQuery(this).val());
-										js.JQuery(".tileCursor").css({ width : size * width + "px", height : size * height + "px"});
+										height = Std.parseInt($(this).val());
+										$(".tileCursor").css({ width : size * width + "px", height : size * height + "px"});
 									};
 								})()).change();
 								dialog.find("[name=cancel]").click((function() {
-									return function() {
+									return function(_8) {
 										dialog.remove();
 									};
 								})());
 								dialog.find("[name=file]").click((function(v) {
-									return function() {
+									return function(_9) {
 										_g4.chooseFile((function(v) {
 											return function(f2) {
 												file = f2;
@@ -6202,7 +6293,7 @@ Main.prototype = $extend(Model.prototype,{
 								var _this = window.document;
 								i1 = _this.createElement("img");
 								i1.onload = (function() {
-									return function(_8) {
+									return function(_10) {
 										maxWidth = i1.width;
 										maxHeight = i1.height;
 										dialog.find(".tileView").height(i1.height).width(i1.width);
@@ -6223,24 +6314,24 @@ Main.prototype = $extend(Model.prototype,{
 			}
 		}
 		if(sheet.lines.length == 0) {
-			var l2 = js.JQuery("<tr><td colspan=\"" + (sheet.columns.length + 1) + "\"><a href=\"javascript:_.insertLine()\">Insert Line</a></td></tr>");
-			l2.find("a").click(function() {
+			var l2 = $("<tr><td colspan=\"" + (sheet.columns.length + 1) + "\"><a href=\"javascript:_.insertLine()\">Insert Line</a></td></tr>");
+			l2.find("a").click(function(_11) {
 				_g4.setCursor(sheet);
 			});
 			lines.push(l2);
 		}
 		if(sheet.props.level != null) {
-			var col1 = js.JQuery("<td style='width:35px'>");
+			var col1 = $("<td style='width:35px'>");
 			cols.prepend(col1);
 			var _g32 = 0;
 			var _g23 = sheet.lines.length;
 			while(_g32 < _g23) {
 				var index1 = [_g32++];
 				var l3 = [lines[index1[0]]];
-				var c2 = js.JQuery("<input type='submit' value='Edit'>");
-				js.JQuery("<td>").append(c2).prependTo(l3[0]);
+				var c2 = $("<input type='submit' value='Edit'>");
+				$("<td>").append(c2).prependTo(l3[0]);
 				c2.click((function(l3,index1) {
-					return function() {
+					return function(_12) {
 						l3[0].click();
 						var found = null;
 						var _g51 = 0;
@@ -6268,7 +6359,7 @@ Main.prototype = $extend(Model.prototype,{
 		while(_g33 < _g24) {
 			var i3 = _g33++;
 			while(sheet.separators[snext] == i3) {
-				var sep = js.JQuery("<tr>").addClass("separator").append("<td colspan=\"" + (colCount + 1) + "\">").appendTo(content);
+				var sep = $("<tr>").addClass("separator").append("<td colspan=\"" + (colCount + 1) + "\">").appendTo(content);
 				var content2 = [sep.find("td")];
 				var title = [sheet.props.separatorTitles != null?sheet.props.separatorTitles[snext]:null];
 				if(title[0] != null) content2[0].text(title[0]);
@@ -6276,10 +6367,10 @@ Main.prototype = $extend(Model.prototype,{
 				sep.dblclick((function(pos,title,content2) {
 					return function(e15) {
 						content2[0].empty();
-						js.JQuery("<input>").appendTo(content2[0]).focus().val(title[0] == null?"":title[0]).blur((function(pos,title,content2) {
-							return function(_9) {
-								title[0] = js.JQuery(this).val();
-								js.JQuery(this).remove();
+						$("<input>").appendTo(content2[0]).focus().val(title[0] == null?"":title[0]).blur((function(pos,title,content2) {
+							return function(_13) {
+								title[0] = $(this).val();
+								$(this).remove();
 								content2[0].text(title[0]);
 								var titles = sheet.props.separatorTitles;
 								if(titles == null) titles = [];
@@ -6297,7 +6388,7 @@ Main.prototype = $extend(Model.prototype,{
 						})()).keydown((function(title,content2) {
 							return function(e17) {
 								if(e17.keyCode == 13) {
-									js.JQuery(this).blur();
+									$(this).blur();
 									e17.preventDefault();
 								} else if(e17.keyCode == 27) content2[0].text(title[0]);
 								e17.stopPropagation();
@@ -6350,7 +6441,7 @@ Main.prototype = $extend(Model.prototype,{
 			this.level = null;
 		}
 		this.prefs.curSheet = Lambda.indexOf(this.data.sheets,s);
-		js.JQuery("#sheets li").removeClass("active").filter("#sheet_" + this.prefs.curSheet).addClass("active");
+		$("#sheets li").removeClass("active").filter("#sheet_" + this.prefs.curSheet).addClass("active");
 		if(manual) this.refresh();
 	}
 	,selectLevel: function(l) {
@@ -6358,7 +6449,7 @@ Main.prototype = $extend(Model.prototype,{
 		this.pages.curPage = -1;
 		this.level = l;
 		this.level.init();
-		js.JQuery("#sheets li").removeClass("active").filter("#level_" + l.sheetPath.split(".").join("_") + "_" + l.index).addClass("active");
+		$("#sheets li").removeClass("active").filter("#level_" + l.sheetPath.split(".").join("_") + "_" + l.index).addClass("active");
 	}
 	,closeLevel: function(l) {
 		l.dispose();
@@ -6368,7 +6459,7 @@ Main.prototype = $extend(Model.prototype,{
 		this.initContent();
 	}
 	,newSheet: function() {
-		js.JQuery("#newsheet").show();
+		$("#newsheet").show();
 	}
 	,deleteColumn: function(sheet,cname) {
 		if(cname == null) {
@@ -6376,7 +6467,7 @@ Main.prototype = $extend(Model.prototype,{
 			cname = this.colProps.ref.name;
 		}
 		if(!SheetData.deleteColumn(sheet,cname)) return;
-		js.JQuery("#newcol").hide();
+		$("#newcol").hide();
 		this.refresh();
 		this.save();
 	}
@@ -6393,8 +6484,8 @@ Main.prototype = $extend(Model.prototype,{
 			}
 			this.typesStr = tl.join("\n\n");
 		}
-		var content = js.JQuery("#content");
-		content.html(js.JQuery("#editTypes").html());
+		var content = $("#content");
+		content.html($("#editTypes").html());
 		var text = content.find("textarea");
 		var apply = content.find("input.button").first();
 		var cancel = content.find("input.button").eq(1);
@@ -6522,9 +6613,9 @@ Main.prototype = $extend(Model.prototype,{
 		text.change();
 	}
 	,newColumn: function(sheetName,ref,index) {
-		var form = js.JQuery("#newcol form");
+		var form = $("#newcol form");
 		this.colProps = { sheet : sheetName, ref : ref, index : index};
-		var sheets = js.JQuery("[name=sheet]");
+		var sheets = $("[name=sheet]");
 		sheets.empty();
 		var _g1 = 0;
 		var _g = this.data.sheets.length;
@@ -6532,21 +6623,21 @@ Main.prototype = $extend(Model.prototype,{
 			var i = _g1++;
 			var s = this.data.sheets[i];
 			if(s.props.hide) continue;
-			js.JQuery("<option>").attr("value","" + i).text(s.name).appendTo(sheets);
+			$("<option>").attr("value","" + i).text(s.name).appendTo(sheets);
 		}
-		var types = js.JQuery("[name=ctype]");
+		var types = $("[name=ctype]");
 		types.empty();
 		types.unbind("change");
 		types.change(function(_) {
-			js.JQuery("#col_options").toggleClass("t_edit",types.val() != "");
+			$("#col_options").toggleClass("t_edit",types.val() != "");
 		});
-		js.JQuery("<option>").attr("value","").text("--- Select ---").appendTo(types);
+		$("<option>").attr("value","").text("--- Select ---").appendTo(types);
 		var _g2 = 0;
 		var _g11 = this.data.customTypes;
 		while(_g2 < _g11.length) {
 			var t = _g11[_g2];
 			++_g2;
-			js.JQuery("<option>").attr("value","" + t.name).text(t.name).appendTo(types);
+			$("<option>").attr("value","" + t.name).text(t.name).appendTo(types);
 		}
 		form.removeClass("edit").removeClass("create");
 		if(ref != null) {
@@ -6591,7 +6682,7 @@ Main.prototype = $extend(Model.prototype,{
 			form.find("[name=req]").prop("checked",true);
 		}
 		types.change();
-		js.JQuery("#newcol").show();
+		$("#newcol").show();
 	}
 	,newLine: function(sheet,index) {
 		SheetData.newLine(sheet,index);
@@ -6617,7 +6708,7 @@ Main.prototype = $extend(Model.prototype,{
 				return;
 			}
 		}
-		js.JQuery("#newsheet").hide();
+		$("#newsheet").hide();
 		var s = { name : name, columns : [], lines : [], separators : [], props : { }};
 		this.prefs.curSheet = this.data.sheets.length;
 		this.data.sheets.push(s);
@@ -6626,18 +6717,18 @@ Main.prototype = $extend(Model.prototype,{
 	}
 	,createColumn: function() {
 		var v = { };
-		var cols = js.JQuery("#col_form input, #col_form select").not("[type=submit]");
-		var $it0 = (cols.iterator)();
-		while( $it0.hasNext() ) {
-			var i = $it0.next();
+		var cols = $("#col_form input, #col_form select").not("[type=submit]");
+		var _g = new js_jquery_JqEltsIterator(this);
+		while(_g.i < _g.j.length) {
+			var i = $(_g.j[_g.i++]);
 			Reflect.setField(v,i.attr("name"),i.attr("type") == "checkbox"?i["is"](":checked")?"on":null:i.val());
 		}
 		var sheet;
 		if(this.colProps.sheet == null) sheet = this.viewSheet; else sheet = this.smap.get(this.colProps.sheet).s;
 		var refColumn = this.colProps.ref;
 		var t;
-		var _g = v.type;
-		switch(_g) {
+		var _g1 = v.type;
+		switch(_g1) {
 		case "id":
 			t = cdb_ColumnType.TId;
 			break;
@@ -6661,16 +6752,16 @@ Main.prototype = $extend(Model.prototype,{
 			}
 			t = cdb_ColumnType.TEnum((function($this) {
 				var $r;
-				var _g1 = [];
+				var _g11 = [];
 				{
 					var _g2 = 0;
 					while(_g2 < vals.length) {
 						var f = vals[_g2];
 						++_g2;
-						_g1.push(StringTools.trim(f));
+						_g11.push(StringTools.trim(f));
 					}
 				}
-				$r = _g1;
+				$r = _g11;
 				return $r;
 			}(this)));
 			break;
@@ -6682,16 +6773,16 @@ Main.prototype = $extend(Model.prototype,{
 			}
 			t = cdb_ColumnType.TFlags((function($this) {
 				var $r;
-				var _g11 = [];
+				var _g12 = [];
 				{
 					var _g21 = 0;
 					while(_g21 < vals1.length) {
 						var f1 = vals1[_g21];
 						++_g21;
-						_g11.push(StringTools.trim(f1));
+						_g12.push(StringTools.trim(f1));
 					}
 				}
-				$r = _g11;
+				$r = _g12;
 				return $r;
 			}(this)));
 			break;
@@ -6761,10 +6852,10 @@ Main.prototype = $extend(Model.prototype,{
 				return;
 			}
 		}
-		js.JQuery("#newcol").hide();
-		var $it1 = (cols.iterator)();
-		while( $it1.hasNext() ) {
-			var c1 = $it1.next();
+		$("#newcol").hide();
+		var _g3 = new js_jquery_JqEltsIterator(this);
+		while(_g3.i < _g3.j.length) {
+			var c1 = $(_g3.j[_g3.i++]);
 			c1.val("");
 		}
 		this.refresh();
@@ -6773,8 +6864,8 @@ Main.prototype = $extend(Model.prototype,{
 	,initContent: function() {
 		var _g2 = this;
 		Model.prototype.initContent.call(this);
-		js.JQuery("body").spectrum.clearAll();
-		var sheets = js.JQuery("ul#sheets");
+		$("body").spectrum.clearAll();
+		var sheets = $("ul#sheets");
 		sheets.children().remove();
 		var _g1 = 0;
 		var _g = this.data.sheets.length;
@@ -6782,29 +6873,25 @@ Main.prototype = $extend(Model.prototype,{
 			var i = _g1++;
 			var s1 = [this.data.sheets[i]];
 			if(s1[0].props.hide) continue;
-			var li = [js.JQuery("<li>")];
-			li[0].text(s1[0].name).attr("id","sheet_" + i).appendTo(sheets).click(((function() {
-				return function(f,s2) {
-					return (function() {
-						return function() {
-							f(s2);
-						};
-					})();
-				};
-			})())($bind(this,this.selectSheet),s1[0])).dblclick((function(li,s1) {
+			var li = [$("<li>")];
+			li[0].text(s1[0].name).attr("id","sheet_" + i).appendTo(sheets).click((function(s1) {
 				return function(_) {
+					_g2.selectSheet(s1[0]);
+				};
+			})(s1)).dblclick((function(li,s1) {
+				return function(_1) {
 					li[0].empty();
-					js.JQuery("<input>").val(s1[0].name).appendTo(li[0]).focus().blur((function(li,s1) {
-						return function(_1) {
+					$("<input>").val(s1[0].name).appendTo(li[0]).focus().blur((function(li,s1) {
+						return function(_2) {
 							li[0].text(s1[0].name);
-							var name = js.JQuery(this).val();
+							var name = $(this).val();
 							if(!_g2.r_ident.match(name)) {
 								_g2.error("Invalid sheet name");
 								return;
 							}
-							var f1 = _g2.smap.get(name);
-							if(f1 != null) {
-								if(f1.s != s1[0]) _g2.error("Sheet name already in use");
+							var f = _g2.smap.get(name);
+							if(f != null) {
+								if(f.s != s1[0]) _g2.error("Sheet name already in use");
 								return;
 							}
 							var old1 = s1[0].name;
@@ -6828,16 +6915,16 @@ Main.prototype = $extend(Model.prototype,{
 							var _g3 = 0;
 							var _g4 = _g2.data.sheets;
 							while(_g3 < _g4.length) {
-								var s3 = _g4[_g3];
+								var s2 = _g4[_g3];
 								++_g3;
-								if(StringTools.startsWith(s3.name,old1 + "@")) s3.name = name + "@" + HxOverrides.substr(s3.name,old1.length + 1,null);
+								if(StringTools.startsWith(s2.name,old1 + "@")) s2.name = name + "@" + HxOverrides.substr(s2.name,old1.length + 1,null);
 							}
 							_g2.initContent();
 							_g2.save();
 						};
 					})(li,s1)).keydown((function() {
 						return function(e) {
-							if(e.keyCode == 13) js.JQuery(this).blur(); else if(e.keyCode == 27) _g2.initContent();
+							if(e.keyCode == 13) $(this).blur(); else if(e.keyCode == 27) _g2.initContent();
 							e.stopPropagation();
 						};
 					})()).keypress((function() {
@@ -6850,10 +6937,10 @@ Main.prototype = $extend(Model.prototype,{
 				return function(e2) {
 					if(e2.which == 3) {
 						haxe_Timer.delay(((function() {
-							return function(f2,s4,li1) {
+							return function(f1,s3,li1) {
 								return (function() {
 									return function() {
-										f2(s4,li1);
+										f1(s3,li1);
 									};
 								})();
 							};
@@ -6875,21 +6962,21 @@ Main.prototype = $extend(Model.prototype,{
 			var level = old[_g5];
 			++_g5;
 			if(!this.smap.exists(level.sheetPath)) continue;
-			var s5 = this.smap.get(level.sheetPath).s;
-			if(s5.lines.length < level.index) continue;
-			var l = new Level(this,s5,level.index);
-			if(level == this.level) lcur = l;
-			this.levels.push(l);
-			var li2 = js.JQuery("<li>");
+			var s4 = this.smap.get(level.sheetPath).s;
+			if(s4.lines.length < level.index) continue;
+			var l = [new Level(this,s4,level.index)];
+			if(level == this.level) lcur = l[0];
+			this.levels.push(l[0]);
+			var li2 = $("<li>");
 			var name1 = level.getName();
 			if(name1 == "") name1 = "???";
-			li2.text(name1).attr("id","level_" + l.sheetPath.split(".").join("_") + "_" + l.index).appendTo(sheets).click((function(f3,l1) {
-				return function() {
-					f3(l1);
+			li2.text(name1).attr("id","level_" + l[0].sheetPath.split(".").join("_") + "_" + l[0].index).appendTo(sheets).click((function(l) {
+				return function(_3) {
+					_g2.selectLevel(l[0]);
 				};
-			})($bind(this,this.selectLevel),l));
+			})(l));
 		}
-		if(this.pages.curPage >= 0) this.pages.select(); else if(lcur != null) this.selectLevel(lcur); else if(this.data.sheets.length == 0) js.JQuery("#content").html("<a href='javascript:_.newSheet()'>Create a sheet</a>"); else this.refresh();
+		if(this.pages.curPage >= 0) this.pages.select(); else if(lcur != null) this.selectLevel(lcur); else if(this.data.sheets.length == 0) $("#content").html("<a href='javascript:_.newSheet()'>Create a sheet</a>"); else this.refresh();
 	}
 	,initMenu: function() {
 		var _g = this;
@@ -6916,23 +7003,23 @@ Main.prototype = $extend(Model.prototype,{
 			_g.window.showDevTools();
 		};
 		mopen.click = function() {
-			var i = js.JQuery("<input>").attr("type","file").css("display","none").change(function(e) {
-				var j = js.JQuery(this);
+			var i = $("<input>").attr("type","file").css("display","none").change(function(e) {
+				var j = $(this);
 				_g.prefs.curFile = j.val();
 				_g.load();
 				j.remove();
 			});
-			i.appendTo(js.JQuery("body"));
+			i.appendTo($("body"));
 			i.click();
 		};
 		msave.click = function() {
-			var i1 = js.JQuery("<input>").attr("type","file").attr("nwsaveas","new.cdb").css("display","none").change(function(e1) {
-				var j1 = js.JQuery(this);
+			var i1 = $("<input>").attr("type","file").attr("nwsaveas","new.cdb").css("display","none").change(function(e1) {
+				var j1 = $(this);
 				_g.prefs.curFile = j1.val();
 				_g.save();
 				j1.remove();
 			});
-			i1.appendTo(js.JQuery("body"));
+			i1.appendTo($("body"));
 			i1.click();
 		};
 		mclean.click = function() {
@@ -6952,7 +7039,7 @@ Main.prototype = $extend(Model.prototype,{
 			Sys.exit(0);
 		};
 		mabout.click = function() {
-			js.JQuery("#about").show();
+			$("#about").show();
 		};
 		mfiles.append(mnew);
 		mfiles.append(mopen);
@@ -8393,12 +8480,16 @@ cdb_SchemaSerializer.prototype = $extend(haxe_Serializer.prototype,{
 	}
 	,__class__: cdb_SchemaSerializer
 });
-var cdb__$BinSerializer_Schema = function(id,name) {
-	this.id = id;
+var cdb__$BinSerializer_Schema = function(name) {
 	this.name = name;
+	this.id = cdb__$BinSerializer_Schema.DO_HASH(name);
 };
 $hxClasses["cdb._BinSerializer.Schema"] = cdb__$BinSerializer_Schema;
 cdb__$BinSerializer_Schema.__name__ = ["cdb","_BinSerializer","Schema"];
+cdb__$BinSerializer_Schema.DO_HASH = function(data) {
+	var b = haxe_crypto_Md5.make(haxe_io_Bytes.ofString(data));
+	return b.b[0] | b.b[1] << 8 | b.b[2] << 16 | b.b[3] << 24;
+};
 cdb__$BinSerializer_Schema.prototype = {
 	finalize: function() {
 		this.hash = 0;
@@ -8406,8 +8497,7 @@ cdb__$BinSerializer_Schema.prototype = {
 		s.useCache = true;
 		s.useEnumIndex = true;
 		s.serialize(this.kind);
-		var b = haxe_crypto_Md5.make(haxe_io_Bytes.ofString(this.name + s.toString()));
-		this.hash = b.b[0] | b.b[1] << 8 | b.b[2] << 16 | b.b[3] << 24;
+		this.hash = cdb__$BinSerializer_Schema.DO_HASH(this.name + s.toString());
 	}
 	,__class__: cdb__$BinSerializer_Schema
 };
@@ -8417,17 +8507,19 @@ $hxClasses["cdb.BinSerializer"] = cdb_BinSerializer;
 cdb_BinSerializer.__name__ = ["cdb","BinSerializer"];
 cdb_BinSerializer.init = function() {
 	if(cdb_BinSerializer.schemas == null) {
-		var a = haxe_Unserializer.run(haxe_Resource.getString("$bin"));
+		var metas = haxe_rtti_Meta.getType(cdb_BinSerializer);
 		cdb_BinSerializer.schemas = new haxe_ds_IntMap();
 		var _g = 0;
-		while(_g < a.length) {
-			var s = a[_g];
+		var _g1 = Reflect.fields(metas);
+		while(_g < _g1.length) {
+			var m = _g1[_g];
 			++_g;
+			var s = haxe_Unserializer.run(Reflect.field(metas,m)[0]);
 			s.tag = 0;
 			cdb_BinSerializer.schemas.h[s.id] = s;
 			{
-				var _g1 = s.kind;
-				switch(_g1[1]) {
+				var _g2 = s.kind;
+				switch(_g2[1]) {
 				case 0:
 					s.enumValue = Type.resolveEnum(s.name);
 					if(s.enumValue == null) throw new js__$Boot_HaxeError("Missing enum " + s.name);
@@ -8556,8 +8648,8 @@ cdb_BinSerializer.prototype = {
 			}
 			break;
 		case 8:
-			var s1 = d[2];
-			this.serializeSchema(s1,v);
+			var sid = d[2];
+			this.serializeSchema(cdb_BinSerializer.schemas.h[sid],v);
 			break;
 		case 11:
 			var d3 = d[2];
@@ -8584,12 +8676,12 @@ cdb_BinSerializer.prototype = {
 			break;
 		case 12:
 			var d5 = d[3];
-			var s2 = d[2];
+			var s1 = d[2];
 			var m2 = v;
 			var $it2 = m2.keys();
 			while( $it2.hasNext() ) {
 				var k2 = $it2.next();
-				this.serializeSchema(s2,k2);
+				this.serializeSchema(s1,k2);
 				this.serializeData(d5,m2.get(k2));
 			}
 			this.out.b.push(255);
@@ -8616,7 +8708,7 @@ cdb_BinSerializer.prototype = {
 		}
 	}
 	,serializeSchema: function(s,v) {
-		if(s.tag != this.tag) {
+		if(cdb_BinSerializer.VERSION_CHECK && s.tag != this.tag) {
 			this.out.b.push(s.hash & 255);
 			this.out.b.push(s.hash >> 8 & 255);
 			this.out.b.push(s.hash >> 16 & 255);
@@ -8734,8 +8826,8 @@ cdb_BinSerializer.prototype = {
 			}
 			return o;
 		case 8:
-			var s = d[2];
-			return this.unserializeSchema(s);
+			var sid = d[2];
+			return this.unserializeSchema(cdb_BinSerializer.schemas.h[sid]);
 		case 10:
 			var d3 = d[2];
 			var m = new haxe_ds_IntMap();
@@ -8762,20 +8854,20 @@ cdb_BinSerializer.prototype = {
 			return m1;
 		case 12:
 			var d5 = d[3];
-			var s1 = d[2];
+			var s = d[2];
 			var m2 = new haxe_ds_EnumValueMap();
 			while(true) {
 				var i3 = this.bytes.get(this.position++);
 				if(i3 == 255) break;
 				this.position--;
-				var key2 = this.unserializeSchema(s1);
+				var key2 = this.unserializeSchema(s);
 				m2.set(key2,this.unserializeData(d5));
 			}
 			return m2;
 		}
 	}
 	,unserializeSchema: function(s) {
-		if(s.tag != this.tag) {
+		if(cdb_BinSerializer.VERSION_CHECK && s.tag != this.tag) {
 			var h = this.bytes.get(this.position++);
 			h |= this.bytes.get(this.position++) << 8;
 			h |= this.bytes.get(this.position++) << 16;
@@ -8956,7 +9048,7 @@ cdb_Lz4Reader.uncompress = function(src,srcPos,srcLen,out,outPos) {
 	return [srcPos,outPos,0];
 };
 cdb_Lz4Reader.decodeString = function(s) {
-	if(s == "") return haxe_io_Bytes.alloc(0);
+	if(s == "") return new haxe_io_Bytes(new ArrayBuffer(0));
 	var k = haxe_crypto_Base64.decode(s);
 	if(k.b[0] != 4 || k.b[1] != 34 || k.b[2] != 77 || k.b[3] != 24) return k;
 	var tmp = new Uint8Array(k.length);
@@ -8967,7 +9059,7 @@ cdb_Lz4Reader.decodeString = function(s) {
 		tmp[i] = k.b[i];
 	}
 	var k1 = lz4.decompress(tmp);
-	var b = haxe_io_Bytes.alloc(k1.length);
+	var b = new haxe_io_Bytes(new ArrayBuffer(k1.length));
 	var _g11 = 0;
 	var _g2 = k1.length;
 	while(_g11 < _g2) {
@@ -8986,7 +9078,7 @@ cdb_Lz4Reader.encodeBytes = function(b,compress) {
 			tmp[i] = b.b[i];
 		}
 		tmp = lz4.compress(tmp,65536);
-		b = haxe_io_Bytes.alloc(tmp.length);
+		b = new haxe_io_Bytes(new ArrayBuffer(tmp.length));
 		var _g11 = 0;
 		var _g2 = tmp.length;
 		while(_g11 < _g2) {
@@ -9003,7 +9095,7 @@ cdb_Lz4Reader.prototype = {
 	,grow: function(out,pos,len) {
 		var size = out.length;
 		do size = size * 3 >> 1; while(size < pos + len);
-		var out2 = haxe_io_Bytes.alloc(size);
+		var out2 = new haxe_io_Bytes(new ArrayBuffer(size));
 		out2.blit(0,out,0,pos);
 		return out2;
 	}
@@ -9026,7 +9118,7 @@ cdb_Lz4Reader.prototype = {
 		if(streamSize) this.pos += 8;
 		if(presetDict) throw new js__$Boot_HaxeError("Preset dictionary not supported");
 		var headerChk = this.bytes.get(this.pos++);
-		var out = haxe_io_Bytes.alloc(128);
+		var out = new haxe_io_Bytes(new ArrayBuffer(128));
 		var outPos = 0;
 		while(true) {
 			var size = this.bytes.get(this.pos++) | this.bytes.get(this.pos++) << 8 | this.bytes.get(this.pos++) << 16 | this.bytes.get(this.pos++) << 24;
@@ -9900,7 +9992,7 @@ cdb__$Types_Layer_$Impl_$.decode = function(this1,all) {
 	return _g;
 };
 cdb__$Types_Layer_$Impl_$.encode = function(a,compress) {
-	var b = haxe_io_Bytes.alloc(a.length);
+	var b = new haxe_io_Bytes(new ArrayBuffer(a.length));
 	var _g1 = 0;
 	var _g = a.length;
 	while(_g1 < _g) {
@@ -9928,7 +10020,7 @@ cdb__$Types_TileLayerData_$Impl_$.decode = function(this1) {
 	return _g;
 };
 cdb__$Types_TileLayerData_$Impl_$.encode = function(a,compress) {
-	var b = haxe_io_Bytes.alloc(a.length * 2);
+	var b = new haxe_io_Bytes(new ArrayBuffer(a.length * 2));
 	var _g1 = 0;
 	var _g = a.length;
 	while(_g1 < _g) {
@@ -10026,14 +10118,24 @@ cdb_IndexId.prototype = $extend(cdb_Index.prototype,{
 	}
 	,__class__: cdb_IndexId
 });
-var cdb_jq_Message = $hxClasses["cdb.jq.Message"] = { __ename__ : ["cdb","jq","Message"], __constructs__ : ["Create","AddClass","Append","CreateText","SetCSS","Reset","Dock"] };
+var cdb_jq_Message = $hxClasses["cdb.jq.Message"] = { __ename__ : ["cdb","jq","Message"], __constructs__ : ["Create","AddClass","RemoveClass","Append","CreateText","SetCSS","Reset","Dock","Remove","Event","SetAttr","SetStyle","Trigger","Special"] };
 cdb_jq_Message.Create = function(id,name,attr) { var $x = ["Create",0,id,name,attr]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
 cdb_jq_Message.AddClass = function(id,name) { var $x = ["AddClass",1,id,name]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
-cdb_jq_Message.Append = function(id,to) { var $x = ["Append",2,id,to]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
-cdb_jq_Message.CreateText = function(id,text,pid) { var $x = ["CreateText",3,id,text,pid]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
-cdb_jq_Message.SetCSS = function(css) { var $x = ["SetCSS",4,css]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
-cdb_jq_Message.Reset = function(id) { var $x = ["Reset",5,id]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
-cdb_jq_Message.Dock = function(pid,id,dir,size) { var $x = ["Dock",6,pid,id,dir,size]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
+cdb_jq_Message.RemoveClass = function(id,name) { var $x = ["RemoveClass",2,id,name]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
+cdb_jq_Message.Append = function(id,to) { var $x = ["Append",3,id,to]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
+cdb_jq_Message.CreateText = function(id,text,pid) { var $x = ["CreateText",4,id,text,pid]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
+cdb_jq_Message.SetCSS = function(css) { var $x = ["SetCSS",5,css]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
+cdb_jq_Message.Reset = function(id) { var $x = ["Reset",6,id]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
+cdb_jq_Message.Dock = function(pid,id,dir,size) { var $x = ["Dock",7,pid,id,dir,size]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
+cdb_jq_Message.Remove = function(id) { var $x = ["Remove",8,id]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
+cdb_jq_Message.Event = function(id,name,eid) { var $x = ["Event",9,id,name,eid]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
+cdb_jq_Message.SetAttr = function(id,att,val) { var $x = ["SetAttr",10,id,att,val]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
+cdb_jq_Message.SetStyle = function(id,st,val) { var $x = ["SetStyle",11,id,st,val]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
+cdb_jq_Message.Trigger = function(id,name) { var $x = ["Trigger",12,id,name]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
+cdb_jq_Message.Special = function(id,name,args,eid) { var $x = ["Special",13,id,name,args,eid]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
+var cdb_jq_Answer = $hxClasses["cdb.jq.Answer"] = { __ename__ : ["cdb","jq","Answer"], __constructs__ : ["Event","SetValue"] };
+cdb_jq_Answer.Event = function(id,keyCode,value) { var $x = ["Event",0,id,keyCode,value]; $x.__enum__ = cdb_jq_Answer; $x.toString = $estr; return $x; };
+cdb_jq_Answer.SetValue = function(id,value) { var $x = ["SetValue",1,id,value]; $x.__enum__ = cdb_jq_Answer; $x.toString = $estr; return $x; };
 var cdb_jq_DockDirection = $hxClasses["cdb.jq.DockDirection"] = { __ename__ : ["cdb","jq","DockDirection"], __constructs__ : ["Left","Right","Up","Down","Fill"] };
 cdb_jq_DockDirection.Left = ["Left",0];
 cdb_jq_DockDirection.Left.toString = $estr;
@@ -10064,23 +10166,6 @@ $hxClasses["haxe._Int64.___Int64"] = haxe__$Int64__$_$_$Int64;
 haxe__$Int64__$_$_$Int64.__name__ = ["haxe","_Int64","___Int64"];
 haxe__$Int64__$_$_$Int64.prototype = {
 	__class__: haxe__$Int64__$_$_$Int64
-};
-var haxe_Resource = function() { };
-$hxClasses["haxe.Resource"] = haxe_Resource;
-haxe_Resource.__name__ = ["haxe","Resource"];
-haxe_Resource.getString = function(name) {
-	var _g = 0;
-	var _g1 = haxe_Resource.content;
-	while(_g < _g1.length) {
-		var x = _g1[_g];
-		++_g;
-		if(x.name == name) {
-			if(x.str != null) return x.str;
-			var b = haxe_crypto_Base64.decode(x.data);
-			return b.toString();
-		}
-	}
-	return null;
 };
 var haxe_Timer = function(time_ms) {
 	var me = this;
@@ -10352,7 +10437,7 @@ haxe_Unserializer.prototype = {
 			var size;
 			size = (len1 >> 2) * 3 + (rest >= 2?rest - 1:0);
 			var max = i1 + (len1 - rest);
-			var bytes = haxe_io_Bytes.alloc(size);
+			var bytes = new haxe_io_Bytes(new ArrayBuffer(size));
 			var bpos = 0;
 			while(i1 < max) {
 				var c11 = codes[StringTools.fastCodeAt(buf5,i1++)];
@@ -10410,9 +10495,6 @@ var haxe_io_Bytes = function(data) {
 };
 $hxClasses["haxe.io.Bytes"] = haxe_io_Bytes;
 haxe_io_Bytes.__name__ = ["haxe","io","Bytes"];
-haxe_io_Bytes.alloc = function(length) {
-	return new haxe_io_Bytes(new ArrayBuffer(length));
-};
 haxe_io_Bytes.ofString = function(s) {
 	var a = [];
 	var i = 0;
@@ -10544,7 +10626,7 @@ haxe_crypto_BaseCode.prototype = {
 		var nbits = this.nbits;
 		var base = this.base;
 		var size = b.length * 8 / nbits | 0;
-		var out = haxe_io_Bytes.alloc(size + (b.length * 8 % nbits == 0?0:1));
+		var out = new haxe_io_Bytes(new ArrayBuffer(size + (b.length * 8 % nbits == 0?0:1)));
 		var buf = 0;
 		var curbits = 0;
 		var mask = (1 << nbits) - 1;
@@ -10583,7 +10665,7 @@ haxe_crypto_BaseCode.prototype = {
 		if(this.tbl == null) this.initTable();
 		var tbl = this.tbl;
 		var size = b.length * nbits >> 3;
-		var out = haxe_io_Bytes.alloc(size);
+		var out = new haxe_io_Bytes(new ArrayBuffer(size));
 		var buf = 0;
 		var curbits = 0;
 		var pin = 0;
@@ -10609,7 +10691,7 @@ $hxClasses["haxe.crypto.Md5"] = haxe_crypto_Md5;
 haxe_crypto_Md5.__name__ = ["haxe","crypto","Md5"];
 haxe_crypto_Md5.make = function(b) {
 	var h = new haxe_crypto_Md5().doEncode(haxe_crypto_Md5.bytes2blks(b));
-	var out = haxe_io_Bytes.alloc(16);
+	var out = new haxe_io_Bytes(new ArrayBuffer(16));
 	var p = 0;
 	var _g = 0;
 	while(_g < 4) {
@@ -11189,6 +11271,16 @@ haxe_io_Path.__name__ = ["haxe","io","Path"];
 haxe_io_Path.prototype = {
 	__class__: haxe_io_Path
 };
+var haxe_rtti_Meta = function() { };
+$hxClasses["haxe.rtti.Meta"] = haxe_rtti_Meta;
+haxe_rtti_Meta.__name__ = ["haxe","rtti","Meta"];
+haxe_rtti_Meta.getType = function(t) {
+	var meta = haxe_rtti_Meta.getMeta(t);
+	if(meta == null || meta.obj == null) return { }; else return meta.obj;
+};
+haxe_rtti_Meta.getMeta = function(t) {
+	return t.__meta__;
+};
 var js__$Boot_HaxeError = function(val) {
 	Error.call(this);
 	this.val = val;
@@ -11488,6 +11580,21 @@ js_html_compat_Uint8Array._subarray = function(start,end) {
 	var a = js_html_compat_Uint8Array._new(t.slice(start,end));
 	a.byteOffset = start;
 	return a;
+};
+var js_jquery_JqEltsIterator = function(j) {
+	this.i = 0;
+	this.j = j;
+};
+$hxClasses["js.jquery.JqEltsIterator"] = js_jquery_JqEltsIterator;
+js_jquery_JqEltsIterator.__name__ = ["js","jquery","JqEltsIterator"];
+js_jquery_JqEltsIterator.prototype = {
+	hasNext: function() {
+		return this.i < this.j.length;
+	}
+	,next: function() {
+		return $(this.j[this.i++]);
+	}
+	,__class__: js_jquery_JqEltsIterator
 };
 var js_node_Fs = require("fs");
 var js_node_Net = require("net");
@@ -12457,7 +12564,7 @@ lvl_LayerData.prototype = $extend(lvl_LayerGfx.prototype,{
 			switch(_g[1]) {
 			case 0:
 				var data = _g[2];
-				var b = haxe_io_Bytes.alloc(this.level.width * this.level.height);
+				var b = new haxe_io_Bytes(new ArrayBuffer(this.level.width * this.level.height));
 				var p = 0;
 				var _g2 = 0;
 				var _g1 = this.level.height;
@@ -13147,12 +13254,7 @@ lvl_Palette.prototype = {
 	,layerChanged: function(l) {
 		var _g = this;
 		this.currentLayer = l;
-		this.p = ((function($this) {
-			var $r;
-			var html = js.JQuery("#paletteContent").html();
-			$r = js.JQuery(html);
-			return $r;
-		}(this))).appendTo(this.level.content);
+		this.p = $($("#paletteContent").html()).appendTo(this.level.content);
 		this.p.toggleClass("small",this.small);
 		var i = lvl_Image.fromCanvas(this.p.find("canvas.view")[0]);
 		this.zoom = 1;
@@ -13276,8 +13378,8 @@ lvl_Palette.prototype = {
 			}
 		});
 		jsel.mousemove(function(e3) {
-			_g.level.mousePos.x = e3.pageX;
-			_g.level.mousePos.y = e3.pageY;
+			_g.level.mousePos.x = e3.pageX | 0;
+			_g.level.mousePos.y = e3.pageY | 0;
 			_g.level.updateCursorPos();
 			if(_g.level.selection == null) _g.level.cursor.hide();
 			var o1 = jsel.offset();
@@ -13609,7 +13711,7 @@ lvl_Palette.prototype = {
 					m.addClass("m_ref");
 					var refList = m.find(".opt.refList");
 					refList.html("");
-					if(prop.opt) js.JQuery("<div>").addClass("icon").addClass("delete").appendTo(refList).toggleClass("active",this.modeCursor < 0).click(function() {
+					if(prop.opt) $("<div>").addClass("icon").addClass("delete").appendTo(refList).toggleClass("active",this.modeCursor < 0).click(function(_) {
 						_g3.modeCursor = -1;
 						_g3.level.setCursor();
 					});
@@ -13617,12 +13719,12 @@ lvl_Palette.prototype = {
 					var _g37 = gfx1.images.length;
 					while(_g45 < _g37) {
 						var i2 = [_g45++];
-						var d = js.JQuery("<div>").addClass("icon").css({ background : "url('" + gfx1.images[i2[0]].getCanvas().toDataURL() + "')"});
+						var d = $("<div>").addClass("icon").css({ background : "url('" + gfx1.images[i2[0]].getCanvas().toDataURL() + "')"});
 						d.appendTo(refList);
 						d.toggleClass("active",this.modeCursor == i2[0]);
 						d.attr("title",gfx1.names[i2[0]]);
 						d.click((function(i2) {
-							return function() {
+							return function(_1) {
 								_g3.modeCursor = i2[0];
 								_g3.level.setCursor();
 							};
@@ -13634,7 +13736,7 @@ lvl_Palette.prototype = {
 					m.addClass("m_ref");
 					var refList1 = m.find(".opt.refList");
 					refList1.html("");
-					if(prop.opt) js.JQuery("<div>").addClass("icon").addClass("delete").appendTo(refList1).toggleClass("active",this.modeCursor < 0).click(function() {
+					if(prop.opt) $("<div>").addClass("icon").addClass("delete").appendTo(refList1).toggleClass("active",this.modeCursor < 0).click(function(_2) {
 						_g3.modeCursor = -1;
 						_g3.level.setCursor();
 					});
@@ -13642,11 +13744,11 @@ lvl_Palette.prototype = {
 					var _g38 = values.length;
 					while(_g46 < _g38) {
 						var i3 = [_g46++];
-						var d1 = js.JQuery("<div>").addClass("icon").css({ background : this.level.toColor(lvl_Palette.colorPalette[i3[0]]), width : "auto"}).text(values[i3[0]]);
+						var d1 = $("<div>").addClass("icon").css({ background : this.level.toColor(lvl_Palette.colorPalette[i3[0]]), width : "auto"}).text(values[i3[0]]);
 						d1.appendTo(refList1);
 						d1.toggleClass("active",this.modeCursor == i3[0]);
 						d1.click((function(i3) {
-							return function() {
+							return function(_3) {
 								_g3.modeCursor = i3[0];
 								_g3.level.setCursor();
 							};
@@ -13889,7 +13991,7 @@ sys_io_File.getBytes = function(path) {
 	var s = js_node_Fs.fstatSync(o);
 	var len = s.size;
 	var pos = 0;
-	var bytes = haxe_io_Bytes.alloc(s.size);
+	var bytes = new haxe_io_Bytes(new ArrayBuffer(s.size));
 	var tmpBuf = new js_node_buffer_Buffer(s.size);
 	while(len > 0) {
 		var r = js_node_Fs.readSync(o,tmpBuf,pos,len,null);
@@ -13940,21 +14042,13 @@ if(Array.prototype.filter == null) Array.prototype.filter = function(f1) {
 	}
 	return a1;
 };
-haxe_Resource.content = [{ name : "$bin", data : "YWN5MjU6Y2RiLl9CaW5TZXJpYWxpemVyLlNjaGVtYXk0Omhhc2hpLTE4MzcwMzA0MDl5NDpraW5kankyOTpjZGIuX0JpblNlcmlhbGl6ZXIuU2NoZW1hS2luZDowOjFhYWp5MjQ6Y2RiLl9CaW5TZXJpYWxpemVyLlNEYXRhOjA6MGpSNDoyOjBqUjQ6NjoxalI0Ojc6MWpSNDo5OjFhb3kxOmRyNXkxOm55NDpuYW1lZ29SNXI1UjZ5NTp2YWx1ZWdoaGFyNHI1aGFyNHI0aGFyNHI1alI0OjY6MXI0aGFyNWhhcjRoYXI0cjRqUjQ6ODoxY1IwUjFpNDcxMTEyNDAzUjJqUjM6MDoxYXU1aFI3eTIwOmNkYi5qcS5Eb2NrRGlyZWN0aW9ueTI6aWRpMmdqUjQ6NjoxalI0OjM6MGhoUjd5MTQ6Y2RiLmpxLk1lc3NhZ2VSMTBpMWdyMTlo"}];
 var __map_reserved = {}
-var q = window.jQuery;
-var js = js || {}
-js.JQuery = q;
-q.fn.iterator = function() {
-	return { pos : 0, j : this, hasNext : function() {
-		return this.pos < this.j.length;
-	}, next : function() {
-		return $(this.j[this.pos++]);
-	}};
-};
 var ArrayBuffer = $global.ArrayBuffer || js_html_compat_ArrayBuffer;
 if(ArrayBuffer.prototype.slice == null) ArrayBuffer.prototype.slice = js_html_compat_ArrayBuffer.sliceImpl;
 var Uint8Array = $global.Uint8Array || js_html_compat_Uint8Array._new;
+if(typeof($) != "undefined" && $.fn != null) $.fn.elements = function() {
+	return new js_jquery_JqEltsIterator(this);
+};
 Level.UID = 0;
 Level.loadedTilesCache = new haxe_ds_StringMap();
 K.INSERT = 45;
@@ -13977,6 +14071,8 @@ Main.UID = 0;
 haxe_Serializer.USE_CACHE = false;
 haxe_Serializer.USE_ENUM_INDEX = false;
 haxe_Serializer.BASE64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789%:";
+cdb_BinSerializer.__meta__ = { obj : { s_1522840838 : ["cy25:cdb._BinSerializer.Schemay4:hashi-495528374y4:kindwy29:cdb._BinSerializer.SchemaKindy5:SEnum:1aawy24:cdb._BinSerializer.SDatay4:DInt:0wR5y7:DString:0wR5y5:DNull:1wR5y6:DArray:1wR5y5:DAnon:1aoy1:dwR5R7:0y1:ny4:namegoR11wR5R7:0R12y5:valueghhawR5R6:0wR5R7:0hawR5R6:0wR5R7:0hawR5R6:0wR5R6:0hawR5R6:0wR5R7:0wR5R8:1wR5R6:0hawR5R7:0hawR5R6:0hawR5R6:0wR5R6:0wR5y7:DSchema:1i223952291wR5R8:1wR5y6:DFloat:0hawR5R6:0hawR5R6:0wR5R7:0wR5R6:0hawR5R6:0wR5R7:0wR5R7:0hawR5R6:0wR5R7:0wR5R7:0hawR5R6:0wR5R7:0hawR5R6:0wR5R7:0wR5R9:1wR5y8:DDynamic:0wR5R8:1wR5R6:0hhR13y14:cdb.jq.Messagey2:idi1522840838g"], s_223952291 : ["cy25:cdb._BinSerializer.Schemay4:hashi471112403y4:kindwy29:cdb._BinSerializer.SchemaKindy5:SEnum:1au5hy4:namey20:cdb.jq.DockDirectiony2:idi223952291g"], s_560507292 : ["cy25:cdb._BinSerializer.Schemay4:hashi-2089046689y4:kindwy29:cdb._BinSerializer.SchemaKindy5:SEnum:1aawy24:cdb._BinSerializer.SDatay4:DInt:0wR5R6:0wR5y5:DNull:1wR5y8:DDynamic:0hawR5R6:0wR5y7:DString:0hhy4:namey13:cdb.jq.Answery2:idi560507292g"]}};
+cdb_BinSerializer.VERSION_CHECK = false;
 cdb_BinSerializer.TAG = 0;
 cdb_BinSerializer.gadtTip = -1;
 cdb__$Data_TileMode_$Impl_$.Tile = "tile";

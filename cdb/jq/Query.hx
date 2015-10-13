@@ -6,6 +6,7 @@ class Query {
 	var pos = 0;
 	var id : Null<String>;
 	var classes : Array<String>;
+	var name : Null<String>;
 
 	public function new( q : String ) {
 		this.query = q;
@@ -21,7 +22,11 @@ class Query {
 				if( classes == null ) classes = [];
 				classes.push(readIdent());
 			default:
-				throw "Unexpected '" + String.fromCharCode(c) + "' in '" + q + "'";
+				if( (c >= 'a'.code && c <= 'z'.code) || (c >= 'A'.code && c <= 'Z'.code) ) {
+					pos--;
+					name = readIdent();
+				} else
+					throw "Unexpected '" + String.fromCharCode(c) + "' in '" + q + "'";
 			}
 		}
 	}
@@ -45,6 +50,10 @@ class Query {
 	}
 
 	public function match( d : Dom ) {
+
+		if( name != null && d.name != name )
+			return false;
+
 		if( id != null ) {
 			var ok = false;
 			for( a in d.attributes )

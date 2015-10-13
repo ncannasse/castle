@@ -28,6 +28,11 @@ class JQuery {
 		return sel[id];
 	}
 
+	public function hasClass( name : String ) {
+		var d = get();
+		return d == null ? false : d.classes.indexOf(name) >= 0;
+	}
+
 	public function addClass( name : String ) {
 		for( s in sel )
 			if( s.classes.indexOf(name) < 0 ) {
@@ -70,6 +75,21 @@ class JQuery {
 		return this;
 	}
 
+	public function keydown( ?e : Event -> Void ) {
+		if( e == null ) trigger("keydown") else bind("keydown", e);
+		return this;
+	}
+
+	public function keyup( ?e : Event -> Void ) {
+		if( e == null ) trigger("keyup") else bind("keyup", e);
+		return this;
+	}
+
+	public function focus( ?e : Event -> Void ) {
+		if( e == null ) trigger("focus") else bind("focus", e);
+		return this;
+	}
+
 	public function blur( ?e : Event -> Void ) {
 		if( e == null ) trigger("blur") else bind("blur", e);
 		return this;
@@ -91,6 +111,16 @@ class JQuery {
 		return get().value;
 	}
 
+	public function special( name : String, args : Array<Dynamic>, ?result : Dynamic -> Void ) {
+		for( s in sel ) {
+			var id : Null<Int> = null;
+			if( result != null )
+				id = client.allocEvent(function(e) result(e.value));
+			send(Special(s.id, name, args, id));
+		}
+		return this;
+	}
+
 	function bind( event : String, e : Event -> Void ) {
 		for( s in sel ) {
 			var id = client.allocEvent(e);
@@ -107,12 +137,8 @@ class JQuery {
 		case Element:
 			var de = new Dom(client);
 			de.name = x.nodeName;
-			for( a in x.attributes() ) {
-				var v = x.get(a);
-				de.attributes.push( { name : a, value : v } );
-				if( a == "class" )
-					de.classes = v.split(" ");
-			}
+			for( a in x.attributes() )
+				de.setAttr(a, x.get(a));
 			send(Create(de.id, de.name, de.attributes));
 			de.parent = d;
 			send(Append(de.id, d.id));
@@ -178,15 +204,7 @@ class JQuery {
 			return get().getStyle(s);
 		}
 		for( d in sel ) {
-			var found = false;
-			for( st in d.style )
-				if( st.name == s ) {
-					st.value = val;
-					found = true;
-					break;
-				}
-			if( !found )
-				d.style.push( { name:s, value:val } );
+			d.setStyle(s, val);
 			send(SetStyle(d.id, s, val));
 		}
 		return val;
@@ -205,6 +223,13 @@ class JQuery {
 				s.parent = null;
 			}
 		}
+	}
+
+	public function removeClass( name : String ) {
+		for( s in sel )
+			if( s.classes.remove(name) )
+				send(RemoveClass(s.id, name));
+		return this;
 	}
 
 	public function toggle() {

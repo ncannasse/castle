@@ -18,6 +18,9 @@ class Server {
 		throw "Not implemented";
 	}
 
+	function handleSpecial( e : js.html.Element, name : String, args : Array<Dynamic>, result : Dynamic -> Void ) {
+	}
+
 	public function onMessage( msg : Message ) {
 		switch( msg ) {
 		case Create(id, name, attr):
@@ -28,6 +31,8 @@ class Server {
 			nodes[id] = n;
 		case AddClass(id, name):
 			nodes[id].classList.add(name);
+		case RemoveClass(id, name):
+			nodes[id].classList.remove(name);
 		case Append(id, to):
 			nodes[to].appendChild(nodes[id]);
 		case CreateText(id, text, pid):
@@ -50,10 +55,17 @@ class Server {
 		case Remove(id):
 			nodes[id].remove();
 		case Event(id, name, eid):
-			nodes[id].addEventListener(name, function(_) {
-				if( name == "change" )
-					send(SetValue(id, ""+Reflect.field(nodes[id], "value")));
-				send(Event(eid));
+			var n = nodes[id];
+			n.addEventListener(name, function(e) {
+				var sendValue = false;
+				switch( name ) {
+				case "change": sendValue = true;
+				case "blur", "keydown" if( n.tagName == "INPUT" ): sendValue = true;
+				default:
+				}
+				if( sendValue )
+					send(SetValue(id, ""+Reflect.field(n, "value")));
+				send(Event(eid,e.keyCode));
 			});
 		case SetAttr(id, att, val):
 			nodes[id].setAttribute(att, val);
@@ -64,10 +76,13 @@ class Server {
 			if( m == null ) throw nodes[id] + " has no method " + m;
 			Reflect.callMethod(nodes[id], m, []);
 			if( s == "focus" && nodes[id].tagName == "SELECT" ) {
+				// force drop down
 				var event : Dynamic = cast js.Browser.document.createEvent('MouseEvents');
 				event.initMouseEvent('mousedown', true, true, js.Browser.window);
 				nodes[id].dispatchEvent(event);
 			}
+		case Special(id, name, args, eid):
+			handleSpecial(nodes[id], name, args, eid == null ? function(_) {} : function(v) send(Event(eid, 0, v)));
 		}
 	}
 

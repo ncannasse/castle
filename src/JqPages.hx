@@ -87,6 +87,58 @@ class JqPage extends cdb.jq.Server {
 		dnodes.set(e, n);
 	}
 
+	override function handleSpecial( e : js.html.Element, name : String, args : Array<Dynamic>, result : Dynamic -> Void ) {
+		switch( name ) {
+		case "colorPick":
+			var id = Std.random(0x1);
+			e.innerHTML = '<div class="modal" onclick="$(\'#_c$id\').spectrum(\'toggle\')"></div><input type="text" id="_c${id}"/>';
+			var spect : Dynamic = J('#_c$id');
+			var val = args[0];
+			function getColor(vcol:Dynamic) {
+				return Std.parseInt("0x" + vcol.toHex()) | (Std.int(vcol.getAlpha() * 255) << 24);
+			}
+			spect.spectrum( {
+				color : "rgba(" + [(val >> 16) & 0xFF, (val >> 8) & 0xFF, val & 0xFF, (val >>> 24) / 255].join(",") + ")",
+				showInput: true,
+				showButtons: false,
+				showAlpha: args[1],
+				clickoutFiresChange: true,
+				move : function(vcol:Dynamic) {
+					result({ color : getColor(vcol), done : false });
+				},
+				change : function(vcol:Dynamic) {
+					spect.spectrum('hide');
+					result({ color : getColor(vcol), done : true });
+				},
+				hide : function(vcol:Dynamic) {
+					result({ color : getColor(vcol), done : true });
+				},
+			}).spectrum("show");
+		case "fileSelect":
+			var path : String = args[0];
+			var ext = args[1] == null ? [] : args[1].split(",");
+
+			var fs = J("#fileSelect");
+			if( path != null && StringTools.startsWith(js.Browser.navigator.platform, "Win") )
+				path = path.split("/").join("\\"); // required for nwworkingdir
+			fs.attr("nwworkingdir", path == null ? "" : new haxe.io.Path(path).dir);
+			fs.change(function(_) {
+				fs.unbind("change");
+				var path = fs.val().split("\\").join("/");
+				fs.val("");
+				if( path == "" ) {
+					result(null);
+					return;
+				}
+				fs.attr("nwworkingdir", "");
+				result(path);
+			}).click();
+
+		default:
+			throw "Don't know how to handle " + name+"(" + args.join(",") + ")";
+		}
+	}
+
 }
 
 class JqPages {

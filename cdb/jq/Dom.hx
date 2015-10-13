@@ -60,6 +60,19 @@ class Dom {
 	}
 
 	public function setAttr( name : String, value : String)  {
+
+		switch( name ) {
+		case "class":
+			classes = value == null ? [] : value.split(" ");
+		case "style":
+			for( pair in value.split(";") ) {
+				var parts = pair.split(":");
+				if( parts.length != 2 ) continue;
+				setStyle(StringTools.trim(parts[0]), StringTools.trim(parts[1]));
+			}
+		default:
+		}
+
 		for( a in attributes )
 			if( a.name == name ) {
 				if( value == null )
