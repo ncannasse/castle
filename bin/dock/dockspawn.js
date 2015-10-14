@@ -27,7 +27,7 @@ dockspawn.TabHandle = function(parent)
     this.elementText.innerHTML = title;
 
     // Set the close button text (font awesome)
-    var closeIcon = "icon-remove-sign";
+    var closeIcon = "fa fa-remove";
     this.elementCloseButton.innerHTML = '<i class="' + closeIcon + '"></i>';
 
     this._bringToFront(this.elementBase);
@@ -2222,7 +2222,7 @@ dockspawn.PanelContainer = function(elementContent, dockManager, title)
     this.dockManager = dockManager;
     this.title = title;
     this.containerType = "panel";
-    this.iconName = "icon-circle-arrow-right";
+    this.iconName = "fa fa-arrow-circle-right";
     this.minimumAllowedChildNodes = 0;
     this._floatingDialog = undefined;
     this._initialize();
@@ -2283,7 +2283,7 @@ dockspawn.PanelContainer.prototype._initialize = function()
     this.elementPanel.appendChild(this.elementTitle);
     this.elementTitle.appendChild(this.elementTitleText);
     this.elementTitle.appendChild(this.elementButtonClose);
-    this.elementButtonClose.innerHTML = '<i class="icon-remove"></i>';
+    this.elementButtonClose.innerHTML = '<i class="fa fa-remove"></i>';
     this.elementButtonClose.classList.add("panel-titlebar-button-close");
     this.elementPanel.appendChild(this.elementContentHost);
 
