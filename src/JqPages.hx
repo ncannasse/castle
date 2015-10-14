@@ -217,14 +217,18 @@ class JqPages {
 		});
 		var curBuffer : haxe.io.Bytes = null;
 		var curPos = 0;
+		var size = 0;
+		var sizeCount = 0;
 		sock.on("data", function(e:js.node.Buffer) {
 			var pos = 0;
 			while( pos < e.length ) {
 				if( curBuffer == null ) {
-					var size = e.readInt32LE(pos);
-					pos += 4;
-					curBuffer = haxe.io.Bytes.alloc(size);
-					curPos = 0;
+					size |= e.readUInt8(pos++) << (sizeCount * 8);
+					sizeCount++;
+					if( sizeCount == 4 ) {
+						curBuffer = haxe.io.Bytes.alloc(size);
+						curPos = 0;
+					}
 				} else {
 					var max = e.length - pos;
 					if( max > curBuffer.length - curPos )
@@ -235,6 +239,8 @@ class JqPages {
 						var msg : cdb.jq.Message = cdb.BinSerializer.unserialize(curBuffer);
 						p.onMessage(msg);
 						curBuffer = null;
+						sizeCount = 0;
+						size = 0;
 					}
 				}
 			}

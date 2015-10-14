@@ -449,13 +449,17 @@ JqPages.prototype = {
 		});
 		var curBuffer = null;
 		var curPos = 0;
+		var size = 0;
+		var sizeCount = 0;
 		sock.on("data",function(e) {
 			var pos = 0;
 			while(pos < e.length) if(curBuffer == null) {
-				var size = e.readInt32LE(pos);
-				pos += 4;
-				curBuffer = new haxe_io_Bytes(new ArrayBuffer(size));
-				curPos = 0;
+				size |= e.readUInt8(pos++) << sizeCount * 8;
+				sizeCount++;
+				if(sizeCount == 4) {
+					curBuffer = new haxe_io_Bytes(new ArrayBuffer(size));
+					curPos = 0;
+				}
 			} else {
 				var max = e.length - pos;
 				if(max > curBuffer.length - curPos) max = curBuffer.length - curPos;
@@ -468,6 +472,8 @@ JqPages.prototype = {
 					var msg = cdb_BinSerializer.doUnserialize(curBuffer,1522840838);
 					p.onMessage(msg);
 					curBuffer = null;
+					sizeCount = 0;
+					size = 0;
 				}
 			}
 		});
