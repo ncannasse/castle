@@ -70,6 +70,16 @@ class JQuery {
 		return this;
 	}
 
+	public function mousedown( ?e : Event -> Void ) {
+		if( e == null ) trigger("mousedown") else bind("mousedown", e);
+		return this;
+	}
+
+	public function mouseup( ?e : Event -> Void ) {
+		if( e == null ) trigger("mouseup") else bind("mouseup", e);
+		return this;
+	}
+
 	public function change( ?e : Event -> Void ) {
 		if( e == null ) trigger("change") else bind("change", e);
 		return this;
@@ -229,6 +239,30 @@ class JQuery {
 		for( s in sel )
 			if( s.classes.remove(name) )
 				send(RemoveClass(s.id, name));
+		return this;
+	}
+
+	public function slideToggle( ?duration : Float ) {
+		for( s in sel )
+			send(SlideToogle(s.id, duration));
+		return this;
+	}
+
+	public function toggleClass( name : String, ?state ) {
+		if( state != null ) {
+			if( state )
+				addClass(name);
+			else
+				removeClass(name);
+		} else {
+			for( s in sel )
+				if( !s.classes.remove(name) ) {
+					s.classes.push(name);
+					send(AddClass(s.id, name));
+				} else {
+					send(RemoveClass(s.id, name));
+				}
+		}
 		return this;
 	}
 

@@ -58,14 +58,20 @@ class Server {
 			var n = nodes[id];
 			n.addEventListener(name, function(e) {
 				var sendValue = false;
+				var props : Dynamic = null;
 				switch( name ) {
 				case "change": sendValue = true;
-				case "blur", "keydown" if( n.tagName == "INPUT" ): sendValue = true;
+				case "blur" if( n.tagName == "INPUT" ): sendValue = true;
+				case "keydown":
+					props = { keyCode : e.keyCode };
+					if( n.tagName == "INPUT" ) sendValue = true;
+				case "mousedown", "mouseup":
+					props = { which : e.which };
 				default:
 				}
 				if( sendValue )
 					send(SetValue(id, ""+Reflect.field(n, "value")));
-				send(Event(eid,e.keyCode));
+				send(Event(eid,props));
 			});
 		case SetAttr(id, att, val):
 			nodes[id].setAttribute(att, val);
@@ -82,7 +88,9 @@ class Server {
 				nodes[id].dispatchEvent(event);
 			}
 		case Special(id, name, args, eid):
-			handleSpecial(nodes[id], name, args, eid == null ? function(_) {} : function(v) send(Event(eid, 0, v)));
+			handleSpecial(nodes[id], name, args, eid == null ? function(_) { } : function(v) send(Event(eid, { value : v })));
+		case SlideToogle(id, duration):
+			handleSpecial(nodes[id], "slideToggle", [duration], null);
 		}
 	}
 

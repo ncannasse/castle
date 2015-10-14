@@ -37,10 +37,11 @@ class Client {
 
 	function handle( msg : Message.Answer ) {
 		switch( msg ) {
-		case Event(id, keyCode, value):
+		case Event(id, props):
 			var e = new Event();
-			e.keyCode = keyCode;
-			e.value = value;
+			if( props != null )
+				for( f in Reflect.fields(props) )
+					Reflect.setField(e, f, Reflect.field(props, f));
 			events.get(id)(e);
 		case SetValue(id, v):
 			doms.get(id).value = v;

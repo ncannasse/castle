@@ -2189,9 +2189,10 @@ class Main extends Model {
 		lastSave = getFileTime();
 	}
 
+	public static var inst : Main;
 	static function main() {
-		var m = new Main();
-		Reflect.setField(js.Browser.window, "_", m);
+		inst = new Main();
+		Reflect.setField(js.Browser.window, "_", inst);
 	}
 
 }

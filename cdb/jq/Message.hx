@@ -11,14 +11,15 @@ enum Message {
 	Dock( pid : Int, id : Int, dir : DockDirection, size : Null<Float> );
 	Remove( id : Int );
 	Event( id : Int, name : String, eid : Int );
-	SetAttr( id : Int, att : String, val : String );
-	SetStyle( id : Int, st : String, val : String );
+	SetAttr( id : Int, att : String, ?val : String );
+	SetStyle( id : Int, st : String, ?val : String );
 	Trigger( id : Int, name : String );
 	Special( id : Int, name : String, args : Array<Dynamic>, ?eid : Int );
+	SlideToogle( id : Int, ?dur : Float );
 }
 
 enum Answer {
-	Event( id : Int, keyCode : Int, ?value : Dynamic );
+	Event( id : Int, ?props : { ?keyCode : Int, ?value : Dynamic, ?which : Int } );
 	SetValue( id : Int, value : String );
 }
 

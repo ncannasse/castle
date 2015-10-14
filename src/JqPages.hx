@@ -17,6 +17,7 @@ extern class DockNode {
 	function dockDown( node : DockNode, p : Panel, v : Float ) : DockNode;
 	function dockUp( node : DockNode, p : Panel, v : Float ) : DockNode;
 	function dockFill( node : DockNode, p : Panel ) : DockNode;
+	function requestUndock( p : Panel ) : Void;
 }
 
 @:native("dockspawn.PanelContainer") extern class Panel {
@@ -134,6 +135,21 @@ class JqPage extends cdb.jq.Server {
 				result(path);
 			}).click();
 
+		case "slideToggle":
+
+			J(e).slideToggle(args[0]);
+
+		case "popupMenu":
+
+			var args : Array<String> = cast args;
+			var n = new js.node.webkit.Menu();
+			for( i in 0...args.length ) {
+				var mit = new js.node.webkit.MenuItem( { label : args[i] } );
+				n.append(mit);
+				mit.click = function() result(i);
+			}
+			@:privateAccess n.popup(Main.inst.mousePos.x, Main.inst.mousePos.y);
+
 		default:
 			throw "Don't know how to handle " + name+"(" + args.join(",") + ")";
 		}
@@ -191,25 +207,36 @@ class JqPages {
 		sock.setNoDelay(true);
 		sock.on("error", function() sock.end());
 		sock.on("close", function() {
-			/*
 			var cur = curPage == Lambda.indexOf(pages, p);
 			pages.remove(p);
 			updateTabs();
 			if( cur ) {
 				curPage--;
 				main.initContent();
-			}*/
+			}
 		});
+		var curBuffer : haxe.io.Bytes = null;
+		var curPos = 0;
 		sock.on("data", function(e:js.node.Buffer) {
 			var pos = 0;
 			while( pos < e.length ) {
-				var size = e.readInt32LE(pos);
-				pos += 4;
-				var msg = haxe.io.Bytes.alloc(size);
-				for( i in 0...size )
-					msg.set(i, e.readUInt8(pos++));
-				var msg : cdb.jq.Message = cdb.BinSerializer.unserialize(msg);
-				p.onMessage(msg);
+				if( curBuffer == null ) {
+					var size = e.readInt32LE(pos);
+					pos += 4;
+					curBuffer = haxe.io.Bytes.alloc(size);
+					curPos = 0;
+				} else {
+					var max = e.length - pos;
+					if( max > curBuffer.length - curPos )
+						max = curBuffer.length - curPos;
+					for( i in 0...max )
+						curBuffer.set(curPos++, e.readUInt8(pos++));
+					if( curPos == curBuffer.length ) {
+						var msg : cdb.jq.Message = cdb.BinSerializer.unserialize(curBuffer);
+						p.onMessage(msg);
+						curBuffer = null;
+					}
+				}
 			}
 		});
 	}

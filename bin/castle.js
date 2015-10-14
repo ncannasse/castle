@@ -195,6 +195,7 @@ cdb_jq_Server.prototype = {
 			var n2 = this.nodes[id7];
 			n2.addEventListener(name3,function(e1) {
 				var sendValue = false;
+				var props = null;
 				switch(name3) {
 				case "change":
 					sendValue = true;
@@ -204,13 +205,16 @@ cdb_jq_Server.prototype = {
 					}
 					break;
 				case "keydown":
-					if(n2.tagName == "INPUT") sendValue = true; else {
-					}
+					props = { keyCode : e1.keyCode};
+					if(n2.tagName == "INPUT") sendValue = true;
+					break;
+				case "mousedown":case "mouseup":
+					props = { which : e1.which};
 					break;
 				default:
 				}
 				if(sendValue) _g.send(cdb_jq_Answer.SetValue(id7,"" + Std.string(Reflect.field(n2,"value"))));
-				_g.send(cdb_jq_Answer.Event(eid,e1.keyCode));
+				_g.send(cdb_jq_Answer.Event(eid,props));
 			});
 			break;
 		case 10:
@@ -244,8 +248,13 @@ cdb_jq_Server.prototype = {
 			var id11 = msg[2];
 			this.handleSpecial(this.nodes[id11],name4,args,eid1 == null?function(_) {
 			}:function(v) {
-				_g.send(cdb_jq_Answer.Event(eid1,0,v));
+				_g.send(cdb_jq_Answer.Event(eid1,{ value : v}));
 			});
+			break;
+		case 14:
+			var duration = msg[3];
+			var id12 = msg[2];
+			this.handleSpecial(this.nodes[id12],"slideToggle",[duration],null);
 			break;
 		}
 	}
@@ -350,6 +359,26 @@ JqPage.prototype = $extend(cdb_jq_Server.prototype,{
 				result(path1);
 			}).click();
 			break;
+		case "slideToggle":
+			$(e).slideToggle(args[0]);
+			break;
+		case "popupMenu":
+			var args1 = args;
+			var n = new js_node_webkit_Menu();
+			var _g1 = 0;
+			var _g = args1.length;
+			while(_g1 < _g) {
+				var i = [_g1++];
+				var mit = new js_node_webkit_MenuItem({ label : args1[i[0]]});
+				n.append(mit);
+				mit.click = (function(i) {
+					return function() {
+						result(i[0]);
+					};
+				})(i);
+			}
+			n.popup(Main.inst.mousePos.x,Main.inst.mousePos.y);
+			break;
 		default:
 			throw new js__$Boot_HaxeError("Don't know how to handle " + name + "(" + args.join(",") + ")");
 		}
@@ -401,6 +430,7 @@ JqPages.prototype = {
 		}
 	}
 	,onClient: function(sock) {
+		var _g = this;
 		var p = new JqPage(sock);
 		this.pages.push(p);
 		this.updateTabs();
@@ -409,20 +439,36 @@ JqPages.prototype = {
 			sock.end();
 		});
 		sock.on("close",function() {
+			var cur = _g.curPage == Lambda.indexOf(_g.pages,p);
+			HxOverrides.remove(_g.pages,p);
+			_g.updateTabs();
+			if(cur) {
+				_g.curPage--;
+				_g.main.initContent();
+			}
 		});
+		var curBuffer = null;
+		var curPos = 0;
 		sock.on("data",function(e) {
 			var pos = 0;
-			while(pos < e.length) {
+			while(pos < e.length) if(curBuffer == null) {
 				var size = e.readInt32LE(pos);
 				pos += 4;
-				var msg = new haxe_io_Bytes(new ArrayBuffer(size));
-				var _g = 0;
-				while(_g < size) {
-					var i = _g++;
-					msg.set(i,e.readUInt8(pos++));
+				curBuffer = new haxe_io_Bytes(new ArrayBuffer(size));
+				curPos = 0;
+			} else {
+				var max = e.length - pos;
+				if(max > curBuffer.length - curPos) max = curBuffer.length - curPos;
+				var _g1 = 0;
+				while(_g1 < max) {
+					var i = _g1++;
+					curBuffer.set(curPos++,e.readUInt8(pos++));
 				}
-				var msg1 = cdb_BinSerializer.doUnserialize(msg,1522840838);
-				p.onMessage(msg1);
+				if(curPos == curBuffer.length) {
+					var msg = cdb_BinSerializer.doUnserialize(curBuffer,1522840838);
+					p.onMessage(msg);
+					curBuffer = null;
+				}
 			}
 		});
 	}
@@ -4533,8 +4579,8 @@ var Main = function() {
 $hxClasses["Main"] = Main;
 Main.__name__ = ["Main"];
 Main.main = function() {
-	var m = new Main();
-	Reflect.setField(window,"_",m);
+	Main.inst = new Main();
+	Reflect.setField(window,"_",Main.inst);
 };
 Main.__super__ = Model;
 Main.prototype = $extend(Model.prototype,{
@@ -5584,9 +5630,9 @@ Main.prototype = $extend(Model.prototype,{
 							}
 						}
 						if(val2 != val && val2 != null) {
-							var this11 = _g.smap.get(sheet.name).index;
+							var this2 = _g.smap.get(sheet.name).index;
 							var key1 = val2;
-							prevTarget = this11.get(key1);
+							prevTarget = this2.get(key1);
 							if(c.type == cdb_ColumnType.TId && val != null && (prevObj == null || prevObj.obj == obj)) {
 								var m = new haxe_ds_StringMap();
 								var key2 = val;
@@ -5603,14 +5649,14 @@ Main.prototype = $extend(Model.prototype,{
 					editDone();
 					if(c.type == cdb_ColumnType.TId && prevObj != null && old1 != val && (prevObj.obj == obj && (function($this) {
 						var $r;
-						var this12 = _g.smap.get(sheet.name).index;
-						$r = this12.get(old1);
+						var this3 = _g.smap.get(sheet.name).index;
+						$r = this3.get(old1);
 						return $r;
 					}(this)) != null || prevTarget != null && ((function($this) {
 						var $r;
-						var this13 = _g.smap.get(sheet.name).index;
+						var this4 = _g.smap.get(sheet.name).index;
 						var key3 = val;
-						$r = this13.get(key3);
+						$r = this4.get(key3);
 						return $r;
 					}(this))).obj != prevTarget.obj)) {
 						_g.refresh();
@@ -5823,7 +5869,7 @@ Main.prototype = $extend(Model.prototype,{
 				var id = Std.random(1);
 				v.html("<div class=\"modal\" onclick=\"$('#_c" + id + "').spectrum('toggle')\"></div><input type=\"text\" id=\"_c" + id + "\"/>");
 				var spect = $("#_c" + id);
-				spect.spectrum({ color : "rbga(" + Std.string(v), showInput : true, showButtons : false, change : function(vcol) {
+				spect.spectrum({ color : "#" + StringTools.hex(val,6), showInput : true, showButtons : false, change : function(vcol) {
 					spect.spectrum("hide");
 					var color = Std.parseInt("0x" + Std.string(vcol.toHex()));
 					val = color;
@@ -10118,7 +10164,7 @@ cdb_IndexId.prototype = $extend(cdb_Index.prototype,{
 	}
 	,__class__: cdb_IndexId
 });
-var cdb_jq_Message = $hxClasses["cdb.jq.Message"] = { __ename__ : ["cdb","jq","Message"], __constructs__ : ["Create","AddClass","RemoveClass","Append","CreateText","SetCSS","Reset","Dock","Remove","Event","SetAttr","SetStyle","Trigger","Special"] };
+var cdb_jq_Message = $hxClasses["cdb.jq.Message"] = { __ename__ : ["cdb","jq","Message"], __constructs__ : ["Create","AddClass","RemoveClass","Append","CreateText","SetCSS","Reset","Dock","Remove","Event","SetAttr","SetStyle","Trigger","Special","SlideToogle"] };
 cdb_jq_Message.Create = function(id,name,attr) { var $x = ["Create",0,id,name,attr]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
 cdb_jq_Message.AddClass = function(id,name) { var $x = ["AddClass",1,id,name]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
 cdb_jq_Message.RemoveClass = function(id,name) { var $x = ["RemoveClass",2,id,name]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
@@ -10133,8 +10179,9 @@ cdb_jq_Message.SetAttr = function(id,att,val) { var $x = ["SetAttr",10,id,att,va
 cdb_jq_Message.SetStyle = function(id,st,val) { var $x = ["SetStyle",11,id,st,val]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
 cdb_jq_Message.Trigger = function(id,name) { var $x = ["Trigger",12,id,name]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
 cdb_jq_Message.Special = function(id,name,args,eid) { var $x = ["Special",13,id,name,args,eid]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
+cdb_jq_Message.SlideToogle = function(id,dur) { var $x = ["SlideToogle",14,id,dur]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
 var cdb_jq_Answer = $hxClasses["cdb.jq.Answer"] = { __ename__ : ["cdb","jq","Answer"], __constructs__ : ["Event","SetValue"] };
-cdb_jq_Answer.Event = function(id,keyCode,value) { var $x = ["Event",0,id,keyCode,value]; $x.__enum__ = cdb_jq_Answer; $x.toString = $estr; return $x; };
+cdb_jq_Answer.Event = function(id,props) { var $x = ["Event",0,id,props]; $x.__enum__ = cdb_jq_Answer; $x.toString = $estr; return $x; };
 cdb_jq_Answer.SetValue = function(id,value) { var $x = ["SetValue",1,id,value]; $x.__enum__ = cdb_jq_Answer; $x.toString = $estr; return $x; };
 var cdb_jq_DockDirection = $hxClasses["cdb.jq.DockDirection"] = { __ename__ : ["cdb","jq","DockDirection"], __constructs__ : ["Left","Right","Up","Down","Fill"] };
 cdb_jq_DockDirection.Left = ["Left",0];
@@ -14071,7 +14118,7 @@ Main.UID = 0;
 haxe_Serializer.USE_CACHE = false;
 haxe_Serializer.USE_ENUM_INDEX = false;
 haxe_Serializer.BASE64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789%:";
-cdb_BinSerializer.__meta__ = { obj : { s_1522840838 : ["cy25:cdb._BinSerializer.Schemay4:hashi-495528374y4:kindwy29:cdb._BinSerializer.SchemaKindy5:SEnum:1aawy24:cdb._BinSerializer.SDatay4:DInt:0wR5y7:DString:0wR5y5:DNull:1wR5y6:DArray:1wR5y5:DAnon:1aoy1:dwR5R7:0y1:ny4:namegoR11wR5R7:0R12y5:valueghhawR5R6:0wR5R7:0hawR5R6:0wR5R7:0hawR5R6:0wR5R6:0hawR5R6:0wR5R7:0wR5R8:1wR5R6:0hawR5R7:0hawR5R6:0hawR5R6:0wR5R6:0wR5y7:DSchema:1i223952291wR5R8:1wR5y6:DFloat:0hawR5R6:0hawR5R6:0wR5R7:0wR5R6:0hawR5R6:0wR5R7:0wR5R7:0hawR5R6:0wR5R7:0wR5R7:0hawR5R6:0wR5R7:0hawR5R6:0wR5R7:0wR5R9:1wR5y8:DDynamic:0wR5R8:1wR5R6:0hhR13y14:cdb.jq.Messagey2:idi1522840838g"], s_223952291 : ["cy25:cdb._BinSerializer.Schemay4:hashi471112403y4:kindwy29:cdb._BinSerializer.SchemaKindy5:SEnum:1au5hy4:namey20:cdb.jq.DockDirectiony2:idi223952291g"], s_560507292 : ["cy25:cdb._BinSerializer.Schemay4:hashi-2089046689y4:kindwy29:cdb._BinSerializer.SchemaKindy5:SEnum:1aawy24:cdb._BinSerializer.SDatay4:DInt:0wR5R6:0wR5y5:DNull:1wR5y8:DDynamic:0hawR5R6:0wR5y7:DString:0hhy4:namey13:cdb.jq.Answery2:idi560507292g"]}};
+cdb_BinSerializer.__meta__ = { obj : { s_1522840838 : ["cy25:cdb._BinSerializer.Schemay4:hashi-975288295y4:kindwy29:cdb._BinSerializer.SchemaKindy5:SEnum:1aawy24:cdb._BinSerializer.SDatay4:DInt:0wR5y7:DString:0wR5y5:DNull:1wR5y6:DArray:1wR5y5:DAnon:1aoy1:dwR5R7:0y1:ny4:namegoR11wR5R7:0R12y5:valueghhawR5R6:0wR5R7:0hawR5R6:0wR5R7:0hawR5R6:0wR5R6:0hawR5R6:0wR5R7:0wR5R8:1wR5R6:0hawR5R7:0hawR5R6:0hawR5R6:0wR5R6:0wR5y7:DSchema:1i223952291wR5R8:1wR5y6:DFloat:0hawR5R6:0hawR5R6:0wR5R7:0wR5R6:0hawR5R6:0wR5R7:0wR5R8:1wR5R7:0hawR5R6:0wR5R7:0wR5R8:1wR5R7:0hawR5R6:0wR5R7:0hawR5R6:0wR5R7:0wR5R9:1wR5y8:DDynamic:0wR5R8:1wR5R6:0hawR5R6:0wR5R8:1wR5R16:0hhR13y14:cdb.jq.Messagey2:idi1522840838g"], s_223952291 : ["cy25:cdb._BinSerializer.Schemay4:hashi471112403y4:kindwy29:cdb._BinSerializer.SchemaKindy5:SEnum:1au5hy4:namey20:cdb.jq.DockDirectiony2:idi223952291g"], s_560507292 : ["cy25:cdb._BinSerializer.Schemay4:hashi1929207652y4:kindwy29:cdb._BinSerializer.SchemaKindy5:SEnum:1aawy24:cdb._BinSerializer.SDatay4:DInt:0wR5y5:DNull:1wR5y5:DAnon:1aoy1:dwR5R7:1wR5R6:0y1:ny7:keyCodegoR9wR5R7:1wR5y8:DDynamic:0R10y5:valuegoR9wR5R7:1wR5R6:0R10y5:whichghhawR5R6:0wR5y7:DString:0hhy4:namey13:cdb.jq.Answery2:idi560507292g"]}};
 cdb_BinSerializer.VERSION_CHECK = false;
 cdb_BinSerializer.TAG = 0;
 cdb_BinSerializer.gadtTip = -1;
