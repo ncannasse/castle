@@ -196,7 +196,7 @@ class JqPages {
 			var p = pages[curPage];
 			p.page.style.width = "100%";
 			p.page.style.height = "100%";
-			@:privateAccess p.dockManager.resize(p.page.clientWidth, p.page.clientHeight - 30);
+			@:privateAccess p.dockManager.resize(p.page.clientWidth, p.page.clientHeight - (30 + p.root.clientHeight));
 		}
 	}
 

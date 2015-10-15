@@ -275,4 +275,8 @@ class JQuery {
 		return this;
 	}
 
+	public function elements() {
+		return [for( s in sel ) new JQuery(client, s)].iterator();
+	}
+
 }

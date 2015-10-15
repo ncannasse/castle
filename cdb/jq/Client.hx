@@ -18,7 +18,11 @@ class Client {
 		j = new JQuery(this,root);
 	}
 
-	inline function J( ?elt : Dom, ?query : String ) {
+	public function getRoot() {
+		return root;
+	}
+
+	public inline function J( ?elt : Dom, ?query : String ) {
 		return new JQuery(this, elt, query);
 	}
 
