@@ -16,6 +16,7 @@ enum Message {
 	Trigger( id : Int, name : String );
 	Special( id : Int, name : String, args : Array<Dynamic>, ?eid : Int );
 	SlideToogle( id : Int, ?dur : Float );
+	SetName( name : String );
 }
 
 typedef EventProps = { ?keyCode : Int, ?value : Dynamic, ?which : Int, ?ctrlKey : Bool, ?shiftKey : Bool };

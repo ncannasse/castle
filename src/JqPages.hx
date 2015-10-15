@@ -28,6 +28,7 @@ class JqPage extends cdb.jq.Server {
 
 	public var page : js.html.Element;
 	public var name : String;
+	public var tab : js.jquery.JQuery;
 	var sock : js.node.net.Socket;
 	var pages : JqPages;
 	var dockManager : DockManager;
@@ -139,6 +140,11 @@ class JqPage extends cdb.jq.Server {
 
 			J(e).slideToggle(args[0]);
 
+		case "setName":
+
+			name = args[0];
+			if( tab != null ) tab.text(name);
+
 		case "popupMenu":
 
 			var args : Array<String> = cast args;
@@ -149,6 +155,33 @@ class JqPage extends cdb.jq.Server {
 				mit.click = function() result(i);
 			}
 			@:privateAccess n.popup(Main.inst.mousePos.x, Main.inst.mousePos.y);
+
+		case "startDrag":
+
+			var document = js.Browser.document;
+
+			function onMove(e:Dynamic) {
+				result( { dx : e.webkitMovementX, dy : e.webkitMovementY } );
+			}
+
+			function onUp() {
+				untyped document.webkitExitPointerLock();
+			}
+
+			function onChange() {
+				if( untyped document.webkitPointerLockElement == e ) {
+					document.addEventListener("mousemove", onMove,false);
+					document.addEventListener("mouseup", onUp, false);
+				} else {
+					result( { dx : 0, dy : 0, done : true } );
+					document.removeEventListener("webkitpointerlockchange", onChange, false);
+					document.removeEventListener("mousemove", onMove, false);
+					document.removeEventListener("mouseup", onUp, false);
+				}
+			}
+
+			document.addEventListener("webkitpointerlockchange",onChange,false);
+			untyped e.webkitRequestPointerLock();
 
 		default:
 			throw "Don't know how to handle " + name+"(" + args.join(",") + ")";
@@ -174,6 +207,7 @@ class JqPages {
 		sheets.find("li.client").remove();
 		for( p in pages ) {
 			var jc = J("<li>").addClass("client").text(p.name == "" ? "???" : p.name).appendTo(sheets);
+			p.tab = jc;
 			jc.click(function(e) {
 				curPage = Lambda.indexOf(pages, p);
 				J("#sheets li").removeClass("active");

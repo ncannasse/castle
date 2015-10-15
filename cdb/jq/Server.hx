@@ -91,6 +91,8 @@ class Server {
 			handleSpecial(nodes[id], name, args, eid == null ? function(_) { } : function(v) send(Event(eid, { value : v })));
 		case SlideToogle(id, duration):
 			handleSpecial(nodes[id], "slideToggle", [duration], null);
+		case SetName(name):
+			handleSpecial(null, "setName", [name], null);
 		}
 	}
 
