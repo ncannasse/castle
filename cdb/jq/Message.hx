@@ -18,8 +18,10 @@ enum Message {
 	SlideToogle( id : Int, ?dur : Float );
 }
 
+typedef EventProps = { ?keyCode : Int, ?value : Dynamic, ?which : Int, ?ctrlKey : Bool, ?shiftKey : Bool };
+
 enum Answer {
-	Event( id : Int, ?props : { ?keyCode : Int, ?value : Dynamic, ?which : Int } );
+	Event( id : Int, ?props : EventProps );
 	SetValue( id : Int, value : String );
 }
 

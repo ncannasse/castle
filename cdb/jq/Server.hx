@@ -10,7 +10,7 @@ class Server {
 		nodes = [root];
 	}
 
-	function send( msg : Message.Answer ) {
+	public function send( msg : Message.Answer ) {
 		throw "Not implemented";
 	}
 
@@ -58,12 +58,12 @@ class Server {
 			var n = nodes[id];
 			n.addEventListener(name, function(e) {
 				var sendValue = false;
-				var props : Dynamic = null;
+				var props : Message.EventProps = null;
 				switch( name ) {
 				case "change": sendValue = true;
 				case "blur" if( n.tagName == "INPUT" ): sendValue = true;
 				case "keydown":
-					props = { keyCode : e.keyCode };
+					props = { keyCode : e.keyCode, shiftKey : e.shiftKey, ctrlKey : e.ctrlKey };
 					if( n.tagName == "INPUT" ) sendValue = true;
 				case "mousedown", "mouseup":
 					props = { which : e.which };

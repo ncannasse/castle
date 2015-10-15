@@ -39,6 +39,9 @@ class Client {
 		return id;
 	}
 
+	public function onKey( e : Event ) {
+	}
+
 	function handle( msg : Message.Answer ) {
 		switch( msg ) {
 		case Event(id, props):
@@ -46,7 +49,10 @@ class Client {
 			if( props != null )
 				for( f in Reflect.fields(props) )
 					Reflect.setField(e, f, Reflect.field(props, f));
-			events.get(id)(e);
+			if( id < 0 )
+				onKey(e);
+			else
+				events.get(id)(e);
 		case SetValue(id, v):
 			doms.get(id).value = v;
 		}

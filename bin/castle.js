@@ -205,7 +205,7 @@ cdb_jq_Server.prototype = {
 					}
 					break;
 				case "keydown":
-					props = { keyCode : e1.keyCode};
+					props = { keyCode : e1.keyCode, shiftKey : e1.shiftKey, ctrlKey : e1.ctrlKey};
 					if(n2.tagName == "INPUT") sendValue = true;
 					break;
 				case "mousedown":case "mouseup":
@@ -414,6 +414,9 @@ JqPages.prototype = {
 			})(jc,p));
 			if(Lambda.indexOf(this.pages,p[0]) == this.curPage) jc[0].addClass("active");
 		}
+	}
+	,onKey: function(e) {
+		this.pages[this.curPage].send(cdb_jq_Answer.Event(-1,{ keyCode : e.keyCode, shiftKey : e.shiftKey, ctrlKey : e.ctrlKey}));
 	}
 	,select: function() {
 		var p = this.pages[this.curPage];
@@ -4726,16 +4729,17 @@ Main.prototype = $extend(Model.prototype,{
 	}
 	,onKey: function(e) {
 		if(this.isInput()) return;
+		var inCDB = this.level == null && this.pages.curPage < 0;
 		var _g = e.keyCode;
 		switch(_g) {
 		case 45:
-			if(this.level == null) {
+			if(inCDB) {
 				if(this.cursor.s != null) this.newLine(this.cursor.s,this.cursor.y);
 			} else {
 			}
 			break;
 		case 46:
-			if(this.level == null) {
+			if(inCDB) {
 				$(".selected.deletable").change();
 				if(this.cursor.s != null) {
 					if(this.cursor.x < 0) {
@@ -4785,7 +4789,7 @@ Main.prototype = $extend(Model.prototype,{
 			this.moveCursor(1,0,e.shiftKey,e.ctrlKey);
 			break;
 		case 90:
-			if(e.ctrlKey) {
+			if(e.ctrlKey && this.pages.curPage < 0) {
 				if(this.history.length > 0) {
 					this.redo.push(this.curSavedData);
 					this.curSavedData = this.history.pop();
@@ -4797,7 +4801,7 @@ Main.prototype = $extend(Model.prototype,{
 			}
 			break;
 		case 89:
-			if(e.ctrlKey) {
+			if(e.ctrlKey && this.pages.curPage < 0) {
 				if(this.redo.length > 0) {
 					this.history.push(this.curSavedData);
 					this.curSavedData = this.redo.pop();
@@ -4918,7 +4922,8 @@ Main.prototype = $extend(Model.prototype,{
 			}
 			break;
 		case 113:
-			$(".cursor").not(".edit").dblclick();
+			if(inCDB) $(".cursor").not(".edit").dblclick(); else {
+			}
 			break;
 		case 114:
 			if(this.cursor.s != null) this.showReferences(this.cursor.s,this.cursor.y);
@@ -4952,6 +4957,7 @@ Main.prototype = $extend(Model.prototype,{
 		default:
 		}
 		if(this.level != null) this.level.onKey(e);
+		if(this.pages.curPage >= 0) this.pages.onKey(e);
 	}
 	,onKeyUp: function(e) {
 		if(this.level != null && !this.isInput()) this.level.onKeyUp(e);
@@ -14091,7 +14097,7 @@ Main.UID = 0;
 haxe_Serializer.USE_CACHE = false;
 haxe_Serializer.USE_ENUM_INDEX = false;
 haxe_Serializer.BASE64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789%:";
-cdb_BinSerializer.__meta__ = { obj : { s_1522840838 : ["cy25:cdb._BinSerializer.Schemay4:hashi-975288295y4:kindwy29:cdb._BinSerializer.SchemaKindy5:SEnum:1aawy24:cdb._BinSerializer.SDatay4:DInt:0wR5y7:DString:0wR5y5:DNull:1wR5y6:DArray:1wR5y5:DAnon:1aoy1:dwR5R7:0y1:ny4:namegoR11wR5R7:0R12y5:valueghhawR5R6:0wR5R7:0hawR5R6:0wR5R7:0hawR5R6:0wR5R6:0hawR5R6:0wR5R7:0wR5R8:1wR5R6:0hawR5R7:0hawR5R6:0hawR5R6:0wR5R6:0wR5y7:DSchema:1i223952291wR5R8:1wR5y6:DFloat:0hawR5R6:0hawR5R6:0wR5R7:0wR5R6:0hawR5R6:0wR5R7:0wR5R8:1wR5R7:0hawR5R6:0wR5R7:0wR5R8:1wR5R7:0hawR5R6:0wR5R7:0hawR5R6:0wR5R7:0wR5R9:1wR5y8:DDynamic:0wR5R8:1wR5R6:0hawR5R6:0wR5R8:1wR5R16:0hhR13y14:cdb.jq.Messagey2:idi1522840838g"], s_223952291 : ["cy25:cdb._BinSerializer.Schemay4:hashi471112403y4:kindwy29:cdb._BinSerializer.SchemaKindy5:SEnum:1au5hy4:namey20:cdb.jq.DockDirectiony2:idi223952291g"], s_560507292 : ["cy25:cdb._BinSerializer.Schemay4:hashi1929207652y4:kindwy29:cdb._BinSerializer.SchemaKindy5:SEnum:1aawy24:cdb._BinSerializer.SDatay4:DInt:0wR5y5:DNull:1wR5y5:DAnon:1aoy1:dwR5R7:1wR5R6:0y1:ny7:keyCodegoR9wR5R7:1wR5y8:DDynamic:0R10y5:valuegoR9wR5R7:1wR5R6:0R10y5:whichghhawR5R6:0wR5y7:DString:0hhy4:namey13:cdb.jq.Answery2:idi560507292g"]}};
+cdb_BinSerializer.__meta__ = { obj : { s_1522840838 : ["cy25:cdb._BinSerializer.Schemay4:hashi-975288295y4:kindwy29:cdb._BinSerializer.SchemaKindy5:SEnum:1aawy24:cdb._BinSerializer.SDatay4:DInt:0wR5y7:DString:0wR5y5:DNull:1wR5y6:DArray:1wR5y5:DAnon:1aoy1:dwR5R7:0y1:ny4:namegoR11wR5R7:0R12y5:valueghhawR5R6:0wR5R7:0hawR5R6:0wR5R7:0hawR5R6:0wR5R6:0hawR5R6:0wR5R7:0wR5R8:1wR5R6:0hawR5R7:0hawR5R6:0hawR5R6:0wR5R6:0wR5y7:DSchema:1i223952291wR5R8:1wR5y6:DFloat:0hawR5R6:0hawR5R6:0wR5R7:0wR5R6:0hawR5R6:0wR5R7:0wR5R8:1wR5R7:0hawR5R6:0wR5R7:0wR5R8:1wR5R7:0hawR5R6:0wR5R7:0hawR5R6:0wR5R7:0wR5R9:1wR5y8:DDynamic:0wR5R8:1wR5R6:0hawR5R6:0wR5R8:1wR5R16:0hhR13y14:cdb.jq.Messagey2:idi1522840838g"], s_223952291 : ["cy25:cdb._BinSerializer.Schemay4:hashi471112403y4:kindwy29:cdb._BinSerializer.SchemaKindy5:SEnum:1au5hy4:namey20:cdb.jq.DockDirectiony2:idi223952291g"], s_560507292 : ["cy25:cdb._BinSerializer.Schemay4:hashi1375423308y4:kindwy29:cdb._BinSerializer.SchemaKindy5:SEnum:1aawy24:cdb._BinSerializer.SDatay4:DInt:0wR5y5:DNull:1wR5y7:DSchema:1i1835035702hawR5R6:0wR5y7:DString:0hhy4:namey13:cdb.jq.Answery2:idi560507292g"], s_1835035702 : ["cy25:cdb._BinSerializer.Schemay4:hashi1439494620y4:kindwy29:cdb._BinSerializer.SchemaKindy5:SAnon:1aoy1:dwy24:cdb._BinSerializer.SDatay5:DNull:1wR6y5:DBool:0y1:ny7:ctrlKeygoR5wR6R7:1wR6y4:DInt:0R9y7:keyCodegoR5wR6R7:1wR6R8:0R9y8:shiftKeygoR5wR6R7:1wR6y8:DDynamic:0R9y5:valuegoR5wR6R7:1wR6R11:0R9y5:whichghy4:namey17:cdb.jq.EventPropsy2:idi1835035702g"]}};
 cdb_BinSerializer.VERSION_CHECK = false;
 cdb_BinSerializer.TAG = 0;
 cdb_BinSerializer.gadtTip = -1;

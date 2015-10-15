@@ -155,11 +155,13 @@ class Main extends Model {
 		if( isInput() )
 			return;
 
+		var inCDB = level == null && pages.curPage < 0;
+
 		switch( e.keyCode ) {
-		case K.INSERT if( level == null ):
+		case K.INSERT if( inCDB ):
 			if( cursor.s != null )
 				newLine(cursor.s, cursor.y);
-		case K.DELETE if( level == null ):
+		case K.DELETE if( inCDB ):
 			J(".selected.deletable").change();
 			if( cursor.s != null ) {
 				if( cursor.x < 0 ) {
@@ -198,7 +200,7 @@ class Main extends Model {
 			moveCursor(-1, 0, e.shiftKey, e.ctrlKey);
 		case K.RIGHT:
 			moveCursor(1, 0, e.shiftKey, e.ctrlKey);
-		case 'Z'.code if( e.ctrlKey ):
+		case 'Z'.code if( e.ctrlKey && pages.curPage < 0 ):
 			if( history.length > 0 ) {
 				redo.push(curSavedData);
 				curSavedData = history.pop();
@@ -206,7 +208,7 @@ class Main extends Model {
 				initContent();
 				save(false);
 			}
-		case 'Y'.code if( e.ctrlKey ):
+		case 'Y'.code if( e.ctrlKey && pages.curPage < 0 ):
 			if( redo.length > 0 ) {
 				history.push(curSavedData);
 				curSavedData = redo.pop();
@@ -291,7 +293,7 @@ class Main extends Model {
 				cursor.select = null;
 				updateCursor();
 			}
-		case K.F2:
+		case K.F2 if( inCDB ):
 			J(".cursor").not(".edit").dblclick();
 		case K.F3:
 			if( cursor.s != null )
@@ -319,6 +321,7 @@ class Main extends Model {
 		default:
 		}
 		if( level != null ) level.onKey(e);
+		if( pages.curPage >= 0 ) pages.onKey(e);
 	}
 
 	function onKeyUp( e : js.html.KeyboardEvent ) {

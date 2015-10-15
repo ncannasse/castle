@@ -184,6 +184,10 @@ class JqPages {
 		}
 	}
 
+	public function onKey( e : js.html.KeyboardEvent ) {
+		pages[curPage].send(Event( -1, { keyCode : e.keyCode, shiftKey : e.shiftKey, ctrlKey : e.ctrlKey } ));
+	}
+
 	public function select() {
 		var p = pages[curPage];
 		J("#content").html("").append(p.page);
