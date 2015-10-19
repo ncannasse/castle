@@ -110,6 +110,7 @@ HxOverrides.iter = function(a) {
 var cdb_jq_Server = function(root) {
 	this.root = root;
 	this.nodes = [root];
+	this.events = new haxe_ds_IntMap();
 };
 $hxClasses["cdb.jq.Server"] = cdb_jq_Server;
 cdb_jq_Server.__name__ = ["cdb","jq","Server"];
@@ -164,36 +165,27 @@ cdb_jq_Server.prototype = {
 			if(pid != null) this.nodes[pid].appendChild(t);
 			break;
 		case 5:
-			var text1 = msg[2];
-			var curCss = window.document.getElementById("jqcss");
-			if(curCss == null) {
-				curCss = window.document.createElement("style");
-				this.root.insertBefore(curCss,this.root.firstChild);
-			}
-			curCss.innerText = text1;
-			break;
-		case 6:
 			var id5 = msg[2];
 			var n1 = this.nodes[id5];
 			while(n1.firstChild != null) n1.removeChild(n1.firstChild);
 			break;
-		case 7:
+		case 6:
 			var size = msg[5];
 			var dir = msg[4];
 			var e = msg[3];
 			var p = msg[2];
 			this.dock(this.nodes[p],this.nodes[e],dir,size);
 			break;
-		case 8:
+		case 7:
 			var id6 = msg[2];
 			this.nodes[id6].remove();
 			break;
-		case 9:
+		case 8:
 			var eid = msg[4];
 			var name3 = msg[3];
 			var id7 = msg[2];
 			var n2 = this.nodes[id7];
-			n2.addEventListener(name3,function(e1) {
+			var callb = function(e1) {
 				var sendValue = false;
 				var props = null;
 				switch(name3) {
@@ -215,33 +207,36 @@ cdb_jq_Server.prototype = {
 				}
 				if(sendValue) _g.send(cdb_jq_Answer.SetValue(id7,"" + Std.string(Reflect.field(n2,"value"))));
 				_g.send(cdb_jq_Answer.Event(eid,props));
-			});
+			};
+			this.events.h[eid] = { name : name3, callb : callb, n : n2};
+			n2.addEventListener(name3,callb);
 			break;
-		case 10:
+		case 9:
 			var val = msg[4];
 			var att = msg[3];
 			var id8 = msg[2];
 			this.nodes[id8].setAttribute(att,val);
 			break;
-		case 11:
+		case 10:
 			var val1 = msg[4];
 			var s = msg[3];
 			var id9 = msg[2];
 			this.nodes[id9].style[s] = val1;
 			break;
-		case 12:
+		case 11:
 			var s1 = msg[3];
 			var id10 = msg[2];
-			var m = Reflect.field(this.nodes[id10],s1);
-			if(m == null) throw new js__$Boot_HaxeError(Std.string(this.nodes[id10]) + " has no method " + Std.string(m));
-			Reflect.callMethod(this.nodes[id10],m,[]);
-			if(s1 == "focus" && this.nodes[id10].tagName == "SELECT") {
+			var n3 = this.nodes[id10];
+			var m = Reflect.field(n3,s1);
+			if(m == null) throw new js__$Boot_HaxeError(Std.string(n3) + " has no method " + Std.string(m));
+			Reflect.callMethod(n3,m,[]);
+			if(s1 == "focus" && n3.tagName == "SELECT") {
 				var event = window.document.createEvent("MouseEvents");
 				event.initMouseEvent("mousedown",true,true,window);
-				this.nodes[id10].dispatchEvent(event);
+				n3.dispatchEvent(event);
 			}
 			break;
-		case 13:
+		case 12:
 			var eid1 = msg[5];
 			var args = msg[4];
 			var name4 = msg[3];
@@ -251,14 +246,31 @@ cdb_jq_Server.prototype = {
 				_g.send(cdb_jq_Answer.Event(eid1,{ value : v}));
 			});
 			break;
-		case 14:
-			var duration = msg[3];
+		case 13:
+			var duration = msg[4];
+			var name5 = msg[3];
 			var id12 = msg[2];
-			this.handleSpecial(this.nodes[id12],"slideToggle",[duration],null);
+			this.handleSpecial(this.nodes[id12],"animate",[name5,duration],null);
 			break;
 		case 15:
-			var name5 = msg[2];
-			this.handleSpecial(null,"setName",[name5],null);
+			var eids = msg[2];
+			var _g2 = 0;
+			while(_g2 < eids.length) {
+				var eid2 = eids[_g2];
+				++_g2;
+				var e2 = this.events.h[eid2];
+				if(e2 != null) {
+					this.events.remove(eid2);
+					e2.n.removeEventListener(e2.name,e2.callb);
+				}
+			}
+			break;
+		case 14:
+			var eids1 = msg[3];
+			var id13 = msg[2];
+			this.nodes[id13].remove();
+			this.nodes[id13] = null;
+			if(eids1 != null) this.onMessage(cdb_jq_Message.Unbind(eids1));
 			break;
 		}
 	}
@@ -363,8 +375,9 @@ JqPage.prototype = $extend(cdb_jq_Server.prototype,{
 				result(path1);
 			}).click();
 			break;
-		case "slideToggle":
-			$(e).slideToggle(args[0]);
+		case "animate":
+			var j = $(e);
+			Reflect.callMethod(j,Reflect.field(j,args[0]),[args[1]]);
 			break;
 		case "setName":
 			name = args[0];
@@ -10210,26 +10223,27 @@ cdb_IndexId.prototype = $extend(cdb_Index.prototype,{
 	}
 	,__class__: cdb_IndexId
 });
-var cdb_jq_Message = $hxClasses["cdb.jq.Message"] = { __ename__ : ["cdb","jq","Message"], __constructs__ : ["Create","AddClass","RemoveClass","Append","CreateText","SetCSS","Reset","Dock","Remove","Event","SetAttr","SetStyle","Trigger","Special","SlideToogle","SetName"] };
+var cdb_jq_Message = $hxClasses["cdb.jq.Message"] = { __ename__ : ["cdb","jq","Message"], __constructs__ : ["Create","AddClass","RemoveClass","Append","CreateText","Reset","Dock","Remove","Event","SetAttr","SetStyle","Trigger","Special","Anim","Dispose","Unbind"] };
 cdb_jq_Message.Create = function(id,name,attr) { var $x = ["Create",0,id,name,attr]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
 cdb_jq_Message.AddClass = function(id,name) { var $x = ["AddClass",1,id,name]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
 cdb_jq_Message.RemoveClass = function(id,name) { var $x = ["RemoveClass",2,id,name]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
 cdb_jq_Message.Append = function(id,to) { var $x = ["Append",3,id,to]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
 cdb_jq_Message.CreateText = function(id,text,pid) { var $x = ["CreateText",4,id,text,pid]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
-cdb_jq_Message.SetCSS = function(css) { var $x = ["SetCSS",5,css]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
-cdb_jq_Message.Reset = function(id) { var $x = ["Reset",6,id]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
-cdb_jq_Message.Dock = function(pid,id,dir,size) { var $x = ["Dock",7,pid,id,dir,size]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
-cdb_jq_Message.Remove = function(id) { var $x = ["Remove",8,id]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
-cdb_jq_Message.Event = function(id,name,eid) { var $x = ["Event",9,id,name,eid]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
-cdb_jq_Message.SetAttr = function(id,att,val) { var $x = ["SetAttr",10,id,att,val]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
-cdb_jq_Message.SetStyle = function(id,st,val) { var $x = ["SetStyle",11,id,st,val]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
-cdb_jq_Message.Trigger = function(id,name) { var $x = ["Trigger",12,id,name]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
-cdb_jq_Message.Special = function(id,name,args,eid) { var $x = ["Special",13,id,name,args,eid]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
-cdb_jq_Message.SlideToogle = function(id,dur) { var $x = ["SlideToogle",14,id,dur]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
-cdb_jq_Message.SetName = function(name) { var $x = ["SetName",15,name]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
-var cdb_jq_Answer = $hxClasses["cdb.jq.Answer"] = { __ename__ : ["cdb","jq","Answer"], __constructs__ : ["Event","SetValue"] };
-cdb_jq_Answer.Event = function(id,props) { var $x = ["Event",0,id,props]; $x.__enum__ = cdb_jq_Answer; $x.toString = $estr; return $x; };
+cdb_jq_Message.Reset = function(id) { var $x = ["Reset",5,id]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
+cdb_jq_Message.Dock = function(pid,id,dir,size) { var $x = ["Dock",6,pid,id,dir,size]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
+cdb_jq_Message.Remove = function(id) { var $x = ["Remove",7,id]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
+cdb_jq_Message.Event = function(id,name,eid) { var $x = ["Event",8,id,name,eid]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
+cdb_jq_Message.SetAttr = function(id,att,val) { var $x = ["SetAttr",9,id,att,val]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
+cdb_jq_Message.SetStyle = function(id,st,val) { var $x = ["SetStyle",10,id,st,val]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
+cdb_jq_Message.Trigger = function(id,name) { var $x = ["Trigger",11,id,name]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
+cdb_jq_Message.Special = function(id,name,args,eid) { var $x = ["Special",12,id,name,args,eid]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
+cdb_jq_Message.Anim = function(id,name,dur) { var $x = ["Anim",13,id,name,dur]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
+cdb_jq_Message.Dispose = function(id,events) { var $x = ["Dispose",14,id,events]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
+cdb_jq_Message.Unbind = function(events) { var $x = ["Unbind",15,events]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
+var cdb_jq_Answer = $hxClasses["cdb.jq.Answer"] = { __ename__ : ["cdb","jq","Answer"], __constructs__ : ["Event","SetValue","Done"] };
+cdb_jq_Answer.Event = function(eid,props) { var $x = ["Event",0,eid,props]; $x.__enum__ = cdb_jq_Answer; $x.toString = $estr; return $x; };
 cdb_jq_Answer.SetValue = function(id,value) { var $x = ["SetValue",1,id,value]; $x.__enum__ = cdb_jq_Answer; $x.toString = $estr; return $x; };
+cdb_jq_Answer.Done = function(eid) { var $x = ["Done",2,eid]; $x.__enum__ = cdb_jq_Answer; $x.toString = $estr; return $x; };
 var cdb_jq_DockDirection = $hxClasses["cdb.jq.DockDirection"] = { __ename__ : ["cdb","jq","DockDirection"], __constructs__ : ["Left","Right","Up","Down","Fill"] };
 cdb_jq_DockDirection.Left = ["Left",0];
 cdb_jq_DockDirection.Left.toString = $estr;
@@ -11100,6 +11114,11 @@ haxe_ds_IntMap.prototype = {
 	}
 	,get: function(key) {
 		return this.h[key];
+	}
+	,remove: function(key) {
+		if(!this.h.hasOwnProperty(key)) return false;
+		delete(this.h[key]);
+		return true;
 	}
 	,keys: function() {
 		var a = [];
@@ -14165,7 +14184,7 @@ Main.UID = 0;
 haxe_Serializer.USE_CACHE = false;
 haxe_Serializer.USE_ENUM_INDEX = false;
 haxe_Serializer.BASE64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789%:";
-cdb_BinSerializer.__meta__ = { obj : { s_1522840838 : ["cy25:cdb._BinSerializer.Schemay4:hashi-1076464457y4:kindwy29:cdb._BinSerializer.SchemaKindy5:SEnum:1aawy24:cdb._BinSerializer.SDatay4:DInt:0wR5y7:DString:0wR5y5:DNull:1wR5y6:DArray:1wR5y5:DAnon:1aoy1:dwR5R7:0y1:ny4:namegoR11wR5R7:0R12y5:valueghhawR5R6:0wR5R7:0hawR5R6:0wR5R7:0hawR5R6:0wR5R6:0hawR5R6:0wR5R7:0wR5R8:1wR5R6:0hawR5R7:0hawR5R6:0hawR5R6:0wR5R6:0wR5y7:DSchema:1i223952291wR5R8:1wR5y6:DFloat:0hawR5R6:0hawR5R6:0wR5R7:0wR5R6:0hawR5R6:0wR5R7:0wR5R8:1wR5R7:0hawR5R6:0wR5R7:0wR5R8:1wR5R7:0hawR5R6:0wR5R7:0hawR5R6:0wR5R7:0wR5R9:1wR5y8:DDynamic:0wR5R8:1wR5R6:0hawR5R6:0wR5R8:1wR5R16:0hawR5R7:0hhR13y14:cdb.jq.Messagey2:idi1522840838g"], s_223952291 : ["cy25:cdb._BinSerializer.Schemay4:hashi471112403y4:kindwy29:cdb._BinSerializer.SchemaKindy5:SEnum:1au5hy4:namey20:cdb.jq.DockDirectiony2:idi223952291g"], s_560507292 : ["cy25:cdb._BinSerializer.Schemay4:hashi1375423308y4:kindwy29:cdb._BinSerializer.SchemaKindy5:SEnum:1aawy24:cdb._BinSerializer.SDatay4:DInt:0wR5y5:DNull:1wR5y7:DSchema:1i1835035702hawR5R6:0wR5y7:DString:0hhy4:namey13:cdb.jq.Answery2:idi560507292g"], s_1835035702 : ["cy25:cdb._BinSerializer.Schemay4:hashi1439494620y4:kindwy29:cdb._BinSerializer.SchemaKindy5:SAnon:1aoy1:dwy24:cdb._BinSerializer.SDatay5:DNull:1wR6y5:DBool:0y1:ny7:ctrlKeygoR5wR6R7:1wR6y4:DInt:0R9y7:keyCodegoR5wR6R7:1wR6R8:0R9y8:shiftKeygoR5wR6R7:1wR6y8:DDynamic:0R9y5:valuegoR5wR6R7:1wR6R11:0R9y5:whichghy4:namey17:cdb.jq.EventPropsy2:idi1835035702g"]}};
+cdb_BinSerializer.__meta__ = { obj : { s_1522840838 : ["cy25:cdb._BinSerializer.Schemay4:hashi767004939y4:kindwy29:cdb._BinSerializer.SchemaKindy5:SEnum:1aawy24:cdb._BinSerializer.SDatay4:DInt:0wR5y7:DString:0wR5y5:DNull:1wR5y6:DArray:1wR5y5:DAnon:1aoy1:dwR5R7:0y1:ny4:namegoR11wR5R7:0R12y5:valueghhawR5R6:0wR5R7:0hawR5R6:0wR5R7:0hawR5R6:0wR5R6:0hawR5R6:0wR5R7:0wR5R8:1wR5R6:0hawR5R6:0hawR5R6:0wR5R6:0wR5y7:DSchema:1i223952291wR5R8:1wR5y6:DFloat:0hawR5R6:0hawR5R6:0wR5R7:0wR5R6:0hawR5R6:0wR5R7:0wR5R8:1wR5R7:0hawR5R6:0wR5R7:0wR5R8:1wR5R7:0hawR5R6:0wR5R7:0hawR5R6:0wR5R7:0wR5R9:1wR5y8:DDynamic:0wR5R8:1wR5R6:0hawR5R6:0wR5R7:0wR5R8:1wR5R16:0hawR5R6:0wR5R8:1wR5R9:1wR5R6:0hawR5R9:1wR5R6:0hhR13y14:cdb.jq.Messagey2:idi1522840838g"], s_223952291 : ["cy25:cdb._BinSerializer.Schemay4:hashi471112403y4:kindwy29:cdb._BinSerializer.SchemaKindy5:SEnum:1au5hy4:namey20:cdb.jq.DockDirectiony2:idi223952291g"], s_560507292 : ["cy25:cdb._BinSerializer.Schemay4:hashi842410256y4:kindwy29:cdb._BinSerializer.SchemaKindy5:SEnum:1aawy24:cdb._BinSerializer.SDatay4:DInt:0wR5y5:DNull:1wR5y7:DSchema:1i1835035702hawR5R6:0wR5y7:DString:0hawR5R6:0hhy4:namey13:cdb.jq.Answery2:idi560507292g"], s_1835035702 : ["cy25:cdb._BinSerializer.Schemay4:hashi1439494620y4:kindwy29:cdb._BinSerializer.SchemaKindy5:SAnon:1aoy1:dwy24:cdb._BinSerializer.SDatay5:DNull:1wR6y5:DBool:0y1:ny7:ctrlKeygoR5wR6R7:1wR6y4:DInt:0R9y7:keyCodegoR5wR6R7:1wR6R8:0R9y8:shiftKeygoR5wR6R7:1wR6y8:DDynamic:0R9y5:valuegoR5wR6R7:1wR6R11:0R9y5:whichghy4:namey17:cdb.jq.EventPropsy2:idi1835035702g"]}};
 cdb_BinSerializer.VERSION_CHECK = false;
 cdb_BinSerializer.TAG = 0;
 cdb_BinSerializer.gadtTip = -1;

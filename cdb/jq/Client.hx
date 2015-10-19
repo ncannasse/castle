@@ -42,6 +42,34 @@ class Client {
 	public function onKey( e : Event ) {
 	}
 
+	function syncDom() {
+		for( d in doms )
+			d.id = -d.id;
+		for( d in doms )
+			syncDomRec(d);
+	}
+
+	function syncDomRec( d : Dom ) {
+		if( d.id >= 0 ) return;
+		d.id = -d.id;
+		if( d.parent != null ) syncDomRec(d.parent);
+		if( d.nodeName == null ) {
+			send(CreateText(d.id, d.nodeValue, d.parent == null ? null : d.parent.id));
+			return;
+		}
+		send(Create(d.id, d.nodeName, d.attributes.length == 0 ? null : d.attributes));
+		if( d.parent != null )
+			send(Append(d.id, d.parent.id));
+		for( e in d.events )
+			send(Event(d.id, e.name, e.id));
+		for( c in d.childs )
+			syncDomRec(c);
+		if( d.dock != null ) {
+			syncDomRec(d.dock.parent);
+			send(Dock(d.dock.parent.id, d.id, d.dock.dir, d.dock.size));
+		}
+	}
+
 	function handle( msg : Message.Answer ) {
 		switch( msg ) {
 		case Event(id, props):
@@ -51,10 +79,15 @@ class Client {
 					Reflect.setField(e, f, Reflect.field(props, f));
 			if( id < 0 )
 				onKey(e);
-			else
-				events.get(id)(e);
+			else {
+				var f = events.get(id);
+				if( f != null )
+					f(e);
+			}
 		case SetValue(id, v):
-			doms.get(id).value = v;
+			doms.get(id).setAttr("value", v);
+		case Done(eid):
+			events.remove(eid);
 		}
 	}
 

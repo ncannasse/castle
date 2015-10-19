@@ -15,13 +15,17 @@ class JQuery {
 		} else if( query.charCodeAt(0) == "<".code ) {
 			if( !~/^<[A-Za-z]+>$/.match(query) ) throw "Unsupported html creation query";
 			var d = new Dom(client);
-			d.name = query.substr(1, query.length - 2);
-			send(Create(d.id, d.name));
+			d.nodeName = query.substr(1, query.length - 2);
+			send(Create(d.id, d.nodeName));
 			sel = [d];
 		} else {
 			sel = [@:privateAccess client.root];
 			sel = find(query).sel;
 		}
+	}
+
+	public function query( ?elt : Dom, ?query : String ) {
+		return new JQuery(client, elt, query);
 	}
 
 	public inline function get( id = 0 ) {
@@ -37,6 +41,7 @@ class JQuery {
 		for( s in sel )
 			if( s.classes.indexOf(name) < 0 ) {
 				s.classes.push(name);
+				s.updatedClasses();
 				send(AddClass(s.id, name));
 			}
 		return this;
@@ -44,10 +49,9 @@ class JQuery {
 
 	public function text( t : String ) {
 		for( s in sel ) {
-			s.childs = [];
-			send(Reset(s.id));
+			s.reset();
 			var d = new Dom(client);
-			d.text = t;
+			d.nodeValue = t;
 			d.parent = s;
 			send(CreateText(d.id, t, s.id));
 		}
@@ -57,9 +61,7 @@ class JQuery {
 	public function html( html : String ) {
 		var x = try Xml.parse(html) catch( e : Dynamic ) throw "Failed to parse " + html + "(" + e+")";
 		for( s in sel ) {
-			s.childs = [];
-			s.text = null;
-			send(Reset(s.id));
+			s.reset();
 			htmlRec(s,x);
 		}
 		return this;
@@ -118,14 +120,19 @@ class JQuery {
 	public function getValue() {
 		if( sel.length == 0 )
 			return null;
-		return get().value;
+		return get().getAttr("value");
 	}
 
-	public function special( name : String, args : Array<Dynamic>, ?result : Dynamic -> Void ) {
+	public function special( name : String, args : Array<Dynamic>, ?result : Dynamic -> Bool ) {
 		for( s in sel ) {
 			var id : Null<Int> = null;
 			if( result != null )
-				id = client.allocEvent(function(e) result(e.value));
+				id = client.allocEvent(function(e) {
+					if( result(e.value) ) {
+						@:privateAccess client.events.remove(id);
+						send(Unbind([id]));
+					}
+				});
 			send(Special(s.id, name, args, id));
 		}
 		return this;
@@ -146,19 +153,19 @@ class JQuery {
 				htmlRec(d, x);
 		case Element:
 			var de = new Dom(client);
-			de.name = x.nodeName;
+			de.nodeName = x.nodeName;
 			for( a in x.attributes() )
 				de.setAttr(a, x.get(a));
-			send(Create(de.id, de.name, de.attributes));
+			send(Create(de.id, de.nodeName, de.attributes));
 			de.parent = d;
 			send(Append(de.id, d.id));
 			for( x in x )
 				htmlRec(de, x);
 		case PCData, CData:
 			var dt = new Dom(client);
-			dt.text = x.nodeValue;
+			dt.nodeValue = x.nodeValue;
 			dt.parent = d;
-			send(CreateText(dt.id, dt.text, d.id));
+			send(CreateText(dt.id, dt.nodeValue, d.id));
 		case ProcessingInstruction, DocType, Comment:
 			// nothing
 		}
@@ -169,6 +176,22 @@ class JQuery {
 		var r = new Query(query);
 		for( s in sel )
 			j.addRec(r, s);
+		return j;
+	}
+
+	public function children( ?query : String ) {
+		var j = new JQuery(client);
+		if( query == null ) {
+			for( s in sel )
+				for( c in s.childs )
+					j.sel.push(c);
+		} else {
+			var q = new Query(query);
+			for( s in sel )
+				for( c in s.childs )
+					if( q.match(c) )
+						j.sel.push(c);
+		}
 		return j;
 	}
 
@@ -221,30 +244,46 @@ class JQuery {
 	}
 
 	public function dock( parent : Dom, dir : DockDirection, ?size : Float ) {
+		if( parent.id < 0 )
+			throw "Can't dock to disposed node";
+		for( s in sel ) {
+			s.dock = { parent : parent, dir : dir, size : size };
+			s.send(Dock(parent.id, s.id, dir, size));
+		}
+	}
+
+	public function dispose() {
 		for( s in sel )
-			send(Dock(parent.id, s.id, dir, size));
+			s.dispose();
+		sel = [];
 	}
 
 	public function remove() {
 		for( s in sel ) {
-			send(Remove(s.id));
-			if( s.parent != null ) {
-				s.parent.childs.remove(s);
-				s.parent = null;
-			}
+			s.unbindEvents(true);
+			s.remove();
 		}
+		return this;
+	}
+
+	public function detach() {
+		for( s in sel )
+			s.remove();
+		return this;
 	}
 
 	public function removeClass( name : String ) {
 		for( s in sel )
-			if( s.classes.remove(name) )
-				send(RemoveClass(s.id, name));
+			if( s.classes.remove(name) ) {
+				s.updatedClasses();
+				s.send(RemoveClass(s.id, name));
+			}
 		return this;
 	}
 
 	public function slideToggle( ?duration : Float ) {
 		for( s in sel )
-			send(SlideToogle(s.id, duration));
+			s.send(Anim(s.id, "slideToggle", duration));
 		return this;
 	}
 
@@ -257,10 +296,12 @@ class JQuery {
 		} else {
 			for( s in sel )
 				if( !s.classes.remove(name) ) {
+					s.updatedClasses();
 					s.classes.push(name);
-					send(AddClass(s.id, name));
+					s.send(AddClass(s.id, name));
 				} else {
-					send(RemoveClass(s.id, name));
+					s.updatedClasses();
+					s.send(RemoveClass(s.id, name));
 				}
 		}
 		return this;

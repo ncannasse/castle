@@ -136,9 +136,10 @@ class JqPage extends cdb.jq.Server {
 				result(path);
 			}).click();
 
-		case "slideToggle":
+		case "animate":
 
-			J(e).slideToggle(args[0]);
+			var j = J(e);
+			Reflect.callMethod(j,Reflect.field(j,args[0]),[args[1]]);
 
 		case "setName":
 

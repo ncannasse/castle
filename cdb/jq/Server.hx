@@ -4,10 +4,12 @@ class Server {
 
 	var root : js.html.Element;
 	var nodes : Array<js.html.Element>;
+	var events : Map<Int,{ n : js.html.Element, name : String, callb : Dynamic -> Void }>;
 
 	public function new(root) {
 		this.root = root;
 		nodes = [root];
+		events = new Map();
 	}
 
 	public function send( msg : Message.Answer ) {
@@ -39,13 +41,6 @@ class Server {
 			var t = js.Browser.document.createTextNode(text);
 			nodes[id] = cast t; // not an element
 			if( pid != null ) nodes[pid].appendChild(t);
-		case SetCSS(text):
-			var curCss = js.Browser.document.getElementById("jqcss");
-			if( curCss == null ) {
-				curCss = js.Browser.document.createElement("style");
-				root.insertBefore(curCss,root.firstChild);
-			}
-			curCss.innerText = text;
 		case Reset(id):
 			var n = nodes[id];
 			while( n.firstChild != null )
@@ -56,7 +51,7 @@ class Server {
 			nodes[id].remove();
 		case Event(id, name, eid):
 			var n = nodes[id];
-			n.addEventListener(name, function(e) {
+			var callb = function(e) {
 				var sendValue = false;
 				var props : Message.EventProps = null;
 				switch( name ) {
@@ -72,27 +67,40 @@ class Server {
 				if( sendValue )
 					send(SetValue(id, ""+Reflect.field(n, "value")));
 				send(Event(eid,props));
-			});
+			};
+			events.set(eid, { name : name, callb : callb, n : n } );
+			n.addEventListener(name, callb);
 		case SetAttr(id, att, val):
 			nodes[id].setAttribute(att, val);
 		case SetStyle(id, s, val):
 			Reflect.setField(nodes[id].style, s, val);
 		case Trigger(id, s):
-			var m : Dynamic = Reflect.field(nodes[id], s);
-			if( m == null ) throw nodes[id] + " has no method " + m;
-			Reflect.callMethod(nodes[id], m, []);
-			if( s == "focus" && nodes[id].tagName == "SELECT" ) {
+			var n = nodes[id];
+			var m : Dynamic = Reflect.field(n, s);
+			if( m == null ) throw n + " has no method " + m;
+			Reflect.callMethod(n, m, []);
+			if( s == "focus" && n.tagName == "SELECT" ) {
 				// force drop down
 				var event : Dynamic = cast js.Browser.document.createEvent('MouseEvents');
 				event.initMouseEvent('mousedown', true, true, js.Browser.window);
-				nodes[id].dispatchEvent(event);
+				n.dispatchEvent(event);
 			}
 		case Special(id, name, args, eid):
 			handleSpecial(nodes[id], name, args, eid == null ? function(_) { } : function(v) send(Event(eid, { value : v })));
-		case SlideToogle(id, duration):
-			handleSpecial(nodes[id], "slideToggle", [duration], null);
-		case SetName(name):
-			handleSpecial(null, "setName", [name], null);
+		case Anim(id, name, duration):
+			handleSpecial(nodes[id], "animate", [name, duration], null);
+		case Unbind(eids):
+			for( eid in eids ) {
+				var e = events.get(eid);
+				if( e != null ) {
+					events.remove(eid);
+					e.n.removeEventListener(e.name, e.callb);
+				}
+			}
+		case Dispose(id, eids):
+			nodes[id].remove();
+			nodes[id] = null;
+			if( eids != null ) onMessage(Unbind(eids));
 		}
 	}
 

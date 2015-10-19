@@ -51,7 +51,7 @@ class Query {
 
 	public function match( d : Dom ) {
 
-		if( name != null && d.name != name )
+		if( name != null && d.nodeName != name )
 			return false;
 
 		if( id != null ) {

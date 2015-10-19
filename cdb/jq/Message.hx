@@ -6,7 +6,6 @@ enum Message {
 	RemoveClass( id : Int, name : String );
 	Append( id : Int, to : Int );
 	CreateText( id : Int, text : String, ?pid : Int );
-	SetCSS( css : String );
 	Reset( id : Int );
 	Dock( pid : Int, id : Int, dir : DockDirection, size : Null<Float> );
 	Remove( id : Int );
@@ -15,15 +14,17 @@ enum Message {
 	SetStyle( id : Int, st : String, ?val : String );
 	Trigger( id : Int, name : String );
 	Special( id : Int, name : String, args : Array<Dynamic>, ?eid : Int );
-	SlideToogle( id : Int, ?dur : Float );
-	SetName( name : String );
+	Anim( id : Int, name : String, ?dur : Float );
+	Dispose( id : Int, ?events : Array<Int> );
+	Unbind( events : Array<Int> );
 }
 
 typedef EventProps = { ?keyCode : Int, ?value : Dynamic, ?which : Int, ?ctrlKey : Bool, ?shiftKey : Bool };
 
 enum Answer {
-	Event( id : Int, ?props : EventProps );
+	Event( eid : Int, ?props : EventProps );
 	SetValue( id : Int, value : String );
+	Done( eid : Int );
 }
 
 enum DockDirection {
