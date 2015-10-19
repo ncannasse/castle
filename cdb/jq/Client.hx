@@ -43,6 +43,10 @@ class Client {
 	}
 
 	function syncDom() {
+		for( a in root.attributes )
+			send(SetAttr(root.id, a.name, a.value));
+		for( e in root.events )
+			send(Event(root.id, e.name, e.id));
 		for( d in doms )
 			d.id = -d.id;
 		for( d in doms )

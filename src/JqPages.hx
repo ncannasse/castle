@@ -277,6 +277,11 @@ class JqPages {
 					if( curPos == curBuffer.length ) {
 						var msg : cdb.jq.Message = cdb.BinSerializer.unserialize(curBuffer);
 						p.onMessage(msg);
+						switch( msg ) {
+						case SetAttr(0,"title",name):
+							p.tab.text(name);
+						default:
+						}
 						curBuffer = null;
 						sizeCount = 0;
 						size = 0;

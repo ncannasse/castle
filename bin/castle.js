@@ -521,6 +521,23 @@ JqPages.prototype = {
 				if(curPos == curBuffer.length) {
 					var msg = cdb_BinSerializer.doUnserialize(curBuffer,1522840838);
 					p.onMessage(msg);
+					switch(msg[1]) {
+					case 9:
+						switch(msg[2]) {
+						case 0:
+							switch(msg[3]) {
+							case "title":
+								var name = msg[4];
+								p.tab.text(name);
+								break;
+							default:
+							}
+							break;
+						default:
+						}
+						break;
+					default:
+					}
 					curBuffer = null;
 					sizeCount = 0;
 					size = 0;
