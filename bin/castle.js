@@ -490,6 +490,7 @@ JqPages.prototype = {
 		});
 		sock.on("close",function() {
 			var cur = _g.curPage == Lambda.indexOf(_g.pages,p);
+			p.page.remove();
 			HxOverrides.remove(_g.pages,p);
 			_g.updateTabs();
 			if(cur) {

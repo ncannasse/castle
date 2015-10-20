@@ -247,6 +247,7 @@ class JqPages {
 		sock.on("error", function() sock.end());
 		sock.on("close", function() {
 			var cur = curPage == Lambda.indexOf(pages, p);
+			p.page.remove();
 			pages.remove(p);
 			updateTabs();
 			if( cur ) {
