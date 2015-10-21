@@ -89,7 +89,8 @@ class Client {
 					f(e);
 			}
 		case SetValue(id, v):
-			doms.get(id).setAttr("value", v);
+			var d = doms.get(id);
+			if( d != null ) d.setAttr("value", v);
 		case Done(eid):
 			events.remove(eid);
 		}
