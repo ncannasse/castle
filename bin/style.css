@@ -86,7 +86,10 @@ div.modal .content h1 {
 	color : #44C;
 	font-size : 20px;
 }
-div.modal .content span {
+div.modal .content span, div.modal .content label {
+	user-select : none;
+	-moz-user-select : none;
+	-webkit-user-select : none;
 	float : left;
 	margin-top : 3px;
 }

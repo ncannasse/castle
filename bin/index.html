@@ -24,10 +24,13 @@
 		<form id="sheet_form" onsubmit="return false">
 			<h1>Sheet Props</h1>
 			<p>
-				<span>Sheet Name</span> <input type="text" id="sheet_name"/>
+				<span>Sheet Name</span> <input type="text" class="value" id="sheet_name"/>
+			</p>
+			<p>
+				<label><input type="checkbox" class="value" id="sheet_level"/> Create Level</label>
 			</p>
 			<p class="buttons">
-				<input type="submit" value="Create" onclick="_.createSheet($('#sheet_name').val())"/>
+				<input type="submit" value="Create" onclick="_.createSheet($('#sheet_name').val(),$('#sheet_level').prop('checked'))"/>
 				<input type="submit" value="Cancel" onclick="$(this).parents('.modal').hide()"/>
 			</p>
 		</form>
@@ -98,7 +101,7 @@
 		<div class="content">
 		<h1>About</h1>
 		<p>
-			Version 1.2
+			Version 1.5
 		</p>
 		<p>
 			CastleDB has been created by Nicolas Cannasse

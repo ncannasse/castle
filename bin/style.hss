@@ -88,7 +88,8 @@ div.modal {
 			color : #44C;
 			font-size : 20px;
 		}
-		span {
+		span, label {
+			user-select : none;
 			float : left;
 			margin-top : 3px;
 		}

@@ -1694,7 +1694,9 @@ class Main extends Model {
 
 
 	function newSheet() {
-		J("#newsheet").show();
+		var s = J("#newsheet").show();
+		s.find("#sheet_name").val("");
+		s.find("#sheet_level").removeAttr("checked");
 	}
 
 	function deleteColumn( sheet : Sheet, ?cname) {
@@ -1873,7 +1875,7 @@ class Main extends Model {
 		if( cursor.s != null ) newLine(cursor.s);
 	}
 
-	function createSheet( name : String ) {
+	function createSheet( name : String, level : Bool ) {
 		name = StringTools.trim(name);
 		if( !r_ident.match(name) ) {
 			error("Invalid sheet name");
@@ -1896,8 +1898,38 @@ class Main extends Model {
 		};
 		prefs.curSheet = data.sheets.length;
 		data.sheets.push(s);
+		makeSheet(s);
+		if( level ) initLevel(s);
 		initContent();
 		save();
+	}
+
+	function initLevel( s : Sheet ) {
+		var cols = [ { n : "id", t : TId }, { n : "width", t : TInt }, { n : "height", t : TInt }, { n : "props", t : TDynamic }, { n : "tileProps", t : TList }, { n : "layers", t : TList } ];
+		for( c in cols ) {
+			if( s.hasColumn(c.n) ) {
+				if( !s.hasColumn(c.n, [c.t]) ) {
+					error("Column " + c.n + " already exists but does not have type " + c.t);
+					return;
+				}
+			} else {
+				inline function mkCol(n, t) : Column return { name : n, type : t, typeStr : null };
+				var col = mkCol(c.n, c.t);
+				s.addColumn(col);
+				if( c.n == "layers" ) {
+					var s = s.getSub(col);
+					s.addColumn(mkCol("name",TString));
+					s.addColumn(mkCol("data",TTileLayer));
+				}
+			}
+		}
+		if( s.props.level == null )
+			s.props.level = { tileSets : { } };
+		if( s.lines.length == 0 && s.parent == null ) {
+			var o : Dynamic = s.newLine();
+			o.width = 128;
+			o.height = 128;
+		}
 	}
 
 	function createColumn() {
