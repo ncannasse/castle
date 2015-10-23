@@ -33,6 +33,10 @@
 	margin-top : 10px;
 }
 
+a.btn.btn-success {
+	color : white !important;
+}
+
 h1, .tagLine, .img {
 	text-align : center;
 }
@@ -64,7 +68,25 @@ div.p form {
 	display : inline-block;
 }
 
-li{
+ul.big > li {
+	margin-bottom : 20px;
+}
+
+ul.big {
+	margin-top : 20px;
+}
+
+ul.noicon li {
+	list-style : none !important;
+	margin-left : 0px;
+}
+
+.container p, .container li {
+	margin-left : 20px;
+}
+
+.container li{
+	margin-bottom : 4px;
 	list-style-image : url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAQUlEQVQYV2NkYGD4D8QgwAilsfJBkiQrhBqInUI2kWiFs4Aq09BUw8XIMpFoq2EKQdaBAIoz0K2GKYJpgismWiEAvrITAYtX410AAAAASUVORK5CYII=");
 }
 

@@ -43,17 +43,22 @@
 		<div id="download" style="display:none">
 
 
-			<a href="file/castledb-win.zip"><img src="img/win.png"/> Windows</a>
+			<a href="file/castledb-1.5-win.zip"><img src="img/win.png"/> Windows</a>
 
-			<a href="file/castledb-osx.zip"><img src="img/osx.png"/> OSX</a>
+			<a href="file/castledb-1.5-osx.zip"><img src="img/osx.png"/> OSX</a>
 
-			<a href="file/castledb-linux.tgz"><img src="img/linux.png"/> Linux</a>
+			<a href="file/castledb-1.5-linux.tgz"><img src="img/linux.png"/> Linux</a>
 
 			<a href="http://github.com/ncannasse/castle"><img src="img/github.png"/> GitHub</a>
 
-			<div class="ver">version 1.0</div>
+			<div class="ver">version 1.5</div>
 
 		</div>
+
+		<p>
+			<br/>
+			New version includes <a href="#level">Map Editor</a> !
+		</p>
 
 		</div>
 
@@ -210,14 +215,19 @@
 				A reference to another sheet row, using its unique idenfier.
 			</dd>
 
-			<dt>Image</dt>
-			<dd>
-				An image to be displayed.
-			</dd>
-
 			<dt>File</dt>
 			<dd>
-				A relative or absolute path to a target file.
+				A relative or absolute path to a target file or image.
+			</dd>
+
+			<dt>Image</dt>
+			<dd>
+				An image to be displayed and stored in database.
+			</dd>
+
+			<dt>Tile</dt>
+			<dd>
+				A sub part of a tileset image.
 			</dd>
 
 			<dt>List</dt>
@@ -230,10 +240,17 @@
 				A custom type <a href="#custom">learn more</a>.
 			</dd>
 
-			<dt>Layer</dt>
+			<dt>Dynamic</dt>
+			<dd>
+				Any JSON data that you can input.
+			</dd>
+
+			<dt>Data/Tile Layer</dt>
 			<dd>
 				Packed layer information for map edition <a href="#level">learn more</a>.
 			</dd>
+
+
 
 			</dl>
 
@@ -295,14 +312,19 @@
 				<td><code>""</code> (missing identifier)</td>
 			</tr>
 			<tr>
-				<td>Image</td>
-				<td>the string of the MD5 of the image content bytes</td>
-				<td><code>""</code> (missing image)</td>
-			</tr>
-			<tr>
 				<td>File</td>
 				<td>the relative (if possible) or absolute path to the file</td>
 				<td><code>""</code> (missing file)</td>
+			</tr>
+			<tr>
+				<td>Image</td>
+				<td>the string of the MD5 of the image content bytes, stored in the separate .img JSON data</td>
+				<td><code>""</code> (missing image)</td>
+			</tr>
+			<tr>
+				<td>Tile</td>
+				<td>a structure in the form of <code>{file:'my.png',size:16,x:5,y:5}</code> with optional <code>width</code> and <code>height</code> fields.</td>
+				<td><code>null</code> (missing tile)</td>
 			</tr>
 			<tr>
 				<td>List</td>
@@ -315,8 +337,18 @@
 				<td><code>null</code> (missing type)</td>
 			</tr>
 			<tr>
-				<td>Layer</td>
-				<td>width x height bytes indexes encoded as Base64</td>
+				<td>Dynamic</td>
+				<td>the parsed JSON data value</td>
+				<td><code>null</code></td>
+			</tr>
+			<tr>
+				<td>Data Layer</td>
+				<td>width x height bytes indexes encoded as Base64 <a href="#level">learn more</a></td>
+				<td><code>""</code> (empty layer)</td>
+			</tr>
+			<tr>
+				<td>Tile Layer</td>
+				<td>either same as DataLayer or an array of objects <a href="#level">learn more</a></td>
 				<td><code>""</code> (empty layer)</td>
 			</tr>
 			</table>
@@ -389,7 +421,7 @@
 			<li>Edit the column, which allows to rename it, change its type and required flag.</li>
 			<li>Move the column to reorder them</li>
 			<li>Add a new column</li>
-			<li>Delete the column or set it as <a href="#disp">Display Column</a></li>
+			<li>Delete the column or set it as <a href="#disp">Display Column or Icon</a></li>
 			<li>Convert the column content if some convert functions are available for this type.</li>
 		</ul>
 
@@ -458,6 +490,13 @@
 				The stored data and that data input is still made using the unique identifier, this only affects how things are displayed in CastleDB editor.
 			</p>
 
+
+			<h3>Display Icon</h3>
+
+			<p>
+				If you right click on a column of type <code>Tile</code> and check <code>Display Icon</code>, this tile icon will be displayed in front of the name of each instance when displaying a row reference.
+			</p>
+
 			<a class="anch" name="index"></a>
 			<h3>Index</h3>
 
@@ -481,7 +520,7 @@
 			</p>
 
 			<p>
-				You can also double-click on the separator to name it.
+				You can double-click on the separator to name it.
 			</p>
 
 			<a class="anch" name="group"></a>
@@ -492,7 +531,7 @@
 			</p>
 
 			<p>
-				The index starts at 0, then each time a new separator with a title set is reached, it will increment by one (unless the first row separator has a title).
+				The index starts at 0, then each time a new separator with a title defined is reached, it will increment by one (unless the first row separator has a title).
 			</p>
 
 			<p>
@@ -584,13 +623,13 @@ Or(Random(0.5),Fixed)</pre>
 				A custom type constructor parameter can use the following types:
 			</p>
 
-			<ul>
-			<li><code>Int</code> : an integer value</li>
-			<li><code>Bool</code> : a boolean value</li>
-			<li><code>Float</code> : any number value</li>
-			<li><code>String</code> : a string value</li>
-			<li><code>CustomType</code> : any custom type, including itself</li>
-			<li><code>SheetName</code> : any sheet name created in the database</li>
+			<ul class="noicon">
+			<li><code>Int</code> an integer value</li>
+			<li><code>Bool</code> a boolean value</li>
+			<li><code>Float</code> any number value</li>
+			<li><code>String</code> a string value</li>
+			<li><code>CustomType</code> any custom type, including itself</li>
+			<li><code>SheetName</code> any sheet name created in the database</li>
 			</ul>
 
 			<p>
@@ -639,38 +678,70 @@ Or(Random(0.5),Fixed)</pre>
 		<a class="anch" name="level"></a>
 		<h1>Map Editor</h1>
 
+
 		<div class="row">
 
 			<div class="img"><img src="img/levelEdit.png"/></div>
+
+			<p class="download">
+				<a href="https://github.com/ncannasse/castle/raw/master/www/sample.zip" class="btn btn-success"><i class="icon-download-alt icon-white"></i> Sample.zip</a>
+			</p>
 
 			<p>
 			Starting with CastleDB 1.1, you can now have a 2D Map Editor that uses CastleDB data for all its input.
 			</p>
 
-			<h3>Level</h3>
+			<p>
+				<b>Important:</b> the difference between using CastleDB to create your levels and an external editor is that you can assign images/tiles to each of your data, then place them using the CDB map editor.
+				This allows you to have an unified framework for creating the whole content of your game.
+			</p>
+
+			<h3>Create Level</h3>
 
 			<p>
-				First, you must turn one of your sheets into a Level. In order to do that, add both <code>width:Integer</code> and <code>height:Integer</code> fields, then right click on the sheet name and check the <code>Level</code> option.
-				This will add a <code>Edit</code> button at the end of each row, enabling you to edit the different level <em>Layers</em>.
+				When creating a new sheet, check the <code>Create Level</code> option in order to create a level sheet. This will automatically create the necessary columns that allows you to create and edit tile layers.
 			</p>
 
 			<h3>Layers</h3>
 
+			<div class="img"><img src="img/layerList.png"/></div>
+
 			<p>
-				A layer is a set of informations that is stored in one of the fields of the Level sheet. There are several kind of layers:
+				A layer is a set of information that is stored in one of the fields of the Level sheet. There are several kind of layers:
 			</p>
 
-			<ul>
-				<li>
-					<b>List Layer</b> : if you add a <a href="#list">List</a> column to your level sheet which has <code>x</code> and <code>y</code> numerical properties, this will create a list layer which you can visually edit. Each time you click on the map preview, an element will be added to the list.
-					You can add extra properties/columns to the List that you will be able to input directly into the editor.
-				</li>
-				<li>
-					<b>Index Layers</b> : if you want to to paint things and have them stored in a compact array instead as of a list of position, add a column of type <code>Layer</code> to your level sheet. As a restriction, you will not be able to add custom per-cell properties. If you are not on the first layer, the first element of your layer (which has <code>0</code> index) will not be displayed and will act as a "no information" element.
-				</li>
-				<li>
-					<b>Zone Layer</b> : a zone layer is similar to the List Layer except that it has additional <code>width</code> and <code>height</code> numerical properties. It will be displayed as a given zone in the map editor (yellow rectangles in the screenshot above).
-				</li>
+			<dl class="dl-horizontal big">
+				<dt>Tile Layer</dt>
+				<dd>
+					These layers can be created as soon as you create a new level. Each layer have a name and can be assigned to a tileset. A tile layer can be displayed using three different modes : <em>Tiles, Ground, Objects</em> <a href="#tile-mode">learn more</a>
+				</dd>
+
+				<dt>List Layer</dt>
+				<dd>
+					If you add a <a href="#list">List</a> column to your level sheet which has <code>x</code> and <code>y</code> numerical properties, this will create a list layer which you can visually edit.
+					You can add extra properties/columns to the List that you will be able to input directly into the editor. In particular, if you add a <code>Reference</code> to another sheet which has a <code>Tile</code> or <code>Image</code>, you will be able to place these directly into your map.
+				</dd>
+
+				<dt>Index Layers</dt>
+				<dd>
+					If you want to to paint things and have them stored in a compact array instead as of a list of position, add a column of type <code>Layer</code> to your level sheet. As a restriction, you will not be able to add custom per-cell properties. If you are not on the first layer, the first element of your layer (which has <code>0</code> index) will not be displayed and will act as a transparent element.
+				</dd>
+
+				<dt>Zone Layer</dt>
+				<dd>
+				A zone layer is similar to the List Layer except that it has additional <code>width</code> and <code>height</code> numerical properties. It will be displayed as a given zone in the map editor.
+				</dd>
+			</dl>
+
+			<p>
+				For instance, in the sample level, our layers consists of :
+			</p>
+
+			<ul class="noicon">
+				<li><code>layers</code> several tile layers for the ground and unbreakable elements</li>
+				<li><code>triggers</code> zone layers for placing in-game (blue) triggers</li>
+				<li><code>collide</code> an index layer of collisions (which are also defined in CDB)</li>
+				<li><code>npcs</code> a list layer of characters that enable us to place them into a map with extra properties</li>
 			</ul>
 
 			<h4>Layer Display</h4>
@@ -694,6 +765,196 @@ Or(Random(0.5),Fixed)</pre>
 			<p>
 				By default the grid size is set to <code>16</code> pixels. This can be modified in the level options.
 			</p>
+
+			<h4>Layer Compression</h4>
+
+			<p>
+				By default, layer data are stored uncompressed. When creating a lot of tile/index levels this can result in quite big files.
+				You can enable/disable the compression of these layer data by doing <code>File / Enable Compression</code>.
+				This will compress using the <a href="https://github.com/Cyan4973/lz4">LZ4</a> algorithm which is easy and fast to decompress.
+			</p>
+
+			<h3>Common layers options</h3>
+
+			<p>
+				You can modify the following properties when clicking on any layer:
+			</p>
+
+			<div class="img"><img src="img/commonLayerProps.png"/></div>
+
+			<ul class="noicon">
+				<li><code>Visible</code> toggle visibility. Please note that this is only used for edition, it is not stored as part of the CDB data.</li>
+				<li><code>Lock</code> allows to lock the layer, making it impossible to modify it until it's unlocked.</li>
+				<li><code>Alpha</code> changes the alpha value of the layer. Unlike Visible, it is stored in CDB data.</li>
+			</ul>
+
+			<p>
+				Additionaly, you can right click on a layer to get the following options:
+			</p>
+
+			<div class="img"><img src="img/layerDropDown.png"/></div>
+
+			<ul class="noicon">
+				<li><code>Show Only</code> will hide all layers except this one.</li>
+				<li><code>Show All</code> restores all layers to visible.</li>
+				<li><code>Rename</code> changes the layer name (tile layer only, other layers names can be changed by renaming the corresponding column)</li>
+				<li><code>Clear</code> clear the layer data.</li>
+				<li><code>Delete</code> removes the layer clear (tile layer only, other layers can be removed by deleting the corresponding column)</li>
+			</ul>
+
+			<h3>Tile Layers</h3>
+
+			<p>
+				A tile layer consists in an array of tiles from a single tileset.
+			</p>
+
+			<p>
+				You can change the following properties when clicking on a layer:
+			</p>
+
+			<div class="img"><img src="img/tileLayerProps.png"/></div>
+
+			<ul class="noicon">
+				<li><code>Mode</code> a tile layer can work in three different mode. The default mode is <em>Tiles</em>, other modes are detailed below</li>
+				<li><code>File</code> allows you to change the tileset for this layer</li>
+				<li><code>Size</code> by default CDB uses 16x16 tiles. You can change it there on a per layer basis. Please note that you should also change your level tile size by using the <code>Options</code> menu.</li>
+			</ul>
+
+			<h4>Objects Mode</h4>
+
+			<p>
+				Objects mode is a different way of storing your tiles.
+			</p>
+
+			<p>
+				While in Tile mode, the layer data consists of an array of width x height tiles, the object mode is a list of X,Y,Tile.
+			</p>
+
+			<div class="img"><img src="img/tileObjects.png"/></div>
+
+			<p>
+				In order to use object mode, you must first group one or several tiles into an <code>Object</code> by using the tile palette. Select the <code>Object</code> mode and you will be able to group several tiles by using the (+) button or pressing <code>O</code>
+			</p>
+
+			<p>
+				You can now put your objects into your tile layer. Objects are sorted accordingly to their lower Y, so it means that unlike in Tile mode you can have several objects that masks each other.
+			</p>
+
+			<p>
+				Objects positions are in pixels, not in the grid. You can still align the objects to the grid by using the <code>G</code> key.
+			</p>
+
+			<p>
+				You can also flip and rotate the tiles that are put into the object layer by using <code>F</code> and <code>D</code> keys.
+			</p>
+
+			<p>
+				The encoding of object layer is a list of base64 encoded 16-bits values as follows:
+			</p>
+
+			<ul class="noicon">
+				<li><code>0xFFFF</code> : marks this layer as object layer, followed by the following information, for each object :</li>
+				<li><code>X</code> the X position of the object in the level in pixels</li>
+				<li><code>Y</code> the Y position of the object in the level in pixels</li>
+				<li><code>ID</code> the object id, which is its position in the tileset</li>
+			</ul>
+
+			<p>
+				Each of these three values can have their higher bit set: the object rotation is encoded into the higher bit of X and Y. The flip flag is encoded into the higher bit of the ID value.
+			</p>
+
+			<h4>Ground Mode</h4>
+
+			<p>
+				The ground mode is similar to the tiles mode except that you can configure <b>Grounds</b> and <b>Borders</b> so they get automatically generated for you.
+			</p>
+
+			<p>
+				Try changing the <code>ground</code> layer in the sample between Ground and Tile to see the difference.
+			</p>
+
+			<p>
+				<em>At the moment, documentation on how to setup grounds and borders is not yet available.</em>
+			</p>
+
+			<h3>Per-tile Properties</h3>
+
+			<p>
+				Each tile of each tileset can have some properties which are shared between levels.
+			</p>
+
+			<p>
+				You can specify these properties by modifying the level <code>tileProps</code> columns.
+			</p>
+
+			<div class="img"><img src="img/tileProps.png"/></div>
+
+			<p>
+				For instance in the sample, we have created a <code>collide</code> column which references our <code>collide</code> sheet, and allows us to
+				specify a per-tile collision.
+			</p>
+
+			<p>
+				In order to edit the per-tile properties, select the property name in the drop down menu of the tile palette.
+				You will be able to set the property value for each tile. Please note that these informations are shared between levels,
+				so modifying a tile property for a level will also modify it for other levels as well.
+			</p>
+
+			<h3>List layers</h3>
+
+			<p>
+				List layers allows you to place in your level some instances referencing another sheet.
+			</p>
+
+			<div class="img"><img src="img/tileEdit.png"/></div>
+
+			<p>
+				In our example level we have an <code>npcs</code> column which is a <code>List</code> containing <code>kind</code> <code>x</code> <code>y</code> and <code>item</code> values.
+			</p>
+
+			<p>
+				<code>kind</code> references the <code>npc</code> sheet, so the npc image will be used to display the instance in the level editor.
+			</p>
+
+			<p>
+				Once an instance is put into the level, you can use the <code>E</code> key with your mouse over it to edit its properties.
+			</p>
+
+			<p>
+				Unlike tile layers, list layers are normal CDB data which can also be edited directly through the spreadsheet editor.
+			</p>
+
+			<h3>Zone layers</h3>
+
+			<p>
+				Zone layers are similar to list layers except that they also have <code>width</code> and <code>height</code> properties, allowing them to cover a zone of your level.
+			</p>
+
+			<p>
+				Their properties can also be edited with the <code>E</code> key.
+			</p>
+
+			<h3>Shortcuts</h3>
+
+			<ul class="noicon">
+				<li><code>Right-click</code> pick tile under cursor</li>
+				<li><code>Tab</code> next layer</li>
+				<li><code>Shift+Tab</code> previous layer</li>
+				<li><code>V</code> toggle visibility for current layer</li>
+				<li><code>L</code> toggle lock for current layer</li>
+				<li><code>G</code> toggle grid lock (tile layers in Objects mode and List/Zone layers with Float positions only)</li>
+				<li><code>I</code> toggle palette visibility</li>
+				<li><code>P</code> paint with current tile</li>
+				<li><code>R</code> toggle random mode (select a random element as part of current palette selection)</li>
+				<li><code>+/-</code> (numpad) zoom/dezoom level</li>
+				<li><code>/</code> (numpad) return to default zoom</li>
+				<li><code>E</code> edit list/zone layer instance properties</li>
+				<li><code>Esc</code> clear selection</li>
+				<li><code>Space</code> hold to scroll</li>
+				<li><code>F</code> flip current tile (tile objects only)</li>
+				<li><code>D</code> rotate current tile (tile objects only)</li>
+				<li><code>O</code> create object group in tile palette</li>
+			</ul>
 
 		</div>
 
@@ -818,7 +1079,7 @@ trace(d.loot.name); <span class="cmt">// automatically fetch the Refenced object
 
 				<dt>Flags</dt>
 				<dd>
-					<code>cdb.Module.Flags&lt;SheetName_ColumnName&gt;</code> : an abstract enum is created as for Enumeration. The bits are wrapped using the <code>Flags</code> abstract which allows typed <code>has</code> and <code>iterator</code> methods.
+					<code>cdb.Types.Flags&lt;SheetName_ColumnName&gt;</code> : an abstract enum is created as for Enumeration. The bits are wrapped using the <code>Flags</code> abstract which allows typed <code>has</code> and <code>iterator</code> methods.
 				</dd>
 
 				<dt>Reference</dt>
@@ -826,19 +1087,24 @@ trace(d.loot.name); <span class="cmt">// automatically fetch the Refenced object
 					<code>TargetSheetName</code> : referenced object is fetched when accessed. You can access only the identifier by using <code><em>columnName</em>Id</code> field.
 				</dd>
 
-				<dt>Image</dt>
-				<dd>
-					<code>String</code> : the MD5 key only, no image loading is supported atm.
-				</dd>
-
 				<dt>File</dt>
 				<dd>
 					<code>String</code>
 				</dd>
 
+				<dt>Image</dt>
+				<dd>
+					<code>String</code> : the MD5 key only, no image loading is supported atm.
+				</dd>
+
+				<dt>Tile</dt>
+				<dd>
+					<code>cdb.Types.TilePos</code> : contains the tileset file and size, the x/y position and optional width/height (by default it is 1)
+				</dd>
+
 				<dt>List</dt>
 				<dd>
-					<code>cdb.Module.ArrayRead&lt;SheetName_ColumnName&gt;</code> : a read-only array of the structured objects, allows indexed access, length and iteration.
+					<code>cdb.Types.ArrayRead&lt;SheetName_ColumnName&gt;</code> : a read-only array of the structured objects, allows indexed access, length and iteration.
 				</dd>
 
 				<dt>Custom</dt>
@@ -846,9 +1112,20 @@ trace(d.loot.name); <span class="cmt">// automatically fetch the Refenced object
 					<code>SheetName_ColumnName</code> : values are converted on-the-fly to the enum created as it's been declared.
 				</dd>
 
-				<dt>Layer</dt>
+				<dt>Dynamic</dt>
 				<dd>
-					<code>cbd.Module.Layer&lt;SheetName&gt;</code> : you can decode the layer by passing the <code>Data.sheetName.all</code> array to the <code>decode()</code> function.
+					<code>Dynamic</code> : data as-it.
+				</dd>
+
+				<dt>Data Layer</dt>
+				<dd>
+					<code>cbd.Types.Layer&lt;SheetName&gt;</code> : you can decode the layer by passing the <code>Data.sheetName.all</code> array to the <code>decode()</code> function.
+				</dd>
+
+				<dt>Tile Layer</dt>
+				<dd>
+					<code>cbd.Types.TileLayer</code> : you can decode the layer by using the <code>t.data.decode()</code> function. It will automatically decompress data and will return an Array of 16-bits values.
+					If the tile layer is in tile/ground mode, this gives you  width x height values. If it's in object mode, see the object layer encoding section.
 				</dd>
 
 			</dl>
@@ -882,6 +1159,10 @@ trace(d.loot.name); <span class="cmt">// automatically fetch the Refenced object
 
 			<p>
 				CastleDB was created by <a href="https://twitter.com/ncannasse">@ncannasse</a> using <a href="http://haxe.org">Haxe</a> and <a href="https://github.com/rogerwang/node-webkit">Node Webkit</a>. It's hosted on <a href="http://github.com/ncannasse/castle">GitHub</a> and used professionally by <a href="http://shirogames.com">Shiro Games</a>.
+			</p>
+
+			<p>
+				CastleDB was notably used to create the whole content for <a href="http://evoland2.com">Evoland 2</a>
 			</p>
 
 			<p>
