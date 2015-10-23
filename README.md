@@ -1,9 +1,14 @@
 CastleDB
 ========
 
-A structured database with a local web app to edit it
+A structured database and level editor with a local web app to edit it.
 
- * extract Node Webkit into the `/bin` directory
+Website / documentation : http://castledb.org
+
+To compile from sources:
+ * compile with Haxe
+ * download and copy NWJS from http://nwjs.io into the `/bin` directory
  * enjoy!
 
-To recompile please install `https://github.com/ncannasse/nodejs-std`
+To recompile please install `https://github.com/HaxeFoundation/hxnodejs`
+
