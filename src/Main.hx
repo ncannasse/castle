@@ -449,6 +449,22 @@ class Main extends Model {
 			J(".errorMsg").text(msg).show();
 	}
 
+	function tileHtml( v : cdb.Types.TilePos, ?isInline ) {
+		var path = getAbsPath(v.file);
+		if( !quickExists(path) ) {
+			if( isInline ) return "";
+			return '<span class="error">' + v.file + '</span>';
+		}
+		var id = UID++;
+		var width = v.size * (v.width == null?1:v.width);
+		var height = v.size * (v.height == null?1:v.height);
+		var max = width > height ? width : height;
+		var zoom = max < 64 ? 2 : 128 / max;
+		var html = '<div id="_c${id}" style="width : ${Std.int(width * zoom)}px; height : ${Std.int(height * zoom)}px; background : url(\'$path\') -${Std.int(v.size*v.x*zoom)}px -${Std.int(v.size*v.y*zoom)}px; ' + (isInline ? 'display:inline-block;' : 'border : 1px solid #888;')+'"></div>';
+		html += '<img src="$path" style="display:none" onload="$(\'#_c$id\').css({backgroundSize : ((this.width*$zoom)|0)+\'px \' + ((this.height*$zoom)|0)+\'px\' '+(zoom > 1 ? ", imageRendering : 'pixelated'" : "") +'}); if( this.parentNode != null ) this.parentNode.removeChild(this)"/>';
+		return html;
+	}
+
 	public function valueHtml( c : Column, v : Dynamic, sheet : Sheet, obj : Dynamic ) : String {
 		if( v == null ) {
 			if( c.opt )
@@ -473,7 +489,7 @@ class Main extends Model {
 			else {
 				var s = smap.get(sname);
 				var i = s.index.get(v);
-				i == null ? '<span class="error">#REF($v)</span>' : StringTools.htmlEscape(i.disp);
+				i == null ? '<span class="error">#REF($v)</span>' : (i.ico == null ? "" : tileHtml(i.ico,true)+" ") + StringTools.htmlEscape(i.disp);
 			}
 		case TBool:
 			v?"Y":"N";
@@ -549,20 +565,7 @@ class Main extends Model {
 				html += ' <input type="submit" value="open" onclick="_.openFile(\'$path\')"/>';
 			html;
 		case TTilePos:
-			var v : cdb.Types.TilePos = v;
-			var path = getAbsPath(v.file);
-			if( !quickExists(path) )
-				'<span class="error">' + v.file + '</span>';
-			else {
-				var id = UID++;
-				var width = v.size * (v.width == null?1:v.width);
-				var height = v.size * (v.height == null?1:v.height);
-				var max = width > height ? width : height;
-				var zoom = max < 64 ? 2 : 128 / max;
-				var html = '<div id="_c${id}" style="width : ${Std.int(width * zoom)}px; height : ${Std.int(height * zoom)}px; background : url(\'$path\') -${Std.int(v.size*v.x*zoom)}px -${Std.int(v.size*v.y*zoom)}px; border : 1px solid black;"></div>';
-				html += '<img src="$path" style="display:none" onload="$(\'#_c$id\').css({backgroundSize : ((this.width*$zoom)|0)+\'px \' + ((this.height*$zoom)|0)+\'px\' '+(zoom > 1 ? ", imageRendering : 'pixelated'" : "") +'}); if( this.parentNode != null ) this.parentNode.removeChild(this)"/>';
-				html;
-			}
+			return tileHtml(v);
 		case TTileLayer:
 			var v : cdb.Types.TileLayer = v;
 			var path = getAbsPath(v.file);
@@ -637,7 +640,8 @@ class Main extends Model {
 		var nright = new MenuItem( { label : "Move Right" } );
 		var ndel = new MenuItem( { label : "Delete" } );
 		var ndisp = new MenuItem( { label : "Display Column", type : MenuItemType.checkbox } );
-		for( m in [nedit, nins, nleft, nright, ndel, ndisp] )
+		var nicon = new MenuItem( { label : "Display Icon", type : MenuItemType.checkbox } );
+		for( m in [nedit, nins, nleft, nright, ndel, ndisp, nicon] )
 			n.append(m);
 
 		switch( c.type ) {
@@ -716,6 +720,18 @@ class Main extends Model {
 		}
 
 		ndisp.checked = sheet.props.displayColumn == c.name;
+		nicon.checked = sheet.props.displayIcon == c.name;
+
+		ndisp.enabled = false;
+		nicon.enabled = false;
+		switch( c.type ) {
+		case TString, TRef(_):
+			ndisp.enabled = true;
+		case TTilePos:
+			nicon.enabled = true;
+		default:
+		}
+
 		nedit.click = function() {
 			newColumn(sheet.name, c);
 		};
@@ -745,6 +761,16 @@ class Main extends Model {
 				sheet.props.displayColumn = null;
 			} else {
 				sheet.props.displayColumn = c.name;
+			}
+			makeSheet(sheet);
+			refresh();
+			save();
+		};
+		nicon.click = function() {
+			if( sheet.props.displayIcon == c.name ) {
+				sheet.props.displayIcon = null;
+			} else {
+				sheet.props.displayIcon = c.name;
 			}
 			makeSheet(sheet);
 			refresh();
@@ -1033,14 +1059,26 @@ class Main extends Model {
 			// TODO if too many items, use autocomplete
 
 			var s = J("<select>");
-			for( l in sdat.all )
-				J("<option>").attr("value", "" + l.id).attr(val == l.id ? "selected" : "_sel", "selected").text(l.disp).appendTo(s);
+			var elts = [for( d in sdat.all ){ id : d.id, ico : d.ico, text : d.disp }];
 			if( c.opt || val == null || val == "" )
-				J("<option>").attr("value", "").text("--- None ---").prependTo(s);
+				elts.unshift( { id : "~", ico : null, text : "--- None ---" } );
 			v.append(s);
+
+			var props : Dynamic = { data : elts };
+			if( sdat.s.props.displayIcon != null ) {
+				function buildElement(i) {
+					var text = StringTools.htmlEscape(i.text);
+					return J("<div>"+(i.ico == null ? "<div style='display:inline-block;width:16px'/>" : tileHtml(i.ico,true)) + " " + text+"</div>");
+				}
+				props.templateResult = props.templateSelection = buildElement;
+			}
+			(untyped s.select2)(props);
+			(untyped s.select2)("val", val == null ? "" : val);
+			(untyped s.select2)("open");
+
 			s.change(function(e) {
 				val = s.val();
-				if( val == "" ) {
+				if( val == "~" ) {
 					val = null;
 					Reflect.deleteField(obj, c.name);
 				} else
@@ -1050,27 +1088,7 @@ class Main extends Model {
 				editDone();
 				e.stopPropagation();
 			});
-			s.keydown(function(e) {
-				switch( e.keyCode ) {
-				case K.LEFT, K.RIGHT:
-					s.blur();
-					return;
-				case K.TAB:
-					s.blur();
-					moveCursor(e.shiftKey? -1:1, 0, false, false);
-					haxe.Timer.delay(function() J(".cursor").dblclick(), 1);
-					e.preventDefault();
-				default:
-				}
-				e.stopPropagation();
-			});
-			s.blur(function(_) {
-				editDone();
-			});
-			s.focus();
-			var event : Dynamic = cast js.Browser.document.createEvent('MouseEvents');
-			event.initMouseEvent('mousedown', true, true, js.Browser.window);
-			s[0].dispatchEvent(event);
+			s.on("select2:close", function(_) editDone());
 
 		case TBool:
 			if( c.opt && val == false ) {

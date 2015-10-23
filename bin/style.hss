@@ -19,6 +19,26 @@ a {
 	text-decoration : none;
 }
 
+.select2 {
+	height : 22px !important;
+	.select2-selection--single {
+		height : 22px !important;
+		border : none !important;
+	}
+	.select2-selection__rendered {
+		color : black !important;
+		line-height : 23px !important;
+		padding-left : 4px !important;
+	}
+	.select2-selection__arrow {
+		height : 20px !important;
+	}
+}
+
+select.select2-hidden-accessible {
+	width : 0px !important;
+}
+
 .errorMsg {
 	background-color : #FEE;
 	border : 1px solid #A00;

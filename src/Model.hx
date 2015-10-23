@@ -7,7 +7,7 @@ typedef Prefs = {
 	curSheet : Int,
 }
 
-typedef Index = { id : String, disp : String, obj : Dynamic }
+typedef Index = { id : String, disp : String, ico : cdb.Types.TilePos, obj : Dynamic }
 
 typedef HistoryElement = { d : String, o : String };
 
@@ -429,11 +429,14 @@ class Model {
 					var v = Reflect.field(l, c.name);
 					if( v != null && v != "" ) {
 						var disp = v;
+						var ico = null;
 						if( s.props.displayColumn != null ) {
 							disp = Reflect.field(l, s.props.displayColumn);
 							if( disp == null || disp == "" ) disp = "#"+v;
 						}
-						var o = { id : v, disp:disp, obj : l };
+						if( s.props.displayIcon != null )
+							ico = Reflect.field(l, s.props.displayIcon);
+						var o = { id : v, disp:disp, ico:ico, obj : l };
 						if( sdat.index.get(v) == null )
 							sdat.index.set(v, o);
 						sdat.all.push(o);
