@@ -146,9 +146,15 @@ div.modal {
 		background-color : #eee;
 		background-repeat : no-repeat;
 	}
+	.tilePath {
+		color : #888;
+		font-size : 11px;
+	}
 	.tileScroll {
 		background-color : #555;
 		position:relative;
+		padding-right : 5px;
+		padding-bottom : 5px;
 		border : 1px solid black;
 		max-width: 640px;
 		max-height : 640px;

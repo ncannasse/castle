@@ -139,6 +139,7 @@ class Palette {
 			zoom++;
 
 		var tsize = level.tileSize * zoom;
+		var scaleUp = 0, scaleDown = 0;
 		i.setSize(l.stride * (tsize + 1), l.height * (tsize + 1));
 		for( n in 0...l.images.length ) {
 			var x = (n % l.stride) * (tsize + 1);
@@ -146,9 +147,18 @@ class Palette {
 			var li = l.images[n];
 			if( li.width == tsize && li.height == tsize )
 				i.draw(li, x, y);
-			else
+			else {
+				var sw = tsize / li.width;
+				var sh = tsize / li.height;
+				if( sw > 1 ) scaleUp++ else if( sw < 1 ) scaleDown++;
+				if( sh > 1 ) scaleUp++ else if( sh < 1 ) scaleDown++;
 				i.drawScaled(li, x, y, tsize, tsize);
+			}
 		}
+
+		if( scaleUp > scaleDown && scaleUp != 0 )
+			J(i.getCanvas()).css("image-rendering", "pixelated");
+
 		var jsel = p.find("canvas.select");
 		var jpreview = p.find(".preview").hide();
 		var ipreview = lvl.Image.fromCanvas(cast jpreview.find("canvas")[0]);

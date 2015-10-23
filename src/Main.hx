@@ -555,9 +555,12 @@ class Main extends Model {
 				'<span class="error">' + v.file + '</span>';
 			else {
 				var id = UID++;
-				var zoom = 2;
-				var html = '<div id="_c${id}" style="width : ${v.size*zoom*(v.width==null?1:v.width)}px; height : ${v.size*zoom*(v.height==null?1:v.height)}px; background : url(\'$path\') -${v.size*v.x*zoom}px -${v.size*v.y*zoom}px; border : 1px solid black;"></div>';
-				html += '<img src="$path" style="display:none" onload="$(\'#_c$id\').css({backgroundSize : (this.width*$zoom)+\'px \' + (this.height*$zoom)+\'px\'}); if( this.parentNode != null ) this.parentNode.removeChild(this)"/>';
+				var width = v.size * (v.width == null?1:v.width);
+				var height = v.size * (v.height == null?1:v.height);
+				var max = width > height ? width : height;
+				var zoom = max < 64 ? 2 : 128 / max;
+				var html = '<div id="_c${id}" style="width : ${Std.int(width * zoom)}px; height : ${Std.int(height * zoom)}px; background : url(\'$path\') -${Std.int(v.size*v.x*zoom)}px -${Std.int(v.size*v.y*zoom)}px; border : 1px solid black;"></div>';
+				html += '<img src="$path" style="display:none" onload="$(\'#_c$id\').css({backgroundSize : ((this.width*$zoom)|0)+\'px \' + ((this.height*$zoom)|0)+\'px\' '+(zoom > 1 ? ", imageRendering : 'pixelated'" : "") +'}); if( this.parentNode != null ) this.parentNode.removeChild(this)"/>';
 				html;
 			}
 		case TTileLayer:
@@ -1528,6 +1531,7 @@ class Main extends Model {
 							maxWidth = i.width;
 							maxHeight = i.height;
 							dialog.find(".tileView").height(i.height).width(i.width);
+							dialog.find(".tilePath").text(file+" (" + i.width + "x" + i.height + ")");
 						};
 						i.src = getAbsPath(file);
 

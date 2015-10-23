@@ -132,9 +132,15 @@ div.modal #col_options.t_custom .custom {
 	background-color : #eee;
 	background-repeat : no-repeat;
 }
+.modal.tileSelect .tilePath {
+	color : #888;
+	font-size : 11px;
+}
 .modal.tileSelect .tileScroll {
 	background-color : #555;
 	position : relative;
+	padding-right : 5px;
+	padding-bottom : 5px;
 	border : 1px solid black;
 	max-width : 640px;
 	max-height : 640px;
