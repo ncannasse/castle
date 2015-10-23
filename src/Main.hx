@@ -1063,6 +1063,7 @@ class Main extends Model {
 			if( c.opt || val == null || val == "" )
 				elts.unshift( { id : "~", ico : null, text : "--- None ---" } );
 			v.append(s);
+			s.change(function(e) e.stopPropagation());
 
 			var props : Dynamic = { data : elts };
 			if( sdat.s.props.displayIcon != null ) {
@@ -1086,7 +1087,6 @@ class Main extends Model {
 				html = getValue();
 				changed();
 				editDone();
-				e.stopPropagation();
 			});
 			s.on("select2:close", function(_) editDone());
 
@@ -2120,6 +2120,34 @@ class Main extends Model {
 			refresh();
 	}
 
+	function cleanLayers() {
+		var count = 0;
+		for( s in data.sheets ) {
+			if( s.props.level == null ) continue;
+			var ts = s.props.level.tileSets;
+			var usedLayers = new Map();
+			for( c in s.columns ) {
+				switch( c.type ) {
+				case TList:
+					var sub = s.getSub(c);
+					if( !sub.hasColumn("data", [TTileLayer]) ) continue;
+					for( obj in sub.getLines() ) {
+						var v : cdb.Types.TileLayer = obj.data;
+						if( v == null || v.file == null ) continue;
+						usedLayers.set(v.file, true);
+					}
+				default:
+				}
+			}
+			for( f in Reflect.fields(ts) )
+				if( !usedLayers.get(f) ) {
+					Reflect.deleteField(ts, f);
+					count++;
+				}
+		}
+		return count;
+	}
+
 	function initMenu() {
 		var menu = Menu.createWindowMenu();
 		var mfile = new MenuItem({ label : "File" });
@@ -2162,17 +2190,22 @@ class Main extends Model {
 			i.click();
 		};
 		mclean.click = function() {
-			if( imageBank == null ) {
-				error("No image bank");
-				return;
+			var lcount = cleanLayers();
+			var icount = 0;
+			if( imageBank != null ) {
+				var count = Reflect.fields(imageBank).length;
+				cleanImages();
+				var count2 = Reflect.fields(imageBank).length;
+				icount = count - count2;
+				if( count2 == 0 ) imageBank = null;
 			}
-			var count = Reflect.fields(imageBank).length;
-			cleanImages();
-			var count2 = Reflect.fields(imageBank).length;
-			error((count - count2) + " unused images removed");
-			if( count2 == 0 ) imageBank = null;
+			error([
+				lcount + " tileset data removed",
+				icount + " unused images removed"
+			].join("\n"));
 			refresh();
-			saveImages();
+			if( lcount > 0 ) save();
+			if( icount > 0 ) saveImages();
 		};
 		mexit.click = function() Sys.exit(0);
 		mabout.click = function() {
