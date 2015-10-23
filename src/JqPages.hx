@@ -162,27 +162,27 @@ class JqPage extends cdb.jq.Server {
 			var document = js.Browser.document;
 
 			function onMove(e:Dynamic) {
-				result( { dx : e.webkitMovementX, dy : e.webkitMovementY } );
+				result( { dx : e.movementX, dy : e.movementY } );
 			}
 
 			function onUp() {
-				untyped document.webkitExitPointerLock();
+				document.exitPointerLock();
 			}
 
 			function onChange() {
-				if( untyped document.webkitPointerLockElement == e ) {
+				if( document.pointerLockElement == e ) {
 					document.addEventListener("mousemove", onMove,false);
 					document.addEventListener("mouseup", onUp, false);
 				} else {
 					result( { dx : 0, dy : 0, done : true } );
-					document.removeEventListener("webkitpointerlockchange", onChange, false);
+					document.removeEventListener("pointerlockchange", onChange, false);
 					document.removeEventListener("mousemove", onMove, false);
 					document.removeEventListener("mouseup", onUp, false);
 				}
 			}
 
-			document.addEventListener("webkitpointerlockchange",onChange,false);
-			untyped e.webkitRequestPointerLock();
+			document.addEventListener("pointerlockchange",onChange,false);
+			e.requestPointerLock();
 
 		default:
 			throw "Don't know how to handle " + name+"(" + args.join(",") + ")";
