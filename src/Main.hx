@@ -1133,12 +1133,12 @@ class Main extends Model {
 			var id = Std.random(0x1);
 			v.html('<div class="modal" onclick="$(\'#_c${id}\').spectrum(\'toggle\')"></div><input type="text" id="_c${id}"/>');
 			var spect : Dynamic = J('#_c$id');
-			spect.spectrum( { color : "#" + StringTools.hex(val, 6), showInput: true, showButtons: false, change : function(vcol:Dynamic) {
-				spect.spectrum('hide');
+			spect.spectrum( { color : "#" + StringTools.hex(val, 6), showInput: true, showButtons: false, change : function() spect.spectrum('hide'), hide : function(vcol:Dynamic) {
 				var color = Std.parseInt("0x" + vcol.toHex());
 				val = color;
 				Reflect.setField(obj, c.name, color);
 				v.html(getValue());
+				save();
 			}}).spectrum("show");
 		case TList, TLayer(_), TFile, TTilePos:
 			throw "assert2";

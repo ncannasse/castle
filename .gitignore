@@ -21,3 +21,5 @@
 /bin/*.tgz
 /www/file
 /bin/style.min.css
+
+/bin/icudtl.dat
