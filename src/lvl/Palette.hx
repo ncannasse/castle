@@ -260,14 +260,6 @@ class Palette {
 
 		jsel.mousemove(function(e) {
 
-			@:privateAccess {
-				// handle cascading
-				level.mousePos.x = Std.int(e.pageX);
-				level.mousePos.y = Std.int(e.pageY);
-				level.updateCursorPos();
-				if( level.selection == null ) level.cursor.hide();
-			}
-
 			var o = jsel.offset();
 			var x = Std.int((e.pageX - o.left) / (level.tileSize * zoom + 1));
 			var y = Std.int((e.pageY - o.top) / (level.tileSize * zoom + 1));
@@ -313,10 +305,25 @@ class Palette {
 			jpreview.hide();
 		});
 
-		jsel.mouseup(function(e) {
+		p.mouseleave(function(_) {
 			start.down = false;
-			@:privateAccess level.mouseCapture = null;
 		});
+
+		p.mousemove(function(e) {
+			@:privateAccess {
+				// handle cascading
+				level.mousePos.x = Std.int(e.pageX);
+				level.mousePos.y = Std.int(e.pageY);
+				level.updateCursorPos();
+				if( level.selection == null ) level.cursor.hide();
+			}
+		});
+
+		p.mouseup(function(_) {
+			start.down = false;
+			@:privateAccess level.content.mouseup();
+		});
+
 	}
 
 	public function updateSelect() {
