@@ -909,6 +909,7 @@ Level.prototype = {
 			var f = this.getFileTime(w.path);
 			if(f != w.time && f != 0.) {
 				w.time = f;
+				js_node_webkit_App.clearCache();
 				var _g2 = 0;
 				var _g3 = w.callb;
 				while(_g2 < _g3.length) {
@@ -4633,6 +4634,9 @@ var Main = function() {
 	Model.call(this);
 	this.window = js_node_webkit_Window.get();
 	this.window.on("resize",$bind(this,this.onResize));
+	this.window.on("focus",function(_) {
+		js_node_webkit_App.clearCache();
+	});
 	this.initMenu();
 	this.levels = [];
 	this.mousePos = { x : 0, y : 0};
@@ -5741,9 +5745,9 @@ Main.prototype = $extend(Model.prototype,{
 							}
 						}
 						if(val2 != val && val2 != null) {
-							var this2 = _g.smap.get(sheet.name).index;
+							var this11 = _g.smap.get(sheet.name).index;
 							var key1 = val2;
-							prevTarget = this2.get(key1);
+							prevTarget = this11.get(key1);
 							if(c.type == cdb_ColumnType.TId && val != null && (prevObj == null || prevObj.obj == obj)) {
 								var m = new haxe_ds_StringMap();
 								var key2 = val;
@@ -5760,14 +5764,14 @@ Main.prototype = $extend(Model.prototype,{
 					editDone();
 					if(c.type == cdb_ColumnType.TId && prevObj != null && old1 != val && (prevObj.obj == obj && (function($this) {
 						var $r;
-						var this3 = _g.smap.get(sheet.name).index;
-						$r = this3.get(old1);
+						var this12 = _g.smap.get(sheet.name).index;
+						$r = this12.get(old1);
 						return $r;
 					}(this)) != null || prevTarget != null && ((function($this) {
 						var $r;
-						var this4 = _g.smap.get(sheet.name).index;
+						var this13 = _g.smap.get(sheet.name).index;
 						var key3 = val;
-						$r = this4.get(key3);
+						$r = this13.get(key3);
 						return $r;
 					}(this))).obj != prevTarget.obj)) {
 						_g.refresh();
@@ -11829,6 +11833,7 @@ js_html_compat_Uint8Array._subarray = function(start,end) {
 var js_node_Fs = require("fs");
 var js_node_Net = require("net");
 var js_node_buffer_Buffer = require("buffer").Buffer;
+var js_node_webkit_App = require("nw.gui").App;
 var js_node_webkit_Clipboard = require("nw.gui").Clipboard;
 var js_node_webkit_Menu = require("nw.gui").Menu;
 var js_node_webkit_MenuItem = require("nw.gui").MenuItem;

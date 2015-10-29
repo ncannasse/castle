@@ -61,6 +61,7 @@ class Main extends Model {
 		super();
 		window = js.node.webkit.Window.get();
 		window.on("resize", onResize);
+		window.on("focus", function(_) js.node.webkit.App.clearCache());
 		initMenu();
 		levels = [];
 		mousePos = { x : 0, y : 0 };

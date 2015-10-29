@@ -302,6 +302,7 @@ class Level {
 			var f = getFileTime(w.path);
 			if( f != w.time && f != 0. ) {
 				w.time = f;
+				js.node.webkit.App.clearCache();
 				for( c in w.callb )
 					c();
 			}
