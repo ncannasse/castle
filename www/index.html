@@ -77,10 +77,10 @@
 					<b>CastleDB</b> is used to input structured static data.
 				</p>
 				<p>
-					Everything that is usually stored in <b>XML</b> or <b>JSON</b> files is subject to be stored and modified with CastleDB instead.
+					Everything that is usually stored in <b>XML</b> or <b>JSON</b> files can be stored and modified with CastleDB instead.
 				</p>
 				<p>
-					 For instance in a game you would like to have all of your items and monsters stored in it, including their names, description, logic effects, etc.
+					 For instance, when you are making a game, you can have all of your items and monsters including their names, description, logic effects, etc. stored in <b>CastleDB</b>. 
 				</p>
 			</div>
 
@@ -90,10 +90,10 @@
 					<b>CastleDB</b> looks like any spreadsheet editor, except that each sheet has a <em>data model</em>.
 				</p>
 				<p>
-					The model allows the editor to validate and ease user input.
+					The model allows the editor to validate data and eases user input.
 				</p>
 				<p>
-					For example a given column can reference another sheet row, so you will be able to select it directly.
+					For example, when a given column references another sheet row, you will be able to select it directly.
 				</p>
 			</div>
 
@@ -103,13 +103,14 @@
 			<div class="span6">
 				<h3>Storage</h3>
 				<p>
-					<b>CastleDB</b> store both its data model and rows data into an easily readable <b>JSON</b> file.
+					<b>CastleDB</b> stores both its data model and the data contained in the rows into an easily readable <b>JSON</b> file.
 				</p>
 				<p>
 					It can then easily be loaded and used by any program.
 				</p>
 				<p>
-					 For instance in a game you would like to have all of your items and monsters stored in it, including their names, description, logic effects, etc.
+					!!the sentence is doubled!! For instance in a game you would like to have all of your items and monsters stored in it, including their names, description, logic effects, etc.
+					consider: It makes the handling of item and monster data that you are using in you video game much easier.
 				</p>
 			</div>
 
@@ -119,10 +120,10 @@
 					<b>CastleDB</b> allows efficient collaboration on data editing.
 				</p>
 				<p>
-					It uses the JSON format with newlines to store its data, which allows RCS such as GIT or SVN to diff/merge the data files.
+					It uses the JSON format with newlines to store its data, which in turn allows RCS such as GIT or SVN to diff/merge the data files.
 				</p>
 				<p>
-					Unlike online spreadsheet editors, changes are made locally, which allows local experiments before either commiting or reverting.
+					Unlike online spreadsheet editors, changes are made locally. This allows local experiments before either commiting or reverting.
 				</p>
 			</div>
 
@@ -143,11 +144,11 @@
 			<div class="img"><img src="img/json.png"/></div>
 
 			<p>
-				A database consists in several <em>sheets</em>. Each sheet is a collection of structured object (similar to a TABLE in a traditional database).
+				A database consists of several <em>sheets</em>. Each sheet is a collection of structured objects (similar to a TABLE in a traditional database).
 			</p>
 
 			<p>
-				Each sheet consists in several named <em>columns</em>. The columns will represent the stored data object fields.
+				Each sheet contains several named <em>columns</em>. The columns represent the stored data object fields.
 			</p>
 
 			<p>
@@ -155,7 +156,7 @@
 			</p>
 
 			<p>
-				CastleDB handles column renaming, deleting, and conversion between column types.
+				CastleDB handles column renaming, deleting and conversion between column types.
 			</p>
 
 		</div>
@@ -172,7 +173,7 @@
 
 			<dt>Unique Identifier</dt>
 			<dd>
-				This is an unique identifier for the current row. It will allows to <em>reference</em> this row from other sheets or columns. Unique identifiers must be valid code identifiers <code>[A-Za-z_][A-Za-z0_9_]*</code>.
+				This is an unique identifier for the current row. It allows <em>referencing</em> this row from other sheets or columns. Unique identifiers must be valid code identifiers <code>[A-Za-z_][A-Za-z0_9_]*</code>.
 			</dd>
 
 			<dt>Text</dt>
@@ -182,7 +183,7 @@
 
 			<dt>Boolean</dt>
 			<dd>
-				A checkbox will allow to specify if the column is <code>true</code> or <code>false</code>.
+				A checkbox can be used to specify if the column is <code>true</code> or <code>false</code>.
 			</dd>
 
 			<dt>Integer</dt>
@@ -197,17 +198,17 @@
 
 			<dt>Color</dt>
 			<dd>
-				A numerical value that represents a RGB color.
+				A numerical value that represents an RGB color.
 			</dd>
 
 			<dt>Enumeration</dt>
 			<dd>
-				An exclusive choice between a number of given custom values. For instance <code>Yes,No,Cancel,Error</code>
+				An exclusive choice between a number of a given custom values. For example: <code>Yes,No,Cancel,Error</code>
 			</dd>
 
 			<dt>Flags</dt>
 			<dd>
-				Several optional choices between a list of given custom values. For instance <code>hasHat,hasShirt,hasShoes</code>.
+				Several optional choices between a list of given custom values. For example: <code>hasHat,hasShirt,hasShoes</code>.
 			</dd>
 
 			<dt>Reference</dt>
@@ -222,7 +223,7 @@
 
 			<dt>Image</dt>
 			<dd>
-				An image to be displayed and stored in database.
+				An image to be displayed and stored in the database.
 			</dd>
 
 			<dt>Tile</dt>
@@ -308,7 +309,7 @@
 			</tr>
 			<tr>
 				<td>Reference</td>
-				<td>the string of the target unique identifier</td>
+				<td>the string of the target's unique identifier</td>
 				<td><code>""</code> (missing identifier)</td>
 			</tr>
 			<tr>
@@ -348,7 +349,7 @@
 			</tr>
 			<tr>
 				<td>Tile Layer</td>
-				<td>either same as DataLayer or an array of objects <a href="#level">learn more</a></td>
+				<td>either the same as DataLayer or an array of objects <a href="#level">learn more</a></td>
 				<td><code>""</code> (empty layer)</td>
 			</tr>
 			</table>
@@ -356,7 +357,7 @@
 			<h3>Optional Column</h3>
 
 			<p>
-				If you uncheck the <b>Required</b> checkbox when creating/modifying a column, default data will be <code>null</code>. It will also remove the field from the stored object in case no data is present.
+				If you uncheck the <b>Required</b> checkbox when creating/modifying a column, the default data will be <code>null</code>. It will also remove the field from the stored object in case no data is present.
 			</p>
 
 		</div>
@@ -382,13 +383,13 @@
 		</p>
 
 		<p>
-			Everytime you make a change, the database file is automatically saved.
+			Everytime you make a change the database file is automatically saved.
 		</p>
 
 		<h3>Keys</h3>
 
 		<p>
-			Here's the most used keys for CastleDB:
+			Here are the most frequently used keys for CastleDB:
 		</p>
 
 		<ul>
@@ -407,7 +408,7 @@
 		</p>
 		<ul>
 			<li>Add a new sheet</li>
-			<li>Move the sheet to reorder them</li>
+			<li>Move the sheets to reorder them</li>
 			<li>Rename and Delete the sheet</li>
 			<li>Access sheet options such as <a href="#index">Index</a> and <a href="#group">Groups</a></li>
 		</ul>
@@ -418,19 +419,19 @@
 			Right click on the column title in order to access to the following options:
 		</p>
 		<ul>
-			<li>Edit the column, which allows to rename it, change its type and required flag.</li>
-			<li>Move the column to reorder them</li>
+			<li>Edit the column allowing you to rename it, change its type and its required flag.</li>
+			<li>Move the columns to reorder them</li>
 			<li>Add a new column</li>
 			<li>Delete the column or set it as <a href="#disp">Display Column or Icon</a></li>
 			<li>Convert the column content if some convert functions are available for this type.</li>
 		</ul>
 
 		<p>
-			CastleDB offers automatic conversion between column types, which is used when changing the column type or copy/pasting data between columns/sheets.
+			CastleDB offers automatic conversion between column types.  This is useful when changing the column type or copy/pasting data between columns/sheets.
 		</p>
 
 		<p>
-			If no convertion is available, you will get an error when changing the column type.
+			If no conversion is available, you will get an error when changing the column type.
 		</p>
 
 		<h3>Managing rows</h3>
@@ -450,15 +451,15 @@
 		<h3>Selection</h3>
 
 		<p>
-			You can select one row by clicking on its index, then select several of them by clicking while olding shift on another row index.
+			You can select one row by clicking on its index, then select several of them by clicking while holding shift and clicking on other row indices.
 		</p>
 
 		<p>
-			You can select a range of cells by first selecting a cell then clicking while holding shift on another cell.
+			You can select a range of cells by first selecting a cell then holding shift while clicking on another cell.
 		</p>
 
 		<p>
-			You can Copy/Paste using <code>Ctrl+C</code>, <code>Ctrl+V</code> and <code>Ctrl+X</code> between columns and rows.
+			You can copy/paste using <code>Ctrl+C</code>, <code>Ctrl+V</code> and <code>Ctrl+X</code> between columns and rows.
 		</p>
 
 		</div>
@@ -483,11 +484,11 @@
 			</p>
 
 			<p>
-				This can be useful for instance to display the real name of an item instead of its unique identifier.
+				This can be useful to display the real name of an item instead of its unique identifier.
 			</p>
 
 			<p>
-				The stored data and that data input is still made using the unique identifier, this only affects how things are displayed in CastleDB editor.
+				The stored data and that data input is still made using the unique identifier, this only affects how things are displayed in the CastleDB editor.
 			</p>
 
 
@@ -501,7 +502,7 @@
 			<h3>Index</h3>
 
 			<p>
-				When you open CastleDB, each row is referenced by an 0-based index.
+				When you open CastleDB, each row is referenced by a 0-based index.
 			</p>
 
 			<p>
@@ -527,11 +528,11 @@
 			<h3>Add Group</h3>
 
 			<p>
-				If you right-click on the sheet name and check the <code>Add Group</code>, it will create for each row a <code>group</code> field that will be an integer index.
+				If you right-click on the sheet name and check the <code>Add Group</code>, it will create a <code>group</code> field that will be an integer index for each row .
 			</p>
 
 			<p>
-				The index starts at 0, then each time a new separator with a title defined is reached, it will increment by one (unless the first row separator has a title).
+				The index starts at 0, then each time a new separator with a defined title is reached, it will increment by one (unless the first row separator has a title).
 			</p>
 
 			<p>
@@ -555,15 +556,15 @@
 			<h3>List Column Type</h3>
 
 			<p>
-				When you set the type of a column as <code>List</code> this will create a new hidden sheet.
+				When you set the type of a column as <code>List</code> a new hidden sheet will be created.
 			</p>
 
 			<p>
-				You can then add columns to this sub-sheet and modify it as you would for another sheet.
+				You can then add columns to this sub-sheet and modify it as you would any another sheet.
 			</p>
 
 			<p>
-				However the difference is that the data of this sheet is split between your original sheet rows.
+				However, the difference is that the data of this sheet is split between your original sheet rows.
 			</p>
 
 			<p>
@@ -582,18 +583,18 @@
 			</p>
 
 			<p>
-				As a consequence it means that the same image can be used multiple times without increasing overall file size.
+				As a consequence, the same image can be used multiple times without increasing overall file size.
 			</p>
 
 			<p>
-				If you do a lot of images changes, you can use the <code>Clean Images</code> command in the application File menu. This will remove from the <code>.img</code> file all images that are no longer used.
+				If you do a lot of images changes, you can use the <code>Clean Images</code> command in the application file menu. This will remove all images that are no longer used from the <code>.img</code> file.
 			</p>
 
 			<a class="anch" name="custom"></a>
 			<h3>Custom Types</h3>
 
 			<p>
-				Custom types are a structured type declared as enums, consisting in several <em>constructors</em>.
+				Custom types are a structured types declared as enums, consisting of several <em>constructors</em>.
 			</p>
 
 			<p>
@@ -637,7 +638,7 @@ Or(Random(0.5),Fixed)</pre>
 			</p>
 
 			<p>
-				Custom types are stored as a mixed array content. The first element of the Array is the index in the constructors list, followed by the eventual parameters for this constructor.
+				Custom types are stored as a mixed array content. The first element of the Array is the index in the constructors list followed by the eventual parameters for this constructor.
 			</p>
 
 			<table class="table table-striped">
@@ -692,14 +693,14 @@ Or(Random(0.5),Fixed)</pre>
 			</p>
 
 			<p>
-				<b>Important:</b> the difference between using CastleDB to create your levels and an external editor is that you can assign images/tiles to each of your data, then place them using the CDB map editor.
-				This allows you to have an unified framework for creating the whole content of your game.
+				<b>Important:</b> The difference between using CastleDB to create your levels and an external editor is that you can assign images/tiles to each of your data, then place them using the CDB map editor.
+				This allows you to have a unified framework for creating the whole content of your game.
 			</p>
 
 			<h3>Create Level</h3>
 
 			<p>
-				When creating a new sheet, check the <code>Create Level</code> option in order to create a level sheet. This will automatically create the necessary columns that allows you to create and edit tile layers.
+				When creating a new sheet, check the <code>Create Level</code> option in order to create a level sheet. This will automatically create the necessary columns that let you to create and edit tile layers.
 			</p>
 
 			<h3>Layers</h3>
@@ -713,18 +714,18 @@ Or(Random(0.5),Fixed)</pre>
 			<dl class="dl-horizontal big">
 				<dt>Tile Layer</dt>
 				<dd>
-					These layers can be created as soon as you create a new level. Each layer have a name and can be assigned to a tileset. A tile layer can be displayed using three different modes : <em>Tiles, Ground, Objects</em> <a href="#tile-mode">learn more</a>
+					These layers can be created as soon as you create a new level. Each layer has a name and can be assigned to a tileset. A tile layer can be displayed using three different modes : <em>Tiles, Ground, Objects</em> <a href="#tile-mode">learn more</a>
 				</dd>
 
 				<dt>List Layer</dt>
 				<dd>
-					If you add a <a href="#list">List</a> column to your level sheet which has <code>x</code> and <code>y</code> numerical properties, this will create a list layer which you can visually edit.
+					If you add a <a href="#list">List</a> column to your level sheet that has <code>x</code> and <code>y</code> numerical properties a list layer which you can visually edit will be created.
 					You can add extra properties/columns to the List that you will be able to input directly into the editor. In particular, if you add a <code>Reference</code> to another sheet which has a <code>Tile</code> or <code>Image</code>, you will be able to place these directly into your map.
 				</dd>
 
 				<dt>Index Layers</dt>
 				<dd>
-					If you want to to paint things and have them stored in a compact array instead as of a list of position, add a column of type <code>Layer</code> to your level sheet. As a restriction, you will not be able to add custom per-cell properties. If you are not on the first layer, the first element of your layer (which has <code>0</code> index) will not be displayed and will act as a transparent element.
+					If you want to to paint things and have them stored in a compact array instead as of a list of positions, add a column of type <code>Layer</code> to your level sheet. As a restriction, you will not be able to add custom per-cell properties. If you are not on the first layer, the first element of your layer (which has <code>0</code> index) will not be displayed and will act as a transparent element.
 				</dd>
 
 				<dt>Zone Layer</dt>
@@ -734,7 +735,7 @@ Or(Random(0.5),Fixed)</pre>
 			</dl>
 
 			<p>
-				For instance, in the sample level, our layers consists of :
+				In the sample level, our layers consists of :
 			</p>
 
 			<ul class="noicon">
@@ -751,25 +752,25 @@ Or(Random(0.5),Fixed)</pre>
 			</p>
 
 			<ul>
-				<li>if the reference has a field of type <code>Image</code>, it will use the image for display</li>
-				<li>if the reference has a field of type <code>Color</code>, it will use the color for display</li>
-				<li>if there is no information available, you will be able to customize the layer global color</li>
+				<li>If the reference has a field of type <code>Image</code>, it will use the image for display</li>
+				<li>If the reference has a field of type <code>Color</code>, it will use the color for display</li>
+				<li>If there is no information available, you will be able to customize the layer global color</li>
 			</ul>
 
 			<h4>Grid and Precise coords</h4>
 
 			<p>
-				Index layers are always grid-aligned. Other layers can have more precise position if you use <code>Float</code> instead of <code>Int</code> for their positions. In that case it's still possible to activate the <em>Lock Grid</em> option.
+				Index layers are always grid-aligned. Other layers can have more precise positions if you use <code>Float</code> instead of <code>Int</code> for their positions. In that case it's still be possible to activate the <em>Lock Grid</em> option.
 			</p>
 
 			<p>
-				By default the grid size is set to <code>16</code> pixels. This can be modified in the level options.
+				By default, the grid size is set to <code>16</code> pixels. This can be modified in the level options.
 			</p>
 
 			<h4>Layer Compression</h4>
 
 			<p>
-				By default, layer data are stored uncompressed. When creating a lot of tile/index levels this can result in quite big files.
+				By default, layer data is stored uncompressed. If you are creating a lot of tile/index levels this can result in very big files.
 				You can enable/disable the compression of these layer data by doing <code>File / Enable Compression</code>.
 				This will compress using the <a href="https://github.com/Cyan4973/lz4">LZ4</a> algorithm which is easy and fast to decompress.
 			</p>
@@ -783,13 +784,13 @@ Or(Random(0.5),Fixed)</pre>
 			<div class="img"><img src="img/commonLayerProps.png"/></div>
 
 			<ul class="noicon">
-				<li><code>Visible</code> toggle visibility. Please note that this is only used for edition, it is not stored as part of the CDB data.</li>
+				<li><code>Visible</code> toggle visibility. Please note that this is only used for editing, it is not stored as part of the CDB data.</li>
 				<li><code>Lock</code> allows to lock the layer, making it impossible to modify it until it's unlocked.</li>
 				<li><code>Alpha</code> changes the alpha value of the layer. Unlike Visible, it is stored in CDB data.</li>
 			</ul>
 
 			<p>
-				Additionaly, you can right click on a layer to get the following options:
+				Additionaly, you can right-click on a layer to get the following options:
 			</p>
 
 			<div class="img"><img src="img/layerDropDown.png"/></div>
@@ -798,14 +799,14 @@ Or(Random(0.5),Fixed)</pre>
 				<li><code>Show Only</code> will hide all layers except this one.</li>
 				<li><code>Show All</code> restores all layers to visible.</li>
 				<li><code>Rename</code> changes the layer name (tile layer only, other layers names can be changed by renaming the corresponding column)</li>
-				<li><code>Clear</code> clear the layer data.</li>
+				<li><code>Clear</code> clears the layer data.</li>
 				<li><code>Delete</code> removes the layer clear (tile layer only, other layers can be removed by deleting the corresponding column)</li>
 			</ul>
 
 			<h3>Tile Layers</h3>
 
 			<p>
-				A tile layer consists in an array of tiles from a single tileset.
+				A tile layer consists of an array of tiles from a single tileset.
 			</p>
 
 			<p>
@@ -815,9 +816,9 @@ Or(Random(0.5),Fixed)</pre>
 			<div class="img"><img src="img/tileLayerProps.png"/></div>
 
 			<ul class="noicon">
-				<li><code>Mode</code> a tile layer can work in three different mode. The default mode is <em>Tiles</em>, other modes are detailed below</li>
+				<li><code>Mode</code> a tile layer can work in three different modes. The default mode is <em>Tiles</em>, other modes are detailed below</li>
 				<li><code>File</code> allows you to change the tileset for this layer</li>
-				<li><code>Size</code> by default CDB uses 16x16 tiles. You can change it there on a per layer basis. Please note that you should also change your level tile size by using the <code>Options</code> menu.</li>
+				<li><code>Size</code> by default CDB uses 16x16 tiles. You can change it on a per layer basis. Please note that you should also change your level tile size by using the <code>Options</code> menu.</li>
 			</ul>
 
 			<h4>Objects Mode</h4>
@@ -827,33 +828,33 @@ Or(Random(0.5),Fixed)</pre>
 			</p>
 
 			<p>
-				While in Tile mode, the layer data consists of an array of width x height tiles, the object mode is a list of X,Y,Tile.
+				While in Tile Mode, the layer data consists of an array of width x height tiles, the object mode is a list of X,Y,Tile.
 			</p>
 
 			<div class="img"><img src="img/tileObjects.png"/></div>
 
 			<p>
-				In order to use object mode, you must first group one or several tiles into an <code>Object</code> by using the tile palette. Select the <code>Object</code> mode and you will be able to group several tiles by using the (+) button or pressing <code>O</code>
+				In order to use Object Mode, you must first group one or several tiles into an <code>Object</code> by using the tile palette. Select the <code>Object</code> mode and you will be able to group several tiles by using the (+) button or pressing <code>O</code>
 			</p>
 
 			<p>
-				You can now put your objects into your tile layer. Objects are sorted accordingly to their lower Y, so it means that unlike in Tile mode you can have several objects that masks each other.
+				You can now put your objects into your Tile Layer. Objects are sorted accordingly to their lower Y, so it means that unlike in Tile Mode you can have several objects that mask each other.
 			</p>
 
 			<p>
-				Objects positions are in pixels, not in the grid. You can still align the objects to the grid by using the <code>G</code> key.
+				Object positions are in pixels, not in the grid. You can still align the objects to the grid by using the <code>G</code> key.
 			</p>
 
 			<p>
-				You can also flip and rotate the tiles that are put into the object layer by using <code>F</code> and <code>D</code> keys.
+				You can also flip and rotate the tiles that are put into the Object Layer by using <code>F</code> and <code>D</code> keys.
 			</p>
 
 			<p>
-				The encoding of object layer is a list of base64 encoded 16-bits values as follows:
+				The encoding of Object Layer is a list of base64 encoded 16-bits values as follows:
 			</p>
 
 			<ul class="noicon">
-				<li><code>0xFFFF</code> : marks this layer as object layer, followed by the following information, for each object :</li>
+				<li><code>0xFFFF</code> : marks this layer as Object Layer, followed by the below information, for each object :</li>
 				<li><code>X</code> the X position of the object in the level in pixels</li>
 				<li><code>Y</code> the Y position of the object in the level in pixels</li>
 				<li><code>ID</code> the object id, which is its position in the tileset</li>
@@ -874,7 +875,7 @@ Or(Random(0.5),Fixed)</pre>
 			</p>
 
 			<p>
-				<em>At the moment, documentation on how to setup grounds and borders is not yet available.</em>
+				<em>At the moment, documentation on how to setup grounds and borders is not available yet.</em>
 			</p>
 
 			<h3>Per-tile Properties</h3>
@@ -890,26 +891,26 @@ Or(Random(0.5),Fixed)</pre>
 			<div class="img"><img src="img/tileProps.png"/></div>
 
 			<p>
-				For instance in the sample, we have created a <code>collide</code> column which references our <code>collide</code> sheet, and allows us to
+				In the sample, we have created a <code>collide</code> column which references our <code>collide</code> sheet and allows us to
 				specify a per-tile collision.
 			</p>
 
 			<p>
 				In order to edit the per-tile properties, select the property name in the drop down menu of the tile palette.
-				You will be able to set the property value for each tile. Please note that these informations are shared between levels,
-				so modifying a tile property for a level will also modify it for other levels as well.
+				You will be able to set the property value for each tile. Please note that this information is shared between levels,
+				so modifying a tile property for a level will also modify it for other levels.
 			</p>
 
 			<h3>List layers</h3>
 
 			<p>
-				List layers allows you to place in your level some instances referencing another sheet.
+				List layers allows you to place some instances referencing another sheet in your level.
 			</p>
 
 			<div class="img"><img src="img/tileEdit.png"/></div>
 
 			<p>
-				In our example level we have an <code>npcs</code> column which is a <code>List</code> containing <code>kind</code> <code>x</code> <code>y</code> and <code>item</code> values.
+				In our example level, we have an <code>npcs</code> column which is a <code>List</code> containing <code>kind</code> <code>x</code> <code>y</code> and <code>item</code> values.
 			</p>
 
 			<p>
@@ -977,7 +978,7 @@ Or(Random(0.5),Fixed)</pre>
 			</p>
 
 			<p>
-				The powerful Haxe Macros will allow to directly generate all the types declaration from the CastleDB Data Model.
+				The powerful Haxe Macros will allow direct generation of all the type declarations from the CastleDB Data Model.
 			</p>
 
 			<p>
@@ -993,7 +994,7 @@ Or(Random(0.5),Fixed)</pre>
 			</p>
 
 			<p>
-				You can still initialize at runtime your CDB data, then access it using the accessors:
+				You can still initialize your CDB data at runtime, then access it using the accessors:
 			</p>
 
 			<pre>
@@ -1010,7 +1011,7 @@ trace(d.loot.name); <span class="cmt">// automatically fetch the Refenced object
 			<h3>Generated types</h3>
 
 			<p>
-				The main type of the module is generated with the <code>load</code> static field and for each declared sheet a static field corresponding to the sheet name.
+				The main type of the module is generated with the <code>load</code> static field and for each declared sheet a static field corresponding to the sheet name will be created.
 			</p>
 
 
@@ -1032,7 +1033,7 @@ trace(d.loot.name); <span class="cmt">// automatically fetch the Refenced object
 			</ul>
 
 			<p>
-				The <code>MySheetKind</code> type is an abstract value so the actual runtime value is still the identifier string, however it allows for strictly typing the identifiers. You can still use <code>.toString()</code> to access the original string.
+				The <code>MySheetKind</code> type is an abstract value so the actual runtime value is still the identifier string. However, it allows for strictly typing the identifiers. You can still use <code>.toString()</code> to access the original string.
 			</p>
 
 			<h3>Column type mapping</h3>
@@ -1094,7 +1095,7 @@ trace(d.loot.name); <span class="cmt">// automatically fetch the Refenced object
 
 				<dt>Image</dt>
 				<dd>
-					<code>String</code> : the MD5 key only, no image loading is supported atm.
+					<code>String</code> : the MD5 key only, no image loading is supported at the moment.
 				</dd>
 
 				<dt>Tile</dt>
@@ -1109,7 +1110,7 @@ trace(d.loot.name); <span class="cmt">// automatically fetch the Refenced object
 
 				<dt>Custom</dt>
 				<dd>
-					<code>SheetName_ColumnName</code> : values are converted on-the-fly to the enum created as it's been declared.
+					<code>SheetName_ColumnName</code> : values are converted on-the-fly to the enum created as it has been declared.
 				</dd>
 
 				<dt>Dynamic</dt>
@@ -1125,7 +1126,7 @@ trace(d.loot.name); <span class="cmt">// automatically fetch the Refenced object
 				<dt>Tile Layer</dt>
 				<dd>
 					<code>cbd.Types.TileLayer</code> : you can decode the layer by using the <code>t.data.decode()</code> function. It will automatically decompress data and will return an Array of 16-bits values.
-					If the tile layer is in tile/ground mode, this gives you  width x height values. If it's in object mode, see the object layer encoding section.
+					If the tile layer is in tile/ground mode, this gives you  width x height values. If it is in object mode, see the object layer encoding section.
 				</dd>
 
 			</dl>
@@ -1141,7 +1142,7 @@ trace(d.loot.name); <span class="cmt">// automatically fetch the Refenced object
 			</p>
 
 			<p>
-				<b style="color:#A00">Warning</b> : castle library require either Haxe 3.2+ or a recent Haxe build to work. You can download it from <a href="http://hxbuilds.s3-website-us-east-1.amazonaws.com/builds/haxe/">this page</a>
+				<b style="color:#A00">Warning</b> : castle library requires either Haxe 3.2+ or a recent Haxe build to work. You can download it from <a href="http://hxbuilds.s3-website-us-east-1.amazonaws.com/builds/haxe/">this page</a>
 			</p>
 
 		</div>
