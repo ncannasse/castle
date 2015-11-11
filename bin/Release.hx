@@ -6,13 +6,21 @@ class Release {
 			"icon.png",
 			"index.html",
 			"castle.js",
-			"jquery-latest.min.js",
-			"style.css"
+			"style.css",
+			"dock",
+			"libs",
 		];
 		
-		var files = [for( f in files ) {
+		var zfiles = [];
+		
+		function add(f:String) {
+			if( sys.FileSystem.isDirectory(f) ) {
+				for( file in sys.FileSystem.readDirectory(f) )
+					add(f+"/"+file);
+				return;
+			}
 			var data = sys.io.File.getBytes(f);
-			{
+			zfiles.push({
 				fileTime : Date.now(),
 				fileSize : data.length,
 				fileName : f,
@@ -21,13 +29,16 @@ class Release {
 				compressed : false,
 				crc32 : null,
 				extraFields : null,
-			}
-		} ];
+			});
+		}
+		for( f in files )
+			add(f);			
 		var o = new haxe.io.BytesOutput();
-		new haxe.zip.Writer(o).write(Lambda.list(files));
+		new haxe.zip.Writer(o).write(Lambda.list(zfiles));
 		var bytes = o.getBytes();
 		sys.io.File.saveBytes("package.nw", bytes);
 		
+		/*
 		var platforms = [
 			"win",
 			"osx", // When unzipping with OSX, the rights will be correctly set on the .app
@@ -68,7 +79,7 @@ class Release {
 			new haxe.zip.Writer(o).write(z);
 			o.close();
 			Sys.println('$out written');
-		}
+		}*/
 	}
 
 }
