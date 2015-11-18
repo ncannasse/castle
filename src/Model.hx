@@ -20,6 +20,7 @@ typedef Prefs = {
 	windowPos : { x : Int, y : Int, w : Int, h : Int, max : Bool },
 	curFile : String,
 	curSheet : Int,
+	recent : Array<String>,
 }
 
 typedef Index = { id : String, disp : String, ico : cdb.Types.TilePos, obj : Dynamic }
@@ -48,6 +49,7 @@ class Model {
 			windowPos : { x : 50, y : 50, w : 800, h : 600, max : false },
 			curFile : null,
 			curSheet : 0,
+			recent : [],
 		};
 		existsCache = new Map();
 		loadPrefs();
@@ -486,6 +488,7 @@ class Model {
 	function loadPrefs() {
 		try {
 			prefs = haxe.Unserializer.run(js.Browser.getLocalStorage().getItem("prefs"));
+			if( prefs.recent == null ) prefs.recent = [];
 		} catch( e : Dynamic ) {
 		}
 	}

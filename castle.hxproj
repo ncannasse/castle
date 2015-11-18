@@ -24,7 +24,7 @@
     <option noInlineOnDebug="False" />
     <option mainClass="Main" />
     <option enabledebug="False" />
-    <option additional="-lib nodejs&#xA;-lib format&#xA;-D lz4js" />
+    <option additional="-lib hxnodejs&#xA;-lib format&#xA;-D lz4js" />
   </build>
   <!-- haxelib libraries -->
   <haxelib>

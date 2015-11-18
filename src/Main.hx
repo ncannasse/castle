@@ -2179,6 +2179,7 @@ class Main extends Model {
 		var mfiles = new Menu();
 		var mnew = new MenuItem( { label : "New" } );
 		var mopen = new MenuItem( { label : "Open..." } );
+		var mrecent = new MenuItem( { label : "Recent Files" } );
 		var msave = new MenuItem( { label : "Save As..." } );
 		var mclean = new MenuItem( { label : "Clean Images" } );
 		mcompress = new MenuItem( { label : "Enable Compression", type : MenuItemType.checkbox } );
@@ -2236,14 +2237,22 @@ class Main extends Model {
 		mabout.click = function() {
 			J("#about").show();
 		};
-		mfiles.append(mnew);
-		mfiles.append(mopen);
-		mfiles.append(msave);
-		mfiles.append(mclean);
-		mfiles.append(mcompress);
-		mfiles.append(mabout);
-		mfiles.append(mexit);
+
+		var mrecents = new Menu();
+		for( file in prefs.recent ) {
+			var m = new MenuItem( { label : file } );
+			m.click = function() {
+				prefs.curFile = file;
+				load();
+			};
+			mrecents.append(m);
+		}
+		mrecent.submenu = mrecents;
+
+		for( m in [mnew, mopen, mrecent, msave, mclean, mcompress, mabout, mexit] )
+			mfiles.append(m);
 		mfile.submenu = mfiles;
+
 		menu.append(mfile);
 		menu.append(mdebug);
 		window.menu = menu;
@@ -2295,6 +2304,10 @@ class Main extends Model {
 		}
 
 		super.load(noError);
+		prefs.recent.remove(prefs.curFile);
+		prefs.recent.unshift(prefs.curFile);
+		if( prefs.recent.length > 8 ) prefs.recent.pop();
+
 		lastSave = getFileTime();
 		mcompress.checked = data.compress;
 	}
