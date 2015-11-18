@@ -1,6 +1,6 @@
 -cp src
 -js bin/castle.js
 -main Main
--lib nodejs
+-lib hxnodejs
 -lib format
 -D lz4js
