@@ -201,6 +201,12 @@ class Main extends Model {
 			moveCursor(-1, 0, e.shiftKey, e.ctrlKey);
 		case K.RIGHT:
 			moveCursor(1, 0, e.shiftKey, e.ctrlKey);
+		case K.ENTER if( inCDB ):
+			// open list
+			if( cursor.s != null && J(".cursor.t_list").click().length > 0 )
+				e.preventDefault();
+		case K.SPACE:
+			e.preventDefault(); // scrolling
 		case 'Z'.code if( e.ctrlKey && pages.curPage < 0 ):
 			if( history.length > 0 ) {
 				redo.push(curSavedData);
