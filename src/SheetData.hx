@@ -116,6 +116,9 @@ class SheetData {
 
 			for( i in 0...sheet.separators.length )
 				if( sheet.separators[i] == index ) {
+					var i = i;
+					while( i < sheet.separators.length - 1 && sheet.separators[i+1] == index )
+						i++;
 					sheet.separators[i]++;
 					return index;
 				}
