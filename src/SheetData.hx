@@ -205,6 +205,10 @@ class SheetData {
 					sheet.props.displayColumn = null;
 					model.makeSheet(sheet);
 				}
+				if( sheet.props.displayIcon == c.name ) {
+					sheet.props.displayIcon = null;
+					model.makeSheet(sheet);
+				}
 				if( c.type == TList )
 					model.deleteSheet(sheet.getSub(c));
 				return true;
@@ -429,6 +433,16 @@ class SheetData {
 							if( disp == null ) disp = "#" + id;
 							s.index.get(id).disp = disp;
 						}
+					}
+			}
+			if( sheet.props.displayIcon == c.name ) {
+				var obj = sheet.lines[index];
+				var s = @:privateAccess model.smap.get(sheet.name);
+				for( cid in sheet.columns )
+					if( cid.type == TId ) {
+						var id = Reflect.field(obj, cid.name);
+						if( id != null )
+							s.index.get(id).ico = Reflect.field(obj, c.name);
 					}
 			}
 		}
