@@ -3199,7 +3199,7 @@ K.__name__ = ["K"];
 var Model = function() {
 	this.openedList = new haxe_ds_StringMap();
 	this.r_ident = new EReg("^[A-Za-z_][A-Za-z0-9_]*$","");
-	this.prefs = { windowPos : { x : 50, y : 50, w : 800, h : 600, max : false}, curFile : null, curSheet : 0};
+	this.prefs = { windowPos : { x : 50, y : 50, w : 800, h : 600, max : false}, curFile : null, curSheet : 0, recent : []};
 	this.existsCache = new haxe_ds_StringMap();
 	this.loadPrefs();
 	SheetData.model = this;
@@ -3906,6 +3906,7 @@ Model.prototype = {
 	,loadPrefs: function() {
 		try {
 			this.prefs = haxe_Unserializer.run(js_Browser.getLocalStorage().getItem("prefs"));
+			if(this.prefs.recent == null) this.prefs.recent = [];
 		} catch( e ) {
 			if (e instanceof js__$Boot_HaxeError) e = e.val;
 		}
@@ -4659,6 +4660,7 @@ var Main = function() {
 $hxClasses["Main"] = Main;
 Main.__name__ = ["Main"];
 Main.main = function() {
+	if(js_node_Fs.accessSync == null) js_node_Fs.accessSync = js_node_Fs.existsSync;
 	Main.inst = new Main();
 	Reflect.setField(window,"_",Main.inst);
 };
@@ -7237,6 +7239,7 @@ Main.prototype = $extend(Model.prototype,{
 		var mfiles = new js_node_webkit_Menu();
 		var mnew = new js_node_webkit_MenuItem({ label : "New"});
 		var mopen = new js_node_webkit_MenuItem({ label : "Open..."});
+		var mrecent = new js_node_webkit_MenuItem({ label : "Recent Files"});
 		var msave = new js_node_webkit_MenuItem({ label : "Save As..."});
 		var mclean = new js_node_webkit_MenuItem({ label : "Clean Images"});
 		this.mcompress = new js_node_webkit_MenuItem({ label : "Enable Compression", type : "checkbox"});
@@ -7295,13 +7298,29 @@ Main.prototype = $extend(Model.prototype,{
 		mabout.click = function() {
 			$("#about").show();
 		};
-		mfiles.append(mnew);
-		mfiles.append(mopen);
-		mfiles.append(msave);
-		mfiles.append(mclean);
-		mfiles.append(this.mcompress);
-		mfiles.append(mabout);
-		mfiles.append(mexit);
+		var mrecents = new js_node_webkit_Menu();
+		var _g1 = 0;
+		var _g11 = this.prefs.recent;
+		while(_g1 < _g11.length) {
+			var file = [_g11[_g1]];
+			++_g1;
+			var m = new js_node_webkit_MenuItem({ label : file[0]});
+			m.click = (function(file) {
+				return function() {
+					_g.prefs.curFile = file[0];
+					_g.load();
+				};
+			})(file);
+			mrecents.append(m);
+		}
+		mrecent.submenu = mrecents;
+		var _g2 = 0;
+		var _g12 = [mnew,mopen,mrecent,msave,mclean,this.mcompress,mabout,mexit];
+		while(_g2 < _g12.length) {
+			var m1 = _g12[_g2];
+			++_g2;
+			mfiles.append(m1);
+		}
 		mfile.submenu = mfiles;
 		menu.append(mfile);
 		menu.append(mdebug);
@@ -7345,6 +7364,9 @@ Main.prototype = $extend(Model.prototype,{
 			return;
 		}
 		Model.prototype.load.call(this,noError);
+		HxOverrides.remove(this.prefs.recent,this.prefs.curFile);
+		this.prefs.recent.unshift(this.prefs.curFile);
+		if(this.prefs.recent.length > 8) this.prefs.recent.pop();
 		this.lastSave = this.getFileTime();
 		this.mcompress.checked = this.data.compress;
 	}
@@ -7815,6 +7837,10 @@ SheetData.deleteColumn = function(sheet,cname) {
 				sheet.props.displayColumn = null;
 				SheetData.model.makeSheet(sheet);
 			}
+			if(sheet.props.displayIcon == c.name) {
+				sheet.props.displayIcon = null;
+				SheetData.model.makeSheet(sheet);
+			}
 			if(c.type == cdb_ColumnType.TList) SheetData.model.deleteSheet(SheetData.model.smap.get(sheet.name + "@" + c.name).s);
 			return true;
 		}
@@ -8148,20 +8174,36 @@ SheetData.updateValue = function(sheet,c,index,old) {
 					}
 				}
 			}
-		} else if(sheet.props.displayColumn == c.name) {
-			var obj1 = sheet.lines[index];
-			var s1 = SheetData.model.smap.get(sheet.name);
-			var _g12 = 0;
-			var _g25 = sheet.columns;
-			while(_g12 < _g25.length) {
-				var cid = _g25[_g12];
-				++_g12;
-				if(cid.type == cdb_ColumnType.TId) {
-					var id = Reflect.field(obj1,cid.name);
-					if(id != null) {
-						var disp = Reflect.field(obj1,c.name);
-						if(disp == null) disp = "#" + id;
-						s1.index.get(id).disp = disp;
+		} else {
+			if(sheet.props.displayColumn == c.name) {
+				var obj1 = sheet.lines[index];
+				var s1 = SheetData.model.smap.get(sheet.name);
+				var _g12 = 0;
+				var _g25 = sheet.columns;
+				while(_g12 < _g25.length) {
+					var cid = _g25[_g12];
+					++_g12;
+					if(cid.type == cdb_ColumnType.TId) {
+						var id = Reflect.field(obj1,cid.name);
+						if(id != null) {
+							var disp = Reflect.field(obj1,c.name);
+							if(disp == null) disp = "#" + id;
+							s1.index.get(id).disp = disp;
+						}
+					}
+				}
+			}
+			if(sheet.props.displayIcon == c.name) {
+				var obj2 = sheet.lines[index];
+				var s2 = SheetData.model.smap.get(sheet.name);
+				var _g13 = 0;
+				var _g26 = sheet.columns;
+				while(_g13 < _g26.length) {
+					var cid1 = _g26[_g13];
+					++_g13;
+					if(cid1.type == cdb_ColumnType.TId) {
+						var id1 = Reflect.field(obj2,cid1.name);
+						if(id1 != null) s2.index.get(id1).ico = Reflect.field(obj2,c.name);
 					}
 				}
 			}
@@ -8169,20 +8211,34 @@ SheetData.updateValue = function(sheet,c,index,old) {
 		break;
 	default:
 		if(sheet.props.displayColumn == c.name) {
-			var obj2 = sheet.lines[index];
-			var s2 = SheetData.model.smap.get(sheet.name);
-			var _g13 = 0;
-			var _g26 = sheet.columns;
-			while(_g13 < _g26.length) {
-				var cid1 = _g26[_g13];
-				++_g13;
-				if(cid1.type == cdb_ColumnType.TId) {
-					var id1 = Reflect.field(obj2,cid1.name);
-					if(id1 != null) {
-						var disp1 = Reflect.field(obj2,c.name);
-						if(disp1 == null) disp1 = "#" + id1;
-						s2.index.get(id1).disp = disp1;
+			var obj3 = sheet.lines[index];
+			var s3 = SheetData.model.smap.get(sheet.name);
+			var _g14 = 0;
+			var _g27 = sheet.columns;
+			while(_g14 < _g27.length) {
+				var cid2 = _g27[_g14];
+				++_g14;
+				if(cid2.type == cdb_ColumnType.TId) {
+					var id2 = Reflect.field(obj3,cid2.name);
+					if(id2 != null) {
+						var disp1 = Reflect.field(obj3,c.name);
+						if(disp1 == null) disp1 = "#" + id2;
+						s3.index.get(id2).disp = disp1;
 					}
+				}
+			}
+		}
+		if(sheet.props.displayIcon == c.name) {
+			var obj4 = sheet.lines[index];
+			var s4 = SheetData.model.smap.get(sheet.name);
+			var _g15 = 0;
+			var _g28 = sheet.columns;
+			while(_g15 < _g28.length) {
+				var cid3 = _g28[_g15];
+				++_g15;
+				if(cid3.type == cdb_ColumnType.TId) {
+					var id3 = Reflect.field(obj4,cid3.name);
+					if(id3 != null) s4.index.get(id3).ico = Reflect.field(obj4,c.name);
 				}
 			}
 		}
