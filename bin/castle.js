@@ -508,7 +508,7 @@ JqPages.prototype = {
 				size |= e.readUInt8(pos++) << sizeCount * 8;
 				sizeCount++;
 				if(sizeCount == 4) {
-					curBuffer = new haxe_io_Bytes(new ArrayBuffer(size));
+					curBuffer = haxe_io_Bytes.alloc(size);
 					curPos = 0;
 				}
 			} else {
@@ -922,7 +922,7 @@ Level.prototype = {
 	}
 	,getFileTime: function(path) {
 		try {
-			return sys_FileSystem.stat(path).mtime.getTime();
+			return js_node_Fs.statSync(path).mtime.getTime();
 		} catch( e ) {
 			if (e instanceof js__$Boot_HaxeError) e = e.val;
 			return 0.;
@@ -3215,7 +3215,7 @@ Model.prototype = {
 		}
 		var t = haxe_Timer.stamp();
 		if(c.t < t - 10) {
-			c.r = js_node_Fs.existsSync(path);
+			c.r = sys_FileSystem.exists(path);
 			c.t = t;
 		}
 		return c.r;
@@ -3323,11 +3323,11 @@ Model.prototype = {
 		}
 		if(this.prefs.curFile == null) return;
 		try {
-			sys_io_File.saveContent(this.prefs.curFile,sdata.d);
+			js_node_Fs.writeFileSync(this.prefs.curFile,sdata.d);
 		} catch( e ) {
 			if (e instanceof js__$Boot_HaxeError) e = e.val;
 			haxe_Timer.delay(function() {
-				sys_io_File.saveContent(_g.prefs.curFile,sdata.d);
+				js_node_Fs.writeFileSync(_g.prefs.curFile,sdata.d);
 			},500);
 		}
 	}
@@ -3790,7 +3790,7 @@ Model.prototype = {
 		this.history = [];
 		this.redo = [];
 		try {
-			this.data = cdb_Parser.parse(sys_io_File.getContent(this.prefs.curFile));
+			this.data = cdb_Parser.parse(js_node_Fs.readFileSync(this.prefs.curFile,{ encoding : "utf8"}));
 		} catch( e ) {
 			if (e instanceof js__$Boot_HaxeError) e = e.val;
 			if(!noError) this.error(Std.string(e));
@@ -4791,6 +4791,15 @@ Main.prototype = $extend(Model.prototype,{
 		case 39:
 			this.moveCursor(1,0,e.shiftKey,e.ctrlKey);
 			break;
+		case 13:
+			if(inCDB) {
+				if(this.cursor.s != null && $(".cursor.t_list").click().length > 0) e.preventDefault();
+			} else {
+			}
+			break;
+		case 32:
+			e.preventDefault();
+			break;
 		case 90:
 			if(e.ctrlKey && this.pages.curPage < 0) {
 				if(this.history.length > 0) {
@@ -5745,9 +5754,9 @@ Main.prototype = $extend(Model.prototype,{
 							}
 						}
 						if(val2 != val && val2 != null) {
-							var this11 = _g.smap.get(sheet.name).index;
+							var this2 = _g.smap.get(sheet.name).index;
 							var key1 = val2;
-							prevTarget = this11.get(key1);
+							prevTarget = this2.get(key1);
 							if(c.type == cdb_ColumnType.TId && val != null && (prevObj == null || prevObj.obj == obj)) {
 								var m = new haxe_ds_StringMap();
 								var key2 = val;
@@ -5764,14 +5773,14 @@ Main.prototype = $extend(Model.prototype,{
 					editDone();
 					if(c.type == cdb_ColumnType.TId && prevObj != null && old1 != val && (prevObj.obj == obj && (function($this) {
 						var $r;
-						var this12 = _g.smap.get(sheet.name).index;
-						$r = this12.get(old1);
+						var this3 = _g.smap.get(sheet.name).index;
+						$r = this3.get(old1);
 						return $r;
 					}(this)) != null || prevTarget != null && ((function($this) {
 						var $r;
-						var this13 = _g.smap.get(sheet.name).index;
+						var this4 = _g.smap.get(sheet.name).index;
 						var key3 = val;
-						$r = this13.get(key3);
+						$r = this4.get(key3);
 						return $r;
 					}(this))).obj != prevTarget.obj)) {
 						_g.refresh();
@@ -6176,6 +6185,11 @@ Main.prototype = $extend(Model.prototype,{
 					}
 				};
 			})(c));
+			col.dblclick((function(c) {
+				return function(_1) {
+					_g4.newColumn(sheet.name,c[0]);
+				};
+			})(c));
 			cols.append(col);
 			var ctype = "t_" + types[c[0].type[1]];
 			var _g5 = 0;
@@ -6230,7 +6244,7 @@ Main.prototype = $extend(Model.prototype,{
 							};
 						})());
 						v[0].dblclick((function(v,index,c) {
-							return function(_1) {
+							return function(_2) {
 								_g4.editCell(c[0],v[0],sheet,index[0]);
 							};
 						})(v,index,c));
@@ -6311,7 +6325,7 @@ Main.prototype = $extend(Model.prototype,{
 							};
 						})(obj,c));
 						v[0].dblclick((function(set) {
-							return function(_2) {
+							return function(_3) {
 								_g4.chooseFile((function(set) {
 									return function(path) {
 										set[0](path);
@@ -6332,7 +6346,7 @@ Main.prototype = $extend(Model.prototype,{
 							};
 						})(obj,c));
 						v[0].dblclick((function(set,v,val,index,c) {
-							return function(_3) {
+							return function(_4) {
 								var rv = val[0];
 								var file;
 								if(rv == null) file = null; else file = rv.file;
@@ -6393,38 +6407,38 @@ Main.prototype = $extend(Model.prototype,{
 										$(".tileCursor").not(".current").css({ marginLeft : size * posX - 1 + "px", marginTop : size * posY - 1 + "px"});
 									};
 								})()).click((function() {
-									return function(_4) {
+									return function(_5) {
 										setVal();
 										dialog.remove();
 										_g4.save();
 									};
 								})());
 								dialog.find("[name=size]").val("" + size).change((function() {
-									return function(_5) {
+									return function(_6) {
 										size = Std.parseInt($(this).val());
 										$(".tileCursor").css({ width : size * width + "px", height : size * height + "px"});
 										$(".tileCursor.current").css({ marginLeft : size * posX - 2 + "px", marginTop : size * posY - 2 + "px"});
 									};
 								})()).change();
 								dialog.find("[name=width]").val("" + width).change((function() {
-									return function(_6) {
+									return function(_7) {
 										width = Std.parseInt($(this).val());
 										$(".tileCursor").css({ width : size * width + "px", height : size * height + "px"});
 									};
 								})()).change();
 								dialog.find("[name=height]").val("" + height).change((function() {
-									return function(_7) {
+									return function(_8) {
 										height = Std.parseInt($(this).val());
 										$(".tileCursor").css({ width : size * width + "px", height : size * height + "px"});
 									};
 								})()).change();
 								dialog.find("[name=cancel]").click((function() {
-									return function(_8) {
+									return function(_9) {
 										dialog.remove();
 									};
 								})());
 								dialog.find("[name=file]").click((function(v) {
-									return function(_9) {
+									return function(_10) {
 										_g4.chooseFile((function(v) {
 											return function(f2) {
 												file = f2;
@@ -6450,7 +6464,7 @@ Main.prototype = $extend(Model.prototype,{
 								var _this = window.document;
 								i1 = _this.createElement("img");
 								i1.onload = (function() {
-									return function(_10) {
+									return function(_11) {
 										maxWidth = i1.width;
 										maxHeight = i1.height;
 										dialog.find(".tileView").height(i1.height).width(i1.width);
@@ -6473,7 +6487,7 @@ Main.prototype = $extend(Model.prototype,{
 		}
 		if(sheet.lines.length == 0) {
 			var l2 = $("<tr><td colspan=\"" + (sheet.columns.length + 1) + "\"><a href=\"javascript:_.insertLine()\">Insert Line</a></td></tr>");
-			l2.find("a").click(function(_11) {
+			l2.find("a").click(function(_12) {
 				_g4.setCursor(sheet);
 			});
 			lines.push(l2);
@@ -6489,7 +6503,7 @@ Main.prototype = $extend(Model.prototype,{
 				var c2 = $("<input type='submit' value='Edit'>");
 				$("<td>").append(c2).prependTo(l3[0]);
 				c2.click((function(l3,index1) {
-					return function(_12) {
+					return function(_13) {
 						l3[0].click();
 						var found = null;
 						var _g51 = 0;
@@ -6526,7 +6540,7 @@ Main.prototype = $extend(Model.prototype,{
 					return function(e15) {
 						content2[0].empty();
 						$("<input>").appendTo(content2[0]).focus().val(title[0] == null?"":title[0]).blur((function(pos,title,content2) {
-							return function(_13) {
+							return function(_14) {
 								title[0] = $(this).val();
 								$(this).remove();
 								content2[0].text(title[0]);
@@ -7276,7 +7290,7 @@ Main.prototype = $extend(Model.prototype,{
 			if(icount > 0) _g.saveImages();
 		};
 		mexit.click = function() {
-			Sys.exit(0);
+			process.exit(0);
 		};
 		mabout.click = function() {
 			$("#about").show();
@@ -7313,7 +7327,7 @@ Main.prototype = $extend(Model.prototype,{
 	}
 	,getFileTime: function() {
 		try {
-			return sys_FileSystem.stat(this.prefs.curFile).mtime.getTime();
+			return js_node_Fs.statSync(this.prefs.curFile).mtime.getTime();
 		} catch( e ) {
 			if (e instanceof js__$Boot_HaxeError) e = e.val;
 			return 0.;
@@ -7326,7 +7340,7 @@ Main.prototype = $extend(Model.prototype,{
 	}
 	,load: function(noError) {
 		if(noError == null) noError = false;
-		if(js_node_Fs.existsSync(this.prefs.curFile + ".mine") && !Resolver.resolveConflict(this.prefs.curFile)) {
+		if(sys_FileSystem.exists(this.prefs.curFile + ".mine") && !Resolver.resolveConflict(this.prefs.curFile)) {
 			this.error("CDB file has unresolved conflict, merge by hand before reloading.");
 			return;
 		}
@@ -7423,7 +7437,7 @@ Resolver.prototype = {
 				if(maxRev == 0 || maxRev < rev) maxRev = rev;
 			}
 		}
-		var merged = sys_io_File.getContent(file).split("<<<<<<< .mine");
+		var merged = js_node_Fs.readFileSync(file,{ encoding : "utf8"}).split("<<<<<<< .mine");
 		if(merged.length == 1) return true;
 		var endConflict = new EReg(">>>>>>> \\.r[0-9]+[\r\n]+","");
 		var _g11 = 1;
@@ -7434,8 +7448,8 @@ Resolver.prototype = {
 			merged[i] = endConflict.matchedLeft().split("=======").shift() + endConflict.matchedRight();
 		}
 		var mine = JSON.parse(merged.join(""));
-		var origin = JSON.parse(sys_io_File.getContent(file + ".r" + minRev));
-		var other = JSON.parse(sys_io_File.getContent(file + ".r" + maxRev));
+		var origin = JSON.parse(js_node_Fs.readFileSync(file + ".r" + minRev,{ encoding : "utf8"}));
+		var other = JSON.parse(js_node_Fs.readFileSync(file + ".r" + maxRev,{ encoding : "utf8"}));
 		this.hasError = false;
 		try {
 			this.resolveRec(mine,origin,other,[]);
@@ -7448,7 +7462,7 @@ Resolver.prototype = {
 		}
 		if(this.hasError) return false;
 		try {
-			sys_io_File.saveContent(Sys.getEnv("TEMP") + "/" + basePath + ".merged" + minRev + "_" + maxRev,sys_io_File.getContent(file));
+			sys_io_File.saveContent(Sys.getEnv("TEMP") + "/" + basePath + ".merged" + minRev + "_" + maxRev,js_node_Fs.readFileSync(file,{ encoding : "utf8"}));
 		} catch( e1 ) {
 			if (e1 instanceof js__$Boot_HaxeError) e1 = e1.val;
 		}
@@ -7701,7 +7715,9 @@ SheetData.moveLine = function(sheet,index,delta) {
 		while(_g1 < _g) {
 			var i = _g1++;
 			if(sheet.separators[i] == index) {
-				sheet.separators[i]++;
+				var i1 = i;
+				while(i1 < sheet.separators.length - 1 && sheet.separators[i1 + 1] == index) i1++;
+				sheet.separators[i1]++;
 				return index;
 			}
 		}
@@ -7713,8 +7729,8 @@ SheetData.moveLine = function(sheet,index,delta) {
 		var _g21 = 0;
 		var _g11 = sheet.lines.length;
 		while(_g21 < _g11) {
-			var i1 = _g21++;
-			_g2.push(i1);
+			var i2 = _g21++;
+			_g2.push(i2);
 		}
 		arr = _g2;
 		arr[index] = index - 1;
@@ -7725,9 +7741,9 @@ SheetData.moveLine = function(sheet,index,delta) {
 		var _g12 = 0;
 		var _g3 = sheet.separators.length;
 		while(_g12 < _g3) {
-			var i2 = _g12++;
-			if(sheet.separators[i2] == index + 1) {
-				sheet.separators[i2]--;
+			var i3 = _g12++;
+			if(sheet.separators[i3] == index + 1) {
+				sheet.separators[i3]--;
 				return index;
 			}
 		}
@@ -7739,8 +7755,8 @@ SheetData.moveLine = function(sheet,index,delta) {
 		var _g22 = 0;
 		var _g13 = sheet.lines.length;
 		while(_g22 < _g13) {
-			var i3 = _g22++;
-			_g4.push(i3);
+			var i4 = _g22++;
+			_g4.push(i4);
 		}
 		arr1 = _g4;
 		arr1[index] = index + 1;
@@ -8257,11 +8273,9 @@ StringTools.fastCodeAt = function(s,index) {
 var Sys = function() { };
 $hxClasses["Sys"] = Sys;
 Sys.__name__ = ["Sys"];
-Sys.exit = function(code) {
-	process.exit(code);
-};
-Sys.getEnv = function(key) {
-	return Reflect.field(process.env,key);
+Sys.getEnv = function(s) {
+	var this1 = process.env;
+	return this1[s];
 };
 var ValueType = $hxClasses["ValueType"] = { __ename__ : ["ValueType"], __constructs__ : ["TNull","TInt","TFloat","TBool","TObject","TFunction","TClass","TEnum","TUnknown"] };
 ValueType.TNull = ["TNull",0];
@@ -9289,7 +9303,7 @@ cdb_Lz4Reader.uncompress = function(src,srcPos,srcLen,out,outPos) {
 	return [srcPos,outPos,0];
 };
 cdb_Lz4Reader.decodeString = function(s) {
-	if(s == "") return new haxe_io_Bytes(new ArrayBuffer(0));
+	if(s == "") return haxe_io_Bytes.alloc(0);
 	var k = haxe_crypto_Base64.decode(s);
 	if(k.b[0] != 4 || k.b[1] != 34 || k.b[2] != 77 || k.b[3] != 24) return k;
 	var tmp = new Uint8Array(k.length);
@@ -9300,7 +9314,7 @@ cdb_Lz4Reader.decodeString = function(s) {
 		tmp[i] = k.b[i];
 	}
 	var k1 = lz4.decompress(tmp);
-	var b = new haxe_io_Bytes(new ArrayBuffer(k1.length));
+	var b = haxe_io_Bytes.alloc(k1.length);
 	var _g11 = 0;
 	var _g2 = k1.length;
 	while(_g11 < _g2) {
@@ -9319,7 +9333,7 @@ cdb_Lz4Reader.encodeBytes = function(b,compress) {
 			tmp[i] = b.b[i];
 		}
 		tmp = lz4.compress(tmp,65536);
-		b = new haxe_io_Bytes(new ArrayBuffer(tmp.length));
+		b = haxe_io_Bytes.alloc(tmp.length);
 		var _g11 = 0;
 		var _g2 = tmp.length;
 		while(_g11 < _g2) {
@@ -9336,7 +9350,7 @@ cdb_Lz4Reader.prototype = {
 	,grow: function(out,pos,len) {
 		var size = out.length;
 		do size = size * 3 >> 1; while(size < pos + len);
-		var out2 = new haxe_io_Bytes(new ArrayBuffer(size));
+		var out2 = haxe_io_Bytes.alloc(size);
 		out2.blit(0,out,0,pos);
 		return out2;
 	}
@@ -9359,7 +9373,7 @@ cdb_Lz4Reader.prototype = {
 		if(streamSize) this.pos += 8;
 		if(presetDict) throw new js__$Boot_HaxeError("Preset dictionary not supported");
 		var headerChk = this.bytes.get(this.pos++);
-		var out = new haxe_io_Bytes(new ArrayBuffer(128));
+		var out = haxe_io_Bytes.alloc(128);
 		var outPos = 0;
 		while(true) {
 			var size = this.bytes.get(this.pos++) | this.bytes.get(this.pos++) << 8 | this.bytes.get(this.pos++) << 16 | this.bytes.get(this.pos++) << 24;
@@ -10233,7 +10247,7 @@ cdb__$Types_Layer_$Impl_$.decode = function(this1,all) {
 	return _g;
 };
 cdb__$Types_Layer_$Impl_$.encode = function(a,compress) {
-	var b = new haxe_io_Bytes(new ArrayBuffer(a.length));
+	var b = haxe_io_Bytes.alloc(a.length);
 	var _g1 = 0;
 	var _g = a.length;
 	while(_g1 < _g) {
@@ -10261,7 +10275,7 @@ cdb__$Types_TileLayerData_$Impl_$.decode = function(this1) {
 	return _g;
 };
 cdb__$Types_TileLayerData_$Impl_$.encode = function(a,compress) {
-	var b = new haxe_io_Bytes(new ArrayBuffer(a.length * 2));
+	var b = haxe_io_Bytes.alloc(a.length * 2);
 	var _g1 = 0;
 	var _g = a.length;
 	while(_g1 < _g) {
@@ -10681,7 +10695,7 @@ haxe_Unserializer.prototype = {
 			var size;
 			size = (len1 >> 2) * 3 + (rest >= 2?rest - 1:0);
 			var max = i1 + (len1 - rest);
-			var bytes = new haxe_io_Bytes(new ArrayBuffer(size));
+			var bytes = haxe_io_Bytes.alloc(size);
 			var bpos = 0;
 			while(i1 < max) {
 				var c11 = codes[StringTools.fastCodeAt(buf5,i1++)];
@@ -10739,6 +10753,9 @@ var haxe_io_Bytes = function(data) {
 };
 $hxClasses["haxe.io.Bytes"] = haxe_io_Bytes;
 haxe_io_Bytes.__name__ = ["haxe","io","Bytes"];
+haxe_io_Bytes.alloc = function(length) {
+	return new haxe_io_Bytes(new ArrayBuffer(length));
+};
 haxe_io_Bytes.ofString = function(s) {
 	var a = [];
 	var i = 0;
@@ -10760,6 +10777,11 @@ haxe_io_Bytes.ofString = function(s) {
 		}
 	}
 	return new haxe_io_Bytes(new Uint8Array(a).buffer);
+};
+haxe_io_Bytes.ofData = function(b) {
+	var hb = b.hxBytes;
+	if(hb != null) return hb;
+	return new haxe_io_Bytes(b);
 };
 haxe_io_Bytes.prototype = {
 	get: function(pos) {
@@ -10870,7 +10892,7 @@ haxe_crypto_BaseCode.prototype = {
 		var nbits = this.nbits;
 		var base = this.base;
 		var size = b.length * 8 / nbits | 0;
-		var out = new haxe_io_Bytes(new ArrayBuffer(size + (b.length * 8 % nbits == 0?0:1)));
+		var out = haxe_io_Bytes.alloc(size + (b.length * 8 % nbits == 0?0:1));
 		var buf = 0;
 		var curbits = 0;
 		var mask = (1 << nbits) - 1;
@@ -10909,7 +10931,7 @@ haxe_crypto_BaseCode.prototype = {
 		if(this.tbl == null) this.initTable();
 		var tbl = this.tbl;
 		var size = b.length * nbits >> 3;
-		var out = new haxe_io_Bytes(new ArrayBuffer(size));
+		var out = haxe_io_Bytes.alloc(size);
 		var buf = 0;
 		var curbits = 0;
 		var pin = 0;
@@ -10935,7 +10957,7 @@ $hxClasses["haxe.crypto.Md5"] = haxe_crypto_Md5;
 haxe_crypto_Md5.__name__ = ["haxe","crypto","Md5"];
 haxe_crypto_Md5.make = function(b) {
 	var h = new haxe_crypto_Md5().doEncode(haxe_crypto_Md5.bytes2blks(b));
-	var out = new haxe_io_Bytes(new ArrayBuffer(16));
+	var out = haxe_io_Bytes.alloc(16);
 	var p = 0;
 	var _g = 0;
 	while(_g < 4) {
@@ -12069,11 +12091,11 @@ lvl_Image3D.prototype = $extend(lvl_Image.prototype,{
 		this.gl.disable(2884);
 		this.gl.disable(2929);
 		var vertex = this.gl.createShader(35633);
-		this.gl.shaderSource(vertex,"\r\n\t\t\tvarying vec2 tuv;\r\n\t\t\tattribute vec2 pos;\r\n\t\t\tattribute vec2 uv;\r\n\t\t\tuniform vec2 scroll;\r\n\t\t\tvoid main() {\r\n\t\t\t\ttuv = uv;\r\n\t\t\t\tgl_Position = vec4(pos + vec2(-1.,1.) + scroll, 0, 1);\r\n\t\t\t}\r\n\t\t");
+		this.gl.shaderSource(vertex,"\n\t\t\tvarying vec2 tuv;\n\t\t\tattribute vec2 pos;\n\t\t\tattribute vec2 uv;\n\t\t\tuniform vec2 scroll;\n\t\t\tvoid main() {\n\t\t\t\ttuv = uv;\n\t\t\t\tgl_Position = vec4(pos + vec2(-1.,1.) + scroll, 0, 1);\n\t\t\t}\n\t\t");
 		this.gl.compileShader(vertex);
 		if(this.gl.getShaderParameter(vertex,35713) != 1) throw new js__$Boot_HaxeError(this.gl.getShaderInfoLog(vertex));
 		var frag = this.gl.createShader(35632);
-		this.gl.shaderSource(frag,"\r\n\t\t\tvarying mediump vec2 tuv;\r\n\t\t\tuniform sampler2D texture;\r\n\t\t\tuniform lowp float alpha;\r\n\t\t\tvoid main() {\r\n\t\t\t\tlowp vec4 color = texture2D(texture, tuv);\r\n\t\t\t\tcolor.a *= alpha;\r\n\t\t\t\tgl_FragColor = color;\r\n\t\t\t}\r\n\t\t");
+		this.gl.shaderSource(frag,"\n\t\t\tvarying mediump vec2 tuv;\n\t\t\tuniform sampler2D texture;\n\t\t\tuniform lowp float alpha;\n\t\t\tvoid main() {\n\t\t\t\tlowp vec4 color = texture2D(texture, tuv);\n\t\t\t\tcolor.a *= alpha;\n\t\t\t\tgl_FragColor = color;\n\t\t\t}\n\t\t");
 		this.gl.compileShader(frag);
 		if(this.gl.getShaderParameter(frag,35713) != 1) throw new js__$Boot_HaxeError(this.gl.getShaderInfoLog(frag));
 		var p = this.gl.createProgram();
@@ -12799,7 +12821,7 @@ lvl_LayerData.prototype = $extend(lvl_LayerGfx.prototype,{
 			switch(_g[1]) {
 			case 0:
 				var data = _g[2];
-				var b = new haxe_io_Bytes(new ArrayBuffer(this.level.width * this.level.height));
+				var b = haxe_io_Bytes.alloc(this.level.width * this.level.height);
 				var p = 0;
 				var _g2 = 0;
 				var _g1 = this.level.height;
@@ -14212,19 +14234,13 @@ var sys_FileSystem = function() { };
 $hxClasses["sys.FileSystem"] = sys_FileSystem;
 sys_FileSystem.__name__ = ["sys","FileSystem"];
 sys_FileSystem.exists = function(path) {
-	return js_node_Fs.existsSync(path);
-};
-sys_FileSystem.rename = function(path,newpath) {
-	js_node_Fs.renameSync(path,newpath);
-};
-sys_FileSystem.stat = function(path) {
-	return js_node_Fs.statSync(path);
-};
-sys_FileSystem.createDirectory = function(path) {
-	js_node_Fs.mkdirSync(path);
-};
-sys_FileSystem.deleteFile = function(path) {
-	js_node_Fs.unlinkSync(path);
+	try {
+		js_node_Fs.accessSync(path);
+		return true;
+	} catch( _ ) {
+		if (_ instanceof js__$Boot_HaxeError) _ = _.val;
+		return false;
+	}
 };
 sys_FileSystem.readDirectory = function(path) {
 	return js_node_Fs.readdirSync(path);
@@ -14235,29 +14251,12 @@ sys_io_File.__name__ = ["sys","io","File"];
 sys_io_File.getContent = function(path) {
 	return js_node_Fs.readFileSync(path,{ encoding : "utf8"});
 };
-sys_io_File.getBytes = function(path) {
-	var o = js_node_Fs.openSync(path,"r");
-	var s = js_node_Fs.fstatSync(o);
-	var len = s.size;
-	var pos = 0;
-	var bytes = new haxe_io_Bytes(new ArrayBuffer(s.size));
-	var tmpBuf = new js_node_buffer_Buffer(s.size);
-	while(len > 0) {
-		var r = js_node_Fs.readSync(o,tmpBuf,pos,len,null);
-		pos += r;
-		len -= r;
-	}
-	js_node_Fs.closeSync(o);
-	var _g1 = 0;
-	var _g = s.size;
-	while(_g1 < _g) {
-		var i = _g1++;
-		bytes.b[i] = tmpBuf[i] & 255;
-	}
-	return bytes;
-};
 sys_io_File.saveContent = function(path,content) {
 	js_node_Fs.writeFileSync(path,content);
+};
+sys_io_File.getBytes = function(path) {
+	var _this = js_node_Fs.readFileSync(path);
+	return haxe_io_Bytes.ofData(_this.buffer);
 };
 function $iterator(o) { if( o instanceof Array ) return function() { return HxOverrides.iter(o); }; return typeof(o.iterator) == 'function' ? $bind(o,o.iterator) : o.iterator; }
 var $_, $fid = 0;
