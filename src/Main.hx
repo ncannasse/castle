@@ -1328,6 +1328,9 @@ class Main extends Model {
 					return;
 				}
 			});
+			col.dblclick(function(_) {
+				newColumn(sheet.name, c);
+			});
 			cols.append(col);
 
 			var ctype = "t_" + types[Type.enumIndex(c.type)];
