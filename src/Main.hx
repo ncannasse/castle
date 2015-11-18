@@ -2319,6 +2319,7 @@ class Main extends Model {
 
 	public static var inst : Main;
 	static function main() {
+		untyped if( js.node.Fs.accessSync == null ) js.node.Fs.accessSync = (js.node.Fs : Dynamic).existsSync;
 		inst = new Main();
 		Reflect.setField(js.Browser.window, "_", inst);
 	}
