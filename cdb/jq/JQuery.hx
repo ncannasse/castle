@@ -20,6 +20,7 @@ class JQuery {
 
 	var client : Client;
 	var sel : Array<Dom>;
+	public var length(get, never) : Int;
 
 	public function new(client,?elt:Dom,?query:String) {
 		this.client = client;
@@ -37,6 +38,10 @@ class JQuery {
 			sel = [@:privateAccess client.root];
 			sel = find(query).sel;
 		}
+	}
+
+	function get_length() {
+		return sel.length;
 	}
 
 	public function query( ?elt : Dom, ?query : String ) {
@@ -79,6 +84,11 @@ class JQuery {
 			s.reset();
 			htmlRec(s,x);
 		}
+		return this;
+	}
+
+	public function select() {
+		trigger("select");
 		return this;
 	}
 

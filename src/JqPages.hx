@@ -176,8 +176,10 @@ class JqPage extends cdb.jq.Server {
 
 			var document = js.Browser.document;
 
-			function onMove(e:Dynamic) {
-				result( { dx : e.movementX, dy : e.movementY } );
+			function onMove(event:Dynamic) {
+				if( document.pointerLockElement != e )
+					return;
+				result( { dx : event.movementX, dy : event.movementY } );
 			}
 
 			function onUp() {
