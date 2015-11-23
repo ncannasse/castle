@@ -2319,7 +2319,7 @@ class Main extends Model {
 
 	public static var inst : Main;
 	static function main() {
-		untyped if( js.node.Fs.accessSync == null ) js.node.Fs.accessSync = (js.node.Fs : Dynamic).existsSync;
+		untyped if( js.node.Fs.accessSync == null ) js.node.Fs.accessSync = function(path) if( !(js.node.Fs : Dynamic).existsSync(path) ) throw path + " does not exists";
 		inst = new Main();
 		Reflect.setField(js.Browser.window, "_", inst);
 	}

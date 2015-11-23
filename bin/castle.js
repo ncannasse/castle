@@ -4662,7 +4662,9 @@ var Main = function() {
 $hxClasses["Main"] = Main;
 Main.__name__ = ["Main"];
 Main.main = function() {
-	if(js_node_Fs.accessSync == null) js_node_Fs.accessSync = js_node_Fs.existsSync;
+	if(js_node_Fs.accessSync == null) js_node_Fs.accessSync = function(path) {
+		if(!js_node_Fs.existsSync(path)) throw new js__$Boot_HaxeError(path + " does not exists");
+	};
 	Main.inst = new Main();
 	Reflect.setField(window,"_",Main.inst);
 };
@@ -5758,9 +5760,9 @@ Main.prototype = $extend(Model.prototype,{
 							}
 						}
 						if(val2 != val && val2 != null) {
-							var this11 = _g.smap.get(sheet.name).index;
+							var this2 = _g.smap.get(sheet.name).index;
 							var key1 = val2;
-							prevTarget = this11.get(key1);
+							prevTarget = this2.get(key1);
 							if(c.type == cdb_ColumnType.TId && val != null && (prevObj == null || prevObj.obj == obj)) {
 								var m = new haxe_ds_StringMap();
 								var key2 = val;
@@ -5777,14 +5779,14 @@ Main.prototype = $extend(Model.prototype,{
 					editDone();
 					if(c.type == cdb_ColumnType.TId && prevObj != null && old1 != val && (prevObj.obj == obj && (function($this) {
 						var $r;
-						var this12 = _g.smap.get(sheet.name).index;
-						$r = this12.get(old1);
+						var this3 = _g.smap.get(sheet.name).index;
+						$r = this3.get(old1);
 						return $r;
 					}(this)) != null || prevTarget != null && ((function($this) {
 						var $r;
-						var this13 = _g.smap.get(sheet.name).index;
+						var this4 = _g.smap.get(sheet.name).index;
 						var key3 = val;
-						$r = this13.get(key3);
+						$r = this4.get(key3);
 						return $r;
 					}(this))).obj != prevTarget.obj)) {
 						_g.refresh();
