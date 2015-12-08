@@ -52,6 +52,9 @@ class Server {
 			nodes[id].classList.remove(name);
 		case Append(id, to):
 			nodes[to].appendChild(nodes[id]);
+		case InsertAt(id, to, pos):
+			var p = nodes[to];
+			p.insertBefore(nodes[id], p.childNodes[pos]);
 		case CreateText(id, text, pid):
 			var t = js.Browser.document.createTextNode(text);
 			nodes[id] = cast t; // not an element

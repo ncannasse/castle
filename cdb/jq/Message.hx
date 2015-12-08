@@ -20,6 +20,7 @@ enum Message {
 	AddClass( id : Int, name : String );
 	RemoveClass( id : Int, name : String );
 	Append( id : Int, to : Int );
+	InsertAt( id : Int, to : Int, pos : Int );
 	CreateText( id : Int, text : String, ?pid : Int );
 	Reset( id : Int );
 	Dock( pid : Int, id : Int, dir : DockDirection, size : Null<Float> );

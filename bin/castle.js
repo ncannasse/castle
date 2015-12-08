@@ -158,34 +158,41 @@ cdb_jq_Server.prototype = {
 			this.nodes[to].appendChild(this.nodes[id3]);
 			break;
 		case 4:
-			var pid = msg[4];
-			var text = msg[3];
+			var pos = msg[4];
+			var to1 = msg[3];
 			var id4 = msg[2];
-			var t = window.document.createTextNode(text);
-			this.nodes[id4] = t;
-			if(pid != null) this.nodes[pid].appendChild(t);
+			var p = this.nodes[to1];
+			p.insertBefore(this.nodes[id4],p.childNodes[pos]);
 			break;
 		case 5:
+			var pid = msg[4];
+			var text = msg[3];
 			var id5 = msg[2];
-			var n1 = this.nodes[id5];
-			while(n1.firstChild != null) n1.removeChild(n1.firstChild);
+			var t = window.document.createTextNode(text);
+			this.nodes[id5] = t;
+			if(pid != null) this.nodes[pid].appendChild(t);
 			break;
 		case 6:
+			var id6 = msg[2];
+			var n1 = this.nodes[id6];
+			while(n1.firstChild != null) n1.removeChild(n1.firstChild);
+			break;
+		case 7:
 			var size = msg[5];
 			var dir = msg[4];
 			var e = msg[3];
-			var p = msg[2];
-			this.dock(this.nodes[p],this.nodes[e],dir,size);
-			break;
-		case 7:
-			var id6 = msg[2];
-			this.nodes[id6].remove();
+			var p1 = msg[2];
+			this.dock(this.nodes[p1],this.nodes[e],dir,size);
 			break;
 		case 8:
+			var id7 = msg[2];
+			this.nodes[id7].remove();
+			break;
+		case 9:
 			var eid = msg[4];
 			var name3 = msg[3];
-			var id7 = msg[2];
-			var n2 = this.nodes[id7];
+			var id8 = msg[2];
+			var n2 = this.nodes[id8];
 			var callb = function(e1) {
 				var sendValue = false;
 				var props = null;
@@ -206,28 +213,28 @@ cdb_jq_Server.prototype = {
 					break;
 				default:
 				}
-				if(sendValue) _g.send(cdb_jq_Answer.SetValue(id7,"" + Std.string(Reflect.field(n2,"value"))));
+				if(sendValue) _g.send(cdb_jq_Answer.SetValue(id8,"" + Std.string(Reflect.field(n2,"value"))));
 				_g.send(cdb_jq_Answer.Event(eid,props));
 			};
 			this.events.h[eid] = { name : name3, callb : callb, n : n2};
 			n2.addEventListener(name3,callb);
 			break;
-		case 9:
+		case 10:
 			var val = msg[4];
 			var att = msg[3];
-			var id8 = msg[2];
-			this.nodes[id8].setAttribute(att,val);
-			break;
-		case 10:
-			var val1 = msg[4];
-			var s = msg[3];
 			var id9 = msg[2];
-			this.nodes[id9].style[s] = val1;
+			this.nodes[id9].setAttribute(att,val);
 			break;
 		case 11:
-			var s1 = msg[3];
+			var val1 = msg[4];
+			var s = msg[3];
 			var id10 = msg[2];
-			var n3 = this.nodes[id10];
+			this.nodes[id10].style[s] = val1;
+			break;
+		case 12:
+			var s1 = msg[3];
+			var id11 = msg[2];
+			var n3 = this.nodes[id11];
 			var m = Reflect.field(n3,s1);
 			if(m == null) throw new js__$Boot_HaxeError(Std.string(n3) + " has no method " + Std.string(m));
 			Reflect.callMethod(n3,m,[]);
@@ -237,23 +244,23 @@ cdb_jq_Server.prototype = {
 				n3.dispatchEvent(event);
 			}
 			break;
-		case 12:
+		case 13:
 			var eid1 = msg[5];
 			var args = msg[4];
 			var name4 = msg[3];
-			var id11 = msg[2];
-			this.handleSpecial(this.nodes[id11],name4,args,eid1 == null?function(_) {
+			var id12 = msg[2];
+			this.handleSpecial(this.nodes[id12],name4,args,eid1 == null?function(_) {
 			}:function(v) {
 				_g.send(cdb_jq_Answer.Event(eid1,{ value : v}));
 			});
 			break;
-		case 13:
+		case 14:
 			var duration = msg[4];
 			var name5 = msg[3];
-			var id12 = msg[2];
-			this.handleSpecial(this.nodes[id12],"animate",[name5,duration],null);
+			var id13 = msg[2];
+			this.handleSpecial(this.nodes[id13],"animate",[name5,duration],null);
 			break;
-		case 15:
+		case 16:
 			var eids = msg[2];
 			var _g2 = 0;
 			while(_g2 < eids.length) {
@@ -266,11 +273,11 @@ cdb_jq_Server.prototype = {
 				}
 			}
 			break;
-		case 14:
+		case 15:
 			var eids1 = msg[3];
-			var id13 = msg[2];
-			this.nodes[id13].remove();
-			this.nodes[id13] = null;
+			var id14 = msg[2];
+			this.nodes[id14].remove();
+			this.nodes[id14] = null;
 			if(eids1 != null) this.onMessage(cdb_jq_Message.Unbind(eids1));
 			break;
 		}
@@ -393,9 +400,9 @@ JqPage.prototype = $extend(cdb_jq_Server.prototype,{
 				var i = [_g1++];
 				var mit = new js_node_webkit_MenuItem({ label : args1[i[0]]});
 				n.append(mit);
-				mit.click = (function(i) {
+				mit.click = (function(i1) {
 					return function() {
-						result(i[0]);
+						result(i1[0]);
 					};
 				})(i);
 			}
@@ -453,11 +460,11 @@ JqPages.prototype = {
 			++_g;
 			var jc = [$("<li>").addClass("client").text(p[0].name == ""?"???":p[0].name).appendTo(sheets)];
 			p[0].tab = jc[0];
-			jc[0].click((function(jc,p) {
+			jc[0].click((function(jc1,p1) {
 				return function(e) {
-					_g2.curPage = Lambda.indexOf(_g2.pages,p[0]);
+					_g2.curPage = Lambda.indexOf(_g2.pages,p1[0]);
 					$("#sheets li").removeClass("active");
-					jc[0].addClass("active");
+					jc1[0].addClass("active");
 					_g2.select();
 				};
 			})(jc,p));
@@ -525,7 +532,7 @@ JqPages.prototype = {
 					var msg = cdb_BinSerializer.doUnserialize(curBuffer,1522840838);
 					p.onMessage(msg);
 					switch(msg[1]) {
-					case 9:
+					case 10:
 						switch(msg[2]) {
 						case 0:
 							switch(msg[3]) {
@@ -1039,10 +1046,10 @@ Level.prototype = {
 								}(this)), layer : l, index : i2});
 							}
 						}
-						if(l.hasSize) found.sort((function(objs) {
+						if(l.hasSize) found.sort((function(objs1) {
 							return function(f1,f2) {
-								var o1 = objs[0][f1.index];
-								var o2 = objs[0][f2.index];
+								var o1 = objs1[0][f1.index];
+								var o2 = objs1[0][f2.index];
 								return Reflect.compare(o2.width * o2.height,o1.width * o1.height);
 							};
 						})(objs));
@@ -1078,11 +1085,11 @@ Level.prototype = {
 					return { k : k2, layer : l, index : idx1};
 				case 3:
 					var insts = _g[3];
-					var objs1 = l.getTileObjects();
+					var objs2 = l.getTileObjects();
 					var idx2 = insts.length;
 					while(idx2 > 0) {
 						var i6 = insts[--idx2];
-						var o4 = objs1.h[i6.o];
+						var o4 = objs2.h[i6.o];
 						if(x >= i6.x && y >= i6.y && x < i6.x + (o4 == null?1:o4.w) && y < i6.y + (o4 == null?1:o4.h)) {
 							var im = l.images[i6.o + (x - i6.x | 0) + (y - i6.y | 0) * l.stride];
 							if(this.hasHole(im,ix,iy)) continue;
@@ -1413,16 +1420,16 @@ Level.prototype = {
 			td.data("index",index);
 			if(!l2[0].visible) td.addClass("hidden");
 			if(l2[0].lock) td.addClass("locked");
-			td.mousedown((function(l2) {
+			td.mousedown((function(l3) {
 				return function(e) {
 					var _g24 = e.which;
 					switch(_g24) {
 					case 1:
 						_g3.palette.mode = null;
-						_g3.setLayer(l2[0]);
+						_g3.setLayer(l3[0]);
 						break;
 					case 3:
-						_g3.popupLayer(l2[0],e.pageX | 0,e.pageY | 0);
+						_g3.popupLayer(l3[0],e.pageX | 0,e.pageY | 0);
 						e.preventDefault();
 						break;
 					}
@@ -1449,23 +1456,23 @@ Level.prototype = {
 				}
 				$r = _g25;
 				return $r;
-			}(this))},this.allocRef((function(l2) {
+			}(this))},this.allocRef((function(l4) {
 				return function(color) {
 					var _g42 = 0;
-					var _g32 = l2[0].colors.length;
+					var _g32 = l4[0].colors.length;
 					while(_g42 < _g32) {
 						var i3 = _g42++;
-						if(l2[0].colors[i3] == color) {
-							l2[0].set_current(i3);
-							_g3.setLayer(l2[0]);
+						if(l4[0].colors[i3] == color) {
+							l4[0].set_current(i3);
+							_g3.setLayer(l4[0]);
 							return;
 						}
 					}
-					_g3.setLayer(l2[0]);
+					_g3.setLayer(l4[0]);
 				};
-			})(l2)),this.allocRef((function(l2) {
+			})(l2)),this.allocRef((function(l5) {
 				return function(_2) {
-					_g3.setLayer(l2[0]);
+					_g3.setLayer(l5[0]);
 				};
 			})(l2)));
 		}
@@ -1574,9 +1581,9 @@ Level.prototype = {
 			var _g5 = e3.which;
 			switch(_g5) {
 			case 1:
-				var l3 = _g3.currentLayer;
-				if(l3 == null) return;
-				var o = l3.getSelObjects()[0];
+				var l6 = _g3.currentLayer;
+				if(l6 == null) return;
+				var o = l6.getSelObjects()[0];
 				var w;
 				if(o == null) w = _g3.currentLayer.currentWidth; else w = o.w;
 				var h;
@@ -1606,7 +1613,8 @@ Level.prototype = {
 							var i4 = insts[p.index];
 							var obj;
 							var this1 = p.layer.getTileObjects();
-							obj = this1.get(i4.o);
+							var key = i4.o;
+							obj = this1.get(key);
 							if(obj != null) {
 								p.layer.currentWidth = obj.w;
 								p.layer.currentHeight = obj.h;
@@ -2092,14 +2100,14 @@ Level.prototype = {
 			var tr = $("<tr>").appendTo(table);
 			var th = $("<th>").text(c[0].name).appendTo(tr);
 			var td = [$("<td>").html(main.valueHtml(c[0],Reflect.field(o,c[0].name),l.baseSheet,o)).appendTo(tr)];
-			td[0].click((function(td,c) {
+			td[0].click((function(td1,c1) {
 				return function(e3) {
 					var psheet = { columns : l.baseSheet.columns, props : l.baseSheet.props, name : l.baseSheet.name, path : SheetData.getPath(l.baseSheet) + ":" + index, parent : { sheet : _g.sheet, column : Lambda.indexOf(_g.sheet.columns,Lambda.find(_g.sheet.columns,(function() {
-						return function(c1) {
-							return c1.name == l.name;
+						return function(c2) {
+							return c2.name == l.name;
 						};
 					})())), line : index}, lines : Reflect.field(_g.obj,l.name), separators : []};
-					main.editCell(c[0],td[0],psheet,index);
+					main.editCell(c1[0],td1[0],psheet,index);
 					e3.preventDefault();
 					e3.stopPropagation();
 				};
@@ -4485,34 +4493,34 @@ Model.prototype = {
 				})();
 				if(a1.opt != b[0].opt) {
 					var oldf = [f[0]];
-					if(a1.opt) f[0] = (function(oldf,b) {
+					if(a1.opt) f[0] = (function(oldf1,b1) {
 						return function(v) {
-							v = oldf[0](v);
-							if(v == null) return _g2.getDefault(b[0]); else return v;
+							v = oldf1[0](v);
+							if(v == null) return _g2.getDefault(b1[0]); else return v;
 						};
 					})(oldf,b); else {
 						var def = [this.getDefault(a1)];
-						f[0] = (function(def,oldf) {
+						f[0] = (function(def1,oldf2) {
 							return function(v1) {
-								if(v1 == def[0]) return null; else return oldf[0](v1);
+								if(v1 == def1[0]) return null; else return oldf2[0](v1);
 							};
 						})(def,oldf);
 					}
 				}
 				var index = [Lambda.indexOf(p.b.args,b[0])];
-				conv.args[Lambda.indexOf(p.a.args,a1)] = (function(index,f,b) {
+				conv.args[Lambda.indexOf(p.a.args,a1)] = (function(index1,f1,b2) {
 					return function(v2) {
-						v2 = f[0](v2);
-						if(v2 == null && b[0].opt) return null; else return { index : index[0], v : v2};
+						v2 = f1[0](v2);
+						if(v2 == null && b2[0].opt) return null; else return { index : index1[0], v : v2};
 					};
 				})(index,f,b);
 			}
 			var _g11 = 0;
 			var _g21 = p.b.args;
 			while(_g11 < _g21.length) {
-				var b1 = _g21[_g11];
+				var b3 = _g21[_g11];
 				++_g11;
-				conv.def.push(this.getDefault(b1));
+				conv.def.push(this.getDefault(b3));
 			}
 			while(conv.def[conv.def.length - 1] == null) conv.def.pop();
 			convMap[Lambda.indexOf(old.cases,p.a)] = conv;
@@ -5035,19 +5043,19 @@ Main.prototype = $extend(Model.prototype,{
 				if(oid == null || oid == "") path.push(s.s.name.split("@").pop() + "[" + rs[0].o.indexes[i] + "]"); else path.push(oid);
 			}
 			$("<td>").text(path.join(".")).appendTo(l);
-			l.click((function(slast,rs) {
+			l.click((function(slast1,rs1) {
 				return function(e) {
 					var key = null;
 					var _g22 = 0;
-					var _g12 = rs[0].s.length - 1;
+					var _g12 = rs1[0].s.length - 1;
 					while(_g22 < _g12) {
 						var i1 = _g22++;
-						var p = rs[0].s[i1];
-						key = SheetData.getPath(p.s) + "@" + p.c + ":" + rs[0].o.indexes[i1];
+						var p = rs1[0].s[i1];
+						key = SheetData.getPath(p.s) + "@" + p.c + ":" + rs1[0].o.indexes[i1];
 						_g3.openedList.set(key,true);
 					}
-					var starget = rs[0].s[0].s;
-					_g3.sheetCursors.set(starget.name,{ s : { name : slast[0].s.name, path : key, separators : [], lines : [], columns : [], props : { }}, x : -1, y : rs[0].o.indexes[rs[0].o.indexes.length - 1]});
+					var starget = rs1[0].s[0].s;
+					_g3.sheetCursors.set(starget.name,{ s : { name : slast1[0].s.name, path : key, separators : [], lines : [], columns : [], props : { }}, x : -1, y : rs1[0].o.indexes[rs1[0].o.indexes.length - 1]});
 					_g3.selectSheet(starget);
 					e.stopPropagation();
 				};
@@ -5362,7 +5370,7 @@ Main.prototype = $extend(Model.prototype,{
 					var k = [_g21[_g11]];
 					++_g11;
 					var m1 = new js_node_webkit_MenuItem({ label : k[0].n});
-					m1.click = (function(k) {
+					m1.click = (function(k1) {
 						return function() {
 							{
 								var _g3 = c.type;
@@ -5373,7 +5381,7 @@ Main.prototype = $extend(Model.prototype,{
 									var _g41 = values.length;
 									while(_g5 < _g41) {
 										var i = _g5++;
-										values[i] = k[0].f(values[i]);
+										values[i] = k1[0].f(values[i]);
 									}
 									break;
 								case 10:
@@ -5382,7 +5390,7 @@ Main.prototype = $extend(Model.prototype,{
 									var _g42 = values1.length;
 									while(_g51 < _g42) {
 										var i1 = _g51++;
-										values1[i1] = k[0].f(values1[i1]);
+										values1[i1] = k1[0].f(values1[i1]);
 									}
 									break;
 								default:
@@ -5394,7 +5402,7 @@ Main.prototype = $extend(Model.prototype,{
 										++_g43;
 										var t = Reflect.field(obj,c.name);
 										if(t != null && t != "") {
-											var t2 = k[0].f(t);
+											var t2 = k1[0].f(t);
 											if(t2 == null && !c.opt) t2 = "";
 											if(t2 == null) Reflect.deleteField(obj,c.name); else {
 												obj[c.name] = t2;
@@ -5431,10 +5439,10 @@ Main.prototype = $extend(Model.prototype,{
 					return s7 - 1;
 				}}];
 				while(_g12 < _g22.length) {
-					var k1 = [_g22[_g12]];
+					var k2 = [_g22[_g12]];
 					++_g12;
-					var m2 = new js_node_webkit_MenuItem({ label : k1[0].n});
-					m2.click = (function(k1) {
+					var m2 = new js_node_webkit_MenuItem({ label : k2[0].n});
+					m2.click = (function(k3) {
 						return function() {
 							var _g31 = 0;
 							var _g44 = SheetData.getLines(sheet);
@@ -5443,7 +5451,7 @@ Main.prototype = $extend(Model.prototype,{
 								++_g31;
 								var t1 = Reflect.field(obj1,c.name);
 								if(t1 != null) {
-									var t21 = k1[0].f(t1);
+									var t21 = k3[0].f(t1);
 									if(c.type == cdb_ColumnType.TInt) t21 = t21 | 0;
 									obj1[c.name] = t21;
 								}
@@ -5451,7 +5459,7 @@ Main.prototype = $extend(Model.prototype,{
 							_g4.refresh();
 							_g4.save();
 						};
-					})(k1);
+					})(k2);
 					cm1.append(m2);
 				}
 				conv1.submenu = cm1;
@@ -5760,9 +5768,9 @@ Main.prototype = $extend(Model.prototype,{
 							}
 						}
 						if(val2 != val && val2 != null) {
-							var this2 = _g.smap.get(sheet.name).index;
+							var this11 = _g.smap.get(sheet.name).index;
 							var key1 = val2;
-							prevTarget = this2.get(key1);
+							prevTarget = this11.get(key1);
 							if(c.type == cdb_ColumnType.TId && val != null && (prevObj == null || prevObj.obj == obj)) {
 								var m = new haxe_ds_StringMap();
 								var key2 = val;
@@ -5779,14 +5787,14 @@ Main.prototype = $extend(Model.prototype,{
 					editDone();
 					if(c.type == cdb_ColumnType.TId && prevObj != null && old1 != val && (prevObj.obj == obj && (function($this) {
 						var $r;
-						var this3 = _g.smap.get(sheet.name).index;
-						$r = this3.get(old1);
+						var this12 = _g.smap.get(sheet.name).index;
+						$r = this12.get(old1);
 						return $r;
 					}(this)) != null || prevTarget != null && ((function($this) {
 						var $r;
-						var this4 = _g.smap.get(sheet.name).index;
+						var this13 = _g.smap.get(sheet.name).index;
 						var key3 = val;
-						$r = this4.get(key3);
+						$r = this13.get(key3);
 						return $r;
 					}(this))).obj != prevTarget.obj)) {
 						_g.refresh();
@@ -5966,10 +5974,10 @@ Main.prototype = $extend(Model.prototype,{
 				var _g18 = values1.length;
 				while(_g22 < _g18) {
 					var i4 = [_g22++];
-					var f1 = $("<input>").attr("type","checkbox").prop("checked",(val & 1 << i4[0]) != 0).change((function(i4) {
+					var f1 = $("<input>").attr("type","checkbox").prop("checked",(val & 1 << i4[0]) != 0).change((function(i5) {
 						return function(e11) {
-							val &= ~(1 << i4[0]);
-							if($(this).prop("checked")) val |= 1 << i4[0];
+							val &= ~(1 << i5[0]);
+							if($(this).prop("checked")) val |= 1 << i5[0];
 							e11.stopPropagation();
 						};
 					})(i4));
@@ -6132,10 +6140,10 @@ Main.prototype = $extend(Model.prototype,{
 				var l = $("<tr>");
 				l.data("index",i[0]);
 				var head = [$("<td>").addClass("start").text("" + i[0])];
-				l.mousedown((function(head,i) {
+				l.mousedown((function(head1,i1) {
 					return function(e1) {
 						if(e1.which == 3) {
-							head[0].click();
+							head1[0].click();
 							haxe_Timer.delay(((function() {
 								return function(f,a1,a2) {
 									return (function() {
@@ -6144,17 +6152,17 @@ Main.prototype = $extend(Model.prototype,{
 										};
 									})();
 								};
-							})())($bind(_g4,_g4.popupLine),sheet,i[0]),1);
+							})())($bind(_g4,_g4.popupLine),sheet,i1[0]),1);
 							e1.preventDefault();
 							return;
 						}
 					};
-				})(head,i)).click((function(i) {
+				})(head,i)).click((function(i2) {
 					return function(e2) {
 						if(e2.shiftKey && _g4.cursor.s == sheet && _g4.cursor.x < 0) {
-							_g4.cursor.select = { x : -1, y : i[0]};
+							_g4.cursor.select = { x : -1, y : i2[0]};
 							_g4.updateCursor();
-						} else _g4.setCursor(sheet,-1,i[0]);
+						} else _g4.setCursor(sheet,-1,i2[0]);
 					};
 				})(i));
 				head[0].appendTo(l);
@@ -6174,26 +6182,26 @@ Main.prototype = $extend(Model.prototype,{
 			col.text(c[0].name);
 			col.css("width",(100 / colCount | 0) + "%");
 			if(sheet.props.displayColumn == c[0].name) col.addClass("display");
-			col.mousedown((function(c) {
+			col.mousedown((function(c1) {
 				return function(e3) {
 					if(e3.which == 3) {
 						haxe_Timer.delay(((function() {
-							return function(f1,a11,c1) {
+							return function(f1,a11,c2) {
 								return (function() {
 									return function() {
-										f1(a11,c1);
+										f1(a11,c2);
 									};
 								})();
 							};
-						})())($bind(_g4,_g4.popupColumn),sheet,c[0]),1);
+						})())($bind(_g4,_g4.popupColumn),sheet,c1[0]),1);
 						e3.preventDefault();
 						return;
 					}
 				};
 			})(c));
-			col.dblclick((function(c) {
+			col.dblclick((function(c3) {
 				return function(_1) {
-					_g4.newColumn(sheet.name,c[0]);
+					_g4.newColumn(sheet.name,c3[0]);
 				};
 			})(c));
 			cols.append(col);
@@ -6210,35 +6218,35 @@ Main.prototype = $extend(Model.prototype,{
 				var html = [this.valueHtml(c[0],val[0],sheet,obj[0])];
 				if(html[0] == "&nbsp;") v[0].text(" "); else if(html[0].indexOf("<") < 0 && html[0].indexOf("&") < 0) v[0].text(html[0]); else v[0].html(html[0]);
 				v[0].data("index",cindex[0]);
-				v[0].click((function(index,cindex) {
+				v[0].click((function(index2,cindex1) {
 					return function(e4) {
 						if(inTodo) {
 						} else if(e4.shiftKey && _g4.cursor.s == sheet) {
-							_g4.cursor.select = { x : cindex[0], y : index[0]};
+							_g4.cursor.select = { x : cindex1[0], y : index2[0]};
 							_g4.updateCursor();
 							e4.stopImmediatePropagation();
-						} else _g4.setCursor(sheet,cindex[0],index[0]);
+						} else _g4.setCursor(sheet,cindex1[0],index2[0]);
 						e4.stopPropagation();
 					};
 				})(index,cindex));
-				var set = [(function(html,v,val,obj,index,c) {
+				var set = [(function(html1,v1,val1,obj1,index1,c4) {
 					return function(val2) {
-						var old = val[0];
-						val[0] = val2;
-						if(val[0] == null) Reflect.deleteField(obj[0],c[0].name); else obj[0][c[0].name] = val[0];
-						html[0] = _g4.valueHtml(c[0],val[0],sheet,obj[0]);
-						v[0].html(html[0]);
-						_g4.changed(sheet,c[0],index[0],old);
+						var old = val1[0];
+						val1[0] = val2;
+						if(val1[0] == null) Reflect.deleteField(obj1[0],c4[0].name); else obj1[0][c4[0].name] = val1[0];
+						html1[0] = _g4.valueHtml(c4[0],val1[0],sheet,obj1[0]);
+						v1[0].html(html1[0]);
+						_g4.changed(sheet,c4[0],index1[0],old);
 					};
 				})(html,v,val,obj,index,c)];
 				{
 					var _g6 = c[0].type;
 					switch(_g6[1]) {
 					case 7:
-						v[0].find("img").addClass("deletable").change((function(obj,c) {
+						v[0].find("img").addClass("deletable").change((function(obj2,c5) {
 							return function(e5) {
-								if(Reflect.field(obj[0],c[0].name) != null) {
-									Reflect.deleteField(obj[0],c[0].name);
+								if(Reflect.field(obj2[0],c5[0].name) != null) {
+									Reflect.deleteField(obj2[0],c5[0].name);
 									_g4.refresh();
 									_g4.save();
 								}
@@ -6249,57 +6257,57 @@ Main.prototype = $extend(Model.prototype,{
 								e6.stopPropagation();
 							};
 						})());
-						v[0].dblclick((function(v,index,c) {
+						v[0].dblclick((function(v2,index3,c6) {
 							return function(_2) {
-								_g4.editCell(c[0],v[0],sheet,index[0]);
+								_g4.editCell(c6[0],v2[0],sheet,index3[0]);
 							};
 						})(v,index,c));
 						break;
 					case 8:
 						var key = [SheetData.getPath(sheet) + "@" + c[0].name + ":" + index[0]];
-						v[0].click((function(key,html,l1,v,val,obj,index,c,cindex) {
+						v[0].click((function(key1,html2,l2,v3,val3,obj3,index4,c7,cindex2) {
 							return function(e7) {
-								var next = l1[0].next("tr.list");
+								var next = l2[0].next("tr.list");
 								if(next.length > 0) {
-									if(next.data("name") == c[0].name) {
+									if(next.data("name") == c7[0].name) {
 										next.change();
 										return;
 									}
 									next.change();
 								}
-								next = $("<tr>").addClass("list").data("name",c[0].name);
+								next = $("<tr>").addClass("list").data("name",c7[0].name);
 								$("<td>").appendTo(next);
 								var cell = $("<td>").attr("colspan","" + colCount).appendTo(next);
 								var div = $("<div>").appendTo(cell);
 								if(!inTodo) div.hide();
 								var content1 = $("<table>").appendTo(div);
-								var psheet = SheetData.model.smap.get(sheet.name + "@" + c[0].name).s;
-								if(val[0] == null) {
-									val[0] = [];
-									obj[0][c[0].name] = val[0];
+								var psheet = SheetData.model.smap.get(sheet.name + "@" + c7[0].name).s;
+								if(val3[0] == null) {
+									val3[0] = [];
+									obj3[0][c7[0].name] = val3[0];
 								}
-								psheet = { columns : psheet.columns, props : psheet.props, name : psheet.name, path : key[0], parent : { sheet : sheet, column : cindex[0], line : index[0]}, lines : val[0], separators : []};
+								psheet = { columns : psheet.columns, props : psheet.props, name : psheet.name, path : key1[0], parent : { sheet : sheet, column : cindex2[0], line : index4[0]}, lines : val3[0], separators : []};
 								_g4.fillTable(content1,psheet);
-								next.insertAfter(l1[0]);
-								v[0].text("...");
-								_g4.openedList.set(key[0],true);
-								next.change((function(key,html,v,val,obj,c) {
+								next.insertAfter(l2[0]);
+								v3[0].text("...");
+								_g4.openedList.set(key1[0],true);
+								next.change((function(key2,html3,v4,val4,obj4,c8) {
 									return function(e8) {
-										if(c[0].opt && val[0].length == 0) {
-											val[0] = null;
-											Reflect.deleteField(obj[0],c[0].name);
+										if(c8[0].opt && val4[0].length == 0) {
+											val4[0] = null;
+											Reflect.deleteField(obj4[0],c8[0].name);
 										}
-										html[0] = _g4.valueHtml(c[0],val[0],sheet,obj[0]);
-										v[0].html(html[0]);
+										html3[0] = _g4.valueHtml(c8[0],val4[0],sheet,obj4[0]);
+										v4[0].html(html3[0]);
 										div.slideUp(100,(function() {
 											return function() {
 												next.remove();
 											};
 										})());
-										_g4.openedList.remove(key[0]);
+										_g4.openedList.remove(key2[0]);
 										e8.stopPropagation();
 									};
-								})(key,html,v,val,obj,c));
+								})(key1,html2,v3,val3,obj3,c7));
 								if(inTodo) {
 									if(_g4.cursor.s != null && SheetData.getPath(_g4.cursor.s) == SheetData.getPath(psheet)) {
 										_g4.cursor.s = psheet;
@@ -6312,48 +6320,48 @@ Main.prototype = $extend(Model.prototype,{
 								e7.stopPropagation();
 							};
 						})(key,html,l1,v,val,obj,index,c,cindex));
-						if(this.openedList.get(key[0])) todo.push((function(v) {
+						if(this.openedList.get(key[0])) todo.push((function(v5) {
 							return function() {
-								v[0].click();
+								v5[0].click();
 							};
 						})(v));
 						break;
 					case 12:
 						break;
 					case 13:
-						v[0].find("input").addClass("deletable").change((function(obj,c) {
+						v[0].find("input").addClass("deletable").change((function(obj5,c9) {
 							return function(e9) {
-								if(Reflect.field(obj[0],c[0].name) != null) {
-									Reflect.deleteField(obj[0],c[0].name);
+								if(Reflect.field(obj5[0],c9[0].name) != null) {
+									Reflect.deleteField(obj5[0],c9[0].name);
 									_g4.refresh();
 									_g4.save();
 								}
 							};
 						})(obj,c));
-						v[0].dblclick((function(set) {
+						v[0].dblclick((function(set1) {
 							return function(_3) {
-								_g4.chooseFile((function(set) {
+								_g4.chooseFile((function(set2) {
 									return function(path) {
-										set[0](path);
+										set2[0](path);
 										_g4.save();
 									};
-								})(set));
+								})(set1));
 							};
 						})(set));
 						break;
 					case 14:
-						v[0].find("div").addClass("deletable").change((function(obj,c) {
+						v[0].find("div").addClass("deletable").change((function(obj6,c10) {
 							return function(e10) {
-								if(Reflect.field(obj[0],c[0].name) != null) {
-									Reflect.deleteField(obj[0],c[0].name);
+								if(Reflect.field(obj6[0],c10[0].name) != null) {
+									Reflect.deleteField(obj6[0],c10[0].name);
 									_g4.refresh();
 									_g4.save();
 								}
 							};
 						})(obj,c));
-						v[0].dblclick((function(set,v,val,index,c) {
+						v[0].dblclick((function(set3,v6,val5,index5,c11) {
 							return function(_4) {
-								var rv = val[0];
+								var rv = val5[0];
 								var file;
 								if(rv == null) file = null; else file = rv.file;
 								var size;
@@ -6369,33 +6377,33 @@ Main.prototype = $extend(Model.prototype,{
 								if(width == null) width = 1;
 								if(height == null) height = 1;
 								if(file == null) {
-									var i2 = index[0] - 1;
-									while(i2 >= 0) {
-										var o = sheet.lines[i2--];
-										var v2 = Reflect.field(o,c[0].name);
-										if(v2 != null) {
-											file = v2.file;
-											size = v2.size;
+									var i4 = index5[0] - 1;
+									while(i4 >= 0) {
+										var o = sheet.lines[i4--];
+										var v21 = Reflect.field(o,c11[0].name);
+										if(v21 != null) {
+											file = v21.file;
+											size = v21.size;
 											break;
 										}
 									}
 								}
-								var setVal = (function(set) {
+								var setVal = (function(set4) {
 									return function() {
-										var v1 = { file : file, size : size, x : posX, y : posY};
-										if(width != 1) v1.width = width;
-										if(height != 1) v1.height = height;
-										set[0](v1);
+										var v7 = { file : file, size : size, x : posX, y : posY};
+										if(width != 1) v7.width = width;
+										if(height != 1) v7.height = height;
+										set4[0](v7);
 									};
-								})(set);
+								})(set3);
 								if(file == null) {
-									_g4.chooseFile((function(v) {
+									_g4.chooseFile((function(v8) {
 										return function(path1) {
 											file = path1;
 											setVal();
-											v[0].dblclick();
+											v8[0].dblclick();
 										};
-									})(v));
+									})(v6));
 									return;
 								}
 								var dialog = $($(".tileSelect").parent().html()).prependTo($("body"));
@@ -6443,19 +6451,19 @@ Main.prototype = $extend(Model.prototype,{
 										dialog.remove();
 									};
 								})());
-								dialog.find("[name=file]").click((function(v) {
+								dialog.find("[name=file]").click((function(v9) {
 									return function(_10) {
-										_g4.chooseFile((function(v) {
+										_g4.chooseFile((function(v10) {
 											return function(f2) {
 												file = f2;
 												dialog.remove();
 												setVal();
 												_g4.save();
-												v[0].dblclick();
+												v10[0].dblclick();
 											};
-										})(v));
+										})(v9));
 									};
-								})(v));
+								})(v6));
 								dialog.keydown((function() {
 									return function(e12) {
 										e12.stopPropagation();
@@ -6466,25 +6474,25 @@ Main.prototype = $extend(Model.prototype,{
 									};
 								})());
 								dialog.show();
-								var i1;
+								var i3;
 								var _this = window.document;
-								i1 = _this.createElement("img");
-								i1.onload = (function() {
+								i3 = _this.createElement("img");
+								i3.onload = (function() {
 									return function(_11) {
-										maxWidth = i1.width;
-										maxHeight = i1.height;
-										dialog.find(".tileView").height(i1.height).width(i1.width);
-										dialog.find(".tilePath").text(file + " (" + i1.width + "x" + i1.height + ")");
+										maxWidth = i3.width;
+										maxHeight = i3.height;
+										dialog.find(".tileView").height(i3.height).width(i3.width);
+										dialog.find(".tilePath").text(file + " (" + i3.width + "x" + i3.height + ")");
 									};
 								})();
-								i1.src = _g4.getAbsPath(file);
+								i3.src = _g4.getAbsPath(file);
 							};
 						})(set,v,val,index,c));
 						break;
 					default:
-						v[0].dblclick((function(v,index,c) {
+						v[0].dblclick((function(v11,index6,c12) {
 							return function(e14) {
-								_g4.editCell(c[0],v[0],sheet,index[0]);
+								_g4.editCell(c12[0],v11[0],sheet,index6[0]);
 							};
 						})(v,index,c));
 					}
@@ -6492,11 +6500,11 @@ Main.prototype = $extend(Model.prototype,{
 			}
 		}
 		if(sheet.lines.length == 0) {
-			var l2 = $("<tr><td colspan=\"" + (sheet.columns.length + 1) + "\"><a href=\"javascript:_.insertLine()\">Insert Line</a></td></tr>");
-			l2.find("a").click(function(_12) {
+			var l3 = $("<tr><td colspan=\"" + (sheet.columns.length + 1) + "\"><a href=\"javascript:_.insertLine()\">Insert Line</a></td></tr>");
+			l3.find("a").click(function(_12) {
 				_g4.setCursor(sheet);
 			});
-			lines.push(l2);
+			lines.push(l3);
 		}
 		if(sheet.props.level != null) {
 			var col1 = $("<td style='width:35px'>");
@@ -6504,29 +6512,29 @@ Main.prototype = $extend(Model.prototype,{
 			var _g32 = 0;
 			var _g23 = sheet.lines.length;
 			while(_g32 < _g23) {
-				var index1 = [_g32++];
-				var l3 = [lines[index1[0]]];
-				var c2 = $("<input type='submit' value='Edit'>");
-				$("<td>").append(c2).prependTo(l3[0]);
-				c2.click((function(l3,index1) {
+				var index7 = [_g32++];
+				var l4 = [lines[index7[0]]];
+				var c13 = $("<input type='submit' value='Edit'>");
+				$("<td>").append(c13).prependTo(l4[0]);
+				c13.click((function(l5,index8) {
 					return function(_13) {
-						l3[0].click();
+						l5[0].click();
 						var found = null;
 						var _g51 = 0;
 						var _g61 = _g4.levels;
 						while(_g51 < _g61.length) {
-							var l4 = _g61[_g51];
+							var l6 = _g61[_g51];
 							++_g51;
-							if(l4.sheet == sheet && l4.index == index1[0]) found = l4;
+							if(l6.sheet == sheet && l6.index == index8[0]) found = l6;
 						}
 						if(found == null) {
-							found = new Level(_g4,sheet,index1[0]);
+							found = new Level(_g4,sheet,index8[0]);
 							_g4.levels.push(found);
 							_g4.selectLevel(found);
 							_g4.initContent();
 						} else _g4.selectLevel(found);
 					};
-				})(l3,index1));
+				})(l4,index7));
 			}
 		}
 		content.empty();
@@ -6535,48 +6543,48 @@ Main.prototype = $extend(Model.prototype,{
 		var _g33 = 0;
 		var _g24 = lines.length;
 		while(_g33 < _g24) {
-			var i3 = _g33++;
-			while(sheet.separators[snext] == i3) {
+			var i5 = _g33++;
+			while(sheet.separators[snext] == i5) {
 				var sep = $("<tr>").addClass("separator").append("<td colspan=\"" + (colCount + 1) + "\">").appendTo(content);
 				var content2 = [sep.find("td")];
 				var title = [sheet.props.separatorTitles != null?sheet.props.separatorTitles[snext]:null];
 				if(title[0] != null) content2[0].text(title[0]);
 				var pos = [snext];
-				sep.dblclick((function(pos,title,content2) {
+				sep.dblclick((function(pos1,title1,content3) {
 					return function(e15) {
-						content2[0].empty();
-						$("<input>").appendTo(content2[0]).focus().val(title[0] == null?"":title[0]).blur((function(pos,title,content2) {
+						content3[0].empty();
+						$("<input>").appendTo(content3[0]).focus().val(title1[0] == null?"":title1[0]).blur((function(pos2,title2,content4) {
 							return function(_14) {
-								title[0] = $(this).val();
+								title2[0] = $(this).val();
 								$(this).remove();
-								content2[0].text(title[0]);
+								content4[0].text(title2[0]);
 								var titles = sheet.props.separatorTitles;
 								if(titles == null) titles = [];
-								while(titles.length < pos[0]) titles.push(null);
-								if(title[0] == "") titles[pos[0]] = null; else titles[pos[0]] = title[0];
+								while(titles.length < pos2[0]) titles.push(null);
+								if(title2[0] == "") titles[pos2[0]] = null; else titles[pos2[0]] = title2[0];
 								while(titles[titles.length - 1] == null && titles.length > 0) titles.pop();
 								if(titles.length == 0) titles = null;
 								sheet.props.separatorTitles = titles;
 								_g4.save();
 							};
-						})(pos,title,content2)).keypress((function() {
+						})(pos1,title1,content3)).keypress((function() {
 							return function(e16) {
 								e16.stopPropagation();
 							};
-						})()).keydown((function(title,content2) {
+						})()).keydown((function(title3,content5) {
 							return function(e17) {
 								if(e17.keyCode == 13) {
 									$(this).blur();
 									e17.preventDefault();
-								} else if(e17.keyCode == 27) content2[0].text(title[0]);
+								} else if(e17.keyCode == 27) content5[0].text(title3[0]);
 								e17.stopPropagation();
 							};
-						})(title,content2));
+						})(title1,content3));
 					};
 				})(pos,title,content2));
 				snext++;
 			}
-			content.append(lines[i3]);
+			content.append(lines[i5]);
 		}
 		inTodo = true;
 		var _g25 = 0;
@@ -6765,9 +6773,9 @@ Main.prototype = $extend(Model.prototype,{
 			while(_g14 < types.length) {
 				var t4 = [types[_g14]];
 				++_g14;
-				if(!Lambda.exists(tpairs,(function(t4) {
+				if(!Lambda.exists(tpairs,(function(t5) {
 					return function(p1) {
-						return p1.b == t4[0];
+						return p1.b == t5[0];
 					};
 				})(t4))) _g.data.customTypes.push(t4[0]);
 			}
@@ -7086,16 +7094,16 @@ Main.prototype = $extend(Model.prototype,{
 			var s1 = [this.data.sheets[i]];
 			if(s1[0].props.hide) continue;
 			var li = [$("<li>")];
-			li[0].text(s1[0].name).attr("id","sheet_" + i).appendTo(sheets).click((function(s1) {
+			li[0].text(s1[0].name).attr("id","sheet_" + i).appendTo(sheets).click((function(s2) {
 				return function(_) {
-					_g2.selectSheet(s1[0]);
+					_g2.selectSheet(s2[0]);
 				};
-			})(s1)).dblclick((function(li,s1) {
+			})(s1)).dblclick((function(li1,s3) {
 				return function(_1) {
-					li[0].empty();
-					$("<input>").val(s1[0].name).appendTo(li[0]).focus().blur((function(li,s1) {
+					li1[0].empty();
+					$("<input>").val(s3[0].name).appendTo(li1[0]).focus().blur((function(li2,s4) {
 						return function(_2) {
-							li[0].text(s1[0].name);
+							li2[0].text(s4[0].name);
 							var name = $(this).val();
 							if(!_g2.r_ident.match(name)) {
 								_g2.error("Invalid sheet name");
@@ -7103,11 +7111,11 @@ Main.prototype = $extend(Model.prototype,{
 							}
 							var f = _g2.smap.get(name);
 							if(f != null) {
-								if(f.s != s1[0]) _g2.error("Sheet name already in use");
+								if(f.s != s4[0]) _g2.error("Sheet name already in use");
 								return;
 							}
-							var old1 = s1[0].name;
-							s1[0].name = name;
+							var old1 = s4[0].name;
+							s4[0].name = name;
 							_g2.mapType((function() {
 								return function(t) {
 									switch(t[1]) {
@@ -7127,14 +7135,14 @@ Main.prototype = $extend(Model.prototype,{
 							var _g3 = 0;
 							var _g4 = _g2.data.sheets;
 							while(_g3 < _g4.length) {
-								var s2 = _g4[_g3];
+								var s5 = _g4[_g3];
 								++_g3;
-								if(StringTools.startsWith(s2.name,old1 + "@")) s2.name = name + "@" + HxOverrides.substr(s2.name,old1.length + 1,null);
+								if(StringTools.startsWith(s5.name,old1 + "@")) s5.name = name + "@" + HxOverrides.substr(s5.name,old1.length + 1,null);
 							}
 							_g2.initContent();
 							_g2.save();
 						};
-					})(li,s1)).keydown((function() {
+					})(li1,s3)).keydown((function() {
 						return function(e) {
 							if(e.keyCode == 13) $(this).blur(); else if(e.keyCode == 27) _g2.initContent();
 							e.stopPropagation();
@@ -7145,18 +7153,18 @@ Main.prototype = $extend(Model.prototype,{
 						};
 					})());
 				};
-			})(li,s1)).mousedown((function(li,s1) {
+			})(li,s1)).mousedown((function(li3,s6) {
 				return function(e2) {
 					if(e2.which == 3) {
 						haxe_Timer.delay(((function() {
-							return function(f1,s3,li1) {
+							return function(f1,s7,li4) {
 								return (function() {
 									return function() {
-										f1(s3,li1);
+										f1(s7,li4);
 									};
 								})();
 							};
-						})())($bind(_g2,_g2.popupSheet),s1[0],li[0]),1);
+						})())($bind(_g2,_g2.popupSheet),s6[0],li3[0]),1);
 						e2.stopPropagation();
 					}
 				};
@@ -7174,17 +7182,17 @@ Main.prototype = $extend(Model.prototype,{
 			var level = old[_g5];
 			++_g5;
 			if(!this.smap.exists(level.sheetPath)) continue;
-			var s4 = this.smap.get(level.sheetPath).s;
-			if(s4.lines.length < level.index) continue;
-			var l = [new Level(this,s4,level.index)];
+			var s8 = this.smap.get(level.sheetPath).s;
+			if(s8.lines.length < level.index) continue;
+			var l = [new Level(this,s8,level.index)];
 			if(level == this.level) lcur = l[0];
 			this.levels.push(l[0]);
-			var li2 = $("<li>");
+			var li5 = $("<li>");
 			var name1 = level.getName();
 			if(name1 == "") name1 = "???";
-			li2.text(name1).attr("id","level_" + l[0].sheetPath.split(".").join("_") + "_" + l[0].index).appendTo(sheets).click((function(l) {
+			li5.text(name1).attr("id","level_" + l[0].sheetPath.split(".").join("_") + "_" + l[0].index).appendTo(sheets).click((function(l1) {
 				return function(_3) {
-					_g2.selectLevel(l[0]);
+					_g2.selectLevel(l1[0]);
 				};
 			})(l));
 		}
@@ -7309,9 +7317,9 @@ Main.prototype = $extend(Model.prototype,{
 			var file = [_g11[_g1]];
 			++_g1;
 			var m = new js_node_webkit_MenuItem({ label : file[0]});
-			m.click = (function(file) {
+			m.click = (function(file1) {
 				return function() {
-					_g.prefs.curFile = file[0];
+					_g.prefs.curFile = file1[0];
 					_g.load();
 				};
 			})(file);
@@ -10433,23 +10441,24 @@ cdb_IndexId.prototype = $extend(cdb_Index.prototype,{
 	}
 	,__class__: cdb_IndexId
 });
-var cdb_jq_Message = $hxClasses["cdb.jq.Message"] = { __ename__ : ["cdb","jq","Message"], __constructs__ : ["Create","AddClass","RemoveClass","Append","CreateText","Reset","Dock","Remove","Event","SetAttr","SetStyle","Trigger","Special","Anim","Dispose","Unbind"] };
+var cdb_jq_Message = $hxClasses["cdb.jq.Message"] = { __ename__ : ["cdb","jq","Message"], __constructs__ : ["Create","AddClass","RemoveClass","Append","InsertAt","CreateText","Reset","Dock","Remove","Event","SetAttr","SetStyle","Trigger","Special","Anim","Dispose","Unbind"] };
 cdb_jq_Message.Create = function(id,name,attr) { var $x = ["Create",0,id,name,attr]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
 cdb_jq_Message.AddClass = function(id,name) { var $x = ["AddClass",1,id,name]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
 cdb_jq_Message.RemoveClass = function(id,name) { var $x = ["RemoveClass",2,id,name]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
 cdb_jq_Message.Append = function(id,to) { var $x = ["Append",3,id,to]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
-cdb_jq_Message.CreateText = function(id,text,pid) { var $x = ["CreateText",4,id,text,pid]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
-cdb_jq_Message.Reset = function(id) { var $x = ["Reset",5,id]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
-cdb_jq_Message.Dock = function(pid,id,dir,size) { var $x = ["Dock",6,pid,id,dir,size]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
-cdb_jq_Message.Remove = function(id) { var $x = ["Remove",7,id]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
-cdb_jq_Message.Event = function(id,name,eid) { var $x = ["Event",8,id,name,eid]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
-cdb_jq_Message.SetAttr = function(id,att,val) { var $x = ["SetAttr",9,id,att,val]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
-cdb_jq_Message.SetStyle = function(id,st,val) { var $x = ["SetStyle",10,id,st,val]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
-cdb_jq_Message.Trigger = function(id,name) { var $x = ["Trigger",11,id,name]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
-cdb_jq_Message.Special = function(id,name,args,eid) { var $x = ["Special",12,id,name,args,eid]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
-cdb_jq_Message.Anim = function(id,name,dur) { var $x = ["Anim",13,id,name,dur]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
-cdb_jq_Message.Dispose = function(id,events) { var $x = ["Dispose",14,id,events]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
-cdb_jq_Message.Unbind = function(events) { var $x = ["Unbind",15,events]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
+cdb_jq_Message.InsertAt = function(id,to,pos) { var $x = ["InsertAt",4,id,to,pos]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
+cdb_jq_Message.CreateText = function(id,text,pid) { var $x = ["CreateText",5,id,text,pid]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
+cdb_jq_Message.Reset = function(id) { var $x = ["Reset",6,id]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
+cdb_jq_Message.Dock = function(pid,id,dir,size) { var $x = ["Dock",7,pid,id,dir,size]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
+cdb_jq_Message.Remove = function(id) { var $x = ["Remove",8,id]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
+cdb_jq_Message.Event = function(id,name,eid) { var $x = ["Event",9,id,name,eid]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
+cdb_jq_Message.SetAttr = function(id,att,val) { var $x = ["SetAttr",10,id,att,val]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
+cdb_jq_Message.SetStyle = function(id,st,val) { var $x = ["SetStyle",11,id,st,val]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
+cdb_jq_Message.Trigger = function(id,name) { var $x = ["Trigger",12,id,name]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
+cdb_jq_Message.Special = function(id,name,args,eid) { var $x = ["Special",13,id,name,args,eid]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
+cdb_jq_Message.Anim = function(id,name,dur) { var $x = ["Anim",14,id,name,dur]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
+cdb_jq_Message.Dispose = function(id,events) { var $x = ["Dispose",15,id,events]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
+cdb_jq_Message.Unbind = function(events) { var $x = ["Unbind",16,events]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
 var cdb_jq_Answer = $hxClasses["cdb.jq.Answer"] = { __ename__ : ["cdb","jq","Answer"], __constructs__ : ["Event","SetValue","Done"] };
 cdb_jq_Answer.Event = function(eid,props) { var $x = ["Event",0,eid,props]; $x.__enum__ = cdb_jq_Answer; $x.toString = $estr; return $x; };
 cdb_jq_Answer.SetValue = function(id,value) { var $x = ["SetValue",1,id,value]; $x.__enum__ = cdb_jq_Answer; $x.toString = $estr; return $x; };
@@ -10660,7 +10669,7 @@ haxe_Unserializer.prototype = {
 			if(n2 < 0 || n2 >= this.scache.length) throw new js__$Boot_HaxeError("Invalid string reference");
 			return this.scache[n2];
 		case 120:
-			throw new js__$Boot_HaxeError(this.unserialize());
+			throw js__$Boot_HaxeError.wrap(this.unserialize());
 			break;
 		case 99:
 			var name = this.unserialize();
@@ -11617,6 +11626,9 @@ var js__$Boot_HaxeError = function(val) {
 };
 $hxClasses["js._Boot.HaxeError"] = js__$Boot_HaxeError;
 js__$Boot_HaxeError.__name__ = ["js","_Boot","HaxeError"];
+js__$Boot_HaxeError.wrap = function(val) {
+	if((val instanceof Error)) return val; else return new js__$Boot_HaxeError(val);
+};
 js__$Boot_HaxeError.__super__ = Error;
 js__$Boot_HaxeError.prototype = $extend(Error.prototype,{
 	__class__: js__$Boot_HaxeError
@@ -11817,97 +11829,6 @@ js_html__$CanvasElement_CanvasUtil.getContextWebGL = function(canvas,attribs) {
 		if(ctx != null) return ctx;
 	}
 	return null;
-};
-var js_html_compat_ArrayBuffer = function(a) {
-	if((a instanceof Array) && a.__enum__ == null) {
-		this.a = a;
-		this.byteLength = a.length;
-	} else {
-		var len = a;
-		this.a = [];
-		var _g = 0;
-		while(_g < len) {
-			var i = _g++;
-			this.a[i] = 0;
-		}
-		this.byteLength = len;
-	}
-};
-$hxClasses["js.html.compat.ArrayBuffer"] = js_html_compat_ArrayBuffer;
-js_html_compat_ArrayBuffer.__name__ = ["js","html","compat","ArrayBuffer"];
-js_html_compat_ArrayBuffer.sliceImpl = function(begin,end) {
-	var u = new Uint8Array(this,begin,end == null?null:end - begin);
-	var result = new ArrayBuffer(u.byteLength);
-	var resultArray = new Uint8Array(result);
-	resultArray.set(u);
-	return result;
-};
-js_html_compat_ArrayBuffer.prototype = {
-	slice: function(begin,end) {
-		return new js_html_compat_ArrayBuffer(this.a.slice(begin,end));
-	}
-	,__class__: js_html_compat_ArrayBuffer
-};
-var js_html_compat_Uint8Array = function() { };
-$hxClasses["js.html.compat.Uint8Array"] = js_html_compat_Uint8Array;
-js_html_compat_Uint8Array.__name__ = ["js","html","compat","Uint8Array"];
-js_html_compat_Uint8Array._new = function(arg1,offset,length) {
-	var arr;
-	if(typeof(arg1) == "number") {
-		arr = [];
-		var _g = 0;
-		while(_g < arg1) {
-			var i = _g++;
-			arr[i] = 0;
-		}
-		arr.byteLength = arr.length;
-		arr.byteOffset = 0;
-		arr.buffer = new js_html_compat_ArrayBuffer(arr);
-	} else if(js_Boot.__instanceof(arg1,js_html_compat_ArrayBuffer)) {
-		var buffer = arg1;
-		if(offset == null) offset = 0;
-		if(length == null) length = buffer.byteLength - offset;
-		if(offset == 0) arr = buffer.a; else arr = buffer.a.slice(offset,offset + length);
-		arr.byteLength = arr.length;
-		arr.byteOffset = offset;
-		arr.buffer = buffer;
-	} else if((arg1 instanceof Array) && arg1.__enum__ == null) {
-		arr = arg1.slice();
-		arr.byteLength = arr.length;
-		arr.byteOffset = 0;
-		arr.buffer = new js_html_compat_ArrayBuffer(arr);
-	} else throw new js__$Boot_HaxeError("TODO " + Std.string(arg1));
-	arr.subarray = js_html_compat_Uint8Array._subarray;
-	arr.set = js_html_compat_Uint8Array._set;
-	return arr;
-};
-js_html_compat_Uint8Array._set = function(arg,offset) {
-	var t = this;
-	if(js_Boot.__instanceof(arg.buffer,js_html_compat_ArrayBuffer)) {
-		var a = arg;
-		if(arg.byteLength + offset > t.byteLength) throw new js__$Boot_HaxeError("set() outside of range");
-		var _g1 = 0;
-		var _g = arg.byteLength;
-		while(_g1 < _g) {
-			var i = _g1++;
-			t[i + offset] = a[i];
-		}
-	} else if((arg instanceof Array) && arg.__enum__ == null) {
-		var a1 = arg;
-		if(a1.length + offset > t.byteLength) throw new js__$Boot_HaxeError("set() outside of range");
-		var _g11 = 0;
-		var _g2 = a1.length;
-		while(_g11 < _g2) {
-			var i1 = _g11++;
-			t[i1 + offset] = a1[i1];
-		}
-	} else throw new js__$Boot_HaxeError("TODO");
-};
-js_html_compat_Uint8Array._subarray = function(start,end) {
-	var t = this;
-	var a = js_html_compat_Uint8Array._new(t.slice(start,end));
-	a.byteOffset = start;
-	return a;
 };
 var js_node_Fs = require("fs");
 var js_node_Net = require("net");
@@ -12464,10 +12385,10 @@ lvl_LayerGfx.prototype = {
 					}
 					this.level.wait();
 					imageTags[idx[0]] = true;
-					lvl_Image.load(idat,(function(idx,size) {
+					lvl_Image.load(idat,(function(idx1,size1) {
 						return function(i1) {
-							i1.resize(size[0],size[0]);
-							_g5.images[idx[0]] = i1;
+							i1.resize(size1[0],size1[0]);
+							_g5.images[idx1[0]] = i1;
 							_g5.level.waitDone();
 						};
 					})(idx,size));
@@ -12475,33 +12396,33 @@ lvl_LayerGfx.prototype = {
 				break;
 			case 14:
 				if(this.images == null) this.images = [];
-				var size1 = this.level.tileSize;
+				var size2 = this.level.tileSize;
 				var _g42 = 0;
 				var _g32 = sheet.lines.length;
 				while(_g42 < _g32) {
-					var idx1 = [_g42++];
-					if(imageTags[idx1[0]]) continue;
-					var data = [Reflect.field(sheet.lines[idx1[0]],c.name)];
-					if(data[0] == null && this.images[idx1[0]] != null) continue;
+					var idx2 = [_g42++];
+					if(imageTags[idx2[0]]) continue;
+					var data = [Reflect.field(sheet.lines[idx2[0]],c.name)];
+					if(data[0] == null && this.images[idx2[0]] != null) continue;
 					if(data[0] == null) {
-						var i2 = new lvl_Image(size1,size1);
-						i2.text("#" + idx1[0],0,12);
-						this.images[idx1[0]] = i2;
+						var i2 = new lvl_Image(size2,size2);
+						i2.text("#" + idx2[0],0,12);
+						this.images[idx2[0]] = i2;
 						continue;
 					}
 					this.level.wait();
-					imageTags[idx1[0]] = true;
-					lvl_Image.load(this.level.model.getAbsPath(data[0].file),(function(data,idx1) {
+					imageTags[idx2[0]] = true;
+					lvl_Image.load(this.level.model.getAbsPath(data[0].file),(function(data1,idx3) {
 						return function(i3) {
-							var i21 = i3.sub(data[0].x * data[0].size,data[0].y * data[0].size,data[0].size * (data[0].width == null?1:data[0].width),data[0].size * (data[0].height == null?1:data[0].height));
-							_g5.images[idx1[0]] = i21;
-							_g5.blanks[idx1[0]] = i21.isBlank();
+							var i21 = i3.sub(data1[0].x * data1[0].size,data1[0].y * data1[0].size,data1[0].size * (data1[0].width == null?1:data1[0].width),data1[0].size * (data1[0].height == null?1:data1[0].height));
+							_g5.images[idx3[0]] = i21;
+							_g5.blanks[idx3[0]] = i21.isBlank();
 							_g5.level.waitDone();
 						};
-					})(data,idx1));
-					this.level.watch(data[0].file,(function(data) {
+					})(data,idx2));
+					this.level.watch(data[0].file,(function(data2) {
 						return function() {
-							lvl_Image.clearCache(_g5.level.model.getAbsPath(data[0].file));
+							lvl_Image.clearCache(_g5.level.model.getAbsPath(data2[0].file));
 							_g5.level.reload();
 						};
 					})(data));
@@ -14051,9 +13972,9 @@ lvl_Palette.prototype = {
 						d.appendTo(refList);
 						d.toggleClass("active",this.modeCursor == i2[0]);
 						d.attr("title",gfx1.names[i2[0]]);
-						d.click((function(i2) {
+						d.click((function(i3) {
 							return function(_1) {
-								_g3.modeCursor = i2[0];
+								_g3.modeCursor = i3[0];
 								_g3.level.setCursor();
 							};
 						})(i2));
@@ -14071,16 +13992,16 @@ lvl_Palette.prototype = {
 					var _g46 = 0;
 					var _g38 = values.length;
 					while(_g46 < _g38) {
-						var i3 = [_g46++];
-						var d1 = $("<div>").addClass("icon").css({ background : this.level.toColor(lvl_Palette.colorPalette[i3[0]]), width : "auto"}).text(values[i3[0]]);
+						var i4 = [_g46++];
+						var d1 = $("<div>").addClass("icon").css({ background : this.level.toColor(lvl_Palette.colorPalette[i4[0]]), width : "auto"}).text(values[i4[0]]);
 						d1.appendTo(refList1);
-						d1.toggleClass("active",this.modeCursor == i3[0]);
-						d1.click((function(i3) {
+						d1.toggleClass("active",this.modeCursor == i4[0]);
+						d1.click((function(i5) {
 							return function(_3) {
-								_g3.modeCursor = i3[0];
+								_g3.modeCursor = i5[0];
 								_g3.level.setCursor();
 							};
-						})(i3));
+						})(i4));
 					}
 					break;
 				case 3:case 4:case 1:case 16:
@@ -14348,9 +14269,6 @@ if(Array.prototype.filter == null) Array.prototype.filter = function(f1) {
 	return a1;
 };
 var __map_reserved = {}
-var ArrayBuffer = $global.ArrayBuffer || js_html_compat_ArrayBuffer;
-if(ArrayBuffer.prototype.slice == null) ArrayBuffer.prototype.slice = js_html_compat_ArrayBuffer.sliceImpl;
-var Uint8Array = $global.Uint8Array || js_html_compat_Uint8Array._new;
 Level.UID = 0;
 Level.loadedTilesCache = new haxe_ds_StringMap();
 K.INSERT = 45;
@@ -14373,7 +14291,7 @@ Main.UID = 0;
 haxe_Serializer.USE_CACHE = false;
 haxe_Serializer.USE_ENUM_INDEX = false;
 haxe_Serializer.BASE64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789%:";
-cdb_BinSerializer.__meta__ = { obj : { s_1522840838 : ["cy25:cdb._BinSerializer.Schemay4:hashi767004939y4:kindwy29:cdb._BinSerializer.SchemaKindy5:SEnum:1aawy24:cdb._BinSerializer.SDatay4:DInt:0wR5y7:DString:0wR5y5:DNull:1wR5y6:DArray:1wR5y5:DAnon:1aoy1:dwR5R7:0y1:ny4:namegoR11wR5R7:0R12y5:valueghhawR5R6:0wR5R7:0hawR5R6:0wR5R7:0hawR5R6:0wR5R6:0hawR5R6:0wR5R7:0wR5R8:1wR5R6:0hawR5R6:0hawR5R6:0wR5R6:0wR5y7:DSchema:1i223952291wR5R8:1wR5y6:DFloat:0hawR5R6:0hawR5R6:0wR5R7:0wR5R6:0hawR5R6:0wR5R7:0wR5R8:1wR5R7:0hawR5R6:0wR5R7:0wR5R8:1wR5R7:0hawR5R6:0wR5R7:0hawR5R6:0wR5R7:0wR5R9:1wR5y8:DDynamic:0wR5R8:1wR5R6:0hawR5R6:0wR5R7:0wR5R8:1wR5R16:0hawR5R6:0wR5R8:1wR5R9:1wR5R6:0hawR5R9:1wR5R6:0hhR13y14:cdb.jq.Messagey2:idi1522840838g"], s_223952291 : ["cy25:cdb._BinSerializer.Schemay4:hashi471112403y4:kindwy29:cdb._BinSerializer.SchemaKindy5:SEnum:1au5hy4:namey20:cdb.jq.DockDirectiony2:idi223952291g"], s_560507292 : ["cy25:cdb._BinSerializer.Schemay4:hashi842410256y4:kindwy29:cdb._BinSerializer.SchemaKindy5:SEnum:1aawy24:cdb._BinSerializer.SDatay4:DInt:0wR5y5:DNull:1wR5y7:DSchema:1i1835035702hawR5R6:0wR5y7:DString:0hawR5R6:0hhy4:namey13:cdb.jq.Answery2:idi560507292g"], s_1835035702 : ["cy25:cdb._BinSerializer.Schemay4:hashi1439494620y4:kindwy29:cdb._BinSerializer.SchemaKindy5:SAnon:1aoy1:dwy24:cdb._BinSerializer.SDatay5:DNull:1wR6y5:DBool:0y1:ny7:ctrlKeygoR5wR6R7:1wR6y4:DInt:0R9y7:keyCodegoR5wR6R7:1wR6R8:0R9y8:shiftKeygoR5wR6R7:1wR6y8:DDynamic:0R9y5:valuegoR5wR6R7:1wR6R11:0R9y5:whichghy4:namey17:cdb.jq.EventPropsy2:idi1835035702g"]}};
+cdb_BinSerializer.__meta__ = { obj : { s_1522840838 : ["cy25:cdb._BinSerializer.Schemay4:hashi-923295011y4:kindwy29:cdb._BinSerializer.SchemaKindy5:SEnum:1aawy24:cdb._BinSerializer.SDatay4:DInt:0wR5y7:DString:0wR5y5:DNull:1wR5y6:DArray:1wR5y5:DAnon:1aoy1:dwR5R7:0y1:ny4:namegoR11wR5R7:0R12y5:valueghhawR5R6:0wR5R7:0hawR5R6:0wR5R7:0hawR5R6:0wR5R6:0hawR5R6:0wR5R6:0wR5R6:0hawR5R6:0wR5R7:0wR5R8:1wR5R6:0hawR5R6:0hawR5R6:0wR5R6:0wR5y7:DSchema:1i223952291wR5R8:1wR5y6:DFloat:0hawR5R6:0hawR5R6:0wR5R7:0wR5R6:0hawR5R6:0wR5R7:0wR5R8:1wR5R7:0hawR5R6:0wR5R7:0wR5R8:1wR5R7:0hawR5R6:0wR5R7:0hawR5R6:0wR5R7:0wR5R9:1wR5y8:DDynamic:0wR5R8:1wR5R6:0hawR5R6:0wR5R7:0wR5R8:1wR5R16:0hawR5R6:0wR5R8:1wR5R9:1wR5R6:0hawR5R9:1wR5R6:0hhR13y14:cdb.jq.Messagey2:idi1522840838g"], s_223952291 : ["cy25:cdb._BinSerializer.Schemay4:hashi471112403y4:kindwy29:cdb._BinSerializer.SchemaKindy5:SEnum:1au5hy4:namey20:cdb.jq.DockDirectiony2:idi223952291g"], s_560507292 : ["cy25:cdb._BinSerializer.Schemay4:hashi842410256y4:kindwy29:cdb._BinSerializer.SchemaKindy5:SEnum:1aawy24:cdb._BinSerializer.SDatay4:DInt:0wR5y5:DNull:1wR5y7:DSchema:1i1835035702hawR5R6:0wR5y7:DString:0hawR5R6:0hhy4:namey13:cdb.jq.Answery2:idi560507292g"], s_1835035702 : ["cy25:cdb._BinSerializer.Schemay4:hashi1439494620y4:kindwy29:cdb._BinSerializer.SchemaKindy5:SAnon:1aoy1:dwy24:cdb._BinSerializer.SDatay5:DNull:1wR6y5:DBool:0y1:ny7:ctrlKeygoR5wR6R7:1wR6y4:DInt:0R9y7:keyCodegoR5wR6R7:1wR6R8:0R9y8:shiftKeygoR5wR6R7:1wR6y8:DDynamic:0R9y5:valuegoR5wR6R7:1wR6R11:0R9y5:whichghy4:namey17:cdb.jq.EventPropsy2:idi1835035702g"]}};
 cdb_BinSerializer.VERSION_CHECK = false;
 cdb_BinSerializer.TAG = 0;
 cdb_BinSerializer.gadtTip = -1;
@@ -14394,7 +14312,6 @@ haxe_io_FPHelper.i64tmp = (function($this) {
 	return $r;
 }(this));
 js_Boot.__toStr = {}.toString;
-js_html_compat_Uint8Array.BYTES_PER_ELEMENT = 1;
 lvl_Image.cache = new haxe_ds_StringMap();
 lvl_Image3D.CANVAS_SIZE = 2048;
 lvl_Palette.colorPalette = [16711680,65280,16711935,65535,16776960,16777215,33023,65408,8388863,8453888,16711808,16744448];
