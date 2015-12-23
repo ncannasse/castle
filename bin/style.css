@@ -277,6 +277,9 @@ div#menu ul.sheets li.active {
 	font-weight : bold;
 	padding-left : 20px;
 }
+.castle tr.filtered {
+	display : none;
+}
 .castle tr.list {
 	background-color : #CCC;
 	border-bottom : 0px;
@@ -761,4 +764,29 @@ div#menu ul.sheets li.active {
 }
 #content .level .scroll .popup td {
 	min-width : 160px;
+}
+#search {
+	display : none;
+	width : 200px;
+	position : fixed;
+	top : 0px;
+	right : 0px;
+	background-color : #CCC;
+	border : 1px solid #333;
+	border-top : none;
+	border-right : none;
+	border-bottom-left-radius : 5px;
+	-moz-border-radius-bottomleft : 5px;
+	-webkit-border-bottom-left-radius : 5px;
+	padding : 5px;
+	color : #444;
+}
+#search input {
+	width : 180px;
+}
+#search i {
+	cursor : pointer;
+}
+#search i:hover {
+	color : #888;
 }

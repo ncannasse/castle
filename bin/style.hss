@@ -302,6 +302,10 @@ div#menu {
 		}
 	}
 
+	tr.filtered {
+		display : none;
+	}
+
 	tr.list {
 		background-color : #CCC;
 		border-bottom : 0px;
@@ -798,3 +802,26 @@ div#menu {
 
 }
 
+#search {
+	display : none;
+	width : 200px;
+	position : fixed;
+	top : 0px;
+	right : 0px;
+	background-color : #CCC;
+	border : 1px solid #333;
+	border-top : none;
+	border-right : none;
+	border-bottom-left-radius : 5px;
+	padding : 5px;
+	input {
+		width : 180px;
+	}
+	i {
+		cursor : pointer;
+	}
+	i:hover {
+		color : #888;
+	}
+	color : #444;
+}

@@ -86,6 +86,18 @@ class Main extends Model {
 		window.window.addEventListener("keyup", onKeyUp);
 		window.window.addEventListener("mousemove", onMouseMove);
 		J(".modal").keypress(function(e) e.stopPropagation()).keydown(function(e) e.stopPropagation());
+		J("#search input").keydown(function(e) {
+			if( e.keyCode == 27 ) {
+				J("#search i").click();
+				return;
+			}
+		}).keyup(function(_) {
+			searchFilter(JTHIS.val());
+		});
+		J("#search i").click(function(_) {
+			searchFilter(null);
+			J("#search").toggle();
+		});
 		cursor = {
 			s : null,
 			x : 0,
@@ -95,6 +107,24 @@ class Main extends Model {
 		load(true);
 		var t = new haxe.Timer(1000);
 		t.run = checkTime;
+	}
+
+	function searchFilter( filter : String ) {
+		if( filter == "" ) filter = null;
+		if( filter != null ) filter = filter.toLowerCase();
+
+		var lines = J("table.sheet tr").not(".head");
+		lines.removeClass("filtered");
+		if( filter != null ) {
+			for( t in lines ) {
+				if( t.textContent.toLowerCase().indexOf(filter) < 0 )
+					t.classList.add("filtered");
+			}
+			while( lines.length > 0 ) {
+				lines = lines.filter(".list").not(".filtered").prev();
+				lines.removeClass("filtered");
+			}
+		}
 	}
 
 	function onResize(_) {
@@ -175,8 +205,10 @@ class Main extends Model {
 
 		switch( e.keyCode ) {
 		case K.INSERT if( inCDB ):
-			if( cursor.s != null )
+			if( cursor.s != null ) {
 				newLine(cursor.s, cursor.y);
+				moveCursor(0, 1, false, false);
+			}
 		case K.DELETE if( inCDB ):
 			J(".selected.deletable").change();
 			if( cursor.s != null ) {
@@ -340,6 +372,10 @@ class Main extends Model {
 				default:
 				}
 			}
+		case "F".code if( e.ctrlKey && inCDB ):
+			var s = J("#search");
+			s.show();
+			s.find("input").focus().select();
 		default:
 		}
 		if( level != null ) level.onKey(e);
@@ -458,6 +494,7 @@ class Main extends Model {
 				}
 				if( change ) refresh();
 			}
+			sheet.updateValue(c, index, old);
 		default:
 			sheet.updateValue(c, index, old);
 		}
@@ -546,10 +583,18 @@ class Main extends Model {
 					out.push("...");
 					break;
 				}
-				size += v.length;
+				var vstr = v;
+				if( v.indexOf("<") >= 0 ) {
+					vstr = ~/<img src="[^"]+" style="display:none"[^>]+>/g.replace(vstr, "");
+					vstr = ~/<img src="[^"]+"\/>/g.replace(vstr, "[I]");
+					vstr = ~/<div id="[^>]+><\/div>/g.replace(vstr, "[D]");
+				}
+				size += vstr.length;
 				out.push(v);
 			}
-			Std.string(out);
+			if( out.length == 0 )
+				return "[]";
+			return out.join(", ");
 		case TCustom(name):
 			var t = tmap.get(name);
 			var a : Array<Dynamic> = v;

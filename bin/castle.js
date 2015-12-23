@@ -3161,8 +3161,8 @@ $hxClasses["List"] = List;
 List.__name__ = ["List"];
 List.prototype = {
 	add: function(item) {
-		var x = [item];
-		if(this.h == null) this.h = x; else this.q[1] = x;
+		var x = new _$List_ListNode(item,null);
+		if(this.h == null) this.h = x; else this.q.next = x;
 		this.q = x;
 		this.length++;
 	}
@@ -3170,14 +3170,14 @@ List.prototype = {
 		var prev = null;
 		var l = this.h;
 		while(l != null) {
-			if(l[0] == v) {
-				if(prev == null) this.h = l[1]; else prev[1] = l[1];
+			if(l.item == v) {
+				if(prev == null) this.h = l.next; else prev.next = l.next;
 				if(this.q == l) this.q = prev;
 				this.length--;
 				return true;
 			}
 			prev = l;
-			l = l[1];
+			l = l.next;
 		}
 		return false;
 	}
@@ -3185,6 +3185,15 @@ List.prototype = {
 		return new _$List_ListIterator(this.h);
 	}
 	,__class__: List
+};
+var _$List_ListNode = function(item,next) {
+	this.item = item;
+	this.next = next;
+};
+$hxClasses["_List.ListNode"] = _$List_ListNode;
+_$List_ListNode.__name__ = ["_List","ListNode"];
+_$List_ListNode.prototype = {
+	__class__: _$List_ListNode
 };
 var _$List_ListIterator = function(head) {
 	this.head = head;
@@ -3197,8 +3206,8 @@ _$List_ListIterator.prototype = {
 		return this.head != null;
 	}
 	,next: function() {
-		this.val = this.head[0];
-		this.head = this.head[1];
+		this.val = this.head.item;
+		this.head = this.head.next;
 		return this.val;
 	}
 	,__class__: _$List_ListIterator
@@ -4273,8 +4282,8 @@ Model.prototype = {
 				var b;
 				b = (function($this) {
 					var $r;
-					_g1_val = _g1_head[0];
-					_g1_head = _g1_head[1];
+					_g1_val = _g1_head.item;
+					_g1_head = _g1_head.next;
 					$r = _g1_val;
 					return $r;
 				}(this));
@@ -4292,8 +4301,8 @@ Model.prototype = {
 			var a1;
 			a1 = (function($this) {
 				var $r;
-				_g_val = _g_head[0];
-				_g_head = _g_head[1];
+				_g_val = _g_head.item;
+				_g_head = _g_head.next;
 				$r = _g_val;
 				return $r;
 			}(this));
@@ -4303,8 +4312,8 @@ Model.prototype = {
 				var b1;
 				b1 = (function($this) {
 					var $r;
-					_g_val1 = _g_head1[0];
-					_g_head1 = _g_head1[1];
+					_g_val1 = _g_head1.item;
+					_g_head1 = _g_head1.next;
 					$r = _g_val1;
 					return $r;
 				}(this));
@@ -4322,8 +4331,8 @@ Model.prototype = {
 			var a2;
 			a2 = (function($this) {
 				var $r;
-				_g_val2 = _g_head2[0];
-				_g_head2 = _g_head2[1];
+				_g_val2 = _g_head2.item;
+				_g_head2 = _g_head2.next;
 				$r = _g_val2;
 				return $r;
 			}(this));
@@ -4642,6 +4651,7 @@ Model.prototype = {
 	,__class__: Model
 };
 var Main = function() {
+	var _g = this;
 	Model.call(this);
 	this.window = js_node_webkit_Window.get();
 	this.window.on("resize",$bind(this,this.onResize));
@@ -4661,6 +4671,18 @@ var Main = function() {
 	}).keydown(function(e1) {
 		e1.stopPropagation();
 	});
+	$("#search input").keydown(function(e2) {
+		if(e2.keyCode == 27) {
+			$("#search i").click();
+			return;
+		}
+	}).keyup(function(_1) {
+		_g.searchFilter($(this).val());
+	});
+	$("#search i").click(function(_2) {
+		_g.searchFilter(null);
+		$("#search").toggle();
+	});
 	this.cursor = { s : null, x : 0, y : 0};
 	this.pages = new JqPages(this);
 	this.load(true);
@@ -4678,7 +4700,25 @@ Main.main = function() {
 };
 Main.__super__ = Model;
 Main.prototype = $extend(Model.prototype,{
-	onResize: function(_) {
+	searchFilter: function(filter) {
+		if(filter == "") filter = null;
+		if(filter != null) filter = filter.toLowerCase();
+		var lines = $("table.sheet tr").not(".head");
+		lines.removeClass("filtered");
+		if(filter != null) {
+			var _g_i = 0;
+			var _g_j = lines;
+			while(_g_i < _g_j.length) {
+				var t = _g_j[_g_i++];
+				if(t.textContent.toLowerCase().indexOf(filter) < 0) t.classList.add("filtered");
+			}
+			while(lines.length > 0) {
+				lines = lines.filter(".list").not(".filtered").prev();
+				lines.removeClass("filtered");
+			}
+		}
+	}
+	,onResize: function(_) {
 		if(this.level != null) this.level.onResize();
 		this.pages.onResize();
 	}
@@ -4751,7 +4791,10 @@ Main.prototype = $extend(Model.prototype,{
 		switch(_g) {
 		case 45:
 			if(inCDB) {
-				if(this.cursor.s != null) this.newLine(this.cursor.s,this.cursor.y);
+				if(this.cursor.s != null) {
+					this.newLine(this.cursor.s,this.cursor.y);
+					this.moveCursor(0,1,false,false);
+				}
 			} else {
 			}
 			break;
@@ -4980,6 +5023,14 @@ Main.prototype = $extend(Model.prototype,{
 				}
 			}
 			break;
+		case 70:
+			if(e.ctrlKey && inCDB) {
+				var s6 = $("#search");
+				s6.show();
+				s6.find("input").focus().select();
+			} else {
+			}
+			break;
 		default:
 		}
 		if(this.level != null) this.level.onKey(e);
@@ -5103,6 +5154,7 @@ Main.prototype = $extend(Model.prototype,{
 				}
 				if(change) this.refresh();
 			}
+			SheetData.updateValue(sheet,c,index,old);
 			break;
 		default:
 			SheetData.updateValue(sheet,c,index,old);
@@ -5213,10 +5265,17 @@ Main.prototype = $extend(Model.prototype,{
 						out.push("...");
 						break;
 					}
-					size += v2.length;
+					var vstr = v2;
+					if(v2.indexOf("<") >= 0) {
+						vstr = new EReg("<img src=\"[^\"]+\" style=\"display:none\"[^>]+>","g").replace(vstr,"");
+						vstr = new EReg("<img src=\"[^\"]+\"/>","g").replace(vstr,"[I]");
+						vstr = new EReg("<div id=\"[^>]+></div>","g").replace(vstr,"[D]");
+					}
+					size += vstr.length;
 					out.push(v2);
 				}
-				return Std.string(out);
+				if(out.length == 0) return "[]";
+				return out.join(", ");
 			case 9:
 				var name = _g[2];
 				var t = this.tmap.get(name);
@@ -8643,8 +8702,8 @@ haxe_Serializer.prototype = {
 					var _g1_val = null;
 					while(_g1_head != null) {
 						var i1;
-						_g1_val = _g1_head[0];
-						_g1_head = _g1_head[1];
+						_g1_val = _g1_head.item;
+						_g1_head = _g1_head.next;
 						i1 = _g1_val;
 						this.serialize(i1);
 					}
@@ -10744,9 +10803,7 @@ haxe_Unserializer.prototype = {
 				this.pos += 19;
 			} else {
 				var t = this.readFloat();
-				var d1 = new Date();
-				d1.setTime(t);
-				d = d1;
+				d = new Date(t);
 			}
 			this.cache.push(d);
 			return d;
@@ -11346,9 +11403,7 @@ haxe_ds_IntMap.prototype = {
 	}
 	,keys: function() {
 		var a = [];
-		for( var key in this.h ) {
-		if(this.h.hasOwnProperty(key)) a.push(key | 0);
-		}
+		for( var key in this.h ) if(this.h.hasOwnProperty(key)) a.push(key | 0);
 		return HxOverrides.iter(a);
 	}
 	,iterator: function() {
@@ -11362,8 +11417,7 @@ haxe_ds_IntMap.prototype = {
 	,__class__: haxe_ds_IntMap
 };
 var haxe_ds_ObjectMap = function() {
-	this.h = { };
-	this.h.__keys__ = { };
+	this.h = { __keys__ : { }};
 };
 $hxClasses["haxe.ds.ObjectMap"] = haxe_ds_ObjectMap;
 haxe_ds_ObjectMap.__name__ = ["haxe","ds","ObjectMap"];
