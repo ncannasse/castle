@@ -540,7 +540,7 @@ class Main extends Model {
 			}
 		case TId:
 			v == "" ? '<span class="error">#MISSING</span>' : (smap.get(sheet.name).index.get(v).obj == obj ? v : '<span class="error">#DUP($v)</span>');
-		case TString, TLayer(_):
+		case TString, TLayer(_), TLocalString:
 			v == "" ? "&nbsp;" : StringTools.htmlEscape(v);
 		case TRef(sname):
 			if( v == "" )
@@ -712,7 +712,7 @@ class Main extends Model {
 			n.append(m);
 
 		switch( c.type ) {
-		case TId, TString, TEnum(_), TFlags(_):
+		case TId, TString, TLocalString, TEnum(_), TFlags(_):
 			var conv = new MenuItem( { label : "Convert" } );
 			var cm = new Menu();
 			for( k in [
@@ -973,7 +973,7 @@ class Main extends Model {
 			setErrorMessage();
 		}
 		switch( c.type ) {
-		case TInt, TFloat, TString, TId, TCustom(_), TDynamic:
+		case TInt, TFloat, TString, TId, TCustom(_), TDynamic, TLocalString:
 			v.empty();
 			var i = J("<input>");
 			v.addClass("edit");
@@ -2017,6 +2017,7 @@ class Main extends Model {
 		case "int": TInt;
 		case "float": TFloat;
 		case "string": TString;
+		case "localstring": TLocalString;
 		case "bool": TBool;
 		case "enum":
 			var vals = StringTools.trim(v.values).split(",");
