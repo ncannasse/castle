@@ -342,6 +342,10 @@ div#menu ul.sheets li.active {
 	white-space : nowrap;
 	cursor : pointer;
 }
+.castle td.t_list img {
+	max-height : 32px;
+	max-width : 32px;
+}
 .castle td.t_enum {
 	padding-left : 5px;
 }

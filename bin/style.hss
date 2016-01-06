@@ -374,6 +374,10 @@ div#menu {
 	td.t_list {
 		white-space: nowrap;
 		cursor : pointer;
+		img {
+			max-height: 32px;
+			max-width: 32px;
+		}
 	}
 
 	td.t_enum {

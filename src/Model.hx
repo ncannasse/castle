@@ -87,7 +87,7 @@ class Model {
 			return null;
 		return switch( c.type ) {
 		case TInt, TFloat, TEnum(_), TFlags(_), TColor: 0;
-		case TString, TId, TImage, TLayer(_), TFile: "";
+		case TString, TLocalString, TId, TImage, TLayer(_), TFile: "";
 		case TRef(s):
 			var s = getSheet(s);
 			var l = s.lines[0];
@@ -208,29 +208,31 @@ class Model {
 		if( Type.enumEq(old, t) )
 			return { f : null };
 		switch( [old, t] ) {
+		case [TString|TLocalString, TString|TLocalString]:
+			// nothing
 		case [TInt, TFloat]:
 			// nothing
-		case [TId | TRef(_) | TLayer(_), TString]:
+		case [TId | TRef(_) | TLayer(_), TString | TLocalString]:
 			// nothing
-		case [TString, (TId | TRef(_) | TLayer(_))]:
+		case [TString|TLocalString, (TId | TRef(_) | TLayer(_))]:
 			var r_invalid = ~/[^A-Za-z0-9_]/g;
 			conv = function(r:String) return r_invalid.replace(r, "_");
 		case [TBool, (TInt | TFloat)]:
 			conv = function(b) return b ? 1 : 0;
-		case [TString, TInt]:
+		case [TString|TLocalString, TInt]:
 			conv = Std.parseInt;
-		case [TString, TFloat]:
+		case [TString|TLocalString, TFloat]:
 			conv = function(str) { var f = Std.parseFloat(str); return Math.isNaN(f) ? null : f; }
-		case [TString, TBool]:
+		case [TString|TLocalString, TBool]:
 			conv = function(s) return s != "";
-		case [TString, TEnum(values)]:
+		case [TString|TLocalString, TEnum(values)]:
 			var map = new Map();
 			for( i in 0...values.length )
 				map.set(values[i].toLowerCase(), i);
 			conv = function(s:String) return map.get(s.toLowerCase());
 		case [TFloat, TInt]:
 			conv = Std.int;
-		case [(TInt | TFloat | TBool), TString]:
+		case [(TInt | TFloat | TBool), TString|TLocalString]:
 			conv = Std.string;
 		case [(TFloat|TInt), TBool]:
 			conv = function(v:Float) return v != 0;
@@ -503,7 +505,7 @@ class Model {
 		return switch( t ) {
 		case TInt, TFloat, TBool, TImage: Std.string(val);
 		case TId, TRef(_), TLayer(_), TFile: esc ? '"'+val+'"' : val;
-		case TString:
+		case TString, TLocalString:
 			var val : String = val;
 			if( ~/^[A-Za-z0-9_]+$/g.match(val) && !esc )
 				val;
@@ -556,7 +558,7 @@ class Model {
 		case TInt:
 			if( ~/^-?[0-9]+$/.match(val) )
 				return Std.parseInt(val);
-		case TString:
+		case TString, TLocalString:
 			if( val.charCodeAt(0) == '"'.code ) {
 				var esc = false;
 				var p = 1;
