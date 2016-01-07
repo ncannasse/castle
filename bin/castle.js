@@ -3725,6 +3725,7 @@ Model.prototype = {
 			old.opt = c.opt;
 		}
 		if(c.display == null) Reflect.deleteField(old,"display"); else old.display = c.display;
+		if(c.kind == null) Reflect.deleteField(old,"kind"); else old.kind = c.kind;
 		this.makeSheet(sheet);
 		return null;
 	}
@@ -6938,7 +6939,7 @@ Main.prototype = $extend(Model.prototype,{
 			form.find("[name=type]").val(HxOverrides.substr(ref.type[0],1,null).toLowerCase()).change();
 			form.find("[name=req]").prop("checked",!ref.opt);
 			form.find("[name=display]").val(ref.display == null?"0":Std.string(ref.display));
-			form.find("[name=localizable]").prop("checked",ref.localizable == true);
+			form.find("[name=localizable]").prop("checked",ref.kind == "localizable");
 			var _g3 = ref.type;
 			switch(_g3[1]) {
 			case 5:
@@ -7162,7 +7163,7 @@ Main.prototype = $extend(Model.prototype,{
 		var c = { type : t, typeStr : null, name : v.name};
 		if(v.req != "on") c.opt = true;
 		if(v.display != "0") c.display = Std.parseInt(v.display);
-		if(v.localizable == "on") c.localizable = true;
+		if(v.localizable == "on") c.kind = "localizable";
 		if(refColumn != null) {
 			var err = Model.prototype.updateColumn.call(this,sheet,refColumn,c);
 			if(err != null) {

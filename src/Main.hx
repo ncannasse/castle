@@ -1916,7 +1916,7 @@ class Main extends Model {
 			form.find("[name=type]").val(ref.type.getName().substr(1).toLowerCase()).change();
 			form.find("[name=req]").prop("checked", !ref.opt);
 			form.find("[name=display]").val(ref.display == null ? "0" : Std.string(ref.display));
-			form.find("[name=localizable]").prop("checked", ref.localizable==true);
+			form.find("[name=localizable]").prop("checked", ref.kind=="localizable");
 			switch( ref.type ) {
 			case TEnum(values), TFlags(values):
 				form.find("[name=values]").val(values.join(","));
@@ -2079,7 +2079,7 @@ class Main extends Model {
 		};
 		if( v.req != "on" ) c.opt = true;
 		if( v.display != "0" ) c.display = cast Std.parseInt(v.display);
-		if( v.localizable == "on" ) c.localizable = true;
+		if( v.localizable == "on" ) c.kind = "localizable";
 
 		if( refColumn != null ) {
 			var err = super.updateColumn(sheet, refColumn, c);
