@@ -48,6 +48,7 @@ private class FlagsIterator<T> {
 
 }
 
+@:forward(map, filter, copy, concat)
 abstract ArrayRead<T>(Array<T>) from Array<T> {
 
 	public var length(get, never) : Int;
