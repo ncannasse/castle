@@ -356,6 +356,11 @@ class Model {
 			Reflect.deleteField(old,"display");
 		else
 			old.display = c.display;
+		
+		if( c.kind == null )
+			Reflect.deleteField(old,"kind");
+		else
+			old.kind = c.kind;
 
 		makeSheet(sheet);
 		return null;

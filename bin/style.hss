@@ -105,7 +105,7 @@ div.modal {
 		display : none;
 	}
 	#col_options {
-		.values, .sheet, .custom, .disp  {
+		.values, .sheet, .custom, .disp, .localizable  {
 			display : none;
 		}
 		a.tedit {
@@ -115,6 +115,12 @@ div.modal {
 
 	#col_options.t_int, #col_options.t_float {
 		.disp {
+			display : block;
+		}
+	}
+
+	#col_options.t_string {
+		.localizable {
 			display : block;
 		}
 	}
@@ -374,6 +380,10 @@ div#menu {
 	td.t_list {
 		white-space: nowrap;
 		cursor : pointer;
+		img {
+			max-height: 32px;
+			max-width: 32px;
+		}
 	}
 
 	td.t_enum {

@@ -103,13 +103,16 @@ div.modal form.edit input.create {
 div.modal form.create input.edit {
 	display : none;
 }
-div.modal #col_options .values, div.modal #col_options .sheet, div.modal #col_options .custom, div.modal #col_options .disp {
+div.modal #col_options .values, div.modal #col_options .sheet, div.modal #col_options .custom, div.modal #col_options .disp, div.modal #col_options .localizable {
 	display : none;
 }
 div.modal #col_options a.tedit {
 	display : none;
 }
 div.modal #col_options.t_int .disp, div.modal #col_options.t_float .disp {
+	display : block;
+}
+div.modal #col_options.t_string .localizable {
 	display : block;
 }
 div.modal #col_options.t_edit a.tedit {
@@ -341,6 +344,10 @@ div#menu ul.sheets li.active {
 .castle td.t_list {
 	white-space : nowrap;
 	cursor : pointer;
+}
+.castle td.t_list img {
+	max-height : 32px;
+	max-width : 32px;
 }
 .castle td.t_enum {
 	padding-left : 5px;
