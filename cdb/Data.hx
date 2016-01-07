@@ -51,6 +51,7 @@ typedef Column = {
 	var typeStr : String;
 	@:optional var opt : Bool;
 	@:optional var display : DisplayType;
+	@:optional var localizable : Bool;
 }
 
 @:enum abstract LayerMode(String) {
