@@ -567,13 +567,13 @@ class Main extends Model {
 		case TList:
 			var a : Array<Dynamic> = v;
 			var ps = sheet.getSub(c);
-			var out : Array<Dynamic> = [];
+			var out : Array<String> = [];
 			var size = 0;
 			for( v in a ) {
 				var vals = [];
 				for( c in ps.columns )
 					switch( c.type ) {
-					case TList:
+					case TList, TProperties:
 						continue;
 					default:
 						vals.push(valueHtml(c, Reflect.field(v, c.name), ps, v));
@@ -594,6 +594,15 @@ class Main extends Model {
 			}
 			if( out.length == 0 )
 				return "[]";
+			return out.join(", ");
+		case TProperties:
+			var ps = sheet.getSub(c);
+			var out = [];
+			for( c in ps.columns ) {
+				var pval = Reflect.field(v, c.name);
+				if( pval == null && c.opt ) continue;
+				out.push(c.name+" : "+valueHtml(c, pval, ps, v));
+			}
 			return out.join(", ");
 		case TCustom(name):
 			var t = tmap.get(name);
@@ -1228,7 +1237,7 @@ class Main extends Model {
 				v.html(getValue());
 				save();
 			}}).spectrum("show");
-		case TList, TLayer(_), TFile, TTilePos:
+		case TList, TLayer(_), TFile, TTilePos, TProperties:
 			throw "assert2";
 		}
 	}
@@ -1400,6 +1409,7 @@ class Main extends Model {
 				var v = J("<td>").addClass(ctype).addClass("c");
 				var l = lines[index];
 				v.appendTo(l);
+
 				var html = valueHtml(c, val, sheet, obj);
 				if( html == "&nbsp;" ) v.text(" ") else if( html.indexOf('<') < 0 && html.indexOf('&') < 0 ) v.text(html) else v.html(html);
 				v.data("index", cindex);
@@ -1501,6 +1511,10 @@ class Main extends Model {
 					});
 					if( openedList.get(key) )
 						todo.push(function() v.click());
+				case TProperties:
+					/*
+						TODO
+					*/
 				case TLayer(_):
 					// nothing
 				case TFile:
@@ -2069,6 +2083,8 @@ class Main extends Model {
 			TTileLayer;
 		case "dynamic":
 			TDynamic;
+		case "properties":
+			TProperties;
 		default:
 			return;
 		}

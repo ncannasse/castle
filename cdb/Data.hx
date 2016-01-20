@@ -33,6 +33,7 @@ enum ColumnType {
 	TTilePos;
 	TTileLayer;
 	TDynamic;
+	TProperties;
 }
 
 #if macro

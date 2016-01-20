@@ -209,7 +209,7 @@ class SheetData {
 					sheet.props.displayIcon = null;
 					model.makeSheet(sheet);
 				}
-				if( c.type == TList )
+				if( c.type == TList || c.type == TProperties )
 					model.deleteSheet(sheet.getSub(c));
 				return true;
 			}
@@ -235,7 +235,7 @@ class SheetData {
 			var def = model.getDefault(c);
 			if( def != null ) Reflect.setField(i, c.name, def);
 		}
-		if( c.type == TList ) {
+		if( c.type == TList || c.type == TProperties ) {
 			// create an hidden sheet for the model
 			var s : Sheet = {
 				name : sheet.name + "@" + c.name,

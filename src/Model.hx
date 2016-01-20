@@ -101,6 +101,7 @@ class Model {
 			id;
 		case TBool: false;
 		case TList: [];
+		case TProperties : {};
 		case TCustom(_), TTilePos, TTileLayer, TDynamic: null;
 		}
 	}
@@ -191,7 +192,7 @@ class Model {
 		smap.remove(sheet.name);
 		for( c in sheet.columns )
 			switch( c.type ) {
-			case TList:
+			case TList, TProperties:
 				deleteSheet(sheet.getSub(c));
 			default:
 			}
@@ -295,11 +296,11 @@ class Model {
 				var s = sheet.getSub(col);
 				s.name = sheet.name + "@" + c.name;
 				for( c in s.columns )
-					if( c.type == TList )
+					if( c.type == TList || c.type == TProperties )
 						renameRec(s, c);
 				makeSheet(s);
 			}
-			if( old.type == TList ) renameRec(sheet, old);
+			if( old.type == TList || old.type == TProperties ) renameRec(sheet, old);
 			old.name = c.name;
 		}
 
@@ -342,6 +343,9 @@ class Model {
 							var v : Array<Dynamic> = v;
 							if( v.length == 0 )
 								Reflect.deleteField(o, c.name);
+						case TProperties:
+							if( Reflect.fields(v).length == 0 )
+								Reflect.deleteField(o, c.name);
 						default:
 							if( v == def )
 								Reflect.deleteField(o, c.name);
@@ -356,7 +360,7 @@ class Model {
 			Reflect.deleteField(old,"display");
 		else
 			old.display = c.display;
-		
+
 		if( c.kind == null )
 			Reflect.deleteField(old,"kind");
 		else
@@ -530,7 +534,7 @@ class Model {
 			esc ? '"' + s + '"' : s;
 		case TTileLayer, TDynamic, TTilePos:
 			esc ? haxe.Json.stringify(val) : Std.string(val);
-		case TList:
+		case TProperties, TList:
 			"???";
 		}
 	}
