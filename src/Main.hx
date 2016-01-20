@@ -616,7 +616,7 @@ class Main extends Model {
 			for( i in 0...values.length )
 				if( v & (1 << i) != 0 )
 					flags.push(StringTools.htmlEscape(values[i]));
-			flags.length == 0 ? String.fromCharCode(0x2205) : flags.join("|");
+			flags.length == 0 ? String.fromCharCode(0x2205) : flags.join("|<wbr>");
 		case TColor:
 			var id = UID++;
 			'<div class="color" style="background-color:#${StringTools.hex(v,6)}"></div>';
