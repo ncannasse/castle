@@ -82,8 +82,8 @@ class Model {
 		return smap.get(name).s;
 	}
 
-	public function getDefault( c : Column ) : Dynamic {
-		if( c.opt )
+	public function getDefault( c : Column, ignoreOpt = false ) : Dynamic {
+		if( c.opt && !ignoreOpt )
 			return null;
 		return switch( c.type ) {
 		case TInt, TFloat, TEnum(_), TFlags(_), TColor: 0;
@@ -268,6 +268,10 @@ class Model {
 			conv = function(i) return 1 << i;
 		case [TInt, TColor] | [TColor, TInt]:
 			conv =  function(i) return i;
+		case [TList, TProperties]:
+			conv = function(l) return l[0];
+		case [TProperties, TList]:
+			conv = function(p) return Reflect.fields(p).length == 0 ? [] : [p];
 		default:
 			return null;
 		}

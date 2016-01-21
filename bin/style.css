@@ -241,6 +241,17 @@ div#menu ul.sheets li.active {
 	border-collapse : collapse;
 	border-spacing : 0;
 }
+.castle table.props {
+	width : auto;
+	min-width : 400px;
+	margin-top : 1px;
+}
+.castle table.props th {
+	width : 200px;
+}
+.castle table.props th {
+	border-bottom : none;
+}
 .castle .tableBottom {
 	margin-top : 300px;
 }

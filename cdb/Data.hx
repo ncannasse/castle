@@ -113,6 +113,7 @@ typedef SheetProps = {
 	@:optional var displayIcon : Null<String>;
 	@:optional var separatorTitles : Array<String>;
 	@:optional var hide : Bool;
+	@:optional var isProps : Bool;
 	@:optional var hasIndex : Bool;
 	@:optional var hasGroup : Bool;
 	@:optional var level : LevelsProps;
