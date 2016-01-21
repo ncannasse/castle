@@ -1645,9 +1645,9 @@ Level.prototype = {
 							var i10 = insts[p.index];
 							var obj = (function($this) {
 								var $r;
-								var this1 = p.layer.getTileObjects();
+								var this10 = p.layer.getTileObjects();
 								var key10 = i10.o;
-								$r = this1.get(key10);
+								$r = this10.get(key10);
 								return $r;
 							}(this));
 							if(obj != null) {
@@ -2087,8 +2087,7 @@ Level.prototype = {
 		var o = Reflect.field(this.obj,l.name)[index];
 		var scroll = this.content.find(".scrollContent");
 		var popup = $("<div>").addClass("popup").prependTo(scroll);
-		var tmp = window;
-		$(tmp).bind("mousedown",function(_) {
+		$(window).bind("mousedown",function(_) {
 			popup.remove();
 			$(window).unbind("mousedown");
 			if(_g.view != null) _g.draw();
@@ -5282,7 +5281,7 @@ Main.prototype = $extend(Model.prototype,{
 				if(pval == null && c5.opt) continue;
 				out4.push(c5.name + " : " + this.valueHtml(c5,pval,ps4,v));
 			}
-			return out4.join(", ");
+			return out4.join("<br/>");
 		case 9:
 			var name = _g[2];
 			var tmp5;
@@ -5786,14 +5785,14 @@ Main.prototype = $extend(Model.prototype,{
 					var old2 = val;
 					var prevObj = c.type == cdb_ColumnType.TId && old2 != null?(function($this) {
 						var $r;
-						var this1 = ((function($this) {
+						var this2 = ((function($this) {
 							var $r;
 							var _this2 = _g.smap;
 							var key = sheet.name;
 							$r = __map_reserved[key] != null?_this2.getReserved(key):_this2.h[key];
 							return $r;
 						}($this))).index;
-						$r = this1.get(val);
+						$r = this2.get(val);
 						return $r;
 					}(this)):null;
 					var prevTarget = null;
@@ -5866,14 +5865,14 @@ Main.prototype = $extend(Model.prototype,{
 						if(val2 != val && val2 != null) {
 							prevTarget = (function($this) {
 								var $r;
-								var this14 = ((function($this) {
+								var this4 = ((function($this) {
 									var $r;
 									var _this4 = _g.smap;
 									var key4 = sheet.name;
 									$r = __map_reserved[key4] != null?_this4.getReserved(key4):_this4.h[key4];
 									return $r;
 								}($this))).index;
-								$r = this14.get(val2);
+								$r = this4.get(val2);
 								return $r;
 							}(this));
 							if(c.type == cdb_ColumnType.TId && val != null && (prevObj == null || prevObj.obj == obj)) {
@@ -5892,25 +5891,25 @@ Main.prototype = $extend(Model.prototype,{
 					editDone();
 					if(c.type == cdb_ColumnType.TId && prevObj != null && old2 != val && (prevObj.obj == obj && (function($this) {
 						var $r;
-						var this16 = ((function($this) {
+						var this6 = ((function($this) {
 							var $r;
 							var _this5 = _g.smap;
 							var key6 = sheet.name;
 							$r = __map_reserved[key6] != null?_this5.getReserved(key6):_this5.h[key6];
 							return $r;
 						}($this))).index;
-						$r = this16.get(old2);
+						$r = this6.get(old2);
 						return $r;
 					}(this)) != null || prevTarget != null && ((function($this) {
 						var $r;
-						var this17 = ((function($this) {
+						var this7 = ((function($this) {
 							var $r;
 							var _this6 = _g.smap;
 							var key7 = sheet.name;
 							$r = __map_reserved[key7] != null?_this6.getReserved(key7):_this6.h[key7];
 							return $r;
 						}($this))).index;
-						$r = this17.get(val);
+						$r = this7.get(val);
 						return $r;
 					}(this))).obj != prevTarget.obj)) {
 						_g.refresh();
@@ -6077,7 +6076,12 @@ Main.prototype = $extend(Model.prototype,{
 						_g.error("Unsupported image extension " + ext);
 						return;
 					}
-					var bytes = haxe_io_Bytes.ofData(js_node_Fs.readFileSync(file).buffer);
+					var bytes = (function($this) {
+						var $r;
+						var _this12 = js_node_Fs.readFileSync(file);
+						$r = haxe_io_Bytes.ofData(_this12.buffer);
+						return $r;
+					}(this));
 					var md5 = haxe_crypto_Md5.make(bytes).toHex();
 					if(_g.imageBank == null) _g.imageBank = { };
 					if(!(function($this) {

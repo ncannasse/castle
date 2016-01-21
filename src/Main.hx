@@ -607,7 +607,7 @@ class Main extends Model {
 				if( pval == null && c.opt ) continue;
 				out.push(c.name+" : "+valueHtml(c, pval, ps, v));
 			}
-			return out.join(", ");
+			return out.join("<br/>");
 		case TCustom(name):
 			var t = tmap.get(name);
 			var a : Array<Dynamic> = v;

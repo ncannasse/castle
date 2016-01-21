@@ -389,7 +389,7 @@ div#menu {
 		}
 	}
 
-	td.t_list {
+	td.t_list, td.t_properties {
 		white-space: nowrap;
 		cursor : pointer;
 		img {

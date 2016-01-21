@@ -352,11 +352,11 @@ div#menu ul.sheets li.active {
 .castle td.t_int input, .castle td.t_float input {
 	text-align : right;
 }
-.castle td.t_list {
+.castle td.t_list, .castle td.t_properties {
 	white-space : nowrap;
 	cursor : pointer;
 }
-.castle td.t_list img {
+.castle td.t_list img, .castle td.t_properties img {
 	max-height : 32px;
 	max-width : 32px;
 }
