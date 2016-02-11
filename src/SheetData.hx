@@ -45,6 +45,7 @@ class SheetData {
 		if( p == null ) return sheet.lines;
 
 		if( p.s.isLevel() && p.c == "tileProps" ) {
+			// level tileprops
 			var all = [];
 			var sets = p.s.props.level.tileSets;
 			for( f in Reflect.fields(sets) ) {
@@ -58,11 +59,21 @@ class SheetData {
 		}
 
 		var all = [];
-		for( obj in getLines(p.s) ) {
-			var v : Array<Dynamic> = Reflect.field(obj, p.c);
-			if( v != null )
-				for( v in v )
+		if( sheet.props.isProps ) {
+			// properties
+			for( obj in getLines(p.s) ) {
+				var v : Dynamic = Reflect.field(obj, p.c);
+				if( v != null )
 					all.push(v);
+			}
+		} else {
+			// lists
+			for( obj in getLines(p.s) ) {
+				var v : Array<Dynamic> = Reflect.field(obj, p.c);
+				if( v != null )
+					for( v in v )
+						all.push(v);
+			}
 		}
 		return all;
 	}
@@ -209,7 +220,7 @@ class SheetData {
 					sheet.props.displayIcon = null;
 					model.makeSheet(sheet);
 				}
-				if( c.type == TList )
+				if( c.type == TList || c.type == TProperties )
 					model.deleteSheet(sheet.getSub(c));
 				return true;
 			}
@@ -235,7 +246,7 @@ class SheetData {
 			var def = model.getDefault(c);
 			if( def != null ) Reflect.setField(i, c.name, def);
 		}
-		if( c.type == TList ) {
+		if( c.type == TList || c.type == TProperties ) {
 			// create an hidden sheet for the model
 			var s : Sheet = {
 				name : sheet.name + "@" + c.name,
@@ -244,6 +255,7 @@ class SheetData {
 				lines : [],
 				columns : [],
 			};
+			if( c.type == TProperties ) s.props.isProps = true;
 			model.data.sheets.push(s);
 			model.makeSheet(s);
 		}

@@ -49,7 +49,7 @@ class Palette {
 
 		perTileProps = [];
 		for( c in level.sheet.columns )
-			if( c.name == "tileProps" && c.type == TList )
+			if( c.name == "tileProps" && (c.type == TList || c.type == TProperties) )
 				perTileProps = level.sheet.getSub(c).columns;
 
 		perTileGfx = new Map();

@@ -212,7 +212,11 @@ class Main extends Model {
 		case K.DELETE if( inCDB ):
 			J(".selected.deletable").change();
 			if( cursor.s != null ) {
-				if( cursor.x < 0 ) {
+				if( cursor.s.props.isProps ) {
+					var l = getLine(cursor.s, cursor.y);
+					if( l != null )
+						Reflect.deleteField(cursor.s.lines[0], l.attr("colName"));
+				} else if( cursor.x < 0 ) {
 					var s = getSelection();
 					var y = s.y2;
 					while( y >= s.y1 ) {
@@ -250,7 +254,7 @@ class Main extends Model {
 			moveCursor(1, 0, e.shiftKey, e.ctrlKey);
 		case K.ENTER if( inCDB ):
 			// open list
-			if( cursor.s != null && J(".cursor.t_list").click().length > 0 )
+			if( cursor.s != null && J(".cursor.t_list,.cursor.t_properties").click().length > 0 )
 				e.preventDefault();
 		case K.SPACE:
 			e.preventDefault(); // scrolling
@@ -567,13 +571,13 @@ class Main extends Model {
 		case TList:
 			var a : Array<Dynamic> = v;
 			var ps = sheet.getSub(c);
-			var out : Array<Dynamic> = [];
+			var out : Array<String> = [];
 			var size = 0;
 			for( v in a ) {
 				var vals = [];
 				for( c in ps.columns )
 					switch( c.type ) {
-					case TList:
+					case TList, TProperties:
 						continue;
 					default:
 						vals.push(valueHtml(c, Reflect.field(v, c.name), ps, v));
@@ -595,6 +599,15 @@ class Main extends Model {
 			if( out.length == 0 )
 				return "[]";
 			return out.join(", ");
+		case TProperties:
+			var ps = sheet.getSub(c);
+			var out = [];
+			for( c in ps.columns ) {
+				var pval = Reflect.field(v, c.name);
+				if( pval == null && c.opt ) continue;
+				out.push(c.name+" : "+valueHtml(c, pval, ps, v));
+			}
+			return out.join("<br/>");
 		case TCustom(name):
 			var t = tmap.get(name);
 			var a : Array<Dynamic> = v;
@@ -616,7 +629,7 @@ class Main extends Model {
 			for( i in 0...values.length )
 				if( v & (1 << i) != 0 )
 					flags.push(StringTools.htmlEscape(values[i]));
-			flags.length == 0 ? String.fromCharCode(0x2205) : flags.join("|");
+			flags.length == 0 ? String.fromCharCode(0x2205) : flags.join("|<wbr>");
 		case TColor:
 			var id = UID++;
 			'<div class="color" style="background-color:#${StringTools.hex(v,6)}"></div>';
@@ -1123,8 +1136,6 @@ class Main extends Model {
 			v.empty();
 			v.addClass("edit");
 
-			// TODO if too many items, use autocomplete
-
 			var s = J("<select>");
 			var elts = [for( d in sdat.all ){ id : d.id, ico : d.ico, text : d.disp }];
 			if( c.opt || val == null || val == "" )
@@ -1228,7 +1239,7 @@ class Main extends Model {
 				v.html(getValue());
 				save();
 			}}).spectrum("show");
-		case TList, TLayer(_), TFile, TTilePos:
+		case TList, TLayer(_), TFile, TTilePos, TProperties:
 			throw "assert2";
 		}
 	}
@@ -1246,8 +1257,9 @@ class Main extends Model {
 			cursor.y = cursor.s.lines.length - 1;
 			cursor.select = null;
 		}
-		if( cursor.x >= cursor.s.columns.length ) {
-			cursor.x = cursor.s.columns.length - 1;
+		var max = cursor.s.props.isProps ? 1 : cursor.s.columns.length;
+		if( cursor.x >= max ) {
+			cursor.x = max - 1;
 			cursor.select = null;
 		}
 		var l = getLine(cursor.s, cursor.y);
@@ -1325,6 +1337,73 @@ class Main extends Model {
 		}).click();
 	}
 
+	function fillProps( content : JQuery, sheet : Sheet, props : Dynamic ) {
+
+		content.addClass("sheet");
+		content.attr("sheet", sheet.getPath());
+
+		// create as many fake lines as properties (for cursor navigation)
+		sheet.lines = [for( f in Reflect.fields(props) ) null];
+		sheet.lines[0] = props;
+
+		var available = [];
+		var index = 0;
+		for( c in sheet.columns ) {
+			if( c.opt && !Reflect.hasField(props,c.name) ) {
+				available.push(c);
+				continue;
+			}
+			var v = Reflect.field(props, c.name);
+			var l = J("<tr>").attr("colName",c.name).appendTo(content);
+			var th = J("<th>").text(c.name).appendTo(l);
+			var td = J("<td>").addClass("c").addClass("t_" + c.type.getName().substr(1).toLowerCase()).html(valueHtml(c, v, sheet, props)).appendTo(l);
+			var index = index++;
+			l.click(function(e) {
+				setCursor(sheet, 0, index);
+				e.stopPropagation();
+			});
+			th.mousedown(function(e) {
+				if( e.which == 3 ) {
+					haxe.Timer.delay(popupColumn.bind(sheet,c),1);
+					e.preventDefault();
+					l.click();
+					return;
+				}
+			});
+			td.dblclick(function(e) {
+				editCell(c, td, sheet, 0);
+				e.preventDefault();
+				e.stopPropagation();
+			});
+		}
+
+		var end = J("<tr>").appendTo(content);
+		end = J("<td>").attr("colspan", "2").appendTo(end);
+		var sel = J("<select>").appendTo(end);
+		J("<option>").attr("value", "").text("--- Choose ---").appendTo(sel);
+		for( c in available )
+			J("<option>").attr("value",c.name).text(c.name).appendTo(sel);
+		J("<option>").attr("value","new").text("New property...").appendTo(sel);
+		sel.change(function(e) {
+			e.stopPropagation();
+			var v = sel.val();
+			if( v == "" )
+				return;
+			sel.val("");
+			if( v == "new" ) {
+				newColumn(sheet.name);
+				return;
+			}
+			for( c in available )
+				if( c.name == v ) {
+					Reflect.setField(props, c.name, getDefault(c, true));
+					save();
+					refresh();
+					return;
+				}
+		});
+	}
+
 	function fillTable( content : JQuery, sheet : Sheet ) {
 		if( sheet.columns.length == 0 ) {
 			content.html('<a href="javascript:_.newColumn(\'${sheet.name}\')">Add a column</a>');
@@ -1400,6 +1479,7 @@ class Main extends Model {
 				var v = J("<td>").addClass(ctype).addClass("c");
 				var l = lines[index];
 				v.appendTo(l);
+
 				var html = valueHtml(c, val, sheet, obj);
 				if( html == "&nbsp;" ) v.text(" ") else if( html.indexOf('<') < 0 && html.indexOf('&') < 0 ) v.text(html) else v.html(html);
 				v.data("index", cindex);
@@ -1501,6 +1581,71 @@ class Main extends Model {
 					});
 					if( openedList.get(key) )
 						todo.push(function() v.click());
+				case TProperties:
+
+
+					var key = sheet.getPath() + "@" + c.name + ":" + index;
+					v.click(function(e) {
+						var next = l.next("tr.list");
+						if( next.length > 0 ) {
+							if( next.data("name") == c.name ) {
+								next.change();
+								return;
+							}
+							next.change();
+						}
+						next = J("<tr>").addClass("list").data("name", c.name);
+						J("<td>").appendTo(next);
+						var cell = J("<td>").attr("colspan", "" + colCount).appendTo(next);
+						var div = J("<div>").appendTo(cell);
+						if( !inTodo )
+							div.hide();
+						var content = J("<table>").addClass("props").appendTo(div);
+						var psheet = sheet.getSub(c);
+						if( val == null ) {
+							val = {};
+							Reflect.setField(obj, c.name, val);
+						}
+
+						psheet = {
+							columns : psheet.columns, // SHARE
+							props : psheet.props, // SHARE
+							name : psheet.name, // same
+							path : key, // unique
+							parent : { sheet : sheet, column : cindex, line : index },
+							lines : [val], // ref
+							separators : [], // none
+						};
+						fillProps(content, psheet, val);
+						next.insertAfter(l);
+						v.text("...");
+						openedList.set(key,true);
+						next.change(function(e) {
+							if( c.opt && Reflect.fields(val).length == 0 ) {
+								val = null;
+								Reflect.deleteField(obj, c.name);
+							}
+							html = valueHtml(c, val, sheet, obj);
+							v.html(html);
+							div.slideUp(100, function() next.remove());
+							openedList.remove(key);
+							e.stopPropagation();
+						});
+						if( inTodo ) {
+							// make sure we use the same instance
+							if( cursor.s != null && cursor.s.getPath() == psheet.getPath() ) {
+								cursor.s = psheet;
+								checkCursor = false;
+							}
+						} else {
+							div.slideDown(100);
+							setCursor(psheet);
+						}
+						e.stopPropagation();
+					});
+					if( openedList.get(key) )
+						todo.push(function() v.click());
+
 				case TLayer(_):
 					// nothing
 				case TFile:
@@ -2069,6 +2214,8 @@ class Main extends Model {
 			TTileLayer;
 		case "dynamic":
 			TDynamic;
+		case "properties":
+			TProperties;
 		default:
 			return;
 		}
@@ -2095,6 +2242,12 @@ class Main extends Model {
 			if( err != null ) {
 				error(err);
 				return;
+			}
+			// automatically add to current selection
+			if( sheet.props.isProps && cursor.s.columns == sheet.columns ) {
+				var obj = cursor.s.lines[0];
+				if( obj != null )
+					Reflect.setField(obj, c.name, getDefault(c, true));
 			}
 		}
 

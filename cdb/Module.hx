@@ -166,6 +166,8 @@ class Module {
 				case TDynamic:
 					var t = tname.toComplex();
 					s.props.level != null && c.name == "props" ? macro : cdb.Types.LevelPropsAccess<$t> : macro : Dynamic;
+				case TProperties:
+					makeTypeName(s.name + "@" + c.name).toComplex();
 				}
 
 				var rt = switch( c.type ) {
@@ -181,6 +183,8 @@ class Module {
 				case TTilePos: macro : { file : String, size : Int, x : Int, y : Int, ?width : Int, ?height : Int };
 				case TTileLayer: macro : { file : String, stride : Int, size : Int, data : String };
 				case TDynamic: macro : Dynamic;
+				case TProperties:
+					(makeTypeName(s.name+"@" + c.name) + "Def").toComplex();
 				};
 
 				if( c.opt ) {
@@ -232,7 +236,7 @@ class Module {
 						}),
 						access : [AInline, APrivate],
 					});
-				case TList, TEnum(_), TFlags(_), TLayer(_), TTileLayer:
+				case TList, TEnum(_), TFlags(_), TLayer(_), TTileLayer, TProperties:
 					// cast
 					var cname = c.name;
 					fields.push({
@@ -435,7 +439,7 @@ class Module {
 					case TRef(s):
 						var fname = fieldName(s);
 						macro $i{modName}.$fname.resolve(v[$v{ai+1}]);
-					case TList, TLayer(_), TTilePos:
+					case TList, TLayer(_), TTilePos, TProperties:
 						throw "assert";
 					}
 					eargs.push(econv);

@@ -237,6 +237,24 @@ class JQuery {
 		return this;
 	}
 
+	public function insertAfter( j : JQuery ) {
+		var e = j.sel[0];
+		if( e != null ) {
+			var p = e.parent;
+			if( p != null ) {
+				var pos = p.childs.indexOf(e) + 1;
+				for( s in sel ) {
+					s.parent = p;
+					p.childs.remove(s);
+					p.childs.insert(pos, s);
+					send(InsertAt(s.id, p.id, pos));
+					pos++;
+				}
+			}
+		}
+		return this;
+	}
+
 	inline function send( msg : Message ) {
 		client.send(msg);
 	}
@@ -339,6 +357,12 @@ class JQuery {
 			send(SetStyle(s.id, "display", d));
 		}
 		return this;
+	}
+
+	public function parent() {
+		var j = new JQuery(client);
+		j.sel = [for( s in sel ) if( s.parent != null ) s.parent];
+		return j;
 	}
 
 	public function elements() {

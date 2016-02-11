@@ -262,6 +262,18 @@ div#menu {
 		border-spacing : 0;
 	}
 
+	table.props {
+		width : auto;
+		min-width : 400px;
+		margin-top : 1px;
+		th {
+			width : 200px;
+		}
+		th {
+			border-bottom : none;
+		}
+	}
+
 	.tableBottom {
 		margin-top : 300px;
 	}
@@ -377,7 +389,7 @@ div#menu {
 		}
 	}
 
-	td.t_list {
+	td.t_list, td.t_properties {
 		white-space: nowrap;
 		cursor : pointer;
 		img {
