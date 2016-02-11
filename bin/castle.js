@@ -521,7 +521,8 @@ JqPages.prototype = {
 				var max = e.length - pos;
 				if(max > curBuffer.length - curPos) max = curBuffer.length - curPos;
 				var _g1 = 0;
-				while(_g1 < max) {
+				var _g2 = max;
+				while(_g1 < _g2) {
 					var i = _g1++;
 					curBuffer.b[curPos++] = e.readUInt8(pos++) & 255;
 				}
@@ -847,23 +848,25 @@ Level.prototype = {
 				var blanks = [];
 				var w = i.width / size | 0;
 				var h = i.height / size | 0;
-				var _g = 0;
-				while(_g < h) {
-					var y = _g++;
-					var _g1 = 0;
-					while(_g1 < w) {
-						var x = _g1++;
+				var _g1 = 0;
+				var _g = h;
+				while(_g1 < _g) {
+					var y = _g1++;
+					var _g3 = 0;
+					var _g2 = w;
+					while(_g3 < _g2) {
+						var x = _g3++;
 						var i1 = i.sub(x * size,y * size,size,size);
 						blanks[images.length] = i1.isBlank();
 						images.push(i1);
 					}
 				}
 				a.data = { w : w, h : h, img : images, blanks : blanks};
-				var _g2 = 0;
-				var _g12 = a.pending;
-				while(_g2 < _g12.length) {
-					var p = _g12[_g2];
-					++_g2;
+				var _g4 = 0;
+				var _g14 = a.pending;
+				while(_g4 < _g14.length) {
+					var p = _g14[_g4];
+					++_g4;
 					p(w,h,images,blanks);
 				}
 				a.pending = [];
@@ -1095,8 +1098,7 @@ Level.prototype = {
 				var objs5 = l.getTileObjects();
 				var idx5 = insts.length;
 				while(idx5 > 0) {
-					--idx5;
-					var i6 = insts[idx5];
+					var i6 = insts[--idx5];
 					var o6 = objs5.h[i6.o];
 					if(x >= i6.x && y >= i6.y && x < i6.x + (o6 == null?1:o6.w) && y < i6.y + (o6 == null?1:o6.h)) {
 						var im = l.images[i6.o + (x - i6.x | 0) + (y - i6.y | 0) * l.stride];
@@ -1603,7 +1605,7 @@ Level.prototype = {
 		});
 		var onMouseUp = function(_3) {
 			_g3.mouseDown = null;
-			if(_g3.currentLayer.hasSize) _g3.setCursor();
+			if(_g3.currentLayer != null && _g3.currentLayer.hasSize) _g3.setCursor();
 			if(_g3.needSave) _g3.save();
 		};
 		scroll.mousedown(function(e10) {
@@ -1780,12 +1782,14 @@ Level.prototype = {
 				var sy1 = this.selection.y | 0;
 				var sw1 = Math.ceil(this.selection.x + this.selection.w) - sx1;
 				var sh1 = Math.ceil(this.selection.y + this.selection.h) - sy1;
-				var _g3 = 0;
-				while(_g3 < sw1) {
-					var dx = _g3++;
-					var _g4 = 0;
-					while(_g4 < sh1) {
-						var dy = _g4++;
+				var _g4 = 0;
+				var _g3 = sw1;
+				while(_g4 < _g3) {
+					var dx = _g4++;
+					var _g6 = 0;
+					var _g5 = sh1;
+					while(_g6 < _g5) {
+						var dy = _g6++;
 						data[sx1 + dx + (sy1 + dy) * this.width] = 0;
 					}
 				}
@@ -1796,12 +1800,14 @@ Level.prototype = {
 				var sy2 = this.selection.y | 0;
 				var sw2 = Math.ceil(this.selection.x + this.selection.w) - sx2;
 				var sh2 = Math.ceil(this.selection.y + this.selection.h) - sy2;
-				var _g32 = 0;
-				while(_g32 < sw2) {
-					var dx2 = _g32++;
-					var _g42 = 0;
-					while(_g42 < sh2) {
-						var dy2 = _g42++;
+				var _g42 = 0;
+				var _g32 = sw2;
+				while(_g42 < _g32) {
+					var dx2 = _g42++;
+					var _g62 = 0;
+					var _g52 = sh2;
+					while(_g62 < _g52) {
+						var dy2 = _g62++;
 						data1[sx2 + dx2 + (sy2 + dy2) * this.width] = 0;
 					}
 				}
@@ -2623,12 +2629,14 @@ Level.prototype = {
 				h = 1;
 				w = h;
 			}
-			var _g11 = 0;
-			while(_g11 < h) {
-				var dy = _g11++;
-				var _g2 = 0;
-				while(_g2 < w) {
-					var dx = _g2++;
+			var _g2 = 0;
+			var _g11 = h;
+			while(_g2 < _g11) {
+				var dy = _g2++;
+				var _g4 = 0;
+				var _g3 = w;
+				while(_g4 < _g3) {
+					var dx = _g4++;
 					var i = p.index + dx + dy * this.width;
 					if(data1[i] == 0) continue;
 					data1[i] = 0;
@@ -3083,12 +3091,14 @@ Level.prototype = {
 				break;
 			default:
 				this.cursorImage.clear();
-				var _g11 = 0;
-				while(_g11 < h) {
-					var y = _g11++;
-					var _g2 = 0;
-					while(_g2 < w) {
-						var x = _g2++;
+				var _g2 = 0;
+				var _g11 = h;
+				while(_g2 < _g11) {
+					var y = _g2++;
+					var _g4 = 0;
+					var _g3 = w;
+					while(_g4 < _g3) {
+						var x = _g4++;
 						var i1 = l.images[cur + x + y * l.stride];
 						this.cursorImage.drawSub(i1,0,0,i1.width,i1.height,x * size,y * size,size,size);
 					}
@@ -6272,8 +6282,7 @@ Main.prototype = $extend(Model.prototype,{
 			var v = Reflect.field(props,c[0].name);
 			var l = [$("<tr>").attr("colName",c[0].name).appendTo(content)];
 			var th = $("<th>").text(c[0].name).appendTo(l[0]);
-			var tmp = "t_" + HxOverrides.substr(c[0].type[0],1,null).toLowerCase();
-			var td = [$("<td>").addClass("c").addClass(tmp).html(this.valueHtml(c[0],v,sheet,props)).appendTo(l[0])];
+			var td = [$("<td>").addClass("c").addClass("t_" + HxOverrides.substr(c[0].type[0],1,null).toLowerCase()).html(this.valueHtml(c[0],v,sheet,props)).appendTo(l[0])];
 			var index1 = [index++];
 			l[0].click((function(index2) {
 				return function(e) {
@@ -6373,7 +6382,7 @@ Main.prototype = $extend(Model.prototype,{
 			var l = $("<tr>");
 			l.data("index",i[0]);
 			var head = [$("<td>").addClass("start").text("" + i[0])];
-			var tmp = (function(head1,i1) {
+			l.mousedown((function(head1,i1) {
 				return function(e1) {
 					if(e1.which == 3) {
 						head1[0].click();
@@ -6389,8 +6398,7 @@ Main.prototype = $extend(Model.prototype,{
 						return;
 					}
 				};
-			})(head,i);
-			l.mousedown(tmp).click((function(i2) {
+			})(head,i)).click((function(i2) {
 				return function(e2) {
 					if(e2.shiftKey && _g4.cursor.s == sheet && _g4.cursor.x < 0) {
 						_g4.cursor.select = { x : -1, y : i2[0]};
@@ -6473,7 +6481,7 @@ Main.prototype = $extend(Model.prototype,{
 				var _g6 = c[0].type;
 				switch(_g6[1]) {
 				case 7:
-					var tmp6 = (function(obj5,c6) {
+					v[0].find("img").addClass("deletable").change((function(obj5,c6) {
 						return function(e6) {
 							if(Reflect.field(obj5[0],c6[0].name) != null) {
 								Reflect.deleteField(obj5[0],c6[0].name);
@@ -6481,8 +6489,7 @@ Main.prototype = $extend(Model.prototype,{
 								_g4.save();
 							}
 						};
-					})(obj,c);
-					v[0].find("img").addClass("deletable").change(tmp6).click((function() {
+					})(obj,c)).click((function() {
 						return function(e7) {
 							$(this).addClass("selected");
 							e7.stopPropagation();
@@ -6556,10 +6563,10 @@ Main.prototype = $extend(Model.prototype,{
 							e8.stopPropagation();
 						};
 					})(key,html,l4,v,val,obj,index,c,cindex));
-					var tmp7;
+					var tmp;
 					var _this = this.openedList;
-					if(__map_reserved[key[0]] != null) tmp7 = _this.getReserved(key[0]); else tmp7 = _this.h[key[0]];
-					if(tmp7) todo.push((function(v10) {
+					if(__map_reserved[key[0]] != null) tmp = _this.getReserved(key[0]); else tmp = _this.h[key[0]];
+					if(tmp) todo.push((function(v10) {
 						return function() {
 							v10[0].click();
 						};
@@ -6681,9 +6688,9 @@ Main.prototype = $extend(Model.prototype,{
 							if(width == null) width = 1;
 							if(height == null) height = 1;
 							if(file == null) {
-								var i21 = index16[0] - 1;
-								while(i21 >= 0) {
-									var o = sheet.lines[i21--];
+								var i18 = index16[0] - 1;
+								while(i18 >= 0) {
+									var o = sheet.lines[i18--];
 									var v2 = Reflect.field(o,c16[0].name);
 									if(v2 != null) {
 										file = v2.file;
@@ -6701,21 +6708,19 @@ Main.prototype = $extend(Model.prototype,{
 								};
 							})(set16);
 							if(file == null) {
-								_g4.chooseFile((function(v21) {
-									return function(path21) {
-										file = path21;
+								_g4.chooseFile((function(v18) {
+									return function(path18) {
+										file = path18;
 										setVal();
-										v21[0].dblclick();
+										v18[0].dblclick();
 									};
 								})(v16));
 								return;
 							}
-							var tmp17 = $(".tileSelect").parent().html();
-							var dialog = $(tmp17).prependTo($("body"));
+							var dialog = $($(".tileSelect").parent().html()).prependTo($("body"));
 							var maxWidth = 1000000;
 							var maxHeight = 1000000;
-							var tmp18 = "url(\"" + _g4.getAbsPath(file) + "\")";
-							var tmp19 = (function() {
+							dialog.find(".tileView").css({ backgroundImage : "url(\"" + _g4.getAbsPath(file) + "\")"}).mousemove((function() {
 								return function(e18) {
 									var off = $(this).offset();
 									posX = (e18.pageX - off.left) / size | 0;
@@ -6726,181 +6731,175 @@ Main.prototype = $extend(Model.prototype,{
 									if(posY < 0) posY = 0;
 									$(".tileCursor").not(".current").css({ marginLeft : size * posX - 1 + "px", marginTop : size * posY - 1 + "px"});
 								};
-							})();
-							dialog.find(".tileView").css({ backgroundImage : tmp18}).mousemove(tmp19).click((function() {
-								return function(_21) {
+							})()).click((function() {
+								return function(_18) {
 									setVal();
 									dialog.remove();
 									_g4.save();
 								};
 							})());
 							dialog.find("[name=size]").val("" + size).change((function() {
-								return function(_22) {
+								return function(_19) {
 									size = Std.parseInt($(this).val());
 									$(".tileCursor").css({ width : size * width + "px", height : size * height + "px"});
 									$(".tileCursor.current").css({ marginLeft : size * posX - 2 + "px", marginTop : size * posY - 2 + "px"});
 								};
 							})()).change();
 							dialog.find("[name=width]").val("" + width).change((function() {
-								return function(_23) {
+								return function(_20) {
 									width = Std.parseInt($(this).val());
 									$(".tileCursor").css({ width : size * width + "px", height : size * height + "px"});
 								};
 							})()).change();
 							dialog.find("[name=height]").val("" + height).change((function() {
-								return function(_24) {
+								return function(_21) {
 									height = Std.parseInt($(this).val());
 									$(".tileCursor").css({ width : size * width + "px", height : size * height + "px"});
 								};
 							})()).change();
 							dialog.find("[name=cancel]").click((function() {
-								return function(_25) {
+								return function(_22) {
 									dialog.remove();
 								};
 							})());
-							dialog.find("[name=file]").click((function(v25) {
-								return function(_26) {
-									_g4.chooseFile((function(v26) {
-										return function(f26) {
-											file = f26;
+							dialog.find("[name=file]").click((function(v22) {
+								return function(_23) {
+									_g4.chooseFile((function(v23) {
+										return function(f23) {
+											file = f23;
 											dialog.remove();
 											setVal();
 											_g4.save();
-											v26[0].dblclick();
+											v23[0].dblclick();
 										};
-									})(v25));
+									})(v22));
 								};
 							})(v16));
-							var tmp20 = (function() {
-								return function(e19) {
-									e19.stopPropagation();
+							dialog.keydown((function() {
+								return function(e23) {
+									e23.stopPropagation();
 								};
-							})();
-							dialog.keydown(tmp20).keypress((function() {
-								return function(e26) {
-									e26.stopPropagation();
+							})()).keypress((function() {
+								return function(e24) {
+									e24.stopPropagation();
 								};
 							})());
 							dialog.show();
-							var i20 = window.document.createElement("img");
-							i20.onload = (function() {
-								return function(_27) {
-									maxWidth = i20.width;
-									maxHeight = i20.height;
-									dialog.find(".tileView").height(i20.height).width(i20.width);
-									dialog.find(".tilePath").text(file + " (" + i20.width + "x" + i20.height + ")");
+							var i17 = window.document.createElement("img");
+							i17.onload = (function() {
+								return function(_24) {
+									maxWidth = i17.width;
+									maxHeight = i17.height;
+									dialog.find(".tileView").height(i17.height).width(i17.width);
+									dialog.find(".tilePath").text(file + " (" + i17.width + "x" + i17.height + ")");
 								};
 							})();
-							i20.src = _g4.getAbsPath(file);
+							i17.src = _g4.getAbsPath(file);
 						};
 					})(set,v,val,index,c));
 					break;
 				default:
-					v[0].dblclick((function(v27,index27,c27) {
-						return function(e27) {
-							_g4.editCell(c27[0],v27[0],sheet,index27[0]);
+					v[0].dblclick((function(v24,index24,c24) {
+						return function(e25) {
+							_g4.editCell(c24[0],v24[0],sheet,index24[0]);
 						};
 					})(v,index,c));
 				}
 			}
 		}
 		if(sheet.lines.length == 0) {
-			var l27 = $("<tr><td colspan=\"" + (sheet.columns.length + 1) + "\"><a href=\"javascript:_.insertLine()\">Insert Line</a></td></tr>");
-			l27.find("a").click(function(_28) {
+			var l25 = $("<tr><td colspan=\"" + (sheet.columns.length + 1) + "\"><a href=\"javascript:_.insertLine()\">Insert Line</a></td></tr>");
+			l25.find("a").click(function(_25) {
 				_g4.setCursor(sheet);
 			});
-			lines.push(l27);
+			lines.push(l25);
 		}
 		if(sheet.props.level != null) {
-			var col28 = $("<td style='width:35px'>");
-			cols.prepend(col28);
-			var _g328 = 0;
-			var _g228 = sheet.lines.length;
-			while(_g328 < _g228) {
-				var index28 = [_g328++];
-				var l28 = [lines[index28[0]]];
-				var c28 = $("<input type='submit' value='Edit'>");
-				$("<td>").append(c28).prependTo(l28[0]);
-				c28.click((function(l29,index29) {
-					return function(_29) {
-						l29[0].click();
+			var col25 = $("<td style='width:35px'>");
+			cols.prepend(col25);
+			var _g325 = 0;
+			var _g225 = sheet.lines.length;
+			while(_g325 < _g225) {
+				var index25 = [_g325++];
+				var l26 = [lines[index25[0]]];
+				var c26 = $("<input type='submit' value='Edit'>");
+				$("<td>").append(c26).prependTo(l26[0]);
+				c26.click((function(l27,index27) {
+					return function(_27) {
+						l27[0].click();
 						var found = null;
-						var _g529 = 0;
-						var _g629 = _g4.levels;
-						while(_g529 < _g629.length) {
-							var l30 = _g629[_g529];
-							++_g529;
-							if(l30.sheet == sheet && l30.index == index29[0]) found = l30;
+						var _g527 = 0;
+						var _g627 = _g4.levels;
+						while(_g527 < _g627.length) {
+							var l28 = _g627[_g527];
+							++_g527;
+							if(l28.sheet == sheet && l28.index == index27[0]) found = l28;
 						}
 						if(found == null) {
-							found = new Level(_g4,sheet,index29[0]);
+							found = new Level(_g4,sheet,index27[0]);
 							_g4.levels.push(found);
 							_g4.selectLevel(found);
 							_g4.initContent();
 						} else _g4.selectLevel(found);
 					};
-				})(l28,index28));
+				})(l26,index25));
 			}
 		}
 		content.empty();
 		content.append(cols);
 		var snext = 0;
-		var _g330 = 0;
-		var _g230 = lines.length;
-		while(_g330 < _g230) {
-			var i30 = _g330++;
-			while(sheet.separators[snext] == i30) {
+		var _g328 = 0;
+		var _g228 = lines.length;
+		while(_g328 < _g228) {
+			var i28 = _g328++;
+			while(sheet.separators[snext] == i28) {
 				var sep = $("<tr>").addClass("separator").append("<td colspan=\"" + (colCount + 1) + "\">").appendTo(content);
-				var content30 = [sep.find("td")];
+				var content28 = [sep.find("td")];
 				var title = [sheet.props.separatorTitles != null?sheet.props.separatorTitles[snext]:null];
-				if(title[0] != null) content30[0].text(title[0]);
+				if(title[0] != null) content28[0].text(title[0]);
 				var pos = [snext];
-				sep.dblclick((function(pos30,title30,content31) {
-					return function(e31) {
-						content31[0].empty();
-						var tmp31 = content31[0];
-						var tmp32 = title30[0] == null?"":title30[0];
-						var tmp33 = (function(pos32,title32,content32) {
-							return function(_32) {
-								title32[0] = $(this).val();
+				sep.dblclick((function(pos28,title28,content29) {
+					return function(e29) {
+						content29[0].empty();
+						$("<input>").appendTo(content29[0]).focus().val(title28[0] == null?"":title28[0]).blur((function(pos29,title29,content30) {
+							return function(_30) {
+								title29[0] = $(this).val();
 								$(this).remove();
-								content32[0].text(title32[0]);
+								content30[0].text(title29[0]);
 								var titles = sheet.props.separatorTitles;
 								if(titles == null) titles = [];
-								while(titles.length < pos32[0]) titles.push(null);
-								titles[pos32[0]] = title32[0] == ""?null:title32[0];
+								while(titles.length < pos29[0]) titles.push(null);
+								titles[pos29[0]] = title29[0] == ""?null:title29[0];
 								while(titles[titles.length - 1] == null && titles.length > 0) titles.pop();
 								if(titles.length == 0) titles = null;
 								sheet.props.separatorTitles = titles;
 								_g4.save();
 							};
-						})(pos30,title30,content31);
-						var tmp34 = (function() {
-							return function(e33) {
-								e33.stopPropagation();
+						})(pos28,title28,content29)).keypress((function() {
+							return function(e30) {
+								e30.stopPropagation();
 							};
-						})();
-						$("<input>").appendTo(tmp31).focus().val(tmp32).blur(tmp33).keypress(tmp34).keydown((function(title34,content34) {
-							return function(e34) {
-								if(e34.keyCode == 13) {
+						})()).keydown((function(title30,content31) {
+							return function(e31) {
+								if(e31.keyCode == 13) {
 									$(this).blur();
-									e34.preventDefault();
-								} else if(e34.keyCode == 27) content34[0].text(title34[0]);
-								e34.stopPropagation();
+									e31.preventDefault();
+								} else if(e31.keyCode == 27) content31[0].text(title30[0]);
+								e31.stopPropagation();
 							};
-						})(title30,content31));
+						})(title28,content29));
 					};
-				})(pos,title,content30));
+				})(pos,title,content28));
 				++snext;
 			}
-			content.append(lines[i30]);
+			content.append(lines[i28]);
 		}
 		inTodo = true;
-		var _g234 = 0;
-		while(_g234 < todo.length) {
-			var t34 = todo[_g234];
-			++_g234;
-			t34();
+		var _g231 = 0;
+		while(_g231 < todo.length) {
+			var t31 = todo[_g231];
+			++_g231;
+			t31();
 		}
 		inTodo = false;
 	}
@@ -7154,7 +7153,8 @@ Main.prototype = $extend(Model.prototype,{
 			form.find("[name=name]").val(ref.name);
 			form.find("[name=type]").val(HxOverrides.substr(ref.type[0],1,null).toLowerCase()).change();
 			form.find("[name=req]").prop("checked",!ref.opt);
-			form.find("[name=display]").val(ref.display == null?"0":Std.string(ref.display));
+			var tmp = ref.display == null?"0":Std.string(ref.display);
+			form.find("[name=display]").val(tmp);
 			form.find("[name=localizable]").prop("checked",ref.kind == "localizable");
 			var _g3 = ref.type;
 			switch(_g3[1]) {
@@ -8461,31 +8461,36 @@ SheetData.updateValue = function(sheet,c,index,old) {
 				var ndat = [];
 				if(odat[0] == 65535) ndat = odat; else {
 					var pos = 0;
-					var _g1 = 0;
-					while(_g1 < newH) {
-						var y = _g1++;
+					var _g2 = 0;
+					var _g1 = newH;
+					while(_g2 < _g1) {
+						var y = _g2++;
 						if(y >= oldH) {
-							var _g2 = 0;
-							while(_g2 < newW) {
-								var x = _g2++;
+							var _g4 = 0;
+							var _g3 = newW;
+							while(_g4 < _g3) {
+								var x = _g4++;
 								ndat.push(0);
 							}
 						} else if(newW <= oldW) {
-							var _g21 = 0;
-							while(_g21 < newW) {
-								var x1 = _g21++;
+							var _g41 = 0;
+							var _g31 = newW;
+							while(_g41 < _g31) {
+								var x1 = _g41++;
 								ndat.push(odat[pos++]);
 							}
 							pos += oldW - newW;
 						} else {
-							var _g22 = 0;
-							while(_g22 < oldW) {
-								var x2 = _g22++;
+							var _g42 = 0;
+							var _g32 = oldW;
+							while(_g42 < _g32) {
+								var x2 = _g42++;
 								ndat.push(odat[pos++]);
 							}
-							var _g23 = oldW;
-							while(_g23 < newW) {
-								var x3 = _g23++;
+							var _g43 = oldW;
+							var _g33 = newW;
+							while(_g43 < _g33) {
+								var x3 = _g43++;
 								ndat.push(0);
 							}
 						}
@@ -8494,54 +8499,56 @@ SheetData.updateValue = function(sheet,c,index,old) {
 				return { file : v.file, size : v.size, stride : v.stride, data : cdb__$Types_TileLayerData_$Impl_$.encode(ndat,SheetData.model.data.compress)};
 			};
 			var _g13 = 0;
-			var _g24 = sheet.columns;
-			while(_g13 < _g24.length) {
-				var c4 = _g24[_g13];
+			var _g23 = sheet.columns;
+			while(_g13 < _g23.length) {
+				var c3 = _g23[_g13];
 				++_g13;
-				var v4 = Reflect.field(obj,c4.name);
-				if(v4 == null) continue;
-				var _g3 = c4.type;
-				switch(_g3[1]) {
+				var v3 = Reflect.field(obj,c3.name);
+				if(v3 == null) continue;
+				var _g34 = c3.type;
+				switch(_g34[1]) {
 				case 12:
-					var v5 = v4;
-					var _g4 = [];
+					var v4 = v3;
+					var _g44 = [];
 					var _g5 = 0;
 					while(_g5 < 256) {
 						var i = _g5++;
-						_g4.push(i);
+						_g44.push(i);
 					}
-					var odat5 = cdb__$Types_Layer_$Impl_$.decode(v5,_g4);
-					var ndat5 = [];
-					var _g55 = 0;
-					while(_g55 < newH) {
-						var y5 = _g55++;
-						var _g6 = 0;
-						while(_g6 < newW) {
-							var x5 = _g6++;
-							var k = y5 < oldH && x5 < oldW?odat5[x5 + y5 * oldW]:0;
-							ndat5.push(k);
+					var odat4 = cdb__$Types_Layer_$Impl_$.decode(v4,_g44);
+					var ndat4 = [];
+					var _g6 = 0;
+					var _g54 = newH;
+					while(_g6 < _g54) {
+						var y4 = _g6++;
+						var _g8 = 0;
+						var _g7 = newW;
+						while(_g8 < _g7) {
+							var x4 = _g8++;
+							var k = y4 < oldH && x4 < oldW?odat4[x4 + y4 * oldW]:0;
+							ndat4.push(k);
 						}
 					}
-					v5 = cdb__$Types_Layer_$Impl_$.encode(ndat5,SheetData.model.data.compress);
-					obj[c4.name] = v5;
+					v4 = cdb__$Types_Layer_$Impl_$.encode(ndat4,SheetData.model.data.compress);
+					obj[c3.name] = v4;
 					break;
 				case 8:
 					var tmp;
 					var _this = SheetData.model.smap;
-					var key = sheet.name + "@" + c4.name;
+					var key = sheet.name + "@" + c3.name;
 					if(__map_reserved[key] != null) tmp = _this.getReserved(key); else tmp = _this.h[key];
 					var s = tmp.s;
 					if(SheetData.hasColumn(s,"x",[cdb_ColumnType.TInt,cdb_ColumnType.TFloat]) && SheetData.hasColumn(s,"y",[cdb_ColumnType.TInt,cdb_ColumnType.TFloat])) {
-						var elts = Reflect.field(obj,c4.name);
+						var elts = Reflect.field(obj,c3.name);
 						var _g45 = 0;
-						var _g56 = elts.slice();
-						while(_g45 < _g56.length) {
-							var e = _g56[_g45];
+						var _g55 = elts.slice();
+						while(_g45 < _g55.length) {
+							var e = _g55[_g45];
 							++_g45;
 							if(e.x >= newW || e.y >= newH) HxOverrides.remove(elts,e);
 						}
 					} else if(SheetData.hasColumn(s,"data",[cdb_ColumnType.TTileLayer])) {
-						var a = v4;
+						var a = v3;
 						var _g46 = 0;
 						while(_g46 < a.length) {
 							var o = a[_g46];
@@ -8551,7 +8558,7 @@ SheetData.updateValue = function(sheet,c,index,old) {
 					}
 					break;
 				case 15:
-					obj[c4.name] = remapTileLayer(v4);
+					obj[c3.name] = remapTileLayer(v3);
 					break;
 				default:
 				}
@@ -8990,9 +8997,10 @@ haxe_Serializer.prototype = {
 				var ucount = 0;
 				this.buf.b += "a";
 				var l = v.length;
-				var _g1 = 0;
-				while(_g1 < l) {
-					var i = _g1++;
+				var _g2 = 0;
+				var _g1 = l;
+				while(_g2 < _g1) {
+					var i = _g2++;
 					if(v[i] == null) ++ucount; else {
 						if(ucount > 0) {
 							if(ucount == 1) this.buf.b += "n"; else {
@@ -9143,9 +9151,10 @@ haxe_Serializer.prototype = {
 			this.buf.b += ":";
 			var l8 = v.length;
 			this.buf.b += Std.string(l8 - 2);
-			var _g18 = 2;
-			while(_g18 < l8) {
-				var i8 = _g18++;
+			var _g28 = 2;
+			var _g18 = l8;
+			while(_g28 < _g18) {
+				var i8 = _g28++;
 				this.serialize(v[i8]);
 			}
 			if(this.useCache) this.cache.push(v);
@@ -9544,9 +9553,10 @@ cdb_BinSerializer.prototype = {
 			var d2 = d[2];
 			var len3 = this.readInt();
 			var _g = [];
-			var _g1 = 0;
-			while(_g1 < len3) {
-				var i = _g1++;
+			var _g2 = 0;
+			var _g1 = len3;
+			while(_g2 < _g1) {
+				var i = _g2++;
 				_g.push(this.unserializeData(d2));
 			}
 			return _g;
@@ -9696,7 +9706,8 @@ var cdb__$Data_TileMode_$Impl_$ = {};
 $hxClasses["cdb._Data.TileMode_Impl_"] = cdb__$Data_TileMode_$Impl_$;
 cdb__$Data_TileMode_$Impl_$.__name__ = ["cdb","_Data","TileMode_Impl_"];
 cdb__$Data_TileMode_$Impl_$._new = function(s) {
-	return s;
+	var this1 = s;
+	return this1;
 };
 cdb__$Data_TileMode_$Impl_$.ofString = function(s) {
 	return cdb__$Data_TileMode_$Impl_$._new(s);
@@ -10183,9 +10194,10 @@ var cdb_TileBuilder = function(t,stride,total) {
 			var _g18 = b.opts.borderIn;
 			if(_g18 == null) {
 				var _g28 = [];
-				var _g38 = tid8.id + 1;
-				while(_g38 < maxGid) {
-					var g8 = _g38++;
+				var _g48 = tid8.id + 1;
+				var _g38 = maxGid;
+				while(_g48 < _g38) {
+					var g8 = _g48++;
 					_g28.push(g8);
 				}
 				gids = _g28;
@@ -10218,9 +10230,10 @@ var cdb_TileBuilder = function(t,stride,total) {
 			} else switch(_g19) {
 			case "upper":
 				var _g211 = [];
-				var _g311 = gid7.id + 1;
-				while(_g311 < maxGid) {
-					var g11 = _g311++;
+				var _g411 = gid7.id + 1;
+				var _g311 = maxGid;
+				while(_g411 < _g311) {
+					var g11 = _g411++;
 					_g211.push(g11);
 				}
 				tids = _g211;
@@ -10314,18 +10327,19 @@ cdb_TileBuilder.prototype = {
 		return h;
 	}
 	,buildGrounds: function(input,width) {
-		var _g4 = this;
+		var _g6 = this;
 		var height = input.length / width | 0;
 		var p = -1;
 		var out = [];
-		var _g = 0;
-		while(_g < height) {
-			var y = _g++;
-			var _g1 = 0;
-			while(_g1 < width) {
-				var x = _g1++;
-				++p;
-				var v = input[p];
+		var _g1 = 0;
+		var _g = height;
+		while(_g1 < _g) {
+			var y = _g1++;
+			var _g3 = 0;
+			var _g2 = width;
+			while(_g3 < _g2) {
+				var x = _g3++;
+				var v = input[++p];
 				var g = this.groundMap[v];
 				var gl = x == 0?g:this.groundMap[input[p - 1]];
 				var gr = x == width - 1?g:this.groundMap[input[p + 1]];
@@ -10355,10 +10369,10 @@ cdb_TileBuilder.prototype = {
 				var b6 = gbr > gbl?gbl:gbr;
 				if(a5 > b6) b5 = b6; else b5 = a5;
 				if(a3 > b5) min = b5; else min = a3;
-				var _g3 = min;
-				var _g2 = max + 1;
-				while(_g3 < _g2) {
-					var t = _g3++;
+				var _g5 = min;
+				var _g4 = max + 1;
+				while(_g5 < _g4) {
+					var t = _g5++;
 					var bb = this.borders[t + g * 256];
 					if(bb == null) continue;
 					var bits = 0;
@@ -10377,7 +10391,7 @@ cdb_TileBuilder.prototype = {
 							bits &= -32;
 							out.push(x);
 							out.push(y);
-							out.push(a8.length == 1?a8[0]:a8[_g4.random(x + y * width) % a8.length]);
+							out.push(a8.length == 1?a8[0]:a8[_g6.random(x + y * width) % a8.length]);
 							f8 = true;
 						}
 					}
@@ -10388,7 +10402,7 @@ cdb_TileBuilder.prototype = {
 							bits &= -108;
 							out.push(x);
 							out.push(y);
-							out.push(a9.length == 1?a9[0]:a9[_g4.random(x + y * width) % a9.length]);
+							out.push(a9.length == 1?a9[0]:a9[_g6.random(x + y * width) % a9.length]);
 							f9 = true;
 						}
 					}
@@ -10399,7 +10413,7 @@ cdb_TileBuilder.prototype = {
 							bits &= -215;
 							out.push(x);
 							out.push(y);
-							out.push(a10.length == 1?a10[0]:a10[_g4.random(x + y * width) % a10.length]);
+							out.push(a10.length == 1?a10[0]:a10[_g6.random(x + y * width) % a10.length]);
 							f10 = true;
 						}
 					}
@@ -10410,7 +10424,7 @@ cdb_TileBuilder.prototype = {
 							bits &= -249;
 							out.push(x);
 							out.push(y);
-							out.push(a11.length == 1?a11[0]:a11[_g4.random(x + y * width) % a11.length]);
+							out.push(a11.length == 1?a11[0]:a11[_g6.random(x + y * width) % a11.length]);
 							f11 = true;
 						}
 					}
@@ -10421,7 +10435,7 @@ cdb_TileBuilder.prototype = {
 							bits &= -48;
 							out.push(x);
 							out.push(y);
-							out.push(a12.length == 1?a12[0]:a12[_g4.random(x + y * width) % a12.length]);
+							out.push(a12.length == 1?a12[0]:a12[_g6.random(x + y * width) % a12.length]);
 							f12 = true;
 						}
 					}
@@ -10432,7 +10446,7 @@ cdb_TileBuilder.prototype = {
 							bits &= -152;
 							out.push(x);
 							out.push(y);
-							out.push(a13.length == 1?a13[0]:a13[_g4.random(x + y * width) % a13.length]);
+							out.push(a13.length == 1?a13[0]:a13[_g6.random(x + y * width) % a13.length]);
 							f13 = true;
 						}
 					}
@@ -10443,7 +10457,7 @@ cdb_TileBuilder.prototype = {
 							bits &= -234;
 							out.push(x);
 							out.push(y);
-							out.push(a14.length == 1?a14[0]:a14[_g4.random(x + y * width) % a14.length]);
+							out.push(a14.length == 1?a14[0]:a14[_g6.random(x + y * width) % a14.length]);
 							f14 = true;
 						}
 					}
@@ -10454,7 +10468,7 @@ cdb_TileBuilder.prototype = {
 							bits &= -245;
 							out.push(x);
 							out.push(y);
-							out.push(a15.length == 1?a15[0]:a15[_g4.random(x + y * width) % a15.length]);
+							out.push(a15.length == 1?a15[0]:a15[_g6.random(x + y * width) % a15.length]);
 							f15 = true;
 						}
 					}
@@ -10465,7 +10479,7 @@ cdb_TileBuilder.prototype = {
 							bits &= -8;
 							out.push(x);
 							out.push(y);
-							out.push(a16.length == 1?a16[0]:a16[_g4.random(x + y * width) % a16.length]);
+							out.push(a16.length == 1?a16[0]:a16[_g6.random(x + y * width) % a16.length]);
 							f = true;
 						}
 					}
@@ -10484,7 +10498,7 @@ cdb_TileBuilder.prototype = {
 							bits &= -42;
 							out.push(x);
 							out.push(y);
-							out.push(a18.length == 1?a18[0]:a18[_g4.random(x + y * width) % a18.length]);
+							out.push(a18.length == 1?a18[0]:a18[_g6.random(x + y * width) % a18.length]);
 							f17 = true;
 						}
 					}
@@ -10495,7 +10509,7 @@ cdb_TileBuilder.prototype = {
 							bits &= -149;
 							out.push(x);
 							out.push(y);
-							out.push(a19.length == 1?a19[0]:a19[_g4.random(x + y * width) % a19.length]);
+							out.push(a19.length == 1?a19[0]:a19[_g6.random(x + y * width) % a19.length]);
 							f18 = true;
 						}
 					}
@@ -10506,7 +10520,7 @@ cdb_TileBuilder.prototype = {
 							bits &= -225;
 							out.push(x);
 							out.push(y);
-							out.push(a20.length == 1?a20[0]:a20[_g4.random(x + y * width) % a20.length]);
+							out.push(a20.length == 1?a20[0]:a20[_g6.random(x + y * width) % a20.length]);
 							f19 = true;
 						}
 					}
@@ -10517,7 +10531,7 @@ cdb_TileBuilder.prototype = {
 							bits &= -2;
 							out.push(x);
 							out.push(y);
-							out.push(a21.length == 1?a21[0]:a21[_g4.random(x + y * width) % a21.length]);
+							out.push(a21.length == 1?a21[0]:a21[_g6.random(x + y * width) % a21.length]);
 							f6 = true;
 						}
 					}
@@ -10527,7 +10541,7 @@ cdb_TileBuilder.prototype = {
 							var y22 = y + 1;
 							out.push(x);
 							out.push(y22);
-							out.push(a22.length == 1?a22[0]:a22[_g4.random(x + y22 * width) % a22.length]);
+							out.push(a22.length == 1?a22[0]:a22[_g6.random(x + y22 * width) % a22.length]);
 						}
 					}
 					var f7 = false;
@@ -10537,7 +10551,7 @@ cdb_TileBuilder.prototype = {
 							bits &= -5;
 							out.push(x);
 							out.push(y);
-							out.push(a23.length == 1?a23[0]:a23[_g4.random(x + y * width) % a23.length]);
+							out.push(a23.length == 1?a23[0]:a23[_g6.random(x + y * width) % a23.length]);
 							f7 = true;
 						}
 					}
@@ -10547,7 +10561,7 @@ cdb_TileBuilder.prototype = {
 							var y24 = y + 1;
 							out.push(x);
 							out.push(y24);
-							out.push(a24.length == 1?a24[0]:a24[_g4.random(x + y24 * width) % a24.length]);
+							out.push(a24.length == 1?a24[0]:a24[_g6.random(x + y24 * width) % a24.length]);
 						}
 					}
 					var f24 = false;
@@ -10557,7 +10571,7 @@ cdb_TileBuilder.prototype = {
 							bits &= -33;
 							out.push(x);
 							out.push(y);
-							out.push(a25.length == 1?a25[0]:a25[_g4.random(x + y * width) % a25.length]);
+							out.push(a25.length == 1?a25[0]:a25[_g6.random(x + y * width) % a25.length]);
 							f24 = true;
 						}
 					}
@@ -10568,7 +10582,7 @@ cdb_TileBuilder.prototype = {
 							bits &= -129;
 							out.push(x);
 							out.push(y);
-							out.push(a26.length == 1?a26[0]:a26[_g4.random(x + y * width) % a26.length]);
+							out.push(a26.length == 1?a26[0]:a26[_g6.random(x + y * width) % a26.length]);
 							f25 = true;
 						}
 					}
@@ -10614,7 +10628,8 @@ var cdb__$Types_ArrayRead_$Impl_$ = {};
 $hxClasses["cdb._Types.ArrayRead_Impl_"] = cdb__$Types_ArrayRead_$Impl_$;
 cdb__$Types_ArrayRead_$Impl_$.__name__ = ["cdb","_Types","ArrayRead_Impl_"];
 cdb__$Types_ArrayRead_$Impl_$._new = function(a) {
-	return a;
+	var this1 = a;
+	return this1;
 };
 cdb__$Types_ArrayRead_$Impl_$.get_length = function(this1) {
 	return this1.length;
@@ -10635,7 +10650,8 @@ var cdb__$Types_Flags_$Impl_$ = {};
 $hxClasses["cdb._Types.Flags_Impl_"] = cdb__$Types_Flags_$Impl_$;
 cdb__$Types_Flags_$Impl_$.__name__ = ["cdb","_Types","Flags_Impl_"];
 cdb__$Types_Flags_$Impl_$._new = function(x) {
-	return x;
+	var this1 = x;
+	return this1;
 };
 cdb__$Types_Flags_$Impl_$.has = function(this1,t) {
 	return (this1 & 1 << t) != 0;
@@ -10647,7 +10663,8 @@ cdb__$Types_Flags_$Impl_$.unset = function(this1,t) {
 	this1 &= ~(1 << t);
 };
 cdb__$Types_Flags_$Impl_$.iterator = function(this1) {
-	return new cdb__$Types_FlagsIterator(this1);
+	var this2 = this1;
+	return new cdb__$Types_FlagsIterator(this2);
 };
 cdb__$Types_Flags_$Impl_$.toInt = function(this1) {
 	return this1;
@@ -10656,7 +10673,8 @@ var cdb__$Types_Layer_$Impl_$ = {};
 $hxClasses["cdb._Types.Layer_Impl_"] = cdb__$Types_Layer_$Impl_$;
 cdb__$Types_Layer_$Impl_$.__name__ = ["cdb","_Types","Layer_Impl_"];
 cdb__$Types_Layer_$Impl_$._new = function(x) {
-	return x;
+	var this1 = x;
+	return this1;
 };
 cdb__$Types_Layer_$Impl_$.decode = function(this1,all) {
 	var k = cdb_Lz4Reader.decodeString(this1);
@@ -10677,13 +10695,15 @@ cdb__$Types_Layer_$Impl_$.encode = function(a,compress) {
 		var i = _g1++;
 		b.b[i] = a[i] & 255;
 	}
-	return cdb_Lz4Reader.encodeBytes(b,compress);
+	var this1 = cdb_Lz4Reader.encodeBytes(b,compress);
+	return this1;
 };
 var cdb__$Types_TileLayerData_$Impl_$ = {};
 $hxClasses["cdb._Types.TileLayerData_Impl_"] = cdb__$Types_TileLayerData_$Impl_$;
 cdb__$Types_TileLayerData_$Impl_$.__name__ = ["cdb","_Types","TileLayerData_Impl_"];
 cdb__$Types_TileLayerData_$Impl_$._new = function(v) {
-	return v;
+	var this1 = v;
+	return this1;
 };
 cdb__$Types_TileLayerData_$Impl_$.decode = function(this1) {
 	var k = cdb_Lz4Reader.decodeString(this1);
@@ -10947,7 +10967,8 @@ haxe_Unserializer.prototype = {
 			var c = this.buf.charCodeAt(this.pos);
 			if(c >= 43 && c < 58 || c == 101 || c == 69) this.pos++; else break;
 		}
-		return parseFloat(HxOverrides.substr(this.buf,p1,this.pos - p1));
+		var x = HxOverrides.substr(this.buf,p1,this.pos - p1);
+		return parseFloat(x);
 	}
 	,unserializeObject: function(o) {
 		while(true) {
@@ -11390,9 +11411,10 @@ haxe_crypto_Md5.bytes2blks = function(b) {
 	var nblk = (b.length + 8 >> 6) + 1;
 	var blks = [];
 	var blksSize = nblk * 16;
-	var _g = 0;
-	while(_g < blksSize) {
-		var i1 = _g++;
+	var _g1 = 0;
+	var _g = blksSize;
+	while(_g1 < _g) {
+		var i1 = _g1++;
 		blks[i1] = 0;
 	}
 	var i = 0;
@@ -11978,9 +12000,10 @@ js_Boot.__string_rec = function(o,s) {
 			var i;
 			var str1 = "[";
 			s += "\t";
-			var _g2 = 0;
-			while(_g2 < l) {
-				var i3 = _g2++;
+			var _g12 = 0;
+			var _g2 = l;
+			while(_g12 < _g2) {
+				var i3 = _g12++;
 				str1 += (i3 > 0?",":"") + js_Boot.__string_rec(o[i3],s);
 			}
 			str1 += "]";
@@ -13226,12 +13249,14 @@ lvl_LayerData.prototype = $extend(lvl_LayerGfx.prototype,{
 		case 2:
 			var data = _g[3];
 			var ndata = [];
-			var _g1 = 0;
-			while(_g1 < height) {
-				var y = _g1++;
-				var _g2 = 0;
-				while(_g2 < width) {
-					var x = _g2++;
+			var _g2 = 0;
+			var _g1 = height;
+			while(_g2 < _g1) {
+				var y = _g2++;
+				var _g4 = 0;
+				var _g3 = width;
+				while(_g4 < _g3) {
+					var x = _g4++;
 					var tx = x / s | 0;
 					var ty = y / s | 0;
 					var k = tx >= width || ty >= height?0:data[tx + ty * width];
@@ -13248,12 +13273,14 @@ lvl_LayerData.prototype = $extend(lvl_LayerGfx.prototype,{
 		case 0:
 			var data1 = _g[2];
 			var ndata1 = [];
-			var _g12 = 0;
-			while(_g12 < height) {
-				var y2 = _g12++;
-				var _g22 = 0;
-				while(_g22 < width) {
-					var x2 = _g22++;
+			var _g22 = 0;
+			var _g12 = height;
+			while(_g22 < _g12) {
+				var y2 = _g22++;
+				var _g42 = 0;
+				var _g32 = width;
+				while(_g42 < _g32) {
+					var x2 = _g42++;
 					var tx2 = x2 / s | 0;
 					var ty2 = y2 / s | 0;
 					var k2 = tx2 >= width || ty2 >= height?0:data1[tx2 + ty2 * width];
@@ -13303,12 +13330,14 @@ lvl_LayerData.prototype = $extend(lvl_LayerGfx.prototype,{
 		case 2:
 			var data = _g[3];
 			var ndata = [];
-			var _g1 = 0;
-			while(_g1 < height) {
-				var y = _g1++;
-				var _g2 = 0;
-				while(_g2 < width) {
-					var x = _g2++;
+			var _g2 = 0;
+			var _g1 = height;
+			while(_g2 < _g1) {
+				var y = _g2++;
+				var _g4 = 0;
+				var _g3 = width;
+				while(_g4 < _g3) {
+					var x = _g4++;
 					var tx = x - dx;
 					var ty = y - dy;
 					var k = tx < 0 || ty < 0 || tx >= width || ty >= height?0:data[tx + ty * width];
@@ -13325,12 +13354,14 @@ lvl_LayerData.prototype = $extend(lvl_LayerGfx.prototype,{
 		case 0:
 			var data1 = _g[2];
 			var ndata1 = [];
-			var _g12 = 0;
-			while(_g12 < height) {
-				var y2 = _g12++;
-				var _g22 = 0;
-				while(_g22 < width) {
-					var x2 = _g22++;
+			var _g22 = 0;
+			var _g12 = height;
+			while(_g22 < _g12) {
+				var y2 = _g22++;
+				var _g42 = 0;
+				var _g32 = width;
+				while(_g42 < _g32) {
+					var x2 = _g42++;
 					var tx2 = x2 - dx;
 					var ty2 = y2 - dy;
 					var k2 = tx2 < 0 || ty2 < 0 || tx2 >= width || ty2 >= height?0:data1[tx2 + ty2 * width];
@@ -13396,25 +13427,26 @@ lvl_LayerData.prototype = $extend(lvl_LayerGfx.prototype,{
 					}
 					var objs = [];
 					var p = -1;
-					var _g12 = 0;
-					while(_g12 < height) {
-						var y = _g12++;
-						var _g22 = 0;
-						while(_g22 < width) {
-							var x = _g22++;
-							++p;
-							var d = data[p] - 1;
+					var _g21 = 0;
+					var _g12 = height;
+					while(_g21 < _g12) {
+						var y = _g21++;
+						var _g4 = 0;
+						var _g3 = width;
+						while(_g4 < _g3) {
+							var x = _g4++;
+							var d = data[++p] - 1;
 							if(d < 0) continue;
 							var o = oids.h[d];
 							if(o != null) {
-								var _g4 = 0;
-								var _g3 = o.h;
-								while(_g4 < _g3) {
-									var dy = _g4++;
-									var _g6 = 0;
-									var _g5 = o.w;
-									while(_g6 < _g5) {
-										var dx = _g6++;
+								var _g6 = 0;
+								var _g5 = o.h;
+								while(_g6 < _g5) {
+									var dy = _g6++;
+									var _g8 = 0;
+									var _g7 = o.w;
+									while(_g8 < _g7) {
+										var dx = _g8++;
 										var tp = p + dx + dy * width;
 										if(x + dx >= width || y + dy >= height) continue;
 										var id = d + dx + dy * this.stride;
@@ -13428,14 +13460,14 @@ lvl_LayerData.prototype = $extend(lvl_LayerGfx.prototype,{
 								}
 							}
 							if(o == null) objs.push({ x : x, y : y, b : y, id : d}); else {
-								var _g42 = 0;
-								var _g32 = o.h;
-								while(_g42 < _g32) {
-									var dy2 = _g42++;
-									var _g62 = 0;
-									var _g52 = o.w;
-									while(_g62 < _g52) {
-										var dx2 = _g62++;
+								var _g62 = 0;
+								var _g52 = o.h;
+								while(_g62 < _g52) {
+									var dy2 = _g62++;
+									var _g82 = 0;
+									var _g72 = o.w;
+									while(_g82 < _g72) {
+										var dx2 = _g82++;
 										if(x + dx2 >= width || y + dy2 >= height) continue;
 										data[p + dx2 + dy2 * width] = 0;
 									}
@@ -13448,10 +13480,10 @@ lvl_LayerData.prototype = $extend(lvl_LayerGfx.prototype,{
 						return o1.b - o2.b;
 					});
 					var _g1 = [];
-					var _g23 = 0;
-					while(_g23 < objs.length) {
-						var o3 = objs[_g23];
-						++_g23;
+					var _g22 = 0;
+					while(_g22 < objs.length) {
+						var o3 = objs[_g22];
+						++_g22;
 						_g1.push({ x : o3.x, y : o3.y, o : o3.id, flip : false, rot : 0});
 					}
 					this.data = lvl_LayerInnerData.TileInstances(td,_g1);
@@ -13468,44 +13500,44 @@ lvl_LayerData.prototype = $extend(lvl_LayerGfx.prototype,{
 			case "objects":
 				break;
 			case "ground":case "tiles":
-				var _g7 = this.data;
-				switch(_g7[1]) {
+				var _g9 = this.data;
+				switch(_g9[1]) {
 				case 3:
-					var insts = _g7[3];
-					var td7 = _g7[2];
-					var objs7 = this.getTileObjects();
-					var _g17 = [];
-					var _g37 = 0;
-					var _g27 = width * height;
-					while(_g37 < _g27) {
-						var i = _g37++;
-						_g17.push(0);
+					var insts = _g9[3];
+					var td9 = _g9[2];
+					var objs9 = this.getTileObjects();
+					var _g19 = [];
+					var _g39 = 0;
+					var _g29 = width * height;
+					while(_g39 < _g29) {
+						var i = _g39++;
+						_g19.push(0);
 					}
-					var data7 = _g17;
-					var _g28 = 0;
-					while(_g28 < insts.length) {
-						var i8 = insts[_g28];
-						++_g28;
-						var x8 = i8.x | 0;
-						var y8 = i8.y | 0;
-						var obj = objs7.h[i8.o];
-						if(obj == null) data7[x8 + y8 * width] = i8.o + 1; else {
-							var _g48 = 0;
-							var _g38 = obj.h;
-							while(_g48 < _g38) {
-								var dy8 = _g48++;
-								var _g68 = 0;
-								var _g58 = obj.w;
-								while(_g68 < _g58) {
-									var dx8 = _g68++;
-									var x9 = x8 + dx8;
-									var y9 = y8 + dy8;
-									if(x9 < width && y9 < height) data7[x9 + y9 * width] = i8.o + dx8 + dy8 * this.stride + 1;
+					var data9 = _g19;
+					var _g210 = 0;
+					while(_g210 < insts.length) {
+						var i10 = insts[_g210];
+						++_g210;
+						var x10 = i10.x | 0;
+						var y10 = i10.y | 0;
+						var obj = objs9.h[i10.o];
+						if(obj == null) data9[x10 + y10 * width] = i10.o + 1; else {
+							var _g410 = 0;
+							var _g310 = obj.h;
+							while(_g410 < _g310) {
+								var dy10 = _g410++;
+								var _g610 = 0;
+								var _g510 = obj.w;
+								while(_g610 < _g510) {
+									var dx10 = _g610++;
+									var x11 = x10 + dx10;
+									var y11 = y10 + dy10;
+									if(x11 < width && y11 < height) data9[x11 + y11 * width] = i10.o + dx10 + dy10 * this.stride + 1;
 								}
 							}
 						}
 					}
-					this.data = lvl_LayerInnerData.Tiles(td7,data7);
+					this.data = lvl_LayerInnerData.Tiles(td9,data9);
 					this.dirty = true;
 					break;
 				default:
@@ -13556,12 +13588,14 @@ lvl_LayerData.prototype = $extend(lvl_LayerGfx.prototype,{
 		case 0:
 			var data = _g[2];
 			var first = this.level.layers[0] == this;
-			var _g1 = 0;
-			while(_g1 < height) {
-				var y = _g1++;
-				var _g2 = 0;
-				while(_g2 < width) {
-					var x = _g2++;
+			var _g2 = 0;
+			var _g1 = height;
+			while(_g2 < _g1) {
+				var y = _g2++;
+				var _g4 = 0;
+				var _g3 = width;
+				while(_g4 < _g3) {
+					var x = _g4++;
 					var k = data[x + y * width];
 					if(k == 0 && !first) continue;
 					if(this.images != null) {
@@ -13576,12 +13610,14 @@ lvl_LayerData.prototype = $extend(lvl_LayerGfx.prototype,{
 		case 2:
 			var data1 = _g[3];
 			var t = _g[2];
-			var _g11 = 0;
-			while(_g11 < height) {
-				var y1 = _g11++;
-				var _g21 = 0;
-				while(_g21 < width) {
-					var x1 = _g21++;
+			var _g21 = 0;
+			var _g11 = height;
+			while(_g21 < _g11) {
+				var y1 = _g21++;
+				var _g41 = 0;
+				var _g31 = width;
+				while(_g41 < _g31) {
+					var x1 = _g41++;
 					var k1 = data1[x1 + y1 * width] - 1;
 					if(k1 < 0) continue;
 					view.draw(this.images[k1],x1 * size,y1 * size);
@@ -13651,13 +13687,13 @@ lvl_LayerData.prototype = $extend(lvl_LayerGfx.prototype,{
 				} else {
 					var px = mat.x;
 					var py = mat.y;
-					var _g3 = 0;
+					var _g34 = 0;
 					var _g24 = obj.h;
-					while(_g3 < _g24) {
-						var dy = _g3++;
+					while(_g34 < _g24) {
+						var dy = _g34++;
 						var _g5 = 0;
-						var _g4 = obj.w;
-						while(_g5 < _g4) {
+						var _g44 = obj.w;
+						while(_g5 < _g44) {
 							var dx = _g5++;
 							mat.x = px + dx * size * mat.a + dy * size * mat.c;
 							mat.y = py + dx * size * mat.b + dy * size * mat.d;
@@ -14392,8 +14428,7 @@ lvl_Palette.prototype = {
 					break;
 				case "group":
 					m.find("[name=name]").val(tobj.opts.name == null?"":tobj.opts.name);
-					var tmp22 = tobj.opts.value == null?"":JSON.stringify(tobj.opts.value);
-					m.find("[name=value]").val(tmp22).width(80).width(m.parent().width() - 300);
+					m.find("[name=value]").val(tobj.opts.value == null?"":JSON.stringify(tobj.opts.value)).width(80).width(m.parent().width() - 300);
 					break;
 				case "border":
 					var _g322 = [];
@@ -14637,7 +14672,9 @@ haxe_ds_ObjectMap.count = 0;
 haxe_io_FPHelper.i64tmp = (function($this) {
 	var $r;
 	var x = new haxe__$Int64__$_$_$Int64(0,0);
-	$r = x;
+	var this1;
+	this1 = x;
+	$r = this1;
 	return $r;
 }(this));
 js_Boot.__toStr = {}.toString;
