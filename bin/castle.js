@@ -5409,7 +5409,7 @@ Main.prototype = $extend(Model.prototype,{
 		if(sheet.props.hide) nsep.enabled = false;
 		n.popup(this.mousePos.x,this.mousePos.y);
 	}
-	,popupColumn: function(sheet,c) {
+	,popupColumn: function(sheet,c,isProperties) {
 		var _g4 = this;
 		var n = new js_node_webkit_Menu();
 		var nedit = new js_node_webkit_MenuItem({ label : "Edit"});
@@ -5576,7 +5576,7 @@ Main.prototype = $extend(Model.prototype,{
 			}
 		};
 		ndel.click = function() {
-			_g4.deleteColumn(sheet,c.name);
+			if(!isProperties || window.confirm("Do you really want to delete this property for all objects?")) _g4.deleteColumn(sheet,c.name);
 		};
 		ndisp.click = function() {
 			if(sheet.props.displayColumn == c.name) sheet.props.displayColumn = null; else sheet.props.displayColumn = c.name;
@@ -6298,7 +6298,7 @@ Main.prototype = $extend(Model.prototype,{
 						var c3 = c2[0];
 						haxe_Timer.delay((function() {
 							return function() {
-								f2(a1,c3);
+								f2(a1,c3,true);
 							};
 						})(),1);
 						e2.preventDefault();
@@ -9076,35 +9076,44 @@ haxe_Serializer.prototype = {
 				break;
 			case haxe_io_Bytes:
 				var v7 = v;
+				this.buf.b += "s";
+				this.buf.b += Std.string(Math.ceil(v7.length * 8 / 6));
+				this.buf.b += ":";
 				var i7 = 0;
 				var max = v7.length - 2;
-				var charsBuf_b = "";
-				var b64 = haxe_Serializer.BASE64;
+				var b64 = haxe_Serializer.BASE64_CODES;
+				if(b64 == null) {
+					var length = haxe_Serializer.BASE64.length;
+					var this7 = new Array(length);
+					b64 = this7;
+					var _g27 = 0;
+					var _g17 = haxe_Serializer.BASE64.length;
+					while(_g27 < _g17) {
+						var i8 = _g27++;
+						b64[i8] = HxOverrides.cca(haxe_Serializer.BASE64,i8);
+					}
+					haxe_Serializer.BASE64_CODES = b64;
+				}
 				while(i7 < max) {
 					var b1 = v7.b[i7++];
 					var b2 = v7.b[i7++];
 					var b3 = v7.b[i7++];
-					charsBuf_b += Std.string(b64.charAt(b1 >> 2));
-					charsBuf_b += Std.string(b64.charAt((b1 << 4 | b2 >> 4) & 63));
-					charsBuf_b += Std.string(b64.charAt((b2 << 2 | b3 >> 6) & 63));
-					charsBuf_b += Std.string(b64.charAt(b3 & 63));
+					this.buf.b += String.fromCharCode(b64[b1 >> 2]);
+					this.buf.b += String.fromCharCode(b64[(b1 << 4 | b2 >> 4) & 63]);
+					this.buf.b += String.fromCharCode(b64[(b2 << 2 | b3 >> 6) & 63]);
+					this.buf.b += String.fromCharCode(b64[b3 & 63]);
 				}
 				if(i7 == max) {
-					var b17 = v7.b[i7++];
-					var b27 = v7.b[i7++];
-					charsBuf_b += Std.string(b64.charAt(b17 >> 2));
-					charsBuf_b += Std.string(b64.charAt((b17 << 4 | b27 >> 4) & 63));
-					charsBuf_b += Std.string(b64.charAt(b27 << 2 & 63));
-				} else if(i7 == max + 1) {
 					var b18 = v7.b[i7++];
-					charsBuf_b += Std.string(b64.charAt(b18 >> 2));
-					charsBuf_b += Std.string(b64.charAt(b18 << 4 & 63));
+					var b28 = v7.b[i7++];
+					this.buf.b += String.fromCharCode(b64[b18 >> 2]);
+					this.buf.b += String.fromCharCode(b64[(b18 << 4 | b28 >> 4) & 63]);
+					this.buf.b += String.fromCharCode(b64[b28 << 2 & 63]);
+				} else if(i7 == max + 1) {
+					var b19 = v7.b[i7++];
+					this.buf.b += String.fromCharCode(b64[b19 >> 2]);
+					this.buf.b += String.fromCharCode(b64[b19 << 4 & 63]);
 				}
-				var chars = charsBuf_b;
-				this.buf.b += "s";
-				this.buf.b += Std.string(chars.length);
-				this.buf.b += ":";
-				this.buf.b += chars == null?"null":"" + chars;
 				break;
 			default:
 				if(this.useCache) this.cache.pop();
@@ -9149,13 +9158,13 @@ haxe_Serializer.prototype = {
 				this.buf.b += Std.string(v[1]);
 			} else this.serializeString(v[0]);
 			this.buf.b += ":";
-			var l8 = v.length;
-			this.buf.b += Std.string(l8 - 2);
-			var _g28 = 2;
-			var _g18 = l8;
-			while(_g28 < _g18) {
-				var i8 = _g28++;
-				this.serialize(v[i8]);
+			var l9 = v.length;
+			this.buf.b += Std.string(l9 - 2);
+			var _g29 = 2;
+			var _g19 = l9;
+			while(_g29 < _g19) {
+				var i9 = _g29++;
+				this.serialize(v[i9]);
 			}
 			if(this.useCache) this.cache.push(v);
 			break;
