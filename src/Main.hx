@@ -712,7 +712,7 @@ class Main extends Model {
 		n.popup(mousePos.x, mousePos.y);
 	}
 
-	function popupColumn( sheet : Sheet, c : Column ) {
+	function popupColumn( sheet : Sheet, c : Column, ?isProperties ) {
 		var n = new Menu();
 		var nedit = new MenuItem( { label : "Edit" } );
 		var nins = new MenuItem( { label : "Add Column" } );
@@ -834,7 +834,8 @@ class Main extends Model {
 			}
 		}
 		ndel.click = function() {
-			deleteColumn(sheet, c.name);
+			if( !isProperties || js.Browser.window.confirm("Do you really want to delete this property for all objects?") )
+				deleteColumn(sheet, c.name);
 		};
 		ndisp.click = function() {
 			if( sheet.props.displayColumn == c.name ) {
@@ -1364,7 +1365,7 @@ class Main extends Model {
 			});
 			th.mousedown(function(e) {
 				if( e.which == 3 ) {
-					haxe.Timer.delay(popupColumn.bind(sheet,c),1);
+					haxe.Timer.delay(popupColumn.bind(sheet,c,true),1);
 					e.preventDefault();
 					l.click();
 					return;
