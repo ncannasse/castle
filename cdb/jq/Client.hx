@@ -81,14 +81,14 @@ class Client {
 		send(Create(d.id, d.nodeName, d.attributes.length == 0 ? null : d.attributes));
 		if( d.parent != null )
 			send(Append(d.id, d.parent.id));
-		for( e in d.events )
-			send(Event(d.id, e.name, e.id));
 		for( c in d.childs )
 			syncDomRec(c);
 		if( d.dock != null ) {
 			syncDomRec(d.dock.parent);
 			send(Dock(d.dock.parent.id, d.id, d.dock.dir, d.dock.size));
 		}
+		for( e in d.events )
+			send(Event(d.id, e.name, e.id));
 	}
 
 	function handle( msg : Message.Answer ) {

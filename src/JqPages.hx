@@ -35,8 +35,16 @@ extern class DockNode {
 	function requestUndock( p : Panel ) : Void;
 }
 
+@:native("dockspawn.EventListener") extern class EventListener {
+	var source : js.html.Element;
+	var eventName : String;
+	function cancel() : Void;
+}
+
 @:native("dockspawn.PanelContainer") extern class Panel {
 	function new( e : js.html.Element, m : DockManager ) : Void;
+	var closeButtonClickedHandler : EventListener;
+	function onCloseButtonClicked() : Void; // call to properly destroy
 }
 
 class JqPage extends cdb.jq.Server {
@@ -102,6 +110,19 @@ class JqPage extends cdb.jq.Server {
 			dockManager.dockFill(n, p);
 		}
 		dnodes.set(e, n);
+	}
+
+	override function bindEvent( n : js.html.Element, id : Int, name : String, eid : Int ) {
+		switch( name ) {
+		case "panelclose":
+			var p = panels.get(n);
+			if( p != null ) {
+				p.closeButtonClickedHandler.cancel();
+				super.bindEvent(p.closeButtonClickedHandler.source, id, "click", eid);
+			}
+		default:
+			super.bindEvent(n, id, name, eid);
+		}
 	}
 
 	override function handleSpecial( e : js.html.Element, name : String, args : Array<Dynamic>, result : Dynamic -> Void ) {

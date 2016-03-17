@@ -38,6 +38,28 @@ class Server {
 	function handleSpecial( e : js.html.Element, name : String, args : Array<Dynamic>, result : Dynamic -> Void ) {
 	}
 
+	function bindEvent( n : js.html.Element, id : Int, name : String, eid : Int ) {
+		var callb = function(e) {
+			var sendValue = false;
+			var props : Message.EventProps = null;
+			switch( name ) {
+			case "change": sendValue = true;
+			case "blur" if( n.tagName == "INPUT" ): sendValue = true;
+			case "keydown":
+				props = { keyCode : e.keyCode, shiftKey : e.shiftKey, ctrlKey : e.ctrlKey };
+				if( n.tagName == "INPUT" ) sendValue = true;
+			case "mousedown", "mouseup":
+				props = { which : e.which };
+			default:
+			}
+			if( sendValue )
+				send(SetValue(id, ""+Reflect.field(n, "value")));
+			send(Event(eid,props));
+		};
+		events.set(eid, { name : name, callb : callb, n : n } );
+		n.addEventListener(name, callb);
+	}
+
 	public function onMessage( msg : Message ) {
 		switch( msg ) {
 		case Create(id, name, attr):
@@ -69,25 +91,7 @@ class Server {
 			nodes[id].remove();
 		case Event(id, name, eid):
 			var n = nodes[id];
-			var callb = function(e) {
-				var sendValue = false;
-				var props : Message.EventProps = null;
-				switch( name ) {
-				case "change": sendValue = true;
-				case "blur" if( n.tagName == "INPUT" ): sendValue = true;
-				case "keydown":
-					props = { keyCode : e.keyCode, shiftKey : e.shiftKey, ctrlKey : e.ctrlKey };
-					if( n.tagName == "INPUT" ) sendValue = true;
-				case "mousedown", "mouseup":
-					props = { which : e.which };
-				default:
-				}
-				if( sendValue )
-					send(SetValue(id, ""+Reflect.field(n, "value")));
-				send(Event(eid,props));
-			};
-			events.set(eid, { name : name, callb : callb, n : n } );
-			n.addEventListener(name, callb);
+			bindEvent(n, id, name, eid);
 		case SetAttr(id, att, val):
 			nodes[id].setAttribute(att, val);
 		case SetStyle(id, s, val):

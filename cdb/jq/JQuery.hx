@@ -170,7 +170,7 @@ class JQuery {
 		return this;
 	}
 
-	function bind( event : String, e : Event -> Void ) {
+	public function bind( event : String, e : Event -> Void ) {
 		for( s in sel ) {
 			var id = client.allocEvent(e);
 			s.events.push( { id : id, name : event, callb : e } );
