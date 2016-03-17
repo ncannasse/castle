@@ -24,6 +24,7 @@ class Dom {
 
 	public var nodeName(default, null) : String;
 	public var nodeValue(default, null) : String;
+	public var numChildren(get, never) : Int;
 	var id : Int;
 	var client : Client;
 	var attributes : Array<{ name : String, value : String }>;
@@ -45,6 +46,8 @@ class Dom {
 		childs = [];
 		style = [];
 	}
+
+	inline function get_numChildren() return childs.length;
 
 	inline function send(msg) {
 		if( id < 0 ) throw "Can't change disposed node";
