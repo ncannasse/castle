@@ -22,10 +22,12 @@ class Client {
 	var root : Dom;
 	var eventID : Int = 0;
 	var events : Map<Int,Event -> Void>;
+	var byIdMap : Map<String, Array<Dom>>;
 
 	function new() {
 		doms = new Map();
 		root = new Dom(this);
+		byIdMap = new Map();
 		doms.remove(root.id);
 		root.id = 0;
 		doms.set(root.id, root);

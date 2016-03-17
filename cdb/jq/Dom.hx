@@ -33,8 +33,8 @@ class Dom {
 	var childs : Array<Dom>;
 	var events : Array<{ id : Int, name : String, callb : Event -> Void }>;
 	var style : Array<{ name : String, value : String }>;
-
 	var dock : { parent : Dom, dir : Message.DockDirection, size : Null<Float> };
+	var clientID(default, set) : String;
 
 	public function new(c : Client) {
 		id = UID++;
@@ -54,6 +54,25 @@ class Dom {
 		client.send(msg);
 	}
 
+	@:access(cdb.jq.Client)
+	function set_clientID(id) {
+		if( clientID != null ) {
+			var ids = client.byIdMap.get(clientID);
+			ids.remove(this);
+			if( ids.length == 0 ) client.byIdMap.remove(clientID);
+		}
+		clientID = id;
+		if( id != null ) {
+			var ids = client.byIdMap.get(id);
+			if( ids == null ) {
+				ids = [];
+				client.byIdMap.set(id, ids);
+			}
+			ids.push(this);
+		}
+		return id;
+	}
+
 	function set_parent(p:Dom) {
 
 		var pchck = p;
@@ -68,7 +87,14 @@ class Dom {
 			if( p.id < 0 ) throw "Can't add to a disposed node";
 			p.childs.push(this);
 		}
-		return parent = p;
+
+		parent = p;
+
+		var id = getAttr("id");
+		if( id != null )
+			clientID = onStage() ? id : null;
+
+		return p;
 	}
 
 	public function reset() {
@@ -103,6 +129,13 @@ class Dom {
 			parent.childs.remove(this);
 			parent = null;
 		}
+	}
+
+	public function countRec() {
+		var n = 1;
+		for( c in childs )
+			n += c.countRec();
+		return n;
 	}
 
 	public function unbindEvents( rec = false ) {
@@ -167,6 +200,16 @@ class Dom {
 		return null;
 	}
 
+	function onStage() {
+		var p = this;
+		var root = client.getRoot();
+		while( p != null ) {
+			if( p == root ) return true;
+			p = p.parent;
+		}
+		return false;
+	}
+
 	public function setAttr( name : String, value : String)  {
 
 		switch( name ) {
@@ -180,6 +223,9 @@ class Dom {
 					if( parts.length != 2 ) continue;
 					style.push({ name : StringTools.trim(parts[0]), value : StringTools.trim(parts[1]) });
 				}
+		case "id":
+			if( onStage() )
+				clientID = value;
 		default:
 		}
 

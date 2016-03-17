@@ -35,8 +35,15 @@ class JQuery {
 			send(Create(d.id, d.nodeName));
 			sel = [d];
 		} else {
-			sel = [@:privateAccess client.root];
-			sel = find(query).sel;
+			sel = [];
+			var r = new Query(query);
+			if( r.id != null ) {
+				var ids = @:privateAccess client.byIdMap.get(r.id);
+				if( ids != null )
+					for( d in ids )
+						addRec(r, d);
+			} else
+				addRec(r, @:privateAccess client.root);
 		}
 	}
 

@@ -19,7 +19,7 @@ class Query {
 
 	var query : String;
 	var pos = 0;
-	var id : Null<String>;
+	public var id(default,null) : Null<String>;
 	var classes : Array<String>;
 	var name : Null<String>;
 
