@@ -16,20 +16,30 @@ $hxClasses["EReg"] = EReg;
 EReg.__name__ = ["EReg"];
 EReg.prototype = {
 	match: function(s) {
-		if(this.r.global) this.r.lastIndex = 0;
+		if(this.r.global) {
+			this.r.lastIndex = 0;
+		}
 		this.r.m = this.r.exec(s);
 		this.r.s = s;
 		return this.r.m != null;
 	}
 	,matched: function(n) {
-		if(this.r.m != null && n >= 0 && n < this.r.m.length) return this.r.m[n]; else throw new js__$Boot_HaxeError("EReg::matched");
+		if(this.r.m != null && n >= 0 && n < this.r.m.length) {
+			return this.r.m[n];
+		} else {
+			throw new js__$Boot_HaxeError("EReg::matched");
+		}
 	}
 	,matchedLeft: function() {
-		if(this.r.m == null) throw new js__$Boot_HaxeError("No string matched");
+		if(this.r.m == null) {
+			throw new js__$Boot_HaxeError("No string matched");
+		}
 		return HxOverrides.substr(this.r.s,0,this.r.m.index);
 	}
 	,matchedRight: function() {
-		if(this.r.m == null) throw new js__$Boot_HaxeError("No string matched");
+		if(this.r.m == null) {
+			throw new js__$Boot_HaxeError("No string matched");
+		}
 		var sz = this.r.m.index + this.r.m[0].length;
 		return HxOverrides.substr(this.r.s,sz,this.r.s.length - sz);
 	}
@@ -70,16 +80,26 @@ HxOverrides.strDate = function(s) {
 };
 HxOverrides.cca = function(s,index) {
 	var x = s.charCodeAt(index);
-	if(x != x) return undefined;
+	if(x != x) {
+		return undefined;
+	}
 	return x;
 };
 HxOverrides.substr = function(s,pos,len) {
-	if(len == null) len = s.length; else if(len < 0) {
-		if(pos == 0) len = s.length + len; else return "";
+	if(len == null) {
+		len = s.length;
+	} else if(len < 0) {
+		if(pos == 0) {
+			len = s.length + len;
+		} else {
+			return "";
+		}
 	}
 	if(pos < 0) {
 		pos = s.length + pos;
-		if(pos < 0) pos = 0;
+		if(pos < 0) {
+			pos = 0;
+		}
 	}
 	return s.substr(pos,len);
 };
@@ -87,17 +107,23 @@ HxOverrides.indexOf = function(a,obj,i) {
 	var len = a.length;
 	if(i < 0) {
 		i += len;
-		if(i < 0) i = 0;
+		if(i < 0) {
+			i = 0;
+		}
 	}
 	while(i < len) {
-		if(a[i] === obj) return i;
-		i++;
+		if(a[i] === obj) {
+			return i;
+		}
+		++i;
 	}
 	return -1;
 };
 HxOverrides.remove = function(a,obj) {
 	var i = HxOverrides.indexOf(a,obj,0);
-	if(i == -1) return false;
+	if(i == -1) {
+		return false;
+	}
 	a.splice(i,1);
 	return true;
 };
@@ -119,165 +145,149 @@ cdb_jq_Server.prototype = {
 	send: function(msg) {
 		throw new js__$Boot_HaxeError("Not implemented");
 	}
-	,dock: function(parent,e,dir,size) {
-		throw new js__$Boot_HaxeError("Not implemented");
-	}
 	,handleSpecial: function(e,name,args,result) {
 	}
+	,bindEvent: function(n,id,name,eid) {
+		var _gthis = this;
+		var callb = function(e) {
+			var sendValue = false;
+			var props = null;
+			switch(name) {
+			case "blur":
+				if(n.tagName == "INPUT") {
+					sendValue = true;
+				}
+				break;
+			case "change":
+				sendValue = true;
+				break;
+			case "keydown":
+				props = { keyCode : e.keyCode, shiftKey : e.shiftKey, ctrlKey : e.ctrlKey};
+				if(n.tagName == "INPUT") {
+					sendValue = true;
+				}
+				break;
+			case "mousedown":case "mouseup":
+				props = { which : e.which};
+				break;
+			default:
+			}
+			if(sendValue) {
+				_gthis.send(cdb_jq_Answer.SetValue(id,"" + Std.string(Reflect.field(n,"value"))));
+			}
+			_gthis.send(cdb_jq_Answer.Event(eid,props));
+		};
+		this.events.h[eid] = { name : name, callb : callb, n : n};
+		n.addEventListener(name,callb);
+	}
 	,onMessage: function(msg) {
-		var _g = this;
+		var _gthis = this;
 		switch(msg[1]) {
 		case 0:
 			var attr = msg[4];
-			var name = msg[3];
-			var id = msg[2];
-			var n = window.document.createElement(name);
+			var n = window.document.createElement(msg[3]);
 			if(attr != null) {
-				var _g1 = 0;
-				while(_g1 < attr.length) {
-					var a = attr[_g1];
-					++_g1;
+				var _g = 0;
+				while(_g < attr.length) {
+					var a = attr[_g];
+					++_g;
 					n.setAttribute(a.name,a.value);
 				}
 			}
-			this.nodes[id] = n;
+			this.nodes[msg[2]] = n;
 			break;
 		case 1:
-			var name1 = msg[3];
-			var id1 = msg[2];
-			this.nodes[id1].classList.add(name1);
+			this.nodes[msg[2]].classList.add(msg[3]);
 			break;
 		case 2:
-			var name2 = msg[3];
-			var id2 = msg[2];
-			this.nodes[id2].classList.remove(name2);
+			this.nodes[msg[2]].classList.remove(msg[3]);
 			break;
 		case 3:
-			var to = msg[3];
-			var id3 = msg[2];
-			this.nodes[to].appendChild(this.nodes[id3]);
+			this.nodes[msg[3]].appendChild(this.nodes[msg[2]]);
 			break;
 		case 4:
-			var pos = msg[4];
-			var to3 = msg[3];
-			var id4 = msg[2];
-			var p = this.nodes[to3];
-			p.insertBefore(this.nodes[id4],p.childNodes[pos]);
+			var p = this.nodes[msg[3]];
+			p.insertBefore(this.nodes[msg[2]],p.childNodes[msg[4]]);
 			break;
 		case 5:
 			var pid = msg[4];
-			var text = msg[3];
-			var id5 = msg[2];
-			var t = window.document.createTextNode(text);
-			this.nodes[id5] = t;
-			if(pid != null) this.nodes[pid].appendChild(t);
-			break;
-		case 6:
-			var id6 = msg[2];
-			var n6 = this.nodes[id6];
-			while(n6.firstChild != null) n6.removeChild(n6.firstChild);
-			break;
-		case 7:
-			var size = msg[5];
-			var dir = msg[4];
-			var e = msg[3];
-			var p6 = msg[2];
-			this.dock(this.nodes[p6],this.nodes[e],dir,size);
-			break;
-		case 8:
-			var id7 = msg[2];
-			this.nodes[id7].remove();
-			break;
-		case 9:
-			var eid = msg[4];
-			var name7 = msg[3];
-			var id8 = msg[2];
-			var n8 = this.nodes[id8];
-			var callb = function(e8) {
-				var sendValue = false;
-				var props = null;
-				switch(name7) {
-				case "change":
-					sendValue = true;
-					break;
-				case "blur":
-					if(n8.tagName == "INPUT") sendValue = true;
-					break;
-				case "keydown":
-					props = { keyCode : e8.keyCode, shiftKey : e8.shiftKey, ctrlKey : e8.ctrlKey};
-					if(n8.tagName == "INPUT") sendValue = true;
-					break;
-				case "mousedown":case "mouseup":
-					props = { which : e8.which};
-					break;
-				default:
-				}
-				if(sendValue) _g.send(cdb_jq_Answer.SetValue(id8,"" + Std.string(Reflect.field(n8,"value"))));
-				_g.send(cdb_jq_Answer.Event(eid,props));
-			};
-			this.events.h[eid] = { name : name7, callb : callb, n : n8};
-			n8.addEventListener(name7,callb);
-			break;
-		case 10:
-			var val = msg[4];
-			var att = msg[3];
-			var id9 = msg[2];
-			this.nodes[id9].setAttribute(att,val);
-			break;
-		case 11:
-			var val9 = msg[4];
-			var s = msg[3];
-			var id10 = msg[2];
-			this.nodes[id10].style[s] = val9;
-			break;
-		case 12:
-			var s10 = msg[3];
-			var id11 = msg[2];
-			var n11 = this.nodes[id11];
-			var m = Reflect.field(n11,s10);
-			if(m == null) throw new js__$Boot_HaxeError(Std.string(n11) + " has no method " + Std.string(m));
-			m.apply(n11,[]);
-			if(s10 == "focus" && n11.tagName == "SELECT") {
-				var event = window.document.createEvent("MouseEvents");
-				event.initMouseEvent("mousedown",true,true,window);
-				n11.dispatchEvent(event);
+			var t = window.document.createTextNode(msg[3]);
+			this.nodes[msg[2]] = t;
+			if(pid != null) {
+				this.nodes[pid].appendChild(t);
 			}
 			break;
-		case 13:
-			var eid11 = msg[5];
-			var args = msg[4];
-			var name11 = msg[3];
-			var id12 = msg[2];
-			this.handleSpecial(this.nodes[id12],name11,args,eid11 == null?function(_) {
+		case 6:
+			var n1 = this.nodes[msg[2]];
+			while(n1.firstChild != null) n1.removeChild(n1.firstChild);
+			break;
+		case 7:
+			this.nodes[msg[2]].remove();
+			break;
+		case 8:
+			var eid = msg[4];
+			var name = msg[3];
+			var id = msg[2];
+			this.bindEvent(this.nodes[id],id,name,eid);
+			break;
+		case 9:
+			var val = msg[4];
+			var att = msg[3];
+			var id1 = msg[2];
+			if(val == null) {
+				this.nodes[id1].removeAttribute(att);
+			} else {
+				this.nodes[id1].setAttribute(att,val);
+			}
+			break;
+		case 10:
+			this.nodes[msg[2]].style[msg[3]] = msg[4];
+			break;
+		case 11:
+			var s = msg[3];
+			var n2 = this.nodes[msg[2]];
+			var m = Reflect.field(n2,s);
+			if(m == null) {
+				throw new js__$Boot_HaxeError(Std.string(n2) + " has no method " + Std.string(m));
+			}
+			m.apply(n2,[]);
+			if(s == "focus" && n2.tagName == "SELECT") {
+				var event = window.document.createEvent("MouseEvents");
+				event.initMouseEvent("mousedown",true,true,window);
+				n2.dispatchEvent(event);
+			}
+			break;
+		case 12:
+			var eid1 = msg[5];
+			this.handleSpecial(this.nodes[msg[2]],msg[3],msg[4],eid1 == null?function(_) {
 			}:function(v) {
-				_g.send(cdb_jq_Answer.Event(eid11,{ value : v}));
+				_gthis.send(cdb_jq_Answer.Event(eid1,{ value : v}));
 			});
 			break;
-		case 14:
-			var duration = msg[4];
-			var name12 = msg[3];
-			var id13 = msg[2];
-			this.handleSpecial(this.nodes[id13],"animate",[name12,duration],null);
+		case 13:
+			this.handleSpecial(this.nodes[msg[2]],"animate",[msg[3],msg[4]],null);
 			break;
-		case 16:
-			var eids = msg[2];
-			var _g13 = 0;
-			while(_g13 < eids.length) {
-				var eid13 = eids[_g13];
-				++_g13;
-				var e13 = this.events.h[eid13];
-				if(e13 != null) {
-					this.events.remove(eid13);
-					e13.n.removeEventListener(e13.name,e13.callb);
-				}
+		case 14:
+			var eids = msg[3];
+			var id2 = msg[2];
+			this.nodes[id2].remove();
+			this.nodes[id2] = null;
+			if(eids != null) {
+				this.onMessage(cdb_jq_Message.Unbind(eids));
 			}
 			break;
 		case 15:
-			var eids13 = msg[3];
-			var id14 = msg[2];
-			this.nodes[id14].remove();
-			this.nodes[id14] = null;
-			if(eids13 != null) this.onMessage(cdb_jq_Message.Unbind(eids13));
+			var eids1 = msg[2];
+			var _g1 = 0;
+			while(_g1 < eids1.length) {
+				var eid2 = eids1[_g1];
+				++_g1;
+				var e = this.events.h[eid2];
+				if(e != null) {
+					this.events.remove(eid2);
+					e.n.removeEventListener(e.name,e.callb);
+				}
+			}
 			break;
 		}
 	}
@@ -316,36 +326,26 @@ JqPage.prototype = $extend(cdb_jq_Server.prototype,{
 		}
 		this.sock.write(buf);
 	}
-	,dock: function(parent,e,dir,size) {
-		var p = this.panels.h[e.__id__];
-		if(p == null) {
-			p = new dockspawn.PanelContainer(e,this.dockManager);
-			this.panels.set(e,p);
+	,bindEvent: function(n,id,name,eid) {
+		var _gthis = this;
+		if(name == "paneldock") {
+			var p = this.panels.h[n.__id__];
+			if(p == null) {
+				return;
+			}
+			p.__onDestroy = function() {
+				_gthis.send(cdb_jq_Answer.Event(eid,{ }));
+			};
+		} else {
+			cdb_jq_Server.prototype.bindEvent.call(this,n,id,name,eid);
 		}
-		var n = this.dnodes.h[parent.__id__];
-		if(n == null) return;
-		var n1;
-		switch(dir[1]) {
-		case 0:
-			n1 = this.dockManager.dockLeft(n,p,size);
-			break;
-		case 1:
-			n1 = this.dockManager.dockRight(n,p,size);
-			break;
-		case 2:
-			n1 = this.dockManager.dockUp(n,p,size);
-			break;
-		case 3:
-			n1 = this.dockManager.dockDown(n,p,size);
-			break;
-		case 4:
-			n1 = this.dockManager.dockFill(n,p);
-			break;
-		}
-		this.dnodes.set(e,n1);
 	}
 	,handleSpecial: function(e,name,args,result) {
 		switch(name) {
+		case "animate":
+			var j = $(e);
+			Reflect.field(j,args[0]).apply(j,[args[1]]);
+			break;
 		case "colorPick":
 			var id = Std.random(1);
 			e.innerHTML = "<div class=\"modal\" onclick=\"$('#_c" + id + "').spectrum('toggle')\"></div><input type=\"text\" id=\"_c" + id + "\"/>";
@@ -363,53 +363,106 @@ JqPage.prototype = $extend(cdb_jq_Server.prototype,{
 				result({ color : getColor(vcol3), done : true});
 			}}).spectrum("show");
 			break;
+		case "dock":
+			var dir = e.getAttribute("dock");
+			if(dir == null) {
+				var p = this.panels.h[e.__id__];
+				if(p == null) {
+					return;
+				}
+				this.panels.remove(e);
+				this.dnodes.remove(e);
+				try {
+					p.onCloseButtonClicked();
+				} catch( e1 ) {
+				}
+				return;
+			}
+			var parent = e.parentElement;
+			var n = this.dnodes.h[parent.__id__];
+			if(n == null) {
+				console.log("Could not dock:");
+				console.log(e);
+				console.log("to:");
+				console.log(parent);
+				return;
+			}
+			var p1 = this.panels.h[e.__id__];
+			if(p1 == null) {
+				e.remove();
+				p1 = new dockspawn.PanelContainer(e,this.dockManager);
+				this.panels.set(e,p1);
+			}
+			var size = e.getAttribute("docksize");
+			var size1 = size == null?null:parseFloat(size);
+			var n1;
+			switch(dir.toLowerCase()) {
+			case "down":
+				n1 = this.dockManager.dockDown(n,p1,size1);
+				break;
+			case "left":
+				n1 = this.dockManager.dockLeft(n,p1,size1);
+				break;
+			case "right":
+				n1 = this.dockManager.dockRight(n,p1,size1);
+				break;
+			case "up":
+				n1 = this.dockManager.dockUp(n,p1,size1);
+				break;
+			default:
+				n1 = this.dockManager.dockFill(n,p1);
+			}
+			this.dnodes.set(e,n1);
+			break;
 		case "fileSelect":
 			var path = args[0];
 			var ext = args[1] == null?[]:args[1].split(",");
 			var fs = $("#fileSelect");
-			if(path != null && StringTools.startsWith(window.navigator.platform,"Win")) path = path.split("/").join("\\");
+			if(path != null && StringTools.startsWith(window.navigator.platform,"Win")) {
+				path = path.split("/").join("\\");
+			}
 			fs.attr("nwworkingdir",path == null?"":new haxe_io_Path(path).dir);
 			fs.change(function(_) {
 				fs.unbind("change");
-				var path3 = fs.val().split("\\").join("/");
+				var path1 = fs.val().split("\\").join("/");
 				fs.val("");
-				if(path3 == "") {
+				if(path1 == "") {
 					result(null);
 					return;
 				}
 				fs.attr("nwworkingdir","");
-				result(path3);
+				result(path1);
 			}).click();
 			break;
-		case "animate":
-			var j = $(e);
-			Reflect.field(j,args[0]).apply(j,[args[1]]);
-			break;
-		case "setName":
-			name = args[0];
-			if(this.tab != null) this.tab.text(name);
-			break;
 		case "popupMenu":
-			var args3 = args;
-			var n = new js_node_webkit_Menu();
+			var args1 = args;
+			var n2 = new js_node_webkit_Menu();
 			var _g1 = 0;
-			var _g = args3.length;
+			var _g = args1.length;
 			while(_g1 < _g) {
 				var i = [_g1++];
-				var mit = new js_node_webkit_MenuItem({ label : args3[i[0]]});
-				n.append(mit);
-				mit.click = (function(i3) {
+				var mit = new js_node_webkit_MenuItem({ label : args1[i[0]]});
+				n2.append(mit);
+				mit.click = (function(i1) {
 					return function() {
-						result(i3[0]);
+						result(i1[0]);
 					};
 				})(i);
 			}
-			n.popup(Main.inst.mousePos.x,Main.inst.mousePos.y);
+			n2.popup(Main.inst.mousePos.x,Main.inst.mousePos.y);
+			break;
+		case "setName":
+			name = args[0];
+			if(this.tab != null) {
+				this.tab.text(name);
+			}
 			break;
 		case "startDrag":
 			var document = window.document;
 			var onMove = function(event) {
-				if(document.pointerLockElement != e) return;
+				if(document.pointerLockElement != e) {
+					return;
+				}
 				result({ dx : event.movementX, dy : event.movementY});
 			};
 			var onUp = function() {
@@ -427,8 +480,7 @@ JqPage.prototype = $extend(cdb_jq_Server.prototype,{
 					document.removeEventListener("mouseup",onUp,false);
 				}
 			};
-			var onChange3 = onChange;
-			document.addEventListener("pointerlockchange",onChange3,false);
+			document.addEventListener("pointerlockchange",onChange,false);
 			e.requestPointerLock();
 			break;
 		default:
@@ -447,7 +499,7 @@ $hxClasses["JqPages"] = JqPages;
 JqPages.__name__ = ["JqPages"];
 JqPages.prototype = {
 	updateTabs: function() {
-		var _g2 = this;
+		var _gthis = this;
 		var sheets = $("ul#sheets");
 		sheets.find("li.client").remove();
 		var _g = 0;
@@ -459,13 +511,15 @@ JqPages.prototype = {
 			p[0].tab = jc[0];
 			jc[0].click((function(jc1,p1) {
 				return function(e) {
-					_g2.curPage = Lambda.indexOf(_g2.pages,p1[0]);
+					_gthis.curPage = Lambda.indexOf(_gthis.pages,p1[0]);
 					$("#sheets li").removeClass("active");
 					jc1[0].addClass("active");
-					_g2.select();
+					_gthis.select();
 				};
 			})(jc,p));
-			if(Lambda.indexOf(this.pages,p[0]) == this.curPage) jc[0].addClass("active");
+			if(Lambda.indexOf(this.pages,p[0]) == this.curPage) {
+				jc[0].addClass("active");
+			}
 		}
 	}
 	,onKey: function(e) {
@@ -486,7 +540,7 @@ JqPages.prototype = {
 		}
 	}
 	,onClient: function(sock) {
-		var _g = this;
+		var _gthis = this;
 		var p = new JqPage(sock);
 		this.pages.push(p);
 		this.updateTabs();
@@ -495,13 +549,13 @@ JqPages.prototype = {
 			sock.end();
 		});
 		sock.on("close",function() {
-			var cur = _g.curPage == Lambda.indexOf(_g.pages,p);
+			var cur = _gthis.curPage == Lambda.indexOf(_gthis.pages,p);
 			p.page.remove();
-			HxOverrides.remove(_g.pages,p);
-			_g.updateTabs();
+			HxOverrides.remove(_gthis.pages,p);
+			_gthis.updateTabs();
 			if(cur) {
-				_g.curPage--;
-				_g.main.initContent();
+				_gthis.curPage--;
+				_gthis.main.initContent();
 			}
 		});
 		var curBuffer = null;
@@ -519,32 +573,24 @@ JqPages.prototype = {
 				}
 			} else {
 				var max = e.length - pos;
-				if(max > curBuffer.length - curPos) max = curBuffer.length - curPos;
+				if(max > curBuffer.length - curPos) {
+					max = curBuffer.length - curPos;
+				}
 				var _g1 = 0;
-				var _g2 = max;
-				while(_g1 < _g2) {
-					var i = _g1++;
+				var _g = max;
+				while(_g1 < _g) {
+					++_g1;
 					curBuffer.b[curPos++] = e.readUInt8(pos++) & 255;
 				}
 				if(curPos == curBuffer.length) {
 					var msg = cdb_BinSerializer.doUnserialize(curBuffer,1522840838);
 					p.onMessage(msg);
-					switch(msg[1]) {
-					case 10:
-						switch(msg[2]) {
-						case 0:
-							switch(msg[3]) {
-							case "title":
-								var name = msg[4];
-								p.tab.text(name);
-								break;
-							default:
+					if(msg[1] == 9) {
+						if(msg[2] == 0) {
+							if(msg[3] == "title") {
+								p.tab.text(msg[4]);
 							}
-							break;
-						default:
 						}
-						break;
-					default:
 					}
 					curBuffer = null;
 					sizeCount = 0;
@@ -561,26 +607,19 @@ Lambda.__name__ = ["Lambda"];
 Lambda.array = function(it) {
 	var a = [];
 	var tmp = $iterator(it)();
-	while(tmp.hasNext()) {
-		var i = tmp.next();
-		a.push(i);
-	}
+	while(tmp.hasNext()) a.push(tmp.next());
 	return a;
 };
 Lambda.list = function(it) {
 	var l = new List();
 	var tmp = $iterator(it)();
-	while(tmp.hasNext()) {
-		var i = tmp.next();
-		l.add(i);
-	}
+	while(tmp.hasNext()) l.add(tmp.next());
 	return l;
 };
 Lambda.exists = function(it,f) {
 	var tmp = $iterator(it)();
-	while(tmp.hasNext()) {
-		var x = tmp.next();
-		if(f(x)) return true;
+	while(tmp.hasNext()) if(f(tmp.next())) {
+		return true;
 	}
 	return false;
 };
@@ -588,8 +627,9 @@ Lambda.indexOf = function(it,v) {
 	var i = 0;
 	var tmp = $iterator(it)();
 	while(tmp.hasNext()) {
-		var v2 = tmp.next();
-		if(v == v2) return i;
+		if(v == tmp.next()) {
+			return i;
+		}
 		++i;
 	}
 	return -1;
@@ -598,7 +638,9 @@ Lambda.find = function(it,f) {
 	var tmp = $iterator(it)();
 	while(tmp.hasNext()) {
 		var v = tmp.next();
-		if(f(v)) return v;
+		if(f(v)) {
+			return v;
+		}
 	}
 	return null;
 };
@@ -628,16 +670,14 @@ Level.prototype = {
 			var c = _g1[_g];
 			++_g;
 			var v = Reflect.field(this.obj,c.name);
-			var _g2 = c.type;
-			switch(_g2[1]) {
-			case 1:
-				if(c.name == this.sheet.props.displayColumn && v != null && v != "") return Std.string(v) + "#" + this.index;
-				break;
-			case 6:
-				if(c.name == this.sheet.props.displayColumn && v != null && v != "") return Std.string(v) + "#" + this.index;
-				break;
+			switch(c.type[1]) {
 			case 0:
 				name = v;
+				break;
+			case 1:case 6:
+				if(c.name == this.sheet.props.displayColumn && v != null && v != "") {
+					return Std.string(v) + "#" + this.index;
+				}
 				break;
 			default:
 			}
@@ -645,228 +685,223 @@ Level.prototype = {
 		return name;
 	}
 	,set_mouseCapture: function(e) {
-		var _g = this;
+		var _gthis = this;
 		this.mouseCapture = e;
 		if(e != null) {
 			var onUp = null;
 			onUp = function(_) {
 				window.document.removeEventListener("mouseup",onUp);
-				if(_g.mouseCapture != null) {
-					_g.mouseCapture.mouseup();
-					_g.set_mouseCapture(null);
+				if(_gthis.mouseCapture != null) {
+					_gthis.mouseCapture.mouseup();
+					_gthis.set_mouseCapture(null);
 				}
 			};
-			var onUp1 = onUp;
-			window.document.addEventListener("mouseup",onUp1);
+			window.document.addEventListener("mouseup",onUp);
 		}
 		return e;
 	}
 	,init: function() {
-		var _g = this;
+		var _gthis = this;
 		this.layers = [];
 		this.watchList = [];
 		this.watchTimer = new haxe_Timer(50);
 		this.watchTimer.run = $bind(this,this.checkWatch);
 		var tmp = Level.loadedTilesCache.keys();
-		while(tmp.hasNext()) {
-			var key = tmp.next();
-			this.watchSplit(key);
-		}
+		while(tmp.hasNext()) this.watchSplit(tmp.next());
 		this.props = this.obj.props;
 		if(this.props == null) {
 			this.props = { };
 			this.obj.props = this.props;
 		}
-		if(this.props.tileSize == null) this.props.tileSize = 16;
+		if(this.props.tileSize == null) {
+			this.props.tileSize = 16;
+		}
 		this.tileSize = this.props.tileSize;
 		var lprops = new haxe_ds_StringMap();
-		if(this.props.layers == null) this.props.layers = [];
-		var _g1 = 0;
-		var _g11 = this.props.layers;
-		while(_g1 < _g11.length) {
-			var ld = _g11[_g1];
-			++_g1;
-			var tmp1;
+		if(this.props.layers == null) {
+			this.props.layers = [];
+		}
+		var _g = 0;
+		var _g1 = this.props.layers;
+		while(_g < _g1.length) {
+			var ld = _g1[_g];
+			++_g;
+			var key = ld.l;
+			var prev = __map_reserved[key] != null?lprops.getReserved(key):lprops.h[key];
+			if(prev != null) {
+				HxOverrides.remove(this.props.layers,prev);
+			}
 			var key1 = ld.l;
-			if(__map_reserved[key1] != null) tmp1 = lprops.getReserved(key1); else tmp1 = lprops.h[key1];
-			var prev = tmp1;
-			if(prev != null) HxOverrides.remove(this.props.layers,prev);
-			var key2 = ld.l;
-			if(__map_reserved[key2] != null) lprops.setReserved(key2,ld); else lprops.h[key2] = ld;
+			if(__map_reserved[key1] != null) {
+				lprops.setReserved(key1,ld);
+			} else {
+				lprops.h[key1] = ld;
+			}
 		}
 		var getProps = function(name) {
 			var p = __map_reserved[name] != null?lprops.getReserved(name):lprops.h[name];
 			if(p == null) {
 				p = { l : name, p : { alpha : 1.}};
-				_g.props.layers.push(p);
+				_gthis.props.layers.push(p);
 			}
 			lprops.remove(name);
 			return p.p;
 		};
 		this.waitCount = 1;
-		var title = "";
 		var _g2 = 0;
-		var _g12 = this.sheet.columns;
-		while(_g2 < _g12.length) {
-			var c = _g12[_g2];
+		var _g11 = this.sheet.columns;
+		while(_g2 < _g11.length) {
+			var c = _g11[_g2];
 			++_g2;
 			var val = Reflect.field(this.obj,c.name);
-			var _g22 = c.name;
-			switch(_g22) {
-			case "width":
-				this.width = val;
-				break;
+			switch(c.name) {
 			case "height":
 				this.height = val;
 				break;
+			case "width":
+				this.width = val;
+				break;
 			default:
 			}
-			var _g23 = c.type;
-			switch(_g23[1]) {
+			var _g3 = c.type;
+			switch(_g3[1]) {
 			case 0:
-				title = val;
-				break;
-			case 12:
-				var type = _g23[2];
-				var l = new lvl_LayerData(this,c.name,getProps(c.name),{ o : this.obj, f : c.name});
-				var tmp3;
-				var _this = this.model.smap;
-				if(__map_reserved[type] != null) tmp3 = _this.getReserved(type); else tmp3 = _this.h[type];
-				l.loadSheetData(tmp3.s);
-				l.setLayerData(val);
-				this.layers.push(l);
 				break;
 			case 8:
-				var tmp4;
-				var _this4 = SheetData.model.smap;
-				var key4 = this.sheet.name + "@" + c.name;
-				if(__map_reserved[key4] != null) tmp4 = _this4.getReserved(key4); else tmp4 = _this4.h[key4];
-				var sheet = tmp4.s;
+				var _this = SheetData.model.smap;
+				var key2 = this.sheet.name + "@" + c.name;
+				var sheet = (__map_reserved[key2] != null?_this.getReserved(key2):_this.h[key2]).s;
 				var floatCoord = false;
-				var tmp5;
+				var tmp1;
 				if(!(SheetData.hasColumn(sheet,"x",[cdb_ColumnType.TInt]) && SheetData.hasColumn(sheet,"y",[cdb_ColumnType.TInt]))) {
-					if(SheetData.hasColumn(sheet,"x",[cdb_ColumnType.TFloat])) floatCoord = SheetData.hasColumn(sheet,"y",[cdb_ColumnType.TFloat]); else floatCoord = false;
-					tmp5 = floatCoord;
-				} else tmp5 = true;
-				if(tmp5) {
+					if(SheetData.hasColumn(sheet,"x",[cdb_ColumnType.TFloat])) {
+						floatCoord = SheetData.hasColumn(sheet,"y",[cdb_ColumnType.TFloat]);
+					} else {
+						floatCoord = false;
+					}
+					tmp1 = floatCoord;
+				} else {
+					tmp1 = true;
+				}
+				if(tmp1) {
 					var sid = null;
 					var idCol = null;
-					var _g3 = 0;
+					var _g31 = 0;
 					var _g4 = sheet.columns;
-					try {
-						while(_g3 < _g4.length) {
-							var cid = _g4[_g3];
-							++_g3;
-							var _g5 = cid.type;
-							switch(_g5[1]) {
-							case 6:
-								var rid = _g5[2];
-								var tmp6;
-								var _this6 = this.model.smap;
-								if(__map_reserved[rid] != null) tmp6 = _this6.getReserved(rid); else tmp6 = _this6.h[rid];
-								sid = tmp6.s;
-								idCol = cid.name;
-								throw "__break__";
-								break;
-							default:
-							}
+					while(_g31 < _g4.length) {
+						var cid = _g4[_g31];
+						++_g31;
+						var _g5 = cid.type;
+						if(_g5[1] == 6) {
+							var rid = _g5[2];
+							var _this1 = this.model.smap;
+							sid = (__map_reserved[rid] != null?_this1.getReserved(rid):_this1.h[rid]).s;
+							idCol = cid.name;
+							break;
 						}
-					} catch( e ) { if( e != "__break__" ) throw e; }
-					var l5 = new lvl_LayerData(this,c.name,getProps(c.name),{ o : this.obj, f : c.name});
-					l5.hasFloatCoord = l5.floatCoord = floatCoord;
-					l5.baseSheet = sheet;
-					l5.loadSheetData(sid);
-					l5.setObjectsData(idCol,val);
-					l5.hasSize = SheetData.hasColumn(sheet,"width",[floatCoord?cdb_ColumnType.TFloat:cdb_ColumnType.TInt]) && SheetData.hasColumn(sheet,"height",[floatCoord?cdb_ColumnType.TFloat:cdb_ColumnType.TInt]);
-					this.layers.push(l5);
+					}
+					var l = new lvl_LayerData(this,c.name,getProps(c.name),{ o : this.obj, f : c.name});
+					l.hasFloatCoord = l.floatCoord = floatCoord;
+					l.baseSheet = sheet;
+					l.loadSheetData(sid);
+					l.setObjectsData(idCol,val);
+					l.hasSize = SheetData.hasColumn(sheet,"width",[floatCoord?cdb_ColumnType.TFloat:cdb_ColumnType.TInt]) && SheetData.hasColumn(sheet,"height",[floatCoord?cdb_ColumnType.TFloat:cdb_ColumnType.TInt]);
+					this.layers.push(l);
 				} else if(SheetData.hasColumn(sheet,"name",[cdb_ColumnType.TString]) && SheetData.hasColumn(sheet,"data",[cdb_ColumnType.TTileLayer])) {
-					var val6 = val;
-					var _g36 = 0;
-					while(_g36 < val6.length) {
-						var lobj = val6[_g36];
-						++_g36;
-						if(lobj.name == null) continue;
-						var l6 = new lvl_LayerData(this,lobj.name,getProps(lobj.name),{ o : lobj, f : "data"});
-						l6.setTilesData(lobj.data);
-						l6.listColumnn = c;
-						this.layers.push(l6);
+					var val1 = val;
+					var _g32 = 0;
+					while(_g32 < val1.length) {
+						var lobj = val1[_g32];
+						++_g32;
+						if(lobj.name == null) {
+							continue;
+						}
+						var l1 = new lvl_LayerData(this,lobj.name,getProps(lobj.name),{ o : lobj, f : "data"});
+						l1.setTilesData(lobj.data);
+						l1.listColumnn = c;
+						this.layers.push(l1);
 					}
 					this.newLayer = c;
 				}
 				break;
+			case 12:
+				var type = _g3[2];
+				var l2 = new lvl_LayerData(this,c.name,getProps(c.name),{ o : this.obj, f : c.name});
+				var _this2 = this.model.smap;
+				l2.loadSheetData((__map_reserved[type] != null?_this2.getReserved(type):_this2.h[type]).s);
+				l2.setLayerData(val);
+				this.layers.push(l2);
+				break;
 			case 15:
-				var l7 = new lvl_LayerData(this,c.name,getProps(c.name),{ o : this.obj, f : c.name});
-				l7.setTilesData(val);
-				this.layers.push(l7);
+				var l3 = new lvl_LayerData(this,c.name,getProps(c.name),{ o : this.obj, f : c.name});
+				l3.setTilesData(val);
+				this.layers.push(l3);
 				break;
 			default:
 			}
 		}
-		var tmp7 = new haxe_ds__$StringMap_StringMapIterator(lprops,lprops.arrayKeys());
-		while(tmp7.hasNext()) {
-			var c7 = tmp7.next();
-			HxOverrides.remove(this.props.layers,c7);
-		}
+		var tmp2 = new haxe_ds__$StringMap_StringMapIterator(lprops,lprops.arrayKeys());
+		while(tmp2.hasNext()) HxOverrides.remove(this.props.layers,tmp2.next());
 		if(this.sheet.props.displayColumn != null) {
 			var t = Reflect.field(this.obj,this.sheet.props.displayColumn);
-			if(t != null) title = t;
 		}
 		this.palette.init();
 		this.waitDone();
 	}
 	,watchSplit: function(key) {
-		var _g = this;
+		var _gthis = this;
 		var file = key.split("@").shift();
 		var abs = this.model.getAbsPath(file);
 		this.watch(file,function() {
 			lvl_Image.load(abs,function(_) {
 				Level.loadedTilesCache.remove(key);
-				_g.reload();
+				_gthis.reload();
 			},function() {
-				var _g1 = 0;
-				var _g2 = _g.watchList;
-				while(_g1 < _g2.length) {
-					var w = _g2[_g1];
-					++_g1;
-					if(w.path == abs) w.time = 0;
+				var _g = 0;
+				var _g1 = _gthis.watchList;
+				while(_g < _g1.length) {
+					var w = _g1[_g];
+					++_g;
+					if(w.path == abs) {
+						w.time = 0;
+					}
 				}
 			},true);
 		});
 	}
 	,loadAndSplit: function(file,size,callb) {
 		var key = file + "@" + size;
-		var tmp;
 		var _this = Level.loadedTilesCache;
-		if(__map_reserved[key] != null) tmp = _this.getReserved(key); else tmp = _this.h[key];
-		var a = tmp;
+		var a = __map_reserved[key] != null?_this.getReserved(key):_this.h[key];
 		if(a == null) {
 			a = { pending : [], data : null};
 			var _this1 = Level.loadedTilesCache;
-			if(__map_reserved[key] != null) _this1.setReserved(key,a); else _this1.h[key] = a;
+			if(__map_reserved[key] != null) {
+				_this1.setReserved(key,a);
+			} else {
+				_this1.h[key] = a;
+			}
 			lvl_Image.load(this.model.getAbsPath(file),function(i) {
 				var images = [];
 				var blanks = [];
 				var w = i.width / size | 0;
 				var h = i.height / size | 0;
 				var _g1 = 0;
-				var _g = h;
-				while(_g1 < _g) {
+				while(_g1 < h) {
 					var y = _g1++;
 					var _g3 = 0;
-					var _g2 = w;
-					while(_g3 < _g2) {
-						var x = _g3++;
-						var i1 = i.sub(x * size,y * size,size,size);
+					while(_g3 < w) {
+						var i1 = i.sub(_g3++ * size,y * size,size,size);
 						blanks[images.length] = i1.isBlank();
 						images.push(i1);
 					}
 				}
 				a.data = { w : w, h : h, img : images, blanks : blanks};
-				var _g4 = 0;
-				var _g14 = a.pending;
-				while(_g4 < _g14.length) {
-					var p = _g14[_g4];
-					++_g4;
+				var _g = 0;
+				var _g11 = a.pending;
+				while(_g < _g11.length) {
+					var p = _g11[_g];
+					++_g;
 					p(w,h,images,blanks);
 				}
 				a.pending = [];
@@ -875,7 +910,11 @@ Level.prototype = {
 			});
 			this.watchSplit(key);
 		}
-		if(a.data != null) callb(a.data.w,a.data.h,a.data.img,a.data.blanks); else a.pending.push(callb);
+		if(a.data != null) {
+			callb(a.data.w,a.data.h,a.data.img,a.data.blanks);
+		} else {
+			a.pending.push(callb);
+		}
 	}
 	,reload: function() {
 		if(!this.reloading) {
@@ -889,7 +928,9 @@ Level.prototype = {
 		return r;
 	}
 	,dispose: function() {
-		if(this.content != null) this.content.html("");
+		if(this.content != null) {
+			this.content.html("");
+		}
 		if(this.view != null) {
 			this.view.dispose();
 			this.view.viewport.parentNode.removeChild(this.view.viewport);
@@ -953,8 +994,12 @@ Level.prototype = {
 		this.waitCount++;
 	}
 	,waitDone: function() {
-		if(--this.waitCount != 0) return;
-		if(this.isDisposed()) return;
+		if(--this.waitCount != 0) {
+			return;
+		}
+		if(this.isDisposed()) {
+			return;
+		}
 		this.setup();
 		var layer = this.layers[0];
 		var state;
@@ -982,8 +1027,12 @@ Level.prototype = {
 			this.palette.small = state.smallPalette;
 			this.flipMode = state.flipMode;
 			this.rotation = state.rotation;
-			if(this.rotation == null) this.rotation = 0;
-			if(this.palette.small == null) this.palette.small = false;
+			if(this.rotation == null) {
+				this.rotation = 0;
+			}
+			if(this.palette.small == null) {
+				this.palette.small = false;
+			}
 		}
 		this.setLayer(layer);
 		this.updateZoom();
@@ -1006,17 +1055,23 @@ Level.prototype = {
 				var dy = _g1++;
 				var x1 = x + dx;
 				var y1 = y + dy;
-				if(x1 >= 0 && y1 >= 0 && x1 < i.width && y1 < i.height && i.getPixel(x1,y1) >>> 24 != 0) return false;
+				if(x1 >= 0 && y1 >= 0 && x1 < i.width && y1 < i.height && i.getPixel(x1,y1) >>> 24 != 0) {
+					return false;
+				}
 			}
 		}
 		return true;
 	}
 	,pick: function(filter) {
-		if(this.curPos == null) return null;
+		if(this.curPos == null) {
+			return null;
+		}
 		var i = this.layers.length - 1;
 		while(i >= 0) {
 			var l = this.layers[i--];
-			if(!l.enabled() || filter != null && !filter(l)) continue;
+			if(!l.enabled() || filter != null && !filter(l)) {
+				continue;
+			}
 			var x = this.curPos.xf;
 			var y = this.curPos.yf;
 			var ix = (x - this.curPos.x) * this.tileSize | 0;
@@ -1027,10 +1082,14 @@ Level.prototype = {
 				var data = _g[2];
 				var idx = this.curPos.x + this.curPos.y * this.width;
 				var k = data[idx];
-				if(k == 0 && i >= 0) continue;
+				if(k == 0 && i >= 0) {
+					continue;
+				}
 				if(l.images != null) {
 					var i1 = l.images[k];
-					if(this.hasHole(i1,ix + (i1.width - this.tileSize >> 1),iy + (i1.height - this.tileSize))) continue;
+					if(this.hasHole(i1,ix + (i1.width - this.tileSize >> 1),iy + (i1.height - this.tileSize))) {
+						continue;
+					}
 				}
 				return { k : k, layer : l, index : idx};
 			case 1:
@@ -1038,72 +1097,82 @@ Level.prototype = {
 				var idCol = _g[2];
 				if(l.images == null) {
 					var found = [];
-					var _g2 = 0;
-					var _g1 = objs[0].length;
-					while(_g2 < _g1) {
-						var i2 = _g2++;
+					var _g1 = 0;
+					var _g2 = objs[0].length;
+					while(_g1 < _g2) {
+						var i2 = _g1++;
 						var o = objs[0][i2];
 						var w = l.hasSize?o.width:1;
 						var h = l.hasSize?o.height:1;
 						if(x >= o.x && y >= o.y && x < o.x + w && y < o.y + h) {
-							if(l.idToIndex == null) found.push({ k : 0, layer : l, index : i2}); else {
-								var tmp;
+							if(l.idToIndex == null) {
+								found.push({ k : 0, layer : l, index : i2});
+							} else {
 								var key = Reflect.field(o,idCol);
 								var _this = l.idToIndex;
-								if(__map_reserved[key] != null) tmp = _this.getReserved(key); else tmp = _this.h[key];
-								found.push({ k : tmp, layer : l, index : i2});
+								found.push({ k : __map_reserved[key] != null?_this.getReserved(key):_this.h[key], layer : l, index : i2});
 							}
 						}
 					}
-					if(l.hasSize) found.sort((function(objs2) {
-						return function(f1,f2) {
-							var o1 = objs2[0][f1.index];
-							var o2 = objs2[0][f2.index];
-							return Reflect.compare(o2.width * o2.height,o1.width * o1.height);
-						};
-					})(objs));
-					if(found.length > 0) return found.pop();
+					if(l.hasSize) {
+						found.sort((function(objs1) {
+							return function(f1,f2) {
+								var o1 = objs1[0][f1.index];
+								var o2 = objs1[0][f2.index];
+								return Reflect.compare(o2.width * o2.height,o1.width * o1.height);
+							};
+						})(objs));
+					}
+					if(found.length > 0) {
+						return found.pop();
+					}
 				} else {
 					var max = objs[0].length - 1;
-					var _g22 = 0;
-					var _g12 = objs[0].length;
-					while(_g22 < _g12) {
-						var i3 = _g22++;
-						var i4 = max - i3;
-						var o4 = objs[0][i4];
-						var k4;
-						var key4 = Reflect.field(o4,idCol);
-						var _this4 = l.idToIndex;
-						if(__map_reserved[key4] != null) k4 = _this4.getReserved(key4); else k4 = _this4.h[key4];
-						if(k4 == null) continue;
-						var img = l.images[k4];
-						var w4 = img.width / this.tileSize;
-						var h4 = img.height / this.tileSize;
-						var ox = o4.x - (w4 - 1) * 0.5;
-						var oy = o4.y - (h4 - 1);
-						if(x >= ox && y >= oy && x < ox + w4 && y < oy + h4 && !this.hasHole(img,(x - ox) * this.tileSize | 0,(y - oy) * this.tileSize | 0)) return { k : k4, layer : l, index : i4};
+					var _g11 = 0;
+					var _g3 = objs[0].length;
+					while(_g11 < _g3) {
+						var i3 = max - _g11++;
+						var o3 = objs[0][i3];
+						var key1 = Reflect.field(o3,idCol);
+						var _this1 = l.idToIndex;
+						var k1 = __map_reserved[key1] != null?_this1.getReserved(key1):_this1.h[key1];
+						if(k1 == null) {
+							continue;
+						}
+						var img = l.images[k1];
+						var w1 = img.width / this.tileSize;
+						var h1 = img.height / this.tileSize;
+						var ox = o3.x - (w1 - 1) * 0.5;
+						var oy = o3.y - (h1 - 1);
+						if(x >= ox && y >= oy && x < ox + w1 && y < oy + h1 && !this.hasHole(img,(x - ox) * this.tileSize | 0,(y - oy) * this.tileSize | 0)) {
+							return { k : k1, layer : l, index : i3};
+						}
 					}
 				}
 				break;
 			case 2:
-				var data4 = _g[3];
-				var idx4 = this.curPos.x + this.curPos.y * this.width;
-				var k5 = data4[idx4] - 1;
-				if(k5 < 0) continue;
-				var i5 = l.images[k5];
-				if(i5.getPixel(ix,iy) >>> 24 == 0) continue;
-				return { k : k5, layer : l, index : idx4};
+				var data1 = _g[3];
+				var idx1 = this.curPos.x + this.curPos.y * this.width;
+				var k2 = data1[idx1] - 1;
+				if(k2 < 0) {
+					continue;
+				}
+				if(l.images[k2].getPixel(ix,iy) >>> 24 == 0) {
+					continue;
+				}
+				return { k : k2, layer : l, index : idx1};
 			case 3:
 				var insts = _g[3];
-				var objs5 = l.getTileObjects();
-				var idx5 = insts.length;
-				while(idx5 > 0) {
-					var i6 = insts[--idx5];
-					var o6 = objs5.h[i6.o];
-					if(x >= i6.x && y >= i6.y && x < i6.x + (o6 == null?1:o6.w) && y < i6.y + (o6 == null?1:o6.h)) {
-						var im = l.images[i6.o + (x - i6.x | 0) + (y - i6.y | 0) * l.stride];
-						if(this.hasHole(im,ix,iy)) continue;
-						return { k : i6.o, layer : l, index : idx5};
+				var objs2 = l.getTileObjects();
+				var idx2 = insts.length;
+				while(idx2 > 0) {
+					var i4 = insts[--idx2];
+					var o4 = objs2.h[i4.o];
+					if(x >= i4.x && y >= i4.y && x < i4.x + (o4 == null?1:o4.w) && y < i4.y + (o4 == null?1:o4.h)) {
+						if(this.hasHole(l.images[i4.o + (x - i4.x | 0) + (y - i4.y | 0) * l.stride],ix,iy)) {
+							continue;
+						}
+						return { k : i4.o, layer : l, index : idx2};
 					}
 				}
 				break;
@@ -1112,63 +1181,62 @@ Level.prototype = {
 		return null;
 	}
 	,action: function(name,val) {
-		var _g = this;
+		var _gthis = this;
 		var l = this.currentLayer;
 		switch(name) {
+		case "alpha":
+			l.props.alpha = val / 100;
+			this.model.save(false);
+			this.draw();
+			break;
 		case "close":
 			(js_Boot.__cast(this.model , Main)).closeLevel(this);
 			break;
-		case "options":
-			var opt = this.content.find(".submenu.options");
-			var hide = opt["is"](":visible");
-			this.content.find(".submenu").hide();
-			if(hide) this.content.find(".submenu.layer").show(); else {
-				opt.show();
-				this.content.find("[name=tileSize]").val("" + this.tileSize);
-			}
-			break;
-		case "layer":
-			if(this.newLayer == null) return;
-			var opt1 = this.content.find(".submenu.newlayer");
-			var hide1 = opt1["is"](":visible");
-			this.content.find(".submenu").hide();
-			if(hide1) this.content.find(".submenu.layer").show(); else {
-				opt1.show();
-				this.content.find("[name=newName]").val("");
-			}
-			break;
 		case "file":
-			var m = js_Boot.__cast(this.model , Main);
-			m.chooseFile(function(path) {
-				var _g1 = _g.currentLayer.data;
-				switch(_g1[1]) {
+			(js_Boot.__cast(this.model , Main)).chooseFile(function(path) {
+				var _g = _gthis.currentLayer.data;
+				switch(_g[1]) {
 				case 2:
-					var t = _g1[2];
+					var t = _g[2];
 					if(t.file == null) {
-						var size = _g.props.tileSize;
+						var size = _gthis.props.tileSize;
 						t.stride = t.size * t.stride / size | 0;
 						t.size = size;
 					}
 					t.file = path;
-					_g.currentLayer.dirty = true;
-					_g.save();
-					_g.reload();
+					_gthis.currentLayer.dirty = true;
+					_gthis.save();
+					_gthis.reload();
 					break;
 				case 3:
-					var t1 = _g1[2];
+					var t1 = _g[2];
 					if(t1.file == null) {
-						var size1 = _g.props.tileSize;
+						var size1 = _gthis.props.tileSize;
 						t1.stride = t1.size * t1.stride / size1 | 0;
 						t1.size = size1;
 					}
 					t1.file = path;
-					_g.currentLayer.dirty = true;
-					_g.save();
-					_g.reload();
+					_gthis.currentLayer.dirty = true;
+					_gthis.save();
+					_gthis.reload();
 					break;
 				default:
 				}
 			});
+			break;
+		case "layer":
+			if(this.newLayer == null) {
+				return;
+			}
+			var opt = this.content.find(".submenu.newlayer");
+			var hide = opt["is"](":visible");
+			this.content.find(".submenu").hide();
+			if(hide) {
+				this.content.find(".submenu.layer").show();
+			} else {
+				opt.show();
+				this.content.find("[name=newName]").val("");
+			}
 			break;
 		case "lock":
 			l.lock = val;
@@ -1179,21 +1247,25 @@ Level.prototype = {
 			l.floatCoord = l.hasFloatCoord && !val;
 			l.saveState();
 			break;
-		case "visible":
-			l.set_visible(val);
-			l.saveState();
-			this.draw();
+		case "mode":
+			this.setLayerMode(val);
 			break;
-		case "alpha":
-			l.props.alpha = val / 100;
-			this.model.save(false);
-			this.draw();
+		case "options":
+			var opt1 = this.content.find(".submenu.options");
+			var hide1 = opt1["is"](":visible");
+			this.content.find(".submenu").hide();
+			if(hide1) {
+				this.content.find(".submenu.layer").show();
+			} else {
+				opt1.show();
+				this.content.find("[name=tileSize]").val("" + this.tileSize);
+			}
 			break;
 		case "size":
-			var _g2 = l.data;
-			switch(_g2[1]) {
+			var _g1 = l.data;
+			switch(_g1[1]) {
 			case 2:
-				var t2 = _g2[2];
+				var t2 = _g1[2];
 				var size2 = val;
 				t2.stride = t2.size * t2.stride / size2 | 0;
 				t2.size = size2;
@@ -1202,7 +1274,7 @@ Level.prototype = {
 				this.reload();
 				break;
 			case 3:
-				var t3 = _g2[2];
+				var t3 = _g1[2];
 				var size3 = val;
 				t3.stride = t3.size * t3.stride / size3 | 0;
 				t3.size = size3;
@@ -1213,29 +1285,29 @@ Level.prototype = {
 			default:
 			}
 			break;
-		case "mode":
-			this.setLayerMode(val);
+		case "visible":
+			l.set_visible(val);
+			l.saveState();
+			this.draw();
 			break;
 		}
 		$(":focus").blur();
 	}
 	,addNewLayer: function(name) {
-		var _g = this.newLayer.type;
-		switch(_g[1]) {
-		case 8:
-			var tmp;
+		if(this.newLayer.type[1] == 8) {
 			var _this = SheetData.model.smap;
 			var key = this.sheet.name + "@" + this.newLayer.name;
-			if(__map_reserved[key] != null) tmp = _this.getReserved(key); else tmp = _this.h[key];
-			var s = tmp.s;
+			var s = (__map_reserved[key] != null?_this.getReserved(key):_this.h[key]).s;
 			var o = { name : null, data : null};
-			var _g1 = 0;
-			var _g2 = s.columns;
-			while(_g1 < _g2.length) {
-				var c = _g2[_g1];
-				++_g1;
+			var _g = 0;
+			var _g1 = s.columns;
+			while(_g < _g1.length) {
+				var c = _g1[_g];
+				++_g;
 				var v = this.model.getDefault(c);
-				if(v != null) o[c.name] = v;
+				if(v != null) {
+					o[c.name] = v;
+				}
 			}
 			var a = Reflect.field(this.obj,this.newLayer.name);
 			o.name = name;
@@ -1244,14 +1316,14 @@ Level.prototype = {
 			while(n >= 0) {
 				var o2 = a[n--];
 				if(o2.data != null) {
-					var _g11 = [];
-					var _g3 = 0;
-					var _g21 = this.width * this.height;
-					while(_g3 < _g21) {
-						var k = _g3++;
-						_g11.push(0);
+					var _g2 = [];
+					var _g21 = 0;
+					var _g11 = this.width * this.height;
+					while(_g21 < _g11) {
+						++_g21;
+						_g2.push(0);
 					}
-					var a1 = cdb__$Types_TileLayerData_$Impl_$.encode(_g11,this.model.compressionEnabled());
+					var a1 = cdb__$Types_TileLayerData_$Impl_$.encode(_g2,this.model.compressionEnabled());
 					o.data = { file : o2.data.file, size : o2.data.size, stride : o2.data.stride, data : a1};
 					break;
 				}
@@ -1261,12 +1333,10 @@ Level.prototype = {
 			this.savePrefs();
 			this.save();
 			this.reload();
-			break;
-		default:
 		}
 	}
 	,popupLayer: function(l,mouseX,mouseY) {
-		var _g = this;
+		var _gthis = this;
 		this.setLayer(l);
 		var n = new js_node_webkit_Menu();
 		var nclear = new js_node_webkit_MenuItem({ label : "Clear"});
@@ -1274,37 +1344,31 @@ Level.prototype = {
 		var nshow = new js_node_webkit_MenuItem({ label : "Show Only"});
 		var nshowAll = new js_node_webkit_MenuItem({ label : "Show All"});
 		var nrename = new js_node_webkit_MenuItem({ label : "Rename"});
-		var _g1 = 0;
-		var _g11 = [nshow,nshowAll,nrename,nclear,ndel];
-		while(_g1 < _g11.length) {
-			var m = _g11[_g1];
-			++_g1;
+		var _g = 0;
+		var _g1 = [nshow,nshowAll,nrename,nclear,ndel];
+		while(_g < _g1.length) {
+			var m = _g1[_g];
+			++_g;
 			n.append(m);
 		}
 		nclear.click = function() {
 			var _g2 = l.data;
 			switch(_g2[1]) {
-			case 2:
-				var data = _g2[3];
-				var _g22 = 0;
-				var _g12 = data.length;
-				while(_g22 < _g12) {
-					var i = _g22++;
-					data[i] = 0;
-				}
+			case 0:
+				var data = _g2[2];
+				var _g11 = 0;
+				var _g3 = data.length;
+				while(_g11 < _g3) data[_g11++] = 0;
 				break;
 			case 1:
 				var objs = _g2[3];
 				while(objs.length > 0) objs.pop();
 				break;
-			case 0:
-				var data2 = _g2[2];
-				var _g23 = 0;
-				var _g13 = data2.length;
-				while(_g23 < _g13) {
-					var i3 = _g23++;
-					data2[i3] = 0;
-				}
+			case 2:
+				var data1 = _g2[3];
+				var _g12 = 0;
+				var _g4 = data1.length;
+				while(_g12 < _g4) data1[_g12++] = 0;
 				break;
 			case 3:
 				var insts = _g2[3];
@@ -1312,73 +1376,79 @@ Level.prototype = {
 				break;
 			}
 			l.dirty = true;
-			_g.save();
-			_g.draw();
+			_gthis.save();
+			_gthis.draw();
 		};
 		ndel.enabled = l.listColumnn != null;
 		ndel.click = function() {
-			var layers = Reflect.field(_g.obj,l.listColumnn.name);
+			var layers = Reflect.field(_gthis.obj,l.listColumnn.name);
 			HxOverrides.remove(layers,l.targetObj.o);
-			_g.save();
-			_g.reload();
+			_gthis.save();
+			_gthis.reload();
 		};
 		nshow.click = function() {
-			var _g14 = 0;
-			var _g24 = _g.layers;
-			while(_g14 < _g24.length) {
-				var l2 = _g24[_g14];
-				++_g14;
+			var _g5 = 0;
+			var _g13 = _gthis.layers;
+			while(_g5 < _g13.length) {
+				var l2 = _g13[_g5];
+				++_g5;
 				l2.set_visible(l == l2);
 				l2.saveState();
 			}
-			_g.draw();
+			_gthis.draw();
 		};
 		nshowAll.click = function() {
-			var _g15 = 0;
-			var _g25 = _g.layers;
-			while(_g15 < _g25.length) {
-				var l25 = _g25[_g15];
-				++_g15;
-				l25.set_visible(true);
-				l25.saveState();
+			var _g6 = 0;
+			var _g14 = _gthis.layers;
+			while(_g6 < _g14.length) {
+				var l21 = _g14[_g6];
+				++_g6;
+				l21.set_visible(true);
+				l21.saveState();
 			}
-			_g.draw();
+			_gthis.draw();
 		};
 		nrename.click = function() {
 			l.comp.find("span").remove();
 			l.comp.prepend($("<input type='text'>").val(l.name).focus().blur(function(_) {
-				var n5 = StringTools.trim($(this).val());
-				var _g16 = 0;
-				var _g26 = _g.props.layers;
-				while(_g16 < _g26.length) {
-					var p = _g26[_g16];
-					++_g16;
-					if(p.l == n5) {
-						_g.reload();
+				var n1 = StringTools.trim($(this).val());
+				var _g7 = 0;
+				var _g15 = _gthis.props.layers;
+				while(_g7 < _g15.length) {
+					var p = _g15[_g7];
+					++_g7;
+					if(p.l == n1) {
+						_gthis.reload();
 						return;
 					}
 				}
-				var _g17 = 0;
-				var _g27 = _g.props.layers;
-				while(_g17 < _g27.length) {
-					var p7 = _g27[_g17];
-					++_g17;
-					if(p7.l == l.name) p7.l = n5;
+				var _g8 = 0;
+				var _g16 = _gthis.props.layers;
+				while(_g8 < _g16.length) {
+					var p1 = _g16[_g8];
+					++_g8;
+					if(p1.l == l.name) {
+						p1.l = n1;
+					}
 				}
-				var layers5 = Reflect.field(_g.obj,_g.newLayer.name);
-				var _g18 = 0;
-				while(_g18 < layers5.length) {
-					var l28 = layers5[_g18];
-					++_g18;
-					if(l28.name == l.name) l28.name = n5;
+				var layers1 = Reflect.field(_gthis.obj,_gthis.newLayer.name);
+				var _g9 = 0;
+				while(_g9 < layers1.length) {
+					var l22 = layers1[_g9];
+					++_g9;
+					if(l22.name == l.name) {
+						l22.name = n1;
+					}
 				}
-				l.name = n5;
-				_g.currentLayer = null;
-				_g.setLayer(l);
-				_g.save();
-				_g.reload();
+				l.name = n1;
+				_gthis.currentLayer = null;
+				_gthis.setLayer(l);
+				_gthis.save();
+				_gthis.reload();
 			}).keypress(function(e) {
-				if(e.keyCode == 13) $(this).blur();
+				if(e.keyCode == 13) {
+					$(this).blur();
+				}
 			}));
 		};
 		nrename.enabled = ndel.enabled;
@@ -1398,165 +1468,145 @@ Level.prototype = {
 		options.change = function(c) {
 			change.ref(Std.parseInt("0x" + c.toHex()));
 		};
-		if(show != null) options.show = function() {
-			show.ref(null);
-		};
+		if(show != null) {
+			options.show = function() {
+				show.ref(null);
+			};
+		}
 		j.spectrum(options);
 	}
 	,setup: function() {
-		var _g3 = this;
+		var _gthis = this;
 		var page = $("#content");
 		page.html("");
 		this.content = $($("#levelContent").html()).appendTo(page);
 		var mlayers = this.content.find(".layers");
-		var _g14 = 0;
-		var _g4 = this.layers.length;
-		while(_g14 < _g4) {
-			var index = _g14++;
-			var l4 = [this.layers[index]];
+		var _g1 = 0;
+		var _g = this.layers.length;
+		while(_g1 < _g) {
+			var index = _g1++;
+			var l = [this.layers[index]];
 			var td = $("<li class='item layer'>").appendTo(mlayers);
-			l4[0].comp = td;
+			l[0].comp = td;
 			td.data("index",index);
-			if(!l4[0].visible) td.addClass("hidden");
-			if(l4[0].lock) td.addClass("locked");
-			td.mousedown((function(l5) {
+			if(!l[0].visible) {
+				td.addClass("hidden");
+			}
+			if(l[0].lock) {
+				td.addClass("locked");
+			}
+			td.mousedown((function(l1) {
 				return function(e) {
-					var _g25 = e.which;
-					switch(_g25) {
+					var _g2 = e.which;
+					switch(_g2) {
 					case 1:
-						_g3.palette.mode = null;
-						_g3.setLayer(l5[0]);
+						_gthis.palette.mode = null;
+						_gthis.setLayer(l1[0]);
 						break;
 					case 3:
-						_g3.popupLayer(l5[0],(function($this) {
-							var $r;
-							var x = e.pageX;
-							$r = x | 0;
-							return $r;
-						}(this)),(function($this) {
-							var $r;
-							var x5 = e.pageY;
-							$r = x5 | 0;
-							return $r;
-						}(this)));
+						_gthis.popupLayer(l1[0],e.pageX | 0,e.pageY | 0);
 						e.preventDefault();
 						break;
 					}
 				};
-			})(l4));
-			$("<span>").text(l4[0].name).appendTo(td);
-			if(l4[0].images != null) {
+			})(l));
+			$("<span>").text(l[0].name).appendTo(td);
+			if(l[0].images != null) {
 				td.find("span").css("margin-top","10px");
 				continue;
 			}
 			var id = Level.UID++;
 			var t = $("<input type=\"text\" id=\"_" + Level.UID++ + "\">").appendTo(td);
-			this.spectrum(t,{ color : this.toColor(l4[0].colors[l4[0].current]), clickoutFiresChange : true, showButtons : false, showPaletteOnly : true, showPalette : true, palette : (function($this) {
-				var $r;
-				var _g26 = [];
-				{
-					var _g36 = 0;
-					var _g46 = l4[0].colors;
-					while(_g36 < _g46.length) {
-						var c = _g46[_g36];
-						++_g36;
-						_g26.push($this.toColor(c));
-					}
-				}
-				$r = _g26;
-				return $r;
-			}(this))},this.allocRef((function(l6) {
+			var tmp = this.toColor(l[0].colors[l[0].current]);
+			var _g21 = [];
+			var _g3 = 0;
+			var _g4 = l[0].colors;
+			while(_g3 < _g4.length) {
+				var c = _g4[_g3];
+				++_g3;
+				_g21.push(this.toColor(c));
+			}
+			this.spectrum(t,{ color : tmp, clickoutFiresChange : true, showButtons : false, showPaletteOnly : true, showPalette : true, palette : _g21},this.allocRef((function(l2) {
 				return function(color) {
-					var _g47 = 0;
-					var _g37 = l6[0].colors.length;
-					while(_g47 < _g37) {
-						var i7 = _g47++;
-						if(l6[0].colors[i7] == color) {
-							l6[0].set_current(i7);
-							_g3.setLayer(l6[0]);
+					var _g41 = 0;
+					var _g31 = l2[0].colors.length;
+					while(_g41 < _g31) {
+						var i = _g41++;
+						if(l2[0].colors[i] == color) {
+							l2[0].set_current(i);
+							_gthis.setLayer(l2[0]);
 							return;
 						}
 					}
-					_g3.setLayer(l6[0]);
+					_gthis.setLayer(l2[0]);
 				};
-			})(l4)),this.allocRef((function(l7) {
-				return function(_7) {
-					_g3.setLayer(l7[0]);
+			})(l)),this.allocRef((function(l3) {
+				return function(_) {
+					_gthis.setLayer(l3[0]);
 				};
-			})(l4)));
+			})(l)));
 		}
-		var callb = this.allocRef(function(_) {
+		var callb = this.allocRef(function(_1) {
 			var indexes = [];
 			var _this = mlayers.find("li");
 			var _g_i = 0;
 			var _g_j = _this;
 			while(_g_i < _g_j.length) {
-				var i = $(_g_j[_g_i++]);
-				indexes.push(i.data("index"));
+				var i1 = $(_g_j[_g_i++]);
+				indexes.push(i1.data("index"));
 			}
-			_g3.layers = (function($this) {
-				var $r;
-				var _g = [];
-				{
-					var _g2 = 0;
-					var _g1 = _g3.layers.length;
-					while(_g2 < _g1) {
-						var i1 = _g2++;
-						_g.push(_g3.layers[indexes[i1]]);
-					}
-				}
-				$r = _g;
-				return $r;
-			}(this));
-			var _g21 = 0;
-			var _g11 = _g3.layers.length;
-			while(_g21 < _g11) {
-				var i2 = _g21++;
-				_g3.layers[i2].comp.data("index",i2);
+			var _g5 = [];
+			var _g22 = 0;
+			var _g11 = _gthis.layers.length;
+			while(_g22 < _g11) {
+				var i2 = _g22++;
+				_g5.push(_gthis.layers[indexes[i2]]);
+			}
+			_gthis.layers = _g5;
+			var _g23 = 0;
+			var _g12 = _gthis.layers.length;
+			while(_g23 < _g12) {
+				var i3 = _g23++;
+				_gthis.layers[i3].comp.data("index",i3);
 			}
 			var groups = new haxe_ds_StringMap();
-			var _g12 = 0;
-			var _g22 = _g3.layers;
-			while(_g12 < _g22.length) {
-				var l = _g22[_g12];
-				++_g12;
-				if(l.listColumnn == null) continue;
-				var g = (function($this) {
-					var $r;
-					var key = l.listColumnn.name;
-					$r = __map_reserved[key] != null?groups.getReserved(key):groups.h[key];
-					return $r;
-				}(this));
+			var _g13 = 0;
+			var _g24 = _gthis.layers;
+			while(_g13 < _g24.length) {
+				var l4 = _g24[_g13];
+				++_g13;
+				if(l4.listColumnn == null) {
+					continue;
+				}
+				var key = l4.listColumnn.name;
+				var g = __map_reserved[key] != null?groups.getReserved(key):groups.h[key];
 				if(g == null) {
 					g = [];
-					var key2 = l.listColumnn.name;
-					if(__map_reserved[key2] != null) groups.setReserved(key2,g); else groups.h[key2] = g;
-				}
-				g.push(l);
-			}
-			var $it0 = groups.keys();
-			while( $it0.hasNext() ) {
-				var g2 = $it0.next();
-				var layers = __map_reserved[g2] != null?groups.getReserved(g2):groups.h[g2];
-				var objs = (function($this) {
-					var $r;
-					var _g13 = [];
-					{
-						var _g23 = 0;
-						while(_g23 < layers.length) {
-							var l3 = layers[_g23];
-							++_g23;
-							_g13.push(l3.targetObj.o);
-						}
+					var key1 = l4.listColumnn.name;
+					if(__map_reserved[key1] != null) {
+						groups.setReserved(key1,g);
+					} else {
+						groups.h[key1] = g;
 					}
-					$r = _g13;
-					return $r;
-				}(this));
-				var o = _g3.obj;
-				o[g2] = objs;
+				}
+				g.push(l4);
 			}
-			_g3.save();
-			_g3.draw();
+			var tmp1 = groups.keys();
+			while(tmp1.hasNext()) {
+				var g1 = tmp1.next();
+				var layers = __map_reserved[g1] != null?groups.getReserved(g1):groups.h[g1];
+				var _g14 = [];
+				var _g25 = 0;
+				while(_g25 < layers.length) {
+					var l5 = layers[_g25];
+					++_g25;
+					_g14.push(l5.targetObj.o);
+				}
+				var objs = _g14;
+				_gthis.obj[g1] = objs;
+			}
+			_gthis.save();
+			_gthis.draw();
 		});
 		this.setSort(mlayers,callb);
 		this.content.find("[name=newlayer]").css({ display : this.newLayer != null?"block":"none"});
@@ -1564,17 +1614,19 @@ Level.prototype = {
 		var scont = this.content.find(".scrollContent");
 		this.view = lvl_Image3D.getInstance();
 		scont.append(this.view.viewport);
-		scroll.scroll(function(_8) {
-			_g3.savePrefs();
-			_g3.view.setScrollPos(scroll.scrollLeft() - 20,scroll.scrollTop() - 20);
+		scroll.scroll(function(_2) {
+			_gthis.savePrefs();
+			_gthis.view.setScrollPos(scroll.scrollLeft() - 20,scroll.scrollTop() - 20);
 		});
-		scroll[0].onmousewheel = function(e8) {
-			if(e8.shiftKey) _g3.updateZoom(e8.wheelDelta > 0);
+		scroll[0].onmousewheel = function(e1) {
+			if(e1.shiftKey) {
+				_gthis.updateZoom(e1.wheelDelta > 0);
+			}
 		};
-		this.spectrum(this.content.find("[name=color]"),{ clickoutFiresChange : true, showButtons : false},this.allocRef(function(c8) {
-			_g3.currentLayer.props.color = c8;
-			_g3.save();
-			_g3.draw();
+		this.spectrum(this.content.find("[name=color]"),{ clickoutFiresChange : true, showButtons : false},this.allocRef(function(c1) {
+			_gthis.currentLayer.props.color = c1;
+			_gthis.save();
+			_gthis.draw();
 		}));
 		this.onResize();
 		this.cursor = this.content.find("#cursor");
@@ -1583,111 +1635,102 @@ Level.prototype = {
 		this.tmpImage = new lvl_Image(0,0);
 		this.cursor[0].appendChild(this.cursorImage.getCanvas());
 		this.cursor.hide();
-		scont.mouseleave(function(_9) {
-			_g3.curPos = null;
-			if(_g3.selection == null) _g3.cursor.hide();
+		scont.mouseleave(function(_3) {
+			_gthis.curPos = null;
+			if(_gthis.selection == null) {
+				_gthis.cursor.hide();
+			}
 			$(".cursorPosition").text("");
 		});
-		scont.mousemove(function(e9) {
-			_g3.mousePos.x = (function($this) {
-				var $r;
-				var x9 = e9.pageX;
-				$r = x9 | 0;
-				return $r;
-			}(this));
-			_g3.mousePos.y = (function($this) {
-				var $r;
-				var x10 = e9.pageY;
-				$r = x10 | 0;
-				return $r;
-			}(this));
-			_g3.updateCursorPos();
+		scont.mousemove(function(e2) {
+			_gthis.mousePos.x = e2.pageX | 0;
+			_gthis.mousePos.y = e2.pageY | 0;
+			_gthis.updateCursorPos();
 		});
-		var onMouseUp = function(_3) {
-			_g3.mouseDown = null;
-			if(_g3.currentLayer != null && _g3.currentLayer.hasSize) _g3.setCursor();
-			if(_g3.needSave) _g3.save();
+		var onMouseUp = function(_4) {
+			_gthis.mouseDown = null;
+			if(_gthis.currentLayer != null && _gthis.currentLayer.hasSize) {
+				_gthis.setCursor();
+			}
+			if(_gthis.needSave) {
+				_gthis.save();
+			}
 		};
-		scroll.mousedown(function(e10) {
-			if(_g3.palette.mode != null) {
-				_g3.palette.mode = null;
-				_g3.setCursor();
+		scroll.mousedown(function(e3) {
+			if(_gthis.palette.mode != null) {
+				_gthis.palette.mode = null;
+				_gthis.setCursor();
 				return;
 			}
-			var _g10 = e10.which;
-			switch(_g10) {
+			var _g6 = e3.which;
+			switch(_g6) {
 			case 1:
-				var l10 = _g3.currentLayer;
-				if(l10 == null) return;
-				var o10 = l10.getSelObjects()[0];
-				var w = o10 == null?_g3.currentLayer.currentWidth:o10.w;
-				var h = o10 == null?_g3.currentLayer.currentHeight:o10.h;
-				if(o10 == null && _g3.palette.randomMode) w = h = 1;
-				_g3.mouseDown = { rx : _g3.curPos == null?0:_g3.curPos.x % w, ry : _g3.curPos == null?0:_g3.curPos.y % h, w : w, h : h};
-				_g3.set_mouseCapture(scroll);
-				if(_g3.curPos != null) {
-					_g3.set(_g3.curPos.x,_g3.curPos.y,e10.ctrlKey);
-					_g3.startPos = Reflect.copy(_g3.curPos);
+				var l6 = _gthis.currentLayer;
+				if(l6 == null) {
+					return;
+				}
+				var o = l6.getSelObjects()[0];
+				var w = o == null?_gthis.currentLayer.currentWidth:o.w;
+				var h = o == null?_gthis.currentLayer.currentHeight:o.h;
+				if(o == null && _gthis.palette.randomMode) {
+					h = 1;
+					w = h;
+				}
+				_gthis.mouseDown = { rx : _gthis.curPos == null?0:_gthis.curPos.x % w, ry : _gthis.curPos == null?0:_gthis.curPos.y % h, w : w, h : h};
+				_gthis.set_mouseCapture(scroll);
+				if(_gthis.curPos != null) {
+					_gthis.set(_gthis.curPos.x,_gthis.curPos.y,e3.ctrlKey);
+					_gthis.startPos = Reflect.copy(_gthis.curPos);
 				}
 				break;
 			case 3:
-				if(_g3.selection != null) {
-					_g3.clearSelection();
-					_g3.draw();
+				if(_gthis.selection != null) {
+					_gthis.clearSelection();
+					_gthis.draw();
 					return;
 				}
-				var p = _g3.pick();
+				var p = _gthis.pick();
 				if(p != null) {
 					p.layer.set_current(p.k);
-					{
-						var _g110 = p.layer.data;
-						switch(_g110[1]) {
-						case 3:
-							var insts = _g110[3];
-							var i10 = insts[p.index];
-							var obj = (function($this) {
-								var $r;
-								var this10 = p.layer.getTileObjects();
-								var key10 = i10.o;
-								$r = this10.get(key10);
-								return $r;
-							}(this));
-							if(obj != null) {
-								p.layer.currentWidth = obj.w;
-								p.layer.currentHeight = obj.h;
-								p.layer.saveState();
-							}
-							_g3.flipMode = i10.flip;
-							_g3.rotation = i10.rot;
-							break;
-						default:
+					var _g7 = p.layer.data;
+					if(_g7[1] == 3) {
+						var insts = _g7[3];
+						var i4 = insts[p.index];
+						var obj = p.layer.getTileObjects().get(i4.o);
+						if(obj != null) {
+							p.layer.currentWidth = obj.w;
+							p.layer.currentHeight = obj.h;
+							p.layer.saveState();
 						}
+						_gthis.flipMode = i4.flip;
+						_gthis.rotation = i4.rot;
 					}
-					_g3.setLayer(p.layer);
+					_gthis.setLayer(p.layer);
 				}
 				break;
 			}
 		});
-		this.content.mouseup(function(e11) {
-			_g3.set_mouseCapture(null);
-			onMouseUp(e11);
-			if(_g3.curPos == null) {
-				_g3.startPos = null;
+		this.content.mouseup(function(e4) {
+			_gthis.set_mouseCapture(null);
+			onMouseUp(e4);
+			if(_gthis.curPos == null) {
+				_gthis.startPos = null;
 				return;
 			}
-			if(e11.which == 1 && _g3.selection == null && _g3.currentLayer.enabled() && _g3.curPos.x >= 0 && _g3.curPos.y >= 0) _g3.setObject();
-			_g3.startPos = null;
-			if(_g3.selection != null) {
-				_g3.moveSelection();
-				_g3.save();
-				_g3.draw();
+			if(e4.which == 1 && _gthis.selection == null && _gthis.currentLayer.enabled() && _gthis.curPos.x >= 0 && _gthis.curPos.y >= 0) {
+				_gthis.setObject();
+			}
+			_gthis.startPos = null;
+			if(_gthis.selection != null) {
+				_gthis.moveSelection();
+				_gthis.save();
+				_gthis.draw();
 			}
 		});
 	}
 	,setObject: function() {
 		var _g = this.currentLayer.data;
-		switch(_g[1]) {
-		case 1:
+		if(_g[1] == 1) {
 			var objs = _g[3];
 			var idCol = _g[2];
 			var l = this.currentLayer;
@@ -1697,7 +1740,9 @@ Level.prototype = {
 			var w = 0.;
 			var h = 0.;
 			if(l.hasSize) {
-				if(this.startPos == null) return;
+				if(this.startPos == null) {
+					return;
+				}
 				var sx = fc?this.startPos.xf:this.startPos.x;
 				var sy = fc?this.startPos.yf:this.startPos.y;
 				w = px - sx;
@@ -1717,49 +1762,67 @@ Level.prototype = {
 					++h;
 				}
 				if(w < 0.5) {
-					if(fc) w = 0.5; else w = 1;
+					if(fc) {
+						w = 0.5;
+					} else {
+						w = 1;
+					}
 				}
 				if(h < 0.5) {
-					if(fc) h = 0.5; else h = 1;
+					if(fc) {
+						h = 0.5;
+					} else {
+						h = 1;
+					}
 				}
 			}
-			var _g2 = 0;
-			var _g1 = objs.length;
-			while(_g2 < _g1) {
-				var i = _g2++;
-				var o1 = objs[i];
-				if(o1.x == px && o1.y == py && w <= 1 && h <= 1) {
+			var _g1 = 0;
+			var _g2 = objs.length;
+			while(_g1 < _g2) {
+				var i = _g1++;
+				var o = objs[i];
+				if(o.x == px && o.y == py && w <= 1 && h <= 1) {
 					this.editProps(l,i);
 					this.setCursor();
 					return;
 				}
 			}
-			var o = { x : px, y : py};
-			objs.push(o);
-			if(idCol != null) o[idCol] = l.indexToId[this.currentLayer.current];
-			var _g11 = 0;
-			var _g21 = l.baseSheet.columns;
-			while(_g11 < _g21.length) {
-				var c = _g21[_g11];
-				++_g11;
-				if(c.opt || c.name == "x" || c.name == "y" || c.name == idCol) continue;
+			var o1 = { x : px, y : py};
+			objs.push(o1);
+			if(idCol != null) {
+				o1[idCol] = l.indexToId[this.currentLayer.current];
+			}
+			var _g3 = 0;
+			var _g11 = l.baseSheet.columns;
+			while(_g3 < _g11.length) {
+				var c = _g11[_g3];
+				++_g3;
+				if(c.opt || c.name == "x" || c.name == "y" || c.name == idCol) {
+					continue;
+				}
 				var v = this.model.getDefault(c);
-				if(v != null) o[c.name] = v;
+				if(v != null) {
+					o1[c.name] = v;
+				}
 			}
 			if(l.hasSize) {
-				o.width = w;
-				o.height = h;
+				o1.width = w;
+				o1.height = h;
 				this.setCursor();
 			}
 			objs.sort(function(o11,o2) {
 				var r = Reflect.compare(o11.y,o2.y);
-				if(r == 0) return Reflect.compare(o11.x,o2.x); else return r;
+				if(r == 0) {
+					return Reflect.compare(o11.x,o2.x);
+				} else {
+					return r;
+				}
 			});
-			if(this.hasProps(l,true)) this.editProps(l,Lambda.indexOf(objs,o));
+			if(this.hasProps(l,true)) {
+				this.editProps(l,Lambda.indexOf(objs,o1));
+			}
 			this.save();
 			this.draw();
-			break;
-		default:
 		}
 	}
 	,deleteSelection: function() {
@@ -1768,7 +1831,9 @@ Level.prototype = {
 		while(_g < _g1.length) {
 			var l = _g1[_g];
 			++_g;
-			if(!l.enabled()) continue;
+			if(!l.enabled()) {
+				continue;
+			}
 			l.dirty = true;
 			var sx = this.selection.x;
 			var sy = this.selection.y;
@@ -1782,15 +1847,144 @@ Level.prototype = {
 				var sy1 = this.selection.y | 0;
 				var sw1 = Math.ceil(this.selection.x + this.selection.w) - sx1;
 				var sh1 = Math.ceil(this.selection.y + this.selection.h) - sy1;
-				var _g4 = 0;
-				var _g3 = sw1;
-				while(_g4 < _g3) {
-					var dx = _g4++;
-					var _g6 = 0;
-					var _g5 = sh1;
-					while(_g6 < _g5) {
-						var dy = _g6++;
-						data[sx1 + dx + (sy1 + dy) * this.width] = 0;
+				var _g3 = 0;
+				while(_g3 < sw1) {
+					var dx = _g3++;
+					var _g5 = 0;
+					while(_g5 < sh1) data[sx1 + dx + (sy1 + _g5++) * this.width] = 0;
+				}
+				break;
+			case 1:
+				var objs = _g2[3];
+				var _g21 = 0;
+				var _g31 = objs.slice();
+				while(_g21 < _g31.length) {
+					var o = _g31[_g21];
+					++_g21;
+					var ow = l.hasSize?o.width:1;
+					var oh = l.hasSize?o.height:1;
+					if(sx + sw <= o.x || sy + sh <= o.y || sx >= o.x + ow || sy >= o.y + oh) {
+						continue;
+					}
+					HxOverrides.remove(objs,o);
+				}
+				break;
+			case 2:
+				var data1 = _g2[3];
+				var sx2 = this.selection.x | 0;
+				var sy2 = this.selection.y | 0;
+				var sw2 = Math.ceil(this.selection.x + this.selection.w) - sx2;
+				var sh2 = Math.ceil(this.selection.y + this.selection.h) - sy2;
+				var _g32 = 0;
+				while(_g32 < sw2) {
+					var dx1 = _g32++;
+					var _g51 = 0;
+					while(_g51 < sh2) data1[sx2 + dx1 + (sy2 + _g51++) * this.width] = 0;
+				}
+				break;
+			case 3:
+				var insts = _g2[3];
+				var objs1 = l.getTileObjects();
+				var _g22 = 0;
+				var _g33 = insts.slice();
+				while(_g22 < _g33.length) {
+					var i = _g33[_g22];
+					++_g22;
+					var o1 = objs1.h[i.o];
+					var ow1 = o1 == null?1:o1.w;
+					var oh1 = o1 == null?1:o1.h;
+					if(sx + sw <= i.x || sy + sh <= i.y || sx >= i.x + ow1 || sy >= i.y + oh1) {
+						continue;
+					}
+					HxOverrides.remove(insts,i);
+				}
+				break;
+			}
+		}
+	}
+	,moveSelection: function() {
+		var dx = this.selection.x - this.selection.sx;
+		var dy = this.selection.y - this.selection.sy;
+		if(dx == 0 && dy == 0) {
+			return;
+		}
+		var ix = dx | 0;
+		var iy = dy | 0;
+		var _g = 0;
+		var _g1 = this.layers;
+		while(_g < _g1.length) {
+			var l = _g1[_g];
+			++_g;
+			if(!l.enabled()) {
+				continue;
+			}
+			var sx = this.selection.x;
+			var sy = this.selection.y;
+			var sw = this.selection.w;
+			var sh = this.selection.h;
+			l.dirty = true;
+			var _g2 = l.data;
+			switch(_g2[1]) {
+			case 0:
+				var data = _g2[2];
+				var sx1 = this.selection.x | 0;
+				var sy1 = this.selection.y | 0;
+				var sw1 = Math.ceil(this.selection.x + this.selection.w) - sx1;
+				var sh1 = Math.ceil(this.selection.y + this.selection.h) - sy1;
+				var ndata = [];
+				var _g3 = 0;
+				var _g21 = this.height;
+				while(_g3 < _g21) {
+					var y = _g3++;
+					var _g5 = 0;
+					var _g4 = this.width;
+					while(_g5 < _g4) {
+						var x = _g5++;
+						var k;
+						if(x >= sx1 && x < sx1 + sw1 && y >= sy1 && y < sy1 + sh1) {
+							var tx = x - ix;
+							var ty = y - iy;
+							if(tx >= 0 && tx < this.width && ty >= 0 && ty < this.height) {
+								k = data[tx + ty * this.width];
+							} else {
+								k = 0;
+							}
+							if(k == 0 && !(x >= sx1 - ix && x < sx1 + sw1 - ix && y >= sy1 - iy && y < sy1 + sh1 - iy)) {
+								k = data[x + y * this.width];
+							}
+						} else if(x >= sx1 - ix && x < sx1 + sw1 - ix && y >= sy1 - iy && y < sy1 + sh1 - iy) {
+							k = 0;
+						} else {
+							k = data[x + y * this.width];
+						}
+						ndata.push(k);
+					}
+				}
+				var _g31 = 0;
+				var _g22 = data.length;
+				while(_g31 < _g22) {
+					var i = _g31++;
+					data[i] = ndata[i];
+				}
+				break;
+			case 1:
+				var objs = _g2[3];
+				sx -= dx;
+				sy -= dy;
+				var _g23 = 0;
+				var _g32 = objs.slice();
+				while(_g23 < _g32.length) {
+					var o = _g32[_g23];
+					++_g23;
+					var ow = l.hasSize?o.width:1;
+					var oh = l.hasSize?o.height:1;
+					if(sx + sw <= o.x || sy + sh <= o.y || sx >= o.x + ow || sy >= o.y + oh) {
+						continue;
+					}
+					o.x += l.hasFloatCoord?dx:ix;
+					o.y += l.hasFloatCoord?dy:iy;
+					if(o.x < 0 || o.y < 0 || o.x >= this.width || o.y >= this.height) {
+						HxOverrides.remove(objs,o);
 					}
 				}
 				break;
@@ -1800,166 +1994,63 @@ Level.prototype = {
 				var sy2 = this.selection.y | 0;
 				var sw2 = Math.ceil(this.selection.x + this.selection.w) - sx2;
 				var sh2 = Math.ceil(this.selection.y + this.selection.h) - sy2;
-				var _g42 = 0;
-				var _g32 = sw2;
-				while(_g42 < _g32) {
-					var dx2 = _g42++;
-					var _g62 = 0;
-					var _g52 = sh2;
-					while(_g62 < _g52) {
-						var dy2 = _g62++;
-						data1[sx2 + dx2 + (sy2 + dy2) * this.width] = 0;
-					}
-				}
-				break;
-			case 3:
-				var insts = _g2[3];
-				var objs = l.getTileObjects();
+				var ndata1 = [];
 				var _g33 = 0;
-				var _g43 = insts.slice();
-				while(_g33 < _g43.length) {
-					var i = _g43[_g33];
-					++_g33;
-					var o = objs.h[i.o];
-					var ow = o == null?1:o.w;
-					var oh = o == null?1:o.h;
-					if(sx + sw <= i.x || sy + sh <= i.y || sx >= i.x + ow || sy >= i.y + oh) continue;
-					HxOverrides.remove(insts,i);
+				var _g24 = this.height;
+				while(_g33 < _g24) {
+					var y1 = _g33++;
+					var _g51 = 0;
+					var _g41 = this.width;
+					while(_g51 < _g41) {
+						var x1 = _g51++;
+						var k1;
+						if(x1 >= sx2 && x1 < sx2 + sw2 && y1 >= sy2 && y1 < sy2 + sh2) {
+							var tx1 = x1 - ix;
+							var ty1 = y1 - iy;
+							if(tx1 >= 0 && tx1 < this.width && ty1 >= 0 && ty1 < this.height) {
+								k1 = data1[tx1 + ty1 * this.width];
+							} else {
+								k1 = 0;
+							}
+							if(k1 == 0 && !(x1 >= sx2 - ix && x1 < sx2 + sw2 - ix && y1 >= sy2 - iy && y1 < sy2 + sh2 - iy)) {
+								k1 = data1[x1 + y1 * this.width];
+							}
+						} else if(x1 >= sx2 - ix && x1 < sx2 + sw2 - ix && y1 >= sy2 - iy && y1 < sy2 + sh2 - iy) {
+							k1 = 0;
+						} else {
+							k1 = data1[x1 + y1 * this.width];
+						}
+						ndata1.push(k1);
+					}
 				}
-				break;
-			case 1:
-				var objs3 = _g2[3];
 				var _g34 = 0;
-				var _g44 = objs3.slice();
-				while(_g34 < _g44.length) {
-					var o4 = _g44[_g34];
-					++_g34;
-					var ow4 = l.hasSize?o4.width:1;
-					var oh4 = l.hasSize?o4.height:1;
-					if(sx + sw <= o4.x || sy + sh <= o4.y || sx >= o4.x + ow4 || sy >= o4.y + oh4) continue;
-					HxOverrides.remove(objs3,o4);
-				}
-				break;
-			}
-		}
-	}
-	,moveSelection: function() {
-		var dx = this.selection.x - this.selection.sx;
-		var dy = this.selection.y - this.selection.sy;
-		if(dx == 0 && dy == 0) return;
-		var ix = dx | 0;
-		var iy = dy | 0;
-		var _g = 0;
-		var _g1 = this.layers;
-		while(_g < _g1.length) {
-			var l = _g1[_g];
-			++_g;
-			if(!l.enabled()) continue;
-			var sx = this.selection.x;
-			var sy = this.selection.y;
-			var sw = this.selection.w;
-			var sh = this.selection.h;
-			l.dirty = true;
-			var _g2 = l.data;
-			switch(_g2[1]) {
-			case 2:
-				var data = _g2[3];
-				var sx1 = this.selection.x | 0;
-				var sy1 = this.selection.y | 0;
-				var sw1 = Math.ceil(this.selection.x + this.selection.w) - sx1;
-				var sh1 = Math.ceil(this.selection.y + this.selection.h) - sy1;
-				var ndata = [];
-				var _g4 = 0;
-				var _g3 = this.height;
-				while(_g4 < _g3) {
-					var y = _g4++;
-					var _g6 = 0;
-					var _g5 = this.width;
-					while(_g6 < _g5) {
-						var x = _g6++;
-						var k;
-						if(x >= sx1 && x < sx1 + sw1 && y >= sy1 && y < sy1 + sh1) {
-							var tx = x - ix;
-							var ty = y - iy;
-							if(tx >= 0 && tx < this.width && ty >= 0 && ty < this.height) k = data[tx + ty * this.width]; else k = 0;
-							if(k == 0 && !(x >= sx1 - ix && x < sx1 + sw1 - ix && y >= sy1 - iy && y < sy1 + sh1 - iy)) k = data[x + y * this.width];
-						} else if(x >= sx1 - ix && x < sx1 + sw1 - ix && y >= sy1 - iy && y < sy1 + sh1 - iy) k = 0; else k = data[x + y * this.width];
-						ndata.push(k);
-					}
-				}
-				var _g41 = 0;
-				var _g31 = data.length;
-				while(_g41 < _g31) {
-					var i = _g41++;
-					data[i] = ndata[i];
-				}
-				break;
-			case 0:
-				var data1 = _g2[2];
-				var sx2 = this.selection.x | 0;
-				var sy2 = this.selection.y | 0;
-				var sw2 = Math.ceil(this.selection.x + this.selection.w) - sx2;
-				var sh2 = Math.ceil(this.selection.y + this.selection.h) - sy2;
-				var ndata2 = [];
-				var _g42 = 0;
-				var _g32 = this.height;
-				while(_g42 < _g32) {
-					var y2 = _g42++;
-					var _g62 = 0;
-					var _g52 = this.width;
-					while(_g62 < _g52) {
-						var x2 = _g62++;
-						var k2;
-						if(x2 >= sx2 && x2 < sx2 + sw2 && y2 >= sy2 && y2 < sy2 + sh2) {
-							var tx2 = x2 - ix;
-							var ty2 = y2 - iy;
-							if(tx2 >= 0 && tx2 < this.width && ty2 >= 0 && ty2 < this.height) k2 = data1[tx2 + ty2 * this.width]; else k2 = 0;
-							if(k2 == 0 && !(x2 >= sx2 - ix && x2 < sx2 + sw2 - ix && y2 >= sy2 - iy && y2 < sy2 + sh2 - iy)) k2 = data1[x2 + y2 * this.width];
-						} else if(x2 >= sx2 - ix && x2 < sx2 + sw2 - ix && y2 >= sy2 - iy && y2 < sy2 + sh2 - iy) k2 = 0; else k2 = data1[x2 + y2 * this.width];
-						ndata2.push(k2);
-					}
-				}
-				var _g43 = 0;
-				var _g33 = data1.length;
-				while(_g43 < _g33) {
-					var i3 = _g43++;
-					data1[i3] = ndata2[i3];
+				var _g25 = data1.length;
+				while(_g34 < _g25) {
+					var i1 = _g34++;
+					data1[i1] = ndata1[i1];
 				}
 				break;
 			case 3:
 				var insts = _g2[3];
 				sx -= dx;
 				sy -= dy;
-				var objs = l.getTileObjects();
-				var _g34 = 0;
-				var _g44 = insts.slice();
-				while(_g34 < _g44.length) {
-					var i4 = _g44[_g34];
-					++_g34;
-					var o = objs.h[i4.o];
-					var ow = o == null?1:o.w;
-					var oh = o == null?1:o.h;
-					if(sx + sw <= i4.x || sy + sh <= i4.y || sx >= i4.x + ow || sy >= i4.y + oh) continue;
-					i4.x += l.hasFloatCoord?dx:ix;
-					i4.y += l.hasFloatCoord?dy:iy;
-					if(i4.x < 0 || i4.y < 0 || i4.x >= this.width || i4.y >= this.height) HxOverrides.remove(insts,i4);
-				}
-				break;
-			case 1:
-				var objs4 = _g2[3];
-				sx -= dx;
-				sy -= dy;
-				var _g35 = 0;
-				var _g45 = objs4.slice();
-				while(_g35 < _g45.length) {
-					var o5 = _g45[_g35];
-					++_g35;
-					var ow5 = l.hasSize?o5.width:1;
-					var oh5 = l.hasSize?o5.height:1;
-					if(sx + sw <= o5.x || sy + sh <= o5.y || sx >= o5.x + ow5 || sy >= o5.y + oh5) continue;
-					o5.x += l.hasFloatCoord?dx:ix;
-					o5.y += l.hasFloatCoord?dy:iy;
-					if(o5.x < 0 || o5.y < 0 || o5.x >= this.width || o5.y >= this.height) HxOverrides.remove(objs4,o5);
+				var objs1 = l.getTileObjects();
+				var _g26 = 0;
+				var _g35 = insts.slice();
+				while(_g26 < _g35.length) {
+					var i2 = _g35[_g26];
+					++_g26;
+					var o1 = objs1.h[i2.o];
+					var ow1 = o1 == null?1:o1.w;
+					var oh1 = o1 == null?1:o1.h;
+					if(sx + sw <= i2.x || sy + sh <= i2.y || sx >= i2.x + ow1 || sy >= i2.y + oh1) {
+						continue;
+					}
+					i2.x += l.hasFloatCoord?dx:ix;
+					i2.y += l.hasFloatCoord?dy:iy;
+					if(i2.x < 0 || i2.y < 0 || i2.x >= this.width || i2.y >= this.height) {
+						HxOverrides.remove(insts,i2);
+					}
 				}
 				break;
 			}
@@ -1968,7 +2059,9 @@ Level.prototype = {
 		this.draw();
 	}
 	,updateCursorPos: function() {
-		if(this.currentLayer == null) return;
+		if(this.currentLayer == null) {
+			return;
+		}
 		var off = $(this.view.getCanvas()).parent().offset();
 		var cxf = ((this.mousePos.x - off.left) / this.zoomView | 0) / this.tileSize;
 		var cyf = ((this.mousePos.y - off.top) / this.zoomView | 0) / this.tileSize;
@@ -1980,14 +2073,26 @@ Level.prototype = {
 			var border = 0;
 			var ccx = fc?cxf:cx;
 			var ccy = fc?cyf:cy;
-			if(ccx < 0) ccx = 0;
-			if(ccy < 0) ccy = 0;
+			if(ccx < 0) {
+				ccx = 0;
+			}
+			if(ccy < 0) {
+				ccy = 0;
+			}
 			if(fc) {
-				if(ccx > this.width) ccx = this.width;
-				if(ccy > this.height) ccy = this.height;
+				if(ccx > this.width) {
+					ccx = this.width;
+				}
+				if(ccy > this.height) {
+					ccy = this.height;
+				}
 			} else {
-				if(ccx >= this.width) ccx = this.width - 1;
-				if(ccy >= this.height) ccy = this.height - 1;
+				if(ccx >= this.width) {
+					ccx = this.width - 1;
+				}
+				if(ccy >= this.height) {
+					ccy = this.height - 1;
+				}
 			}
 			if(this.currentLayer.hasSize && this.mouseDown != null) {
 				var px = fc?this.startPos.xf:this.startPos.x;
@@ -2007,21 +2112,35 @@ Level.prototype = {
 					++ph;
 				}
 				if(pw < 0.5) {
-					if(fc) pw = 0.5; else pw = 1;
+					if(fc) {
+						pw = 0.5;
+					} else {
+						pw = 1;
+					}
 				}
 				if(ph < 0.5) {
-					if(fc) ph = 0.5; else ph = 1;
+					if(fc) {
+						ph = 0.5;
+					} else {
+						ph = 1;
+					}
 				}
 				ccx = px;
 				ccy = py;
 				this.cursorImage.setSize(pw * this.tileSize * this.zoomView | 0,ph * this.tileSize * this.zoomView | 0);
 			}
-			if(this.currentLayer.images == null) border = 1;
+			if(this.currentLayer.images == null) {
+				border = 1;
+			}
 			this.cursor.css({ marginLeft : (ccx * this.tileSize * this.zoomView - border | 0) + "px", marginTop : (ccy * this.tileSize * this.zoomView - border | 0) + "px"});
 			this.curPos = { x : cx, y : cy, xf : cxf, yf : cyf};
 			this.content.find(".cursorPosition").text(cx + "," + cy);
-			if(this.mouseDown != null) this.set((cx / this.mouseDown.w | 0) * this.mouseDown.w + this.mouseDown.rx,(cy / this.mouseDown.h | 0) * this.mouseDown.h + this.mouseDown.ry,false);
-			if(this.deleteMode != null) this.doDelete();
+			if(this.mouseDown != null) {
+				this.set((cx / this.mouseDown.w | 0) * this.mouseDown.w + this.mouseDown.rx,(cy / this.mouseDown.h | 0) * this.mouseDown.h + this.mouseDown.ry,false);
+			}
+			if(this.deleteMode != null) {
+				this.doDelete();
+			}
 		} else {
 			this.cursor.hide();
 			this.curPos = null;
@@ -2031,14 +2150,26 @@ Level.prototype = {
 			var fc1 = this.currentLayer.floatCoord;
 			var ccx1 = fc1?cxf:cx;
 			var ccy1 = fc1?cyf:cy;
-			if(ccx1 < 0) ccx1 = 0;
-			if(ccy1 < 0) ccy1 = 0;
+			if(ccx1 < 0) {
+				ccx1 = 0;
+			}
+			if(ccy1 < 0) {
+				ccy1 = 0;
+			}
 			if(fc1) {
-				if(ccx1 > this.width) ccx1 = this.width;
-				if(ccy1 > this.height) ccy1 = this.height;
+				if(ccx1 > this.width) {
+					ccx1 = this.width;
+				}
+				if(ccy1 > this.height) {
+					ccy1 = this.height;
+				}
 			} else {
-				if(ccx1 >= this.width) ccx1 = this.width - 1;
-				if(ccy1 >= this.height) ccy1 = this.height - 1;
+				if(ccx1 >= this.width) {
+					ccx1 = this.width - 1;
+				}
+				if(ccy1 >= this.height) {
+					ccy1 = this.height - 1;
+				}
 			}
 			if(!this.selection.down) {
 				if(this.startPos != null) {
@@ -2067,36 +2198,41 @@ Level.prototype = {
 		}
 	}
 	,hasProps: function(l,required) {
-		if(required == null) required = false;
+		if(required == null) {
+			required = false;
+		}
 		var idCol;
 		var _g = l.data;
-		switch(_g[1]) {
-		case 1:
-			var idCol1 = _g[2];
-			idCol = idCol1;
-			break;
-		default:
+		if(_g[1] == 1) {
+			idCol = _g[2];
+		} else {
 			idCol = null;
 		}
 		var _g1 = 0;
-		var _g11 = l.baseSheet.columns;
-		while(_g1 < _g11.length) {
-			var c = _g11[_g1];
+		var _g2 = l.baseSheet.columns;
+		while(_g1 < _g2.length) {
+			var c = _g2[_g1];
 			++_g1;
-			if(c.name != "x" && c.name != "y" && c.name != idCol && (!required || !c.opt && this.model.getDefault(c) == null)) return true;
+			if(c.name != "x" && c.name != "y" && c.name != idCol && (!required || !c.opt && this.model.getDefault(c) == null)) {
+				return true;
+			}
 		}
 		return false;
 	}
 	,editProps: function(l,index) {
-		var _g = this;
-		if(!this.hasProps(l)) return;
+		var _gthis = this;
+		if(!this.hasProps(l)) {
+			return;
+		}
 		var o = Reflect.field(this.obj,l.name)[index];
 		var scroll = this.content.find(".scrollContent");
 		var popup = $("<div>").addClass("popup").prependTo(scroll);
 		$(window).bind("mousedown",function(_) {
 			popup.remove();
 			$(window).unbind("mousedown");
-			if(_g.view != null) _g.draw();
+			if(_gthis.view != null) {
+				_gthis.draw();
+			}
 		});
 		popup.mousedown(function(e) {
 			e.stopPropagation();
@@ -2108,25 +2244,23 @@ Level.prototype = {
 			e2.stopPropagation();
 		});
 		var table = $("<table>").appendTo(popup);
-		var main;
 		var value = this.model;
-		if((value instanceof Main)) main = value; else main = null;
-		var _g2 = 0;
+		var main = (value instanceof Main)?value:null;
+		var _g = 0;
 		var _g1 = l.baseSheet.columns;
-		while(_g2 < _g1.length) {
-			var c = [_g1[_g2]];
-			++_g2;
+		while(_g < _g1.length) {
+			var c = [_g1[_g]];
+			++_g;
 			var tr = $("<tr>").appendTo(table);
 			var th = $("<th>").text(c[0].name).appendTo(tr);
 			var td = [$("<td>").html(main.valueHtml(c[0],Reflect.field(o,c[0].name),l.baseSheet,o)).appendTo(tr)];
-			td[0].click((function(td2,c2) {
+			td[0].click((function(td1,c1) {
 				return function(e3) {
-					var psheet = { columns : l.baseSheet.columns, props : l.baseSheet.props, name : l.baseSheet.name, path : SheetData.getPath(l.baseSheet) + ":" + index, parent : { sheet : _g.sheet, column : Lambda.indexOf(_g.sheet.columns,Lambda.find(_g.sheet.columns,(function() {
-						return function(c3) {
-							return c3.name == l.name;
+					main.editCell(c1[0],td1[0],{ columns : l.baseSheet.columns, props : l.baseSheet.props, name : l.baseSheet.name, path : SheetData.getPath(l.baseSheet) + ":" + index, parent : { sheet : _gthis.sheet, column : Lambda.indexOf(_gthis.sheet.columns,Lambda.find(_gthis.sheet.columns,(function() {
+						return function(c2) {
+							return c2.name == l.name;
 						};
-					})())), line : index}, lines : Reflect.field(_g.obj,l.name), separators : []};
-					main.editCell(c2[0],td2[0],psheet,index);
+					})())), line : index}, lines : Reflect.field(_gthis.obj,l.name), separators : []},index);
 					e3.preventDefault();
 					e3.stopPropagation();
 				};
@@ -2136,13 +2270,25 @@ Level.prototype = {
 		var y = (o.y + 1) * this.tileSize * this.zoomView;
 		var cw = this.width * this.tileSize * this.zoomView;
 		var ch = this.height * this.tileSize * this.zoomView;
-		if(x > cw - popup.width() - 30) x = cw - popup.width() - 30;
-		if(y > ch - popup.height() - 30) y = ch - popup.height() - 30;
+		if(x > cw - popup.width() - 30) {
+			x = cw - popup.width() - 30;
+		}
+		if(y > ch - popup.height() - 30) {
+			y = ch - popup.height() - 30;
+		}
 		var scroll1 = this.content.find(".scroll");
-		if(x < scroll1.scrollLeft() + 20) x = scroll1.scrollLeft() + 20;
-		if(y < scroll1.scrollTop() + 20) y = scroll1.scrollTop() + 20;
-		if(x + popup.width() > scroll1.scrollLeft() + scroll1.width() - 20) x = scroll1.scrollLeft() + scroll1.width() - 20 - popup.width();
-		if(y + popup.height() > scroll1.scrollTop() + scroll1.height() - 20) y = scroll1.scrollTop() + scroll1.height() - 20 - popup.height();
+		if(x < scroll1.scrollLeft() + 20) {
+			x = scroll1.scrollLeft() + 20;
+		}
+		if(y < scroll1.scrollTop() + 20) {
+			y = scroll1.scrollTop() + 20;
+		}
+		if(x + popup.width() > scroll1.scrollLeft() + scroll1.width() - 20) {
+			x = scroll1.scrollLeft() + scroll1.width() - 20 - popup.width();
+		}
+		if(y + popup.height() > scroll1.scrollTop() + scroll1.height() - 20) {
+			y = scroll1.scrollTop() + scroll1.height() - 20 - popup.height();
+		}
 		popup.css({ marginLeft : (x | 0) + "px", marginTop : (y | 0) + "px"});
 	}
 	,updateZoom: function(f) {
@@ -2155,7 +2301,11 @@ Level.prototype = {
 			var height = sc.height();
 			var cx = (sc.scrollLeft() + width * 0.5) / this.zoomView;
 			var cy = (sc.scrollTop() + height * 0.5) / this.zoomView;
-			if(f) this.zoomView *= 1.2; else this.zoomView /= 1.2;
+			if(f) {
+				this.zoomView *= 1.2;
+			} else {
+				this.zoomView /= 1.2;
+			}
 			tx = Math.round(cx * this.zoomView - width * 0.5);
 			ty = Math.round(cy * this.zoomView - height * 0.5);
 		}
@@ -2172,18 +2322,24 @@ Level.prototype = {
 	}
 	,paint: function(x,y) {
 		var l = this.currentLayer;
-		if(!l.enabled()) return;
+		if(!l.enabled()) {
+			return;
+		}
 		var _g = l.data;
 		switch(_g[1]) {
 		case 0:
 			var data = _g[2];
 			var k = data[x + y * this.width];
-			if(k == l.current || l.blanks[l.current]) return;
+			if(k == l.current || l.blanks[l.current]) {
+				return;
+			}
 			var todo = [x,y];
 			while(todo.length > 0) {
 				var y1 = todo.pop();
 				var x1 = todo.pop();
-				if(data[x1 + y1 * this.width] != k) continue;
+				if(data[x1 + y1 * this.width] != k) {
+					continue;
+				}
 				data[x1 + y1 * this.width] = l.current;
 				l.dirty = true;
 				if(x1 > 0) {
@@ -2209,21 +2365,29 @@ Level.prototype = {
 		case 2:
 			var data1 = _g[3];
 			var k1 = data1[x + y * this.width];
-			if(k1 == l.current + 1 || l.blanks[l.current]) return;
-			var px = x;
-			var py = y;
+			if(k1 == l.current + 1 || l.blanks[l.current]) {
+				return;
+			}
 			var zero = [];
 			var todo1 = [x,y];
 			while(todo1.length > 0) {
 				var y2 = todo1.pop();
 				var x2 = todo1.pop();
-				if(data1[x2 + y2 * this.width] != k1) continue;
-				var dx = (x2 - px) % l.currentWidth;
-				if(dx < 0) dx += l.currentWidth;
-				var dy = (y2 - py) % l.currentHeight;
-				if(dy < 0) dy += l.currentHeight;
+				if(data1[x2 + y2 * this.width] != k1) {
+					continue;
+				}
+				var dx = (x2 - x) % l.currentWidth;
+				if(dx < 0) {
+					dx += l.currentWidth;
+				}
+				var dy = (y2 - y) % l.currentHeight;
+				if(dy < 0) {
+					dy += l.currentHeight;
+				}
 				var t = l.current + (this.palette.randomMode?Std.random(l.currentWidth) + Std.random(l.currentHeight) * l.stride:dx + dy * l.stride);
-				if(l.blanks[t]) zero.push(x2 + y2 * this.width);
+				if(l.blanks[t]) {
+					zero.push(x2 + y2 * this.width);
+				}
 				data1[x2 + y2 * this.width] = t + 1;
 				l.dirty = true;
 				if(x2 > 0) {
@@ -2256,49 +2420,41 @@ Level.prototype = {
 		}
 	}
 	,onKey: function(e) {
-		var _g1 = this;
-		var l = this.currentLayer;
+		var _gthis = this;
 		if(e.ctrlKey) {
-			var _g = e.keyCode;
-			switch(_g) {
-			case 115:
-				this.action("close");
-				break;
+			switch(e.keyCode) {
 			case 46:
 				var p = this.pick();
-				if(p != null) this.deleteAll(p.layer,p.k,p.index);
+				if(p != null) {
+					this.deleteAll(p.layer,p.k,p.index);
+				}
+				break;
+			case 115:
+				this.action("close");
 				break;
 			}
 			return;
 		}
-		if($("input[type=text]:focus").length > 0 || this.currentLayer == null) return;
+		if($("input[type=text]:focus").length > 0 || this.currentLayer == null) {
+			return;
+		}
 		$(".popup").remove();
-		var l1 = this.currentLayer;
-		var _g2 = e.keyCode;
-		switch(_g2) {
-		case 107:
-			this.updateZoom(true);
-			break;
-		case 109:
-			this.updateZoom(false);
-			break;
-		case 111:
-			this.zoomView = 1;
-			this.updateZoom();
+		var l = this.currentLayer;
+		switch(e.keyCode) {
+		case 9:
+			this.setLayer(this.layers[(HxOverrides.indexOf(this.layers,l,0) + (e.shiftKey?this.layers.length - 1:1)) % this.layers.length]);
+			e.preventDefault();
+			e.stopPropagation();
 			break;
 		case 27:
 			this.clearSelection();
 			this.draw();
 			break;
-		case 9:
-			var i = (HxOverrides.indexOf(this.layers,l1,0) + (e.shiftKey?this.layers.length - 1:1)) % this.layers.length;
-			this.setLayer(this.layers[i]);
-			e.preventDefault();
-			e.stopPropagation();
-			break;
 		case 32:
 			e.preventDefault();
-			if(this.spaceDown) return;
+			if(this.spaceDown) {
+				return;
+			}
 			this.spaceDown = true;
 			var canvas = $(this.view.getCanvas());
 			canvas.css({ cursor : "move"});
@@ -2306,9 +2462,9 @@ Level.prototype = {
 			var s = canvas.closest(".scroll");
 			var curX = null;
 			var curY = null;
-			canvas.on("mousemove",null,function(e2) {
-				var tx = e2.pageX;
-				var ty = e2.pageY;
+			canvas.on("mousemove",null,function(e1) {
+				var tx = e1.pageX;
+				var ty = e1.pageY;
 				if(curX == null) {
 					curX = tx;
 					curY = ty;
@@ -2319,173 +2475,63 @@ Level.prototype = {
 				s.scrollTop(s.scrollTop() - dy);
 				curX += dx;
 				curY += dy;
-				_g1.mousePos.x = e2.pageX;
-				_g1.mousePos.y = e2.pageY;
-				e2.stopPropagation();
+				_gthis.mousePos.x = e1.pageX;
+				_gthis.mousePos.y = e1.pageY;
+				e1.stopPropagation();
 			});
-			break;
-		case 86:
-			this.action("visible",!l1.visible);
-			this.content.find("[name=visible]").prop("checked",l1.visible);
-			break;
-		case 76:
-			this.action("lock",!l1.lock);
-			this.content.find("[name=lock]").prop("checked",l1.lock);
-			break;
-		case 71:
-			if(l1.hasFloatCoord) {
-				this.action("lockGrid",l1.floatCoord);
-				this.content.find("[name=lockGrid]").prop("checked",!l1.floatCoord);
-			}
-			break;
-		case 70:
-			if(this.currentLayer.hasRotFlip) {
-				this.flipMode = !this.flipMode;
-				this.savePrefs();
-			}
-			this.setCursor();
-			break;
-		case 73:
-			this.paletteOption("small");
-			break;
-		case 68:
-			if(this.currentLayer.hasRotFlip) {
-				this.rotation++;
-				this.rotation %= 4;
-				this.savePrefs();
-			}
-			this.setCursor();
-			break;
-		case 79:
-			if(this.palette != null && l1.tileProps != null) {
-				var mode = "object";
-				var found = false;
-				var _g12 = 0;
-				var _g22 = l1.tileProps.sets;
-				while(_g12 < _g22.length) {
-					var t = _g22[_g12];
-					++_g12;
-					if(t.x + t.y * l1.stride == l1.current && t.t == mode) {
-						found = true;
-						HxOverrides.remove(l1.tileProps.sets,t);
-						break;
-					}
-				}
-				if(!found) {
-					l1.tileProps.sets.push({ x : l1.current % l1.stride, y : l1.current / l1.stride | 0, w : l1.currentWidth, h : l1.currentHeight, t : mode, opts : { }});
-					var _g13 = 0;
-					var _g23 = this.layers;
-					while(_g13 < _g23.length) {
-						var l2 = _g23[_g13];
-						++_g13;
-						if(l2.tileProps == l1.tileProps) {
-							var _g3 = l2.data;
-							switch(_g3[1]) {
-							case 3:
-								var insts = _g3[3];
-								var found3 = [];
-								var _g4 = 0;
-								while(_g4 < insts.length) {
-									var i3 = insts[_g4];
-									++_g4;
-									if(i3.o == l1.current) found3.push({ x : i3.x, y : i3.y, i : []}); else {
-										var d = i3.o - l1.current;
-										var dx3 = d % l1.stride;
-										var dy3 = d / l1.stride | 0;
-										var _g5 = 0;
-										while(_g5 < found3.length) {
-											var f = found3[_g5];
-											++_g5;
-											if(f.x == i3.x - dx3 && f.y == i3.y - dy3) f.i.push(i3);
-										}
-									}
-								}
-								var count = l1.currentWidth * l1.currentHeight - 1;
-								var _g43 = 0;
-								while(_g43 < found3.length) {
-									var f3 = found3[_g43];
-									++_g43;
-									if(f3.i.length == count) {
-										var _g53 = 0;
-										var _g6 = f3.i;
-										while(_g53 < _g6.length) {
-											var i4 = _g6[_g53];
-											++_g53;
-											l2.dirty = true;
-											HxOverrides.remove(insts,i4);
-										}
-									}
-								}
-								break;
-							default:
-							}
-						}
-					}
-				}
-				this.setCursor();
-				this.save();
-				this.draw();
-			}
-			break;
-		case 82:
-			this.paletteOption("random");
 			break;
 		case 37:
 			e.preventDefault();
-			var w = l1.currentWidth;
-			var h = l1.currentHeight;
-			if(l1.current % l1.stride > w - 1) {
-				var _g14 = l1;
-				_g14.set_current(_g14.current - w);
+			var w = l.currentWidth;
+			var h = l.currentHeight;
+			if(l.current % l.stride > w - 1) {
+				l.set_current(l.current - w);
 				if(w != 1 || h != 1) {
-					l1.currentWidth = w;
-					l1.currentHeight = h;
-					l1.saveState();
-				}
-				this.setCursor();
-			}
-			break;
-		case 39:
-			e.preventDefault();
-			var w4 = l1.currentWidth;
-			var h4 = l1.currentHeight;
-			if(l1.current % l1.stride < l1.stride - w4 && l1.images != null && l1.current + w4 < l1.images.length) {
-				var _g15 = l1;
-				_g15.set_current(_g15.current + w4);
-				if(w4 != 1 || h4 != 1) {
-					l1.currentWidth = w4;
-					l1.currentHeight = h4;
-					l1.saveState();
-				}
-				this.setCursor();
-			}
-			break;
-		case 40:
-			e.preventDefault();
-			var w5 = l1.currentWidth;
-			var h5 = l1.currentHeight;
-			if(l1.images != null && l1.current + l1.stride * h5 < l1.images.length) {
-				var _g16 = l1;
-				_g16.set_current(_g16.current + l1.stride * h5);
-				if(w5 != 1 || h5 != 1) {
-					l1.currentWidth = w5;
-					l1.currentHeight = h5;
-					l1.saveState();
+					l.currentWidth = w;
+					l.currentHeight = h;
+					l.saveState();
 				}
 				this.setCursor();
 			}
 			break;
 		case 38:
 			e.preventDefault();
-			var w6 = l1.currentWidth;
-			var h6 = l1.currentHeight;
-			if(l1.current >= l1.stride * h6) {
-				var _g17 = l1;
-				_g17.set_current(_g17.current - l1.stride * h6);
-				if(w6 != 1 || h6 != 1) {
-					l1.currentWidth = w6;
-					l1.currentHeight = h6;
-					l1.saveState();
+			var w1 = l.currentWidth;
+			var h1 = l.currentHeight;
+			if(l.current >= l.stride * h1) {
+				l.set_current(l.current - l.stride * h1);
+				if(w1 != 1 || h1 != 1) {
+					l.currentWidth = w1;
+					l.currentHeight = h1;
+					l.saveState();
+				}
+				this.setCursor();
+			}
+			break;
+		case 39:
+			e.preventDefault();
+			var w2 = l.currentWidth;
+			var h2 = l.currentHeight;
+			if(l.current % l.stride < l.stride - w2 && l.images != null && l.current + w2 < l.images.length) {
+				l.set_current(l.current + w2);
+				if(w2 != 1 || h2 != 1) {
+					l.currentWidth = w2;
+					l.currentHeight = h2;
+					l.saveState();
+				}
+				this.setCursor();
+			}
+			break;
+		case 40:
+			e.preventDefault();
+			var w3 = l.currentWidth;
+			var h3 = l.currentHeight;
+			if(l.images != null && l.current + l.stride * h3 < l.images.length) {
+				l.set_current(l.current + l.stride * h3);
+				if(w3 != 1 || h3 != 1) {
+					l.currentWidth = w3;
+					l.currentHeight = h3;
+					l.saveState();
 				}
 				this.setCursor();
 			}
@@ -2499,50 +2545,164 @@ Level.prototype = {
 				return;
 			}
 			break;
+		case 68:
+			if(this.currentLayer.hasRotFlip) {
+				this.rotation++;
+				this.rotation %= 4;
+				this.savePrefs();
+			}
+			this.setCursor();
+			break;
+		case 70:
+			if(this.currentLayer.hasRotFlip) {
+				this.flipMode = !this.flipMode;
+				this.savePrefs();
+			}
+			this.setCursor();
+			break;
+		case 71:
+			if(l.hasFloatCoord) {
+				this.action("lockGrid",l.floatCoord);
+				this.content.find("[name=lockGrid]").prop("checked",!l.floatCoord);
+			}
+			break;
+		case 73:
+			this.paletteOption("small");
+			break;
+		case 76:
+			this.action("lock",!l.lock);
+			this.content.find("[name=lock]").prop("checked",l.lock);
+			break;
+		case 79:
+			if(this.palette != null && l.tileProps != null) {
+				var mode = "object";
+				var found = false;
+				var _g = 0;
+				var _g1 = l.tileProps.sets;
+				while(_g < _g1.length) {
+					var t = _g1[_g];
+					++_g;
+					if(t.x + t.y * l.stride == l.current && t.t == mode) {
+						found = true;
+						HxOverrides.remove(l.tileProps.sets,t);
+						break;
+					}
+				}
+				if(!found) {
+					l.tileProps.sets.push({ x : l.current % l.stride, y : l.current / l.stride | 0, w : l.currentWidth, h : l.currentHeight, t : mode, opts : { }});
+					var _g2 = 0;
+					var _g11 = this.layers;
+					while(_g2 < _g11.length) {
+						var l2 = _g11[_g2];
+						++_g2;
+						if(l2.tileProps == l.tileProps) {
+							var _g21 = l2.data;
+							if(_g21[1] == 3) {
+								var insts = _g21[3];
+								var found1 = [];
+								var _g22 = 0;
+								while(_g22 < insts.length) {
+									var i = insts[_g22];
+									++_g22;
+									if(i.o == l.current) {
+										found1.push({ x : i.x, y : i.y, i : []});
+									} else {
+										var d = i.o - l.current;
+										var dx1 = d % l.stride;
+										var dy1 = d / l.stride | 0;
+										var _g3 = 0;
+										while(_g3 < found1.length) {
+											var f = found1[_g3];
+											++_g3;
+											if(f.x == i.x - dx1 && f.y == i.y - dy1) {
+												f.i.push(i);
+											}
+										}
+									}
+								}
+								var count = l.currentWidth * l.currentHeight - 1;
+								var _g23 = 0;
+								while(_g23 < found1.length) {
+									var f1 = found1[_g23];
+									++_g23;
+									if(f1.i.length == count) {
+										var _g31 = 0;
+										var _g4 = f1.i;
+										while(_g31 < _g4.length) {
+											var i1 = _g4[_g31];
+											++_g31;
+											l2.dirty = true;
+											HxOverrides.remove(insts,i1);
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+				this.setCursor();
+				this.save();
+				this.draw();
+			}
+			break;
+		case 82:
+			this.paletteOption("random");
+			break;
+		case 86:
+			this.action("visible",!l.visible);
+			this.content.find("[name=visible]").prop("checked",l.visible);
+			break;
+		case 107:
+			this.updateZoom(true);
+			break;
+		case 109:
+			this.updateZoom(false);
+			break;
+		case 111:
+			this.zoomView = 1;
+			this.updateZoom();
+			break;
 		default:
 		}
-		if(this.curPos == null) return;
-		var _g7 = e.keyCode;
-		switch(_g7) {
-		case 80:
-			this.paint(this.curPos.x,this.curPos.y);
-			break;
+		if(this.curPos == null) {
+			return;
+		}
+		switch(e.keyCode) {
 		case 46:
-			if(this.deleteMode != null) return;
+			if(this.deleteMode != null) {
+				return;
+			}
 			this.deleteMode = { l : null};
 			this.doDelete();
 			break;
 		case 69:
-			var p8 = this.pick(function(l7) {
-				var tmp;
-				var _g18 = l7.data;
-				switch(_g18[1]) {
-				case 1:
-					tmp = true;
-					break;
-				default:
-					tmp = false;
+			var p1 = this.pick(function(l1) {
+				if(l1.data[1] == 1) {
+					return _gthis.hasProps(l1);
+				} else {
+					return false;
 				}
-				if(tmp) return _g1.hasProps(l7); else return false;
 			});
-			if(p8 == null) return;
-			var _g19 = p8.layer.data;
-			switch(_g19[1]) {
-			case 1:
-				var objs = _g19[3];
-				$(".popup").remove();
-				this.editProps(p8.layer,p8.index);
-				break;
-			default:
+			if(p1 == null) {
+				return;
 			}
+			if(p1.layer.data[1] == 1) {
+				$(".popup").remove();
+				this.editProps(p1.layer,p1.index);
+			}
+			break;
+		case 80:
+			this.paint(this.curPos.x,this.curPos.y);
 			break;
 		case 83:
 			if(this.selection != null) {
-				if(this.selection.down) return;
+				if(this.selection.down) {
+					return;
+				}
 				this.clearSelection();
 			}
-			var x = l1.floatCoord?this.curPos.xf:this.curPos.x;
-			var y = l1.floatCoord?this.curPos.yf:this.curPos.y;
+			var x = l.floatCoord?this.curPos.xf:this.curPos.x;
+			var y = l.floatCoord?this.curPos.yf:this.curPos.y;
 			this.selection = { sx : x, sy : y, x : x, y : y, w : 1, h : 1, down : true};
 			this.cursor.addClass("select");
 			this.setCursor();
@@ -2561,33 +2721,38 @@ Level.prototype = {
 		switch(_g[1]) {
 		case 0:
 			var data = _g[2];
-			var _g2 = 0;
-			var _g1 = this.width * this.height;
-			while(_g2 < _g1) {
-				var i = _g2++;
-				if(data[i] == k + 1) data[i] = 0;
-			}
-			break;
-		case 2:
-			var data1 = _g[3];
-			var _g21 = 0;
-			var _g11 = this.width * this.height;
-			while(_g21 < _g11) {
-				var i1 = _g21++;
-				if(data1[i1] == k + 1) data1[i1] = 0;
+			var _g1 = 0;
+			var _g2 = this.width * this.height;
+			while(_g1 < _g2) {
+				var i = _g1++;
+				if(data[i] == k + 1) {
+					data[i] = 0;
+				}
 			}
 			break;
 		case 1:
-			var objs = _g[3];
 			return;
+		case 2:
+			var data1 = _g[3];
+			var _g11 = 0;
+			var _g3 = this.width * this.height;
+			while(_g11 < _g3) {
+				var i1 = _g11++;
+				if(data1[i1] == k + 1) {
+					data1[i1] = 0;
+				}
+			}
+			break;
 		case 3:
 			var insts = _g[3];
-			var _g12 = 0;
-			var _g22 = insts.slice();
-			while(_g12 < _g22.length) {
-				var i2 = _g22[_g12];
-				++_g12;
-				if(i2.o == k) HxOverrides.remove(insts,i2);
+			var _g4 = 0;
+			var _g12 = insts.slice();
+			while(_g4 < _g12.length) {
+				var i2 = _g12[_g4];
+				++_g4;
+				if(i2.o == k) {
+					HxOverrides.remove(insts,i2);
+				}
 			}
 			break;
 		}
@@ -2596,17 +2761,21 @@ Level.prototype = {
 		this.draw();
 	}
 	,doDelete: function() {
-		var _g = this;
+		var _gthis = this;
 		var p = this.pick(this.deleteMode.l == null?null:function(l2) {
-			return l2 == _g.deleteMode.l;
+			return l2 == _gthis.deleteMode.l;
 		});
-		if(p == null) return;
+		if(p == null) {
+			return;
+		}
 		this.deleteMode.l = p.layer;
-		var _g1 = p.layer.data;
-		switch(_g1[1]) {
+		var _g = p.layer.data;
+		switch(_g[1]) {
 		case 0:
-			var data = _g1[2];
-			if(data[p.index] == 0) return;
+			var data = _g[2];
+			if(data[p.index] == 0) {
+				return;
+			}
 			data[p.index] = 0;
 			p.layer.dirty = true;
 			this.cursor.css({ opacity : 0}).fadeTo(100,1);
@@ -2614,31 +2783,32 @@ Level.prototype = {
 			this.draw();
 			break;
 		case 1:
-			var objs = _g1[3];
+			var objs = _g[3];
 			if(HxOverrides.remove(objs,objs[p.index])) {
 				this.save();
 				this.draw();
 			}
 			break;
 		case 2:
-			var data1 = _g1[3];
+			var data1 = _g[3];
 			var changed = false;
 			var w = this.currentLayer.currentWidth;
 			var h = this.currentLayer.currentHeight;
 			if(this.palette.randomMode) {
 				h = 1;
-				w = h;
+				w = 1;
 			}
-			var _g2 = 0;
-			var _g11 = h;
-			while(_g2 < _g11) {
-				var dy = _g2++;
-				var _g4 = 0;
-				var _g3 = w;
-				while(_g4 < _g3) {
-					var dx = _g4++;
-					var i = p.index + dx + dy * this.width;
-					if(data1[i] == 0) continue;
+			var _g1 = 0;
+			var _g2 = h;
+			while(_g1 < _g2) {
+				var dy = _g1++;
+				var _g3 = 0;
+				var _g21 = w;
+				while(_g3 < _g21) {
+					var i = p.index + _g3++ + dy * this.width;
+					if(data1[i] == 0) {
+						continue;
+					}
 					data1[i] = 0;
 					changed = true;
 				}
@@ -2651,7 +2821,7 @@ Level.prototype = {
 			}
 			break;
 		case 3:
-			var insts = _g1[3];
+			var insts = _g[3];
 			if(HxOverrides.remove(insts,insts[p.index])) {
 				p.layer.dirty = true;
 				this.save();
@@ -2662,18 +2832,19 @@ Level.prototype = {
 		}
 	}
 	,onKeyUp: function(e) {
-		var _g = e.keyCode;
-		switch(_g) {
-		case 46:
-			this.deleteMode = null;
-			if(this.needSave) this.save();
-			break;
+		switch(e.keyCode) {
 		case 32:
 			this.spaceDown = false;
 			var canvas = $(this.view.getCanvas());
 			canvas.unbind("mousemove");
 			canvas.css({ cursor : ""});
 			this.updateCursorPos();
+			break;
+		case 46:
+			this.deleteMode = null;
+			if(this.needSave) {
+				this.save();
+			}
 			break;
 		case 83:
 			if(this.selection != null) {
@@ -2687,23 +2858,31 @@ Level.prototype = {
 		}
 	}
 	,set: function(x,y,replace) {
-		var _g1 = this;
-		if(this.selection != null) return;
+		var _gthis = this;
+		if(this.selection != null) {
+			return;
+		}
 		if(this.palette.paintMode) {
 			this.paint(x,y);
 			return;
 		}
 		var l = this.currentLayer;
-		if(!l.enabled()) return;
+		if(!l.enabled()) {
+			return;
+		}
 		var _g = l.data;
 		switch(_g[1]) {
 		case 0:
 			var data = _g[2];
-			if(data[x + y * this.width] == l.current || l.blanks[l.current]) return;
+			if(data[x + y * this.width] == l.current || l.blanks[l.current]) {
+				return;
+			}
 			data[x + y * this.width] = l.current;
 			l.dirty = true;
 			this.save();
 			this.draw();
+			break;
+		case 1:
 			break;
 		case 2:
 			var data1 = _g[3];
@@ -2713,26 +2892,32 @@ Level.prototype = {
 				var putObj = putObjs[Std.random(putObjs.length)];
 				if(putObj != null) {
 					var id = putObj.x + putObj.y * l.stride + 1;
-					var _g2 = 0;
-					var _g11 = putObj.w;
-					while(_g2 < _g11) {
-						var dx = _g2++;
-						var _g4 = 0;
-						var _g3 = putObj.h;
-						while(_g4 < _g3) {
-							var dy = _g4++;
+					var _g1 = 0;
+					var _g2 = putObj.w;
+					while(_g1 < _g2) {
+						var dx = _g1++;
+						var _g3 = 0;
+						var _g21 = putObj.h;
+						while(_g3 < _g21) {
+							var dy = _g3++;
 							var k = id + dx + dy * l.stride;
 							var p = x + dx + (y + dy) * this.width;
 							var old = data1[p];
-							if(old == k || l.blanks[k - 1]) continue;
+							if(old == k || l.blanks[k - 1]) {
+								continue;
+							}
 							if(replace && old > 0) {
-								var _g6 = 0;
-								var _g5 = this.width * this.height;
-								while(_g6 < _g5) {
-									var i = _g6++;
-									if(data1[i] == old) data1[i] = k;
+								var _g5 = 0;
+								var _g4 = this.width * this.height;
+								while(_g5 < _g4) {
+									var i = _g5++;
+									if(data1[i] == old) {
+										data1[i] = k;
+									}
 								}
-							} else data1[p] = k;
+							} else {
+								data1[p] = k;
+							}
 							changed = true;
 						}
 					}
@@ -2741,49 +2926,61 @@ Level.prototype = {
 					var p1 = x + y * this.width;
 					var old1 = data1[p1];
 					if(replace && old1 > 0) {
-						var _g21 = 0;
-						var _g12 = this.width * this.height;
-						while(_g21 < _g12) {
-							var i2 = _g21++;
-							if(data1[i2] == old1) {
-								var id2 = l.current + Std.random(l.currentWidth) + Std.random(l.currentHeight) * l.stride + 1;
-								if(old1 == id2 || l.blanks[id2 - 1]) continue;
-								data1[i2] = id2;
+						var _g11 = 0;
+						var _g6 = this.width * this.height;
+						while(_g11 < _g6) {
+							var i1 = _g11++;
+							if(data1[i1] == old1) {
+								var id1 = l.current + Std.random(l.currentWidth) + Std.random(l.currentHeight) * l.stride + 1;
+								if(old1 == id1 || l.blanks[id1 - 1]) {
+									continue;
+								}
+								data1[i1] = id1;
 							}
 						}
 					} else {
-						var id3 = l.current + Std.random(l.currentWidth) + Std.random(l.currentHeight) * l.stride + 1;
-						if(old1 == id3 || l.blanks[id3 - 1]) return;
-						data1[p1] = id3;
+						var id2 = l.current + Std.random(l.currentWidth) + Std.random(l.currentHeight) * l.stride + 1;
+						if(old1 == id2 || l.blanks[id2 - 1]) {
+							return;
+						}
+						data1[p1] = id2;
 					}
 					changed = true;
 				}
 			} else {
-				var _g23 = 0;
-				var _g13 = l.currentHeight;
-				while(_g23 < _g13) {
-					var dy3 = _g23++;
-					var _g43 = 0;
-					var _g33 = l.currentWidth;
-					while(_g43 < _g33) {
-						var dx3 = _g43++;
-						var p3 = x + dx3 + (y + dy3) * this.width;
-						var id4 = l.current + dx3 + dy3 * l.stride + 1;
-						var old4 = data1[p3];
-						if(old4 == id4 || l.blanks[id4 - 1]) continue;
-						if(replace && old4 > 0) {
-							var _g64 = 0;
-							var _g54 = this.width * this.height;
-							while(_g64 < _g54) {
-								var i4 = _g64++;
-								if(data1[i4] == old4) data1[i4] = id4;
+				var _g12 = 0;
+				var _g7 = l.currentHeight;
+				while(_g12 < _g7) {
+					var dy1 = _g12++;
+					var _g31 = 0;
+					var _g22 = l.currentWidth;
+					while(_g31 < _g22) {
+						var dx1 = _g31++;
+						var p2 = x + dx1 + (y + dy1) * this.width;
+						var id3 = l.current + dx1 + dy1 * l.stride + 1;
+						var old2 = data1[p2];
+						if(old2 == id3 || l.blanks[id3 - 1]) {
+							continue;
+						}
+						if(replace && old2 > 0) {
+							var _g51 = 0;
+							var _g41 = this.width * this.height;
+							while(_g51 < _g41) {
+								var i2 = _g51++;
+								if(data1[i2] == old2) {
+									data1[i2] = id3;
+								}
 							}
-						} else data1[p3] = id4;
+						} else {
+							data1[p2] = id3;
+						}
 						changed = true;
 					}
 				}
 			}
-			if(!changed) return;
+			if(!changed) {
+				return;
+			}
 			l.dirty = true;
 			this.save();
 			this.draw();
@@ -2791,58 +2988,62 @@ Level.prototype = {
 		case 3:
 			var insts = _g[3];
 			var objs = l.getTileObjects();
-			var putObjs4 = l.getSelObjects();
-			var putObj4 = putObjs4[Std.random(putObjs4.length)];
-			var dx4 = putObj4 == null?0.5:putObj4.w * 0.5;
-			var dy4 = putObj4 == null?0.5:putObj4.h - 0.5;
-			var x4 = l.floatCoord?this.curPos.xf:this.curPos.x;
-			var y4 = l.floatCoord?this.curPos.yf:this.curPos.y;
-			if(putObj4 != null) {
-				x4 += (putObjs4[0].w - putObj4.w) * 0.5;
-				y4 += putObjs4[0].h - putObj4.h;
+			var putObjs1 = l.getSelObjects();
+			var putObj1 = putObjs1[Std.random(putObjs1.length)];
+			var dx2 = putObj1 == null?0.5:putObj1.w * 0.5;
+			var dy2 = putObj1 == null?0.5:putObj1.h - 0.5;
+			var x1 = l.floatCoord?this.curPos.xf:this.curPos.x;
+			var y1 = l.floatCoord?this.curPos.yf:this.curPos.y;
+			if(putObj1 != null) {
+				x1 += (putObjs1[0].w - putObj1.w) * 0.5;
+				y1 += putObjs1[0].h - putObj1.h;
 			}
-			var _g14 = 0;
-			while(_g14 < insts.length) {
-				var i5 = insts[_g14];
-				++_g14;
-				var o = objs.h[i5.o];
-				var ox = i5.x + (o == null?0.5:o.w * 0.5);
-				var oy = i5.y + (o == null?0.5:o.h - 0.5);
-				if(x4 + dx4 >= ox - 0.5 && y4 + dy4 >= oy - 0.5 && x4 + dx4 < ox + 0.5 && y4 + dy4 < oy + 0.5) {
-					if(i5.o == l.current && i5.x == x4 && i5.y == y4 && i5.flip == this.flipMode && i5.rot == this.rotation) return;
-					HxOverrides.remove(insts,i5);
+			var _g8 = 0;
+			while(_g8 < insts.length) {
+				var i3 = insts[_g8];
+				++_g8;
+				var o = objs.h[i3.o];
+				var ox = i3.x + (o == null?0.5:o.w * 0.5);
+				var oy = i3.y + (o == null?0.5:o.h - 0.5);
+				if(x1 + dx2 >= ox - 0.5 && y1 + dy2 >= oy - 0.5 && x1 + dx2 < ox + 0.5 && y1 + dy2 < oy + 0.5) {
+					if(i3.o == l.current && i3.x == x1 && i3.y == y1 && i3.flip == this.flipMode && i3.rot == this.rotation) {
+						return;
+					}
+					HxOverrides.remove(insts,i3);
 				}
 			}
-			if(putObj4 != null) insts.push({ x : x4, y : y4, o : putObj4.x + putObj4.y * l.stride, rot : this.rotation, flip : this.flipMode}); else {
-				var _g25 = 0;
-				var _g15 = l.currentHeight;
-				while(_g25 < _g15) {
-					var dy5 = _g25++;
-					var _g45 = 0;
-					var _g35 = l.currentWidth;
-					while(_g45 < _g35) {
-						var dx5 = _g45++;
-						insts.push({ x : x4 + dx5, y : y4 + dy5, o : l.current + dx5 + dy5 * l.stride, rot : this.rotation, flip : this.flipMode});
+			if(putObj1 != null) {
+				insts.push({ x : x1, y : y1, o : putObj1.x + putObj1.y * l.stride, rot : this.rotation, flip : this.flipMode});
+			} else {
+				var _g13 = 0;
+				var _g9 = l.currentHeight;
+				while(_g13 < _g9) {
+					var dy3 = _g13++;
+					var _g32 = 0;
+					var _g23 = l.currentWidth;
+					while(_g32 < _g23) {
+						var dx3 = _g32++;
+						insts.push({ x : x1 + dx3, y : y1 + dy3, o : l.current + dx3 + dy3 * l.stride, rot : this.rotation, flip : this.flipMode});
 					}
 				}
 			}
-			insts.sort(function(i1,i25) {
-				var o5 = objs.h[i1.o];
-				var tmp = (i1.y + (o5 == null?1:o5.h)) * _g1.tileSize | 0;
-				var o6 = objs.h[i25.o];
-				var dy6 = tmp - ((i25.y + (o6 == null?1:o6.h)) * _g1.tileSize | 0);
-				if(dy6 == 0) {
-					var o7 = objs.h[i1.o];
-					var tmp7 = (i1.x + (o7 == null?0.5:o7.w * 0.5)) * _g1.tileSize | 0;
-					var o8 = objs.h[i25.o];
-					return tmp7 - ((i25.x + (o8 == null?0.5:o8.w * 0.5)) * _g1.tileSize | 0);
-				} else return dy6;
+			insts.sort(function(i11,i21) {
+				var o1 = objs.h[i11.o];
+				var tmp = (i11.y + (o1 == null?1:o1.h)) * _gthis.tileSize | 0;
+				var o2 = objs.h[i21.o];
+				var dy4 = tmp - ((i21.y + (o2 == null?1:o2.h)) * _gthis.tileSize | 0);
+				if(dy4 == 0) {
+					var o3 = objs.h[i11.o];
+					var tmp1 = (i11.x + (o3 == null?0.5:o3.w * 0.5)) * _gthis.tileSize | 0;
+					var o4 = objs.h[i21.o];
+					return tmp1 - ((i21.x + (o4 == null?0.5:o4.w * 0.5)) * _gthis.tileSize | 0);
+				} else {
+					return dy4;
+				}
 			});
 			l.dirty = true;
 			this.save();
 			this.draw();
-			break;
-		case 1:
 			break;
 		}
 	}
@@ -2851,9 +3052,10 @@ Level.prototype = {
 		var _g1 = 0;
 		var _g = this.layers.length;
 		while(_g1 < _g) {
-			var index = _g1++;
-			var l = this.layers[index];
-			if(!l.visible) continue;
+			var l = this.layers[_g1++];
+			if(!l.visible) {
+				continue;
+			}
 			l.draw(this.view);
 		}
 		this.view.flush();
@@ -2879,13 +3081,17 @@ Level.prototype = {
 		js_Browser.getLocalStorage().setItem(this.sheetPath + "#" + this.index,haxe_Serializer.run(state));
 	}
 	,scale: function(s) {
-		if(s == null || isNaN(s)) return;
+		if(s == null || isNaN(s)) {
+			return;
+		}
 		var _g = 0;
 		var _g1 = this.layers;
 		while(_g < _g1.length) {
 			var l = _g1[_g];
 			++_g;
-			if(!l.visible) continue;
+			if(!l.visible) {
+				continue;
+			}
 			l.dirty = true;
 			l.scale(s);
 		}
@@ -2893,14 +3099,20 @@ Level.prototype = {
 		this.draw();
 	}
 	,scroll: function(dx,dy) {
-		if(dx == null || isNaN(dx)) dx = 0;
-		if(dy == null || isNaN(dy)) dy = 0;
+		if(dx == null || isNaN(dx)) {
+			dx = 0;
+		}
+		if(dy == null || isNaN(dy)) {
+			dy = 0;
+		}
 		var _g = 0;
 		var _g1 = this.layers;
 		while(_g < _g1.length) {
 			var l = _g1[_g];
 			++_g;
-			if(!l.visible) continue;
+			if(!l.visible) {
+				continue;
+			}
 			l.dirty = true;
 			l.scroll(dx,dy);
 		}
@@ -2914,15 +3126,16 @@ Level.prototype = {
 		while(_g < _g1.length) {
 			var l = _g1[_g];
 			++_g;
-			if(!l.hasFloatCoord) continue;
+			if(!l.hasFloatCoord) {
+				continue;
+			}
 			var _g2 = l.data;
-			switch(_g2[1]) {
-			case 1:
+			if(_g2[1] == 1) {
 				var objs = _g2[3];
-				var _g3 = 0;
-				while(_g3 < objs.length) {
-					var o = objs[_g3];
-					++_g3;
+				var _g21 = 0;
+				while(_g21 < objs.length) {
+					var o = objs[_g21];
+					++_g21;
 					o.x = (o.x * this.tileSize | 0) / this.tileSize;
 					o.y = (o.y * this.tileSize | 0) / this.tileSize;
 					if(l.hasSize) {
@@ -2930,8 +3143,6 @@ Level.prototype = {
 						o.height = (o.height * this.tileSize | 0) / this.tileSize;
 					}
 				}
-				break;
-			default:
 			}
 		}
 		this.setCursor();
@@ -2965,66 +3176,54 @@ Level.prototype = {
 			this.rotation = 0;
 		}
 		this.savePrefs();
-		this.content.find("[name=alpha]").val(Std.string((function($this) {
-			var $r;
-			var x = l.props.alpha * 100;
-			$r = x | 0;
-			return $r;
-		}(this))));
+		this.content.find("[name=alpha]").val(Std.string(l.props.alpha * 100 | 0));
 		this.content.find("[name=visible]").prop("checked",l.visible);
 		this.content.find("[name=lock]").prop("checked",l.lock);
-		this.content.find("[name=lockGrid]").prop("checked",!l.floatCoord).closest(".item").css({ display : l.hasFloatCoord?"":"none"});
+		var tmp = l.hasFloatCoord?"":"none";
+		this.content.find("[name=lockGrid]").prop("checked",!l.floatCoord).closest(".item").css({ display : tmp});
 		this.content.find("[name=mode]").val("" + (l.props.mode != null?l.props.mode:"tiles"));
-		this.content.find("[name=color]").spectrum("set",this.toColor(l.props.color)).closest(".item").css({ display : l.idToIndex == null && !(function($this) {
-			var $r;
+		var tmp1 = this.content.find("[name=color]").spectrum;
+		var tmp2 = this.toColor(l.props.color);
+		var tmp3;
+		var tmp4;
+		if(l.idToIndex == null) {
 			var _g = l.data;
-			$r = (function($this) {
-				var $r;
-				switch(_g[1]) {
-				case 2:case 3:
-					$r = true;
-					break;
-				default:
-					$r = false;
-				}
-				return $r;
-			}($this));
-			return $r;
-		}(this))?"":"none"});
-		{
-			var _g1 = l.data;
-			switch(_g1[1]) {
-			case 2:
-				var t = _g1[2];
-				this.content.find("[name=size]").val("" + t.size).closest(".item").show();
-				this.content.find("[name=file]").closest(".item").show();
-				break;
-			case 3:
-				var t1 = _g1[2];
-				this.content.find("[name=size]").val("" + t1.size).closest(".item").show();
-				this.content.find("[name=file]").closest(".item").show();
+			var tmp5;
+			switch(_g[1]) {
+			case 2:case 3:
+				tmp5 = true;
 				break;
 			default:
-				this.content.find("[name=size]").closest(".item").hide();
-				this.content.find("[name=file]").closest(".item").hide();
+				tmp5 = false;
 			}
+			tmp4 = !tmp5;
+		} else {
+			tmp4 = false;
 		}
-		if((function($this) {
-			var $r;
-			var _g2 = l.data;
-			$r = (function($this) {
-				var $r;
-				switch(_g2[1]) {
-				case 3:
-					$r = true;
-					break;
-				default:
-					$r = false;
-				}
-				return $r;
-			}($this));
-			return $r;
-		}(this))) {
+		if(tmp4) {
+			tmp3 = "";
+		} else {
+			tmp3 = "none";
+		}
+		tmp1("set",tmp2).closest(".item").css({ display : tmp3});
+		var _g1 = l.data;
+		switch(_g1[1]) {
+		case 2:
+			var t = _g1[2];
+			this.content.find("[name=size]").val("" + t.size).closest(".item").show();
+			this.content.find("[name=file]").closest(".item").show();
+			break;
+		case 3:
+			var t1 = _g1[2];
+			this.content.find("[name=size]").val("" + t1.size).closest(".item").show();
+			this.content.find("[name=file]").closest(".item").show();
+			break;
+		default:
+			this.content.find("[name=size]").closest(".item").hide();
+			this.content.find("[name=file]").closest(".item").hide();
+		}
+		var _g2 = l.data;
+		if(_g2[1] == 3) {
 			this.palette.randomMode = false;
 			this.palette.paintMode = false;
 			this.savePrefs();
@@ -3056,16 +3255,7 @@ Level.prototype = {
 		var cur = l.current;
 		var w = this.palette.randomMode?1:l.currentWidth;
 		var h = this.palette.randomMode?1:l.currentHeight;
-		var tmp;
-		var _g = l.data;
-		switch(_g[1]) {
-		case 3:
-			tmp = true;
-			break;
-		default:
-			tmp = false;
-		}
-		if(tmp) {
+		if(l.data[1] == 3) {
 			var o = l.getSelObjects();
 			if(o.length > 0) {
 				cur = o[0].x + o[0].y * l.stride;
@@ -3077,9 +3267,7 @@ Level.prototype = {
 		var px = 0;
 		var py = 0;
 		if(l.images != null) {
-			var _g1 = l.data;
-			switch(_g1[1]) {
-			case 1:
+			if(l.data[1] == 1) {
 				var i = l.images[cur];
 				var w1 = Math.ceil(i.width * this.zoomView);
 				var h1 = Math.ceil(i.height * this.zoomView);
@@ -3088,12 +3276,11 @@ Level.prototype = {
 				this.cursorImage.drawScaled(i,0,0,w1,h1);
 				px = w1 - size >> 1;
 				py = h1 - size;
-				break;
-			default:
+			} else {
 				this.cursorImage.clear();
 				var _g2 = 0;
-				var _g11 = h;
-				while(_g2 < _g11) {
+				var _g1 = h;
+				while(_g2 < _g1) {
 					var y = _g2++;
 					var _g4 = 0;
 					var _g3 = w;
@@ -3167,7 +3354,11 @@ List.__name__ = ["List"];
 List.prototype = {
 	add: function(item) {
 		var x = new _$List_ListNode(item,null);
-		if(this.h == null) this.h = x; else this.q.next = x;
+		if(this.h == null) {
+			this.h = x;
+		} else {
+			this.q.next = x;
+		}
 		this.q = x;
 		this.length++;
 	}
@@ -3176,8 +3367,14 @@ List.prototype = {
 		var l = this.h;
 		while(l != null) {
 			if(l.item == v) {
-				if(prev == null) this.h = l.next; else prev.next = l.next;
-				if(this.q == l) this.q = prev;
+				if(prev == null) {
+					this.h = l.next;
+				} else {
+					prev.next = l.next;
+				}
+				if(this.q == l) {
+					this.q = prev;
+				}
 				this.length--;
 				return true;
 			}
@@ -3231,14 +3428,16 @@ $hxClasses["Model"] = Model;
 Model.__name__ = ["Model"];
 Model.prototype = {
 	quickExists: function(path) {
-		var tmp;
 		var _this = this.existsCache;
-		if(__map_reserved[path] != null) tmp = _this.getReserved(path); else tmp = _this.h[path];
-		var c = tmp;
+		var c = __map_reserved[path] != null?_this.getReserved(path):_this.h[path];
 		if(c == null) {
 			c = { t : -1e9, r : false};
 			var _this1 = this.existsCache;
-			if(__map_reserved[path] != null) _this1.setReserved(path,c); else _this1.h[path] = c;
+			if(__map_reserved[path] != null) {
+				_this1.setReserved(path,c);
+			} else {
+				_this1.h[path] = c;
+			}
 		}
 		var t = haxe_Timer.stamp();
 		if(c.t < t - 10) {
@@ -3251,36 +3450,38 @@ Model.prototype = {
 		return Reflect.field(this.imageBank,key);
 	}
 	,getAbsPath: function(file) {
-		if(file.charAt(0) == "/" || file.charAt(1) == ":") return file; else return new haxe_io_Path(this.prefs.curFile).dir.split("\\").join("/") + "/" + file;
+		if(file.charAt(0) == "/" || file.charAt(1) == ":") {
+			return file;
+		} else {
+			return new haxe_io_Path(this.prefs.curFile).dir.split("\\").join("/") + "/" + file;
+		}
 	}
 	,getSheet: function(name) {
-		var tmp;
 		var _this = this.smap;
-		if(__map_reserved[name] != null) tmp = _this.getReserved(name); else tmp = _this.h[name];
-		return tmp.s;
+		return (__map_reserved[name] != null?_this.getReserved(name):_this.h[name]).s;
 	}
 	,getDefault: function(c,ignoreOpt) {
-		if(ignoreOpt == null) ignoreOpt = false;
-		if(c.opt && !ignoreOpt) return null;
+		if(ignoreOpt == null) {
+			ignoreOpt = false;
+		}
+		if(c.opt && !ignoreOpt) {
+			return null;
+		}
 		var _g = c.type;
 		switch(_g[1]) {
-		case 3:case 4:case 5:case 10:case 11:
-			return 0;
-		case 1:case 0:case 7:case 12:case 13:
-			return "";
+		case 2:
+			return false;
 		case 6:
 			var s = _g[2];
-			var tmp;
 			var _this = this.smap;
-			if(__map_reserved[s] != null) tmp = _this.getReserved(s); else tmp = _this.h[s];
-			var s1 = tmp.s;
+			var s1 = (__map_reserved[s] != null?_this.getReserved(s):_this.h[s]).s;
 			var l = s1.lines[0];
 			var id = "";
 			if(l != null) {
 				var _g1 = 0;
-				var _g2 = s1.columns;
-				while(_g1 < _g2.length) {
-					var c1 = _g2[_g1];
+				var _g11 = s1.columns;
+				while(_g1 < _g11.length) {
+					var c1 = _g11[_g1];
 					++_g1;
 					if(c1.type == cdb_ColumnType.TId) {
 						id = Reflect.field(l,c1.name);
@@ -3289,14 +3490,16 @@ Model.prototype = {
 				}
 			}
 			return id;
-		case 2:
-			return false;
 		case 8:
 			return [];
-		case 17:
-			return { };
 		case 9:case 14:case 15:case 16:
 			return null;
+		case 3:case 4:case 5:case 10:case 11:
+			return 0;
+		case 0:case 1:case 7:case 12:case 13:
+			return "";
+		case 17:
+			return { };
 		}
 	}
 	,parseDynamic: function(s) {
@@ -3304,20 +3507,24 @@ Model.prototype = {
 		return JSON.parse(s);
 	}
 	,save: function(history) {
-		if(history == null) history = true;
-		var _g = this;
-		var _g1 = 0;
-		var _g11 = this.data.sheets;
-		while(_g1 < _g11.length) {
-			var s = _g11[_g1];
-			++_g1;
+		if(history == null) {
+			history = true;
+		}
+		var _gthis = this;
+		var _g = 0;
+		var _g1 = this.data.sheets;
+		while(_g < _g1.length) {
+			var s = _g1[_g];
+			++_g;
 			var _g2 = 0;
 			var _g3 = Reflect.fields(s.props);
 			while(_g2 < _g3.length) {
 				var p = _g3[_g2];
 				++_g2;
 				var v = Reflect.field(s.props,p);
-				if(v == null || v == false) Reflect.deleteField(s.props,p);
+				if(v == null || v == false) {
+					Reflect.deleteField(s.props,p);
+				}
 			}
 			if(s.props.hasIndex) {
 				var lines = SheetData.getLines(s);
@@ -3334,16 +3541,20 @@ Model.prototype = {
 				var sindex = 0;
 				var titles = s.props.separatorTitles;
 				if(titles != null) {
-					if(s.separators[sindex] == 0 && titles[sindex] != null) ++sindex;
+					if(s.separators[0] == 0 && titles[0] != null) {
+						sindex = 1;
+					}
 					var _g32 = 0;
 					var _g22 = lines1.length;
 					while(_g32 < _g22) {
-						var i2 = _g32++;
-						if(s.separators[sindex] == i2) {
-							if(titles[sindex] != null) ++gid;
+						var i1 = _g32++;
+						if(s.separators[sindex] == i1) {
+							if(titles[sindex] != null) {
+								++gid;
+							}
 							++sindex;
 						}
-						lines1[i2].group = gid;
+						lines1[i1].group = gid;
 					}
 				}
 			}
@@ -3352,26 +3563,33 @@ Model.prototype = {
 		if(history && (this.curSavedData == null || sdata.d != this.curSavedData.d || sdata.o != this.curSavedData.o)) {
 			this.history.push(this.curSavedData);
 			this.redo = [];
-			if(this.history.length > 100 || sdata.d.length * (this.history.length + this.redo.length) * 2 > 314572800) this.history.shift();
+			if(this.history.length > 100 || sdata.d.length * (this.history.length + this.redo.length) * 2 > 314572800) {
+				this.history.shift();
+			}
 			this.curSavedData = sdata;
 		}
-		if(this.prefs.curFile == null) return;
+		if(this.prefs.curFile == null) {
+			return;
+		}
 		try {
 			js_node_Fs.writeFileSync(this.prefs.curFile,sdata.d);
 		} catch( e ) {
 			haxe_Timer.delay(function() {
-				js_node_Fs.writeFileSync(_g.prefs.curFile,sdata.d);
+				js_node_Fs.writeFileSync(_gthis.prefs.curFile,sdata.d);
 			},500);
 		}
 	}
 	,saveImages: function() {
-		if(this.prefs.curFile == null) return;
+		if(this.prefs.curFile == null) {
+			return;
+		}
 		var img = this.prefs.curFile.split(".");
 		img.pop();
 		var path = img.join(".") + ".img";
-		if(this.imageBank == null) js_node_Fs.unlinkSync(path); else {
-			var content = JSON.stringify(this.imageBank,null,"\t");
-			js_node_Fs.writeFileSync(path,content);
+		if(this.imageBank == null) {
+			js_node_Fs.unlinkSync(path);
+		} else {
+			js_node_Fs.writeFileSync(path,JSON.stringify(this.imageBank,null,"\t"));
 		}
 	}
 	,quickSave: function() {
@@ -3389,14 +3607,11 @@ Model.prototype = {
 		while(_g < _g1.length) {
 			var c = _g1[_g];
 			++_g;
-			var _g2 = c.type;
-			switch(_g2[1]) {
+			switch(c.type[1]) {
 			case 8:case 17:
-				var tmp;
 				var _this = SheetData.model.smap;
 				var key = sheet.name + "@" + c.name;
-				if(__map_reserved[key] != null) tmp = _this.getReserved(key); else tmp = _this.h[key];
-				this.deleteSheet(tmp.s);
+				this.deleteSheet((__map_reserved[key] != null?_this.getReserved(key):_this.h[key]).s);
 				break;
 			default:
 			}
@@ -3404,12 +3619,18 @@ Model.prototype = {
 		this.mapType(function(t) {
 			switch(t[1]) {
 			case 6:
-				var r = t[2];
-				if(r == sheet.name) return cdb_ColumnType.TString; else return t;
+				if(t[2] == sheet.name) {
+					return cdb_ColumnType.TString;
+				} else {
+					return t;
+				}
 				break;
 			case 12:
-				var r1 = t[2];
-				if(r1 == sheet.name) return cdb_ColumnType.TString; else return t;
+				if(t[2] == sheet.name) {
+					return cdb_ColumnType.TString;
+				} else {
+					return t;
+				}
 				break;
 			default:
 				return t;
@@ -3418,40 +3639,12 @@ Model.prototype = {
 	}
 	,getConvFunction: function(old,t) {
 		var conv = null;
-		if(Type.enumEq(old,t)) return { f : null};
+		if(Type.enumEq(old,t)) {
+			return { f : null};
+		}
 		switch(old[1]) {
-		case 3:
-			switch(t[1]) {
-			case 4:
-				break;
-			case 1:
-				conv = Std.string;
-				break;
-			case 2:
-				conv = function(v) {
-					return v != 0;
-				};
-				break;
-			case 5:
-				var values = t[2];
-				conv = function(i) {
-					if(i < 0 || i >= values.length) return null; else return i;
-				};
-				break;
-			case 11:
-				conv = function(i1) {
-					return i1;
-				};
-				break;
-			default:
-				return null;
-			}
-			break;
 		case 0:case 6:case 12:
-			switch(t[1]) {
-			case 1:
-				break;
-			default:
+			if(t[1] != 1) {
 				return null;
 			}
 			break;
@@ -3463,33 +3656,41 @@ Model.prototype = {
 					return r_invalid.replace(r,"_");
 				};
 				break;
+			case 2:
+				conv = function(s) {
+					return s != "";
+				};
+				break;
 			case 3:
 				conv = Std.parseInt;
 				break;
 			case 4:
 				conv = function(str) {
 					var f = parseFloat(str);
-					if(isNaN(f)) return null; else return f;
-				};
-				break;
-			case 2:
-				conv = function(s) {
-					return s != "";
+					if(isNaN(f)) {
+						return null;
+					} else {
+						return f;
+					}
 				};
 				break;
 			case 5:
-				var values1 = t[2];
+				var values = t[2];
 				var map = new haxe_ds_StringMap();
 				var _g1 = 0;
-				var _g = values1.length;
+				var _g = values.length;
 				while(_g1 < _g) {
-					var i2 = _g1++;
-					var key = values1[i2].toLowerCase();
-					if(__map_reserved[key] != null) map.setReserved(key,i2); else map.h[key] = i2;
+					var i = _g1++;
+					var key = values[i].toLowerCase();
+					if(__map_reserved[key] != null) {
+						map.setReserved(key,i);
+					} else {
+						map.h[key] = i;
+					}
 				}
-				conv = function(s2) {
-					var key2 = s2.toLowerCase();
-					return __map_reserved[key2] != null?map.getReserved(key2):map.h[key2];
+				conv = function(s1) {
+					var key1 = s1.toLowerCase();
+					return __map_reserved[key1] != null?map.getReserved(key1):map.h[key1];
 				};
 				break;
 			default:
@@ -3498,23 +3699,24 @@ Model.prototype = {
 			break;
 		case 2:
 			switch(t[1]) {
-			case 3:case 4:
-				conv = function(b) {
-					if(b) return 1; else return 0;
-				};
-				break;
 			case 1:
 				conv = Std.string;
+				break;
+			case 3:case 4:
+				conv = function(b) {
+					if(b) {
+						return 1;
+					} else {
+						return 0;
+					}
+				};
 				break;
 			default:
 				return null;
 			}
 			break;
-		case 4:
+		case 3:
 			switch(t[1]) {
-			case 3:
-				conv = Std["int"];
-				break;
 			case 1:
 				conv = Std.string;
 				break;
@@ -3523,133 +3725,169 @@ Model.prototype = {
 					return v != 0;
 				};
 				break;
+			case 4:
+				break;
+			case 5:
+				var values1 = t[2];
+				conv = function(i1) {
+					if(i1 < 0 || i1 >= values1.length) {
+						return null;
+					} else {
+						return i1;
+					}
+				};
+				break;
+			case 11:
+				conv = function(i2) {
+					return i2;
+				};
+				break;
+			default:
+				return null;
+			}
+			break;
+		case 4:
+			switch(t[1]) {
+			case 1:
+				conv = Std.string;
+				break;
+			case 2:
+				conv = function(v1) {
+					return v1 != 0;
+				};
+				break;
+			case 3:
+				conv = Std["int"];
+				break;
 			default:
 				return null;
 			}
 			break;
 		case 5:
 			switch(t[1]) {
+			case 3:
+				break;
 			case 5:
-				var values12 = old[2];
+				var values11 = old[2];
 				var values2 = t[2];
-				var map2 = [];
+				var map1 = [];
 				var _g2 = 0;
 				var _g3 = [];
-				var _g23 = 0;
-				var _g14 = values12.length;
-				while(_g23 < _g14) {
-					var i4 = _g23++;
-					_g3.push({ name : values12[i4], i : i4});
+				var _g21 = 0;
+				var _g11 = values11.length;
+				while(_g21 < _g11) {
+					var i3 = _g21++;
+					_g3.push({ name : values11[i3], i : i3});
 				}
-				var tmp = _g3;
-				var _g13 = [];
-				var _g34 = 0;
-				var _g24 = values2.length;
-				while(_g34 < _g24) {
-					var i5 = _g34++;
-					_g13.push({ name : values2[i5], i : i5});
+				var _g12 = [];
+				var _g31 = 0;
+				var _g22 = values2.length;
+				while(_g31 < _g22) {
+					var i4 = _g31++;
+					_g12.push({ name : values2[i4], i : i4});
 				}
-				var _g33 = this.makePairs(tmp,_g13);
-				while(_g2 < _g33.length) {
-					var p = _g33[_g2];
+				var _g32 = this.makePairs(_g3,_g12);
+				while(_g2 < _g32.length) {
+					var p = _g32[_g2];
 					++_g2;
-					if(p.b == null) continue;
-					map2[p.a.i] = p.b.i;
-				}
-				conv = function(i6) {
-					return map2[i6];
-				};
-				break;
-			case 3:
-				var values6 = old[2];
-				break;
-			case 10:
-				var val1 = old[2];
-				var val2 = t[2];
-				if(Std.string(val1) == Std.string(val2)) conv = function(i7) {
-					return 1 << i7;
-				}; else return null;
-				break;
-			default:
-				return null;
-			}
-			break;
-		case 10:
-			switch(t[1]) {
-			case 10:
-				var values17 = old[2];
-				var values27 = t[2];
-				var map7 = [];
-				var _g27 = 0;
-				var _g7 = [];
-				var _g28 = 0;
-				var _g18 = values17.length;
-				while(_g28 < _g18) {
-					var i8 = _g28++;
-					_g7.push({ name : values17[i8], i : i8});
-				}
-				var tmp7 = _g7;
-				var _g17 = [];
-				var _g38 = 0;
-				var _g29 = values27.length;
-				while(_g38 < _g29) {
-					var i9 = _g38++;
-					_g17.push({ name : values27[i9], i : i9});
-				}
-				var _g37 = this.makePairs(tmp7,_g17);
-				while(_g27 < _g37.length) {
-					var p9 = _g37[_g27];
-					++_g27;
-					if(p9.b == null) continue;
-					map7[p9.a.i] = p9.b.i;
-				}
-				conv = function(i10) {
-					var out = 0;
-					var k = 0;
-					while(i10 >= 1 << k) {
-						if(map7[k] != null && (i10 & 1 << k) != 0) out |= 1 << map7[k];
-						++k;
+					if(p.b == null) {
+						continue;
 					}
-					return out;
+					map1[p.a.i] = p.b.i;
+				}
+				conv = function(i5) {
+					return map1[i5];
 				};
 				break;
-			case 3:
-				var values10 = old[2];
-				break;
-			default:
-				return null;
-			}
-			break;
-		case 11:
-			switch(t[1]) {
-			case 3:
-				conv = function(i1) {
-					return i1;
-				};
+			case 10:
+				if(Std.string(old[2]) == Std.string(t[2])) {
+					conv = function(i6) {
+						return 1 << i6;
+					};
+				} else {
+					return null;
+				}
 				break;
 			default:
 				return null;
 			}
 			break;
 		case 8:
-			switch(t[1]) {
-			case 17:
+			if(t[1] == 17) {
 				conv = function(l) {
 					return l[0];
+				};
+			} else {
+				return null;
+			}
+			break;
+		case 10:
+			switch(t[1]) {
+			case 3:
+				break;
+			case 10:
+				var values12 = old[2];
+				var values21 = t[2];
+				var map2 = [];
+				var _g23 = 0;
+				var _g4 = [];
+				var _g24 = 0;
+				var _g13 = values12.length;
+				while(_g24 < _g13) {
+					var i7 = _g24++;
+					_g4.push({ name : values12[i7], i : i7});
+				}
+				var _g14 = [];
+				var _g33 = 0;
+				var _g25 = values21.length;
+				while(_g33 < _g25) {
+					var i8 = _g33++;
+					_g14.push({ name : values21[i8], i : i8});
+				}
+				var _g34 = this.makePairs(_g4,_g14);
+				while(_g23 < _g34.length) {
+					var p1 = _g34[_g23];
+					++_g23;
+					if(p1.b == null) {
+						continue;
+					}
+					map2[p1.a.i] = p1.b.i;
+				}
+				conv = function(i9) {
+					var out = 0;
+					var k = 0;
+					while(i9 >= 1 << k) {
+						if(map2[k] != null && (i9 & 1 << k) != 0) {
+							out |= 1 << map2[k];
+						}
+						++k;
+					}
+					return out;
 				};
 				break;
 			default:
 				return null;
 			}
 			break;
-		case 17:
-			switch(t[1]) {
-			case 8:
-				conv = function(p10) {
-					if(Reflect.fields(p10).length == 0) return []; else return [p10];
+		case 11:
+			if(t[1] == 3) {
+				conv = function(i10) {
+					return i10;
 				};
-				break;
-			default:
+			} else {
+				return null;
+			}
+			break;
+		case 17:
+			if(t[1] == 8) {
+				conv = function(p2) {
+					if(Reflect.fields(p2).length == 0) {
+						return [];
+					} else {
+						return [p2];
+					}
+				};
+			} else {
 				return null;
 			}
 			break;
@@ -3659,61 +3897,77 @@ Model.prototype = {
 		return { f : conv};
 	}
 	,updateColumn: function(sheet,old,c) {
-		var _g = this;
+		var _gthis = this;
 		if(old.name != c.name) {
-			var _g1 = 0;
-			var _g11 = sheet.columns;
-			while(_g1 < _g11.length) {
-				var c2 = _g11[_g1];
-				++_g1;
-				if(c2.name == c.name) return "Column name already used";
+			var _g = 0;
+			var _g1 = sheet.columns;
+			while(_g < _g1.length) {
+				var c2 = _g1[_g];
+				++_g;
+				if(c2.name == c.name) {
+					return "Column name already used";
+				}
 			}
-			if(c.name == "index" && sheet.props.hasIndex) return "Sheet already has an index";
-			if(c.name == "group" && sheet.props.hasGroup) return "Sheet already has a group";
+			if(c.name == "index" && sheet.props.hasIndex) {
+				return "Sheet already has an index";
+			}
+			if(c.name == "group" && sheet.props.hasGroup) {
+				return "Sheet already has a group";
+			}
 			var _g2 = 0;
-			var _g12 = SheetData.getLines(sheet);
-			while(_g2 < _g12.length) {
-				var o = _g12[_g2];
+			var _g11 = SheetData.getLines(sheet);
+			while(_g2 < _g11.length) {
+				var o = _g11[_g2];
 				++_g2;
 				var v = Reflect.field(o,old.name);
 				Reflect.deleteField(o,old.name);
-				if(v != null) o[c.name] = v;
+				if(v != null) {
+					o[c.name] = v;
+				}
 			}
 			var renameRec = null;
-			renameRec = function(sheet2,col) {
-				var tmp;
+			renameRec = function(sheet1,col) {
 				var _this = SheetData.model.smap;
-				var key = sheet2.name + "@" + col.name;
-				if(__map_reserved[key] != null) tmp = _this.getReserved(key); else tmp = _this.h[key];
-				var s = tmp.s;
-				s.name = sheet2.name + "@" + c.name;
+				var key = sheet1.name + "@" + col.name;
+				var s = (__map_reserved[key] != null?_this.getReserved(key):_this.h[key]).s;
+				s.name = sheet1.name + "@" + c.name;
 				var _g3 = 0;
-				var _g13 = s.columns;
-				while(_g3 < _g13.length) {
-					var c3 = _g13[_g3];
+				var _g12 = s.columns;
+				while(_g3 < _g12.length) {
+					var c1 = _g12[_g3];
 					++_g3;
-					if(c3.type == cdb_ColumnType.TList || c3.type == cdb_ColumnType.TProperties) renameRec(s,c3);
+					if(c1.type == cdb_ColumnType.TList || c1.type == cdb_ColumnType.TProperties) {
+						renameRec(s,c1);
+					}
 				}
-				_g.makeSheet(s);
+				_gthis.makeSheet(s);
 			};
 			var renameRec1 = renameRec;
-			if(old.type == cdb_ColumnType.TList || old.type == cdb_ColumnType.TProperties) renameRec1(sheet,old);
+			if(old.type == cdb_ColumnType.TList || old.type == cdb_ColumnType.TProperties) {
+				renameRec1(sheet,old);
+			}
 			old.name = c.name;
 		}
 		if(!Type.enumEq(old.type,c.type)) {
 			var conv = this.getConvFunction(old.type,c.type);
-			if(conv == null) return "Cannot convert " + this.typeStr(old.type) + " to " + this.typeStr(c.type);
-			var conv3 = conv.f;
-			if(conv3 != null) {
+			if(conv == null) {
+				return "Cannot convert " + this.typeStr(old.type) + " to " + this.typeStr(c.type);
+			}
+			var conv1 = conv.f;
+			if(conv1 != null) {
 				var _g4 = 0;
-				var _g14 = SheetData.getLines(sheet);
-				while(_g4 < _g14.length) {
-					var o4 = _g14[_g4];
+				var _g13 = SheetData.getLines(sheet);
+				while(_g4 < _g13.length) {
+					var o1 = _g13[_g4];
 					++_g4;
-					var v4 = Reflect.field(o4,c.name);
-					if(v4 != null) {
-						v4 = conv3(v4);
-						if(v4 != null) o4[c.name] = v4; else Reflect.deleteField(o4,c.name);
+					var v1 = Reflect.field(o1,c.name);
+					if(v1 != null) {
+						v1 = conv1(v1);
+						if(v1 != null) {
+							o1[c.name] = v1;
+						} else {
+							Reflect.deleteField(o1,c.name);
+						}
 					}
 				}
 			}
@@ -3723,48 +3977,56 @@ Model.prototype = {
 		if(old.opt != c.opt) {
 			if(old.opt) {
 				var _g5 = 0;
-				var _g15 = SheetData.getLines(sheet);
-				while(_g5 < _g15.length) {
-					var o5 = _g15[_g5];
+				var _g14 = SheetData.getLines(sheet);
+				while(_g5 < _g14.length) {
+					var o2 = _g14[_g5];
 					++_g5;
-					var v5 = Reflect.field(o5,c.name);
-					if(v5 == null) {
-						v5 = this.getDefault(c);
-						if(v5 != null) o5[c.name] = v5;
+					var v2 = Reflect.field(o2,c.name);
+					if(v2 == null) {
+						v2 = this.getDefault(c);
+						if(v2 != null) {
+							o2[c.name] = v2;
+						}
 					}
 				}
-			} else {
-				var _g6 = old.type;
-				switch(_g6[1]) {
-				case 5:
-					break;
-				default:
-					var def = this.getDefault(old);
-					var _g16 = 0;
-					var _g26 = SheetData.getLines(sheet);
-					while(_g16 < _g26.length) {
-						var o6 = _g26[_g16];
-						++_g16;
-						var v6 = Reflect.field(o6,c.name);
-						var _g36 = c.type;
-						switch(_g36[1]) {
-						case 8:
-							var v7 = v6;
-							if(v7.length == 0) Reflect.deleteField(o6,c.name);
-							break;
-						case 17:
-							if(Reflect.fields(v6).length == 0) Reflect.deleteField(o6,c.name);
-							break;
-						default:
-							if(v6 == def) Reflect.deleteField(o6,c.name);
+			} else if(old.type[1] != 5) {
+				var def = this.getDefault(old);
+				var _g6 = 0;
+				var _g15 = SheetData.getLines(sheet);
+				while(_g6 < _g15.length) {
+					var o3 = _g15[_g6];
+					++_g6;
+					var v3 = Reflect.field(o3,c.name);
+					switch(c.type[1]) {
+					case 8:
+						if(v3.length == 0) {
+							Reflect.deleteField(o3,c.name);
+						}
+						break;
+					case 17:
+						if(Reflect.fields(v3).length == 0) {
+							Reflect.deleteField(o3,c.name);
+						}
+						break;
+					default:
+						if(v3 == def) {
+							Reflect.deleteField(o3,c.name);
 						}
 					}
 				}
 			}
 			old.opt = c.opt;
 		}
-		if(c.display == null) Reflect.deleteField(old,"display"); else old.display = c.display;
-		if(c.kind == null) Reflect.deleteField(old,"kind"); else old.kind = c.kind;
+		if(c.display == null) {
+			Reflect.deleteField(old,"display");
+		} else {
+			old.display = c.display;
+		}
+		if(c.kind == null) {
+			Reflect.deleteField(old,"kind");
+		} else {
+			old.kind = c.kind;
+		}
 		this.makeSheet(sheet);
 		return null;
 	}
@@ -3780,37 +4042,35 @@ Model.prototype = {
 			while(_g2 < _g3.length) {
 				var c1 = _g3[_g2];
 				++_g2;
-				var _g4 = c1.type;
-				switch(_g4[1]) {
+				switch(c1.type[1]) {
 				case 12:
-					var _g5 = 0;
-					var _g6 = SheetData.getLines(s);
-					while(_g5 < _g6.length) {
-						var obj = _g6[_g5];
-						++_g5;
+					var _g4 = 0;
+					var _g5 = SheetData.getLines(s);
+					while(_g4 < _g5.length) {
+						var obj = _g5[_g4];
+						++_g4;
 						var ldat = Reflect.field(obj,c1.name);
-						if(ldat == null || ldat == "") continue;
-						var _g7 = [];
-						var _g8 = 0;
-						while(_g8 < 256) {
-							var i = _g8++;
-							_g7.push(i);
+						if(ldat == null || ldat == "") {
+							continue;
 						}
-						var d = cdb__$Types_Layer_$Impl_$.decode(ldat,_g7);
-						ldat = cdb__$Types_Layer_$Impl_$.encode(d,this.data.compress);
+						var _g6 = [];
+						var _g7 = 0;
+						while(_g7 < 256) _g6.push(_g7++);
+						ldat = cdb__$Types_Layer_$Impl_$.encode(cdb__$Types_Layer_$Impl_$.decode(ldat,_g6),this.data.compress);
 						obj[c1.name] = ldat;
 					}
 					break;
 				case 15:
-					var _g51 = 0;
-					var _g61 = SheetData.getLines(s);
-					while(_g51 < _g61.length) {
-						var obj1 = _g61[_g51];
-						++_g51;
+					var _g41 = 0;
+					var _g51 = SheetData.getLines(s);
+					while(_g41 < _g51.length) {
+						var obj1 = _g51[_g41];
+						++_g41;
 						var ldat1 = Reflect.field(obj1,c1.name);
-						if(ldat1 == null || ldat1 == "") continue;
-						var d1 = cdb__$Types_TileLayerData_$Impl_$.decode(ldat1.data);
-						ldat1.data = cdb__$Types_TileLayerData_$Impl_$.encode(d1,this.data.compress);
+						if(ldat1 == null || ldat1 == "") {
+							continue;
+						}
+						ldat1.data = cdb__$Types_TileLayerData_$Impl_$.encode(cdb__$Types_TileLayerData_$Impl_$.decode(ldat1.data),this.data.compress);
 					}
 					break;
 				default:
@@ -3825,14 +4085,18 @@ Model.prototype = {
 		js_Browser.alert(msg);
 	}
 	,load: function(noError) {
-		if(noError == null) noError = false;
+		if(noError == null) {
+			noError = false;
+		}
 		this.history = [];
 		this.redo = [];
 		try {
 			this.data = cdb_Parser.parse(js_node_Fs.readFileSync(this.prefs.curFile,{ encoding : "utf8"}));
 		} catch( e ) {
 			if (e instanceof js__$Boot_HaxeError) e = e.val;
-			if(!noError) this.error(Std.string(e));
+			if(!noError) {
+				this.error(Std.string(e));
+			}
 			this.prefs.curFile = null;
 			this.prefs.curSheet = 0;
 			this.data = { sheets : [], customTypes : [], compress : false};
@@ -3858,21 +4122,28 @@ Model.prototype = {
 		}
 		this.tmap = new haxe_ds_StringMap();
 		var _g2 = 0;
-		var _g12 = this.data.customTypes;
-		while(_g2 < _g12.length) {
-			var t = _g12[_g2];
+		var _g11 = this.data.customTypes;
+		while(_g2 < _g11.length) {
+			var t = _g11[_g2];
 			++_g2;
 			var _this = this.tmap;
 			var key = t.name;
-			if(__map_reserved[key] != null) _this.setReserved(key,t); else _this.h[key] = t;
+			if(__map_reserved[key] != null) {
+				_this.setReserved(key,t);
+			} else {
+				_this.h[key] = t;
+			}
 		}
 	}
 	,sortById: function(a,b) {
-		if(a.disp > b.disp) return 1; else return -1;
+		if(a.disp > b.disp) {
+			return 1;
+		} else {
+			return -1;
+		}
 	}
 	,makeSheet: function(s) {
 		var sdat = { s : s, index : new haxe_ds_StringMap(), all : []};
-		var cid = null;
 		var lines = SheetData.getLines(s);
 		var _g = 0;
 		var _g1 = s.columns;
@@ -3890,16 +4161,22 @@ Model.prototype = {
 						var ico = null;
 						if(s.props.displayColumn != null) {
 							disp = Reflect.field(l,s.props.displayColumn);
-							if(disp == null || disp == "") disp = "#" + v;
+							if(disp == null || disp == "") {
+								disp = "#" + v;
+							}
 						}
-						if(s.props.displayIcon != null) ico = Reflect.field(l,s.props.displayIcon);
+						if(s.props.displayIcon != null) {
+							ico = Reflect.field(l,s.props.displayIcon);
+						}
 						var o = { id : v, disp : disp, ico : ico, obj : l};
-						var tmp;
 						var _this = sdat.index;
-						if(__map_reserved[v] != null) tmp = _this.getReserved(v); else tmp = _this.h[v];
-						if(tmp == null) {
+						if((__map_reserved[v] != null?_this.getReserved(v):_this.h[v]) == null) {
 							var _this1 = sdat.index;
-							if(__map_reserved[v] != null) _this1.setReserved(v,o); else _this1.h[v] = o;
+							if(__map_reserved[v] != null) {
+								_this1.setReserved(v,o);
+							} else {
+								_this1.h[v] = o;
+							}
 						}
 						sdat.all.push(o);
 					}
@@ -3910,10 +4187,16 @@ Model.prototype = {
 		}
 		var _this2 = this.smap;
 		var key = s.name;
-		if(__map_reserved[key] != null) _this2.setReserved(key,sdat); else _this2.h[key] = sdat;
+		if(__map_reserved[key] != null) {
+			_this2.setReserved(key,sdat);
+		} else {
+			_this2.h[key] = sdat;
+		}
 	}
 	,cleanImages: function() {
-		if(this.imageBank == null) return;
+		if(this.imageBank == null) {
+			return;
+		}
 		var used = new haxe_ds_StringMap();
 		var _g = 0;
 		var _g1 = this.data.sheets;
@@ -3925,36 +4208,40 @@ Model.prototype = {
 			while(_g2 < _g3.length) {
 				var c = _g3[_g2];
 				++_g2;
-				var _g4 = c.type;
-				switch(_g4[1]) {
-				case 7:
-					var _g5 = 0;
-					var _g6 = SheetData.getLines(s);
-					while(_g5 < _g6.length) {
-						var obj = _g6[_g5];
-						++_g5;
+				if(c.type[1] == 7) {
+					var _g4 = 0;
+					var _g5 = SheetData.getLines(s);
+					while(_g4 < _g5.length) {
+						var obj = _g5[_g4];
+						++_g4;
 						var v = Reflect.field(obj,c.name);
 						if(v != null) {
-							if(__map_reserved[v] != null) used.setReserved(v,true); else used.h[v] = true;
+							if(__map_reserved[v] != null) {
+								used.setReserved(v,true);
+							} else {
+								used.h[v] = true;
+							}
 						}
 					}
-					break;
-				default:
 				}
 			}
 		}
-		var _g7 = 0;
-		var _g17 = Reflect.fields(this.imageBank);
-		while(_g7 < _g17.length) {
-			var f = _g17[_g7];
-			++_g7;
-			if(!(__map_reserved[f] != null?used.getReserved(f):used.h[f])) Reflect.deleteField(this.imageBank,f);
+		var _g6 = 0;
+		var _g11 = Reflect.fields(this.imageBank);
+		while(_g6 < _g11.length) {
+			var f = _g11[_g6];
+			++_g6;
+			if(!(__map_reserved[f] != null?used.getReserved(f):used.h[f])) {
+				Reflect.deleteField(this.imageBank,f);
+			}
 		}
 	}
 	,loadPrefs: function() {
 		try {
 			this.prefs = haxe_Unserializer.run(js_Browser.getLocalStorage().getItem("prefs"));
-			if(this.prefs.recent == null) this.prefs.recent = [];
+			if(this.prefs.recent == null) {
+				this.prefs.recent = [];
+			}
 		} catch( e ) {
 		}
 	}
@@ -3962,51 +4249,72 @@ Model.prototype = {
 		js_Browser.getLocalStorage().setItem("prefs",haxe_Serializer.run(this.prefs));
 	}
 	,valToString: function(t,val,esc) {
-		if(esc == null) esc = false;
-		if(val == null) return "null";
+		if(esc == null) {
+			esc = false;
+		}
+		if(val == null) {
+			return "null";
+		}
 		switch(t[1]) {
-		case 3:case 4:case 2:case 7:
-			return Std.string(val);
-		case 0:case 6:case 12:case 13:
-			if(esc) return "\"" + Std.string(val) + "\""; else return val;
-			break;
 		case 1:
 			var val1 = val;
-			if(new EReg("^[A-Za-z0-9_]+$","g").match(val1) && !esc) return val1; else return "\"" + val1.split("\\").join("\\\\").split("\"").join("\\\"") + "\"";
+			if(new EReg("^[A-Za-z0-9_]+$","g").match(val1) && !esc) {
+				return val1;
+			} else {
+				return "\"" + val1.split("\\").join("\\\\").split("\"").join("\\\"") + "\"";
+			}
 			break;
+		case 2:case 3:case 4:case 7:
+			return Std.string(val);
 		case 5:
-			var values = t[2];
-			return this.valToString(cdb_ColumnType.TString,values[val],esc);
+			return this.valToString(cdb_ColumnType.TString,t[2][val],esc);
+		case 0:case 6:case 12:case 13:
+			if(esc) {
+				return "\"" + Std.string(val) + "\"";
+			} else {
+				return val;
+			}
+			break;
+		case 8:case 17:
+			return "???";
 		case 9:
 			var t1 = t[2];
-			var tmp;
 			var _this = this.tmap;
-			if(__map_reserved[t1] != null) tmp = _this.getReserved(t1); else tmp = _this.h[t1];
-			return this.typeValToString(tmp,val,esc);
+			return this.typeValToString(__map_reserved[t1] != null?_this.getReserved(t1):_this.h[t1],val,esc);
 		case 10:
-			var values1 = t[2];
+			var values = t[2];
 			var v = val;
 			var flags = [];
 			var _g1 = 0;
-			var _g = values1.length;
+			var _g = values.length;
 			while(_g1 < _g) {
 				var i = _g1++;
-				if((v & 1 << i) != 0) flags.push(this.valToString(cdb_ColumnType.TString,values1[i],esc));
+				if((v & 1 << i) != 0) {
+					flags.push(this.valToString(cdb_ColumnType.TString,values[i],esc));
+				}
 			}
 			return Std.string(flags);
 		case 11:
 			var s = "#" + StringTools.hex(val,6);
-			if(esc) return "\"" + s + "\""; else return s;
+			if(esc) {
+				return "\"" + s + "\"";
+			} else {
+				return s;
+			}
 			break;
-		case 15:case 16:case 14:
-			if(esc) return JSON.stringify(val); else return Std.string(val);
+		case 14:case 15:case 16:
+			if(esc) {
+				return JSON.stringify(val);
+			} else {
+				return Std.string(val);
+			}
 			break;
-		case 17:case 8:
-			return "???";
 		}
 	}
 	,typeValToString: function(t,val,esc) {
-		if(esc == null) esc = false;
+		if(esc == null) {
+			esc = false;
+		}
 		var c = t.cases[val[0]];
 		var str = c.name;
 		if(c.args.length > 0) {
@@ -4026,20 +4334,15 @@ Model.prototype = {
 	,typeStr: function(t) {
 		switch(t[1]) {
 		case 6:
-			var n = t[2];
-			return n;
+			return t[2];
 		case 9:
-			var n1 = t[2];
-			return n1;
+			return t[2];
 		default:
 			return HxOverrides.substr(Std.string(t),1,null);
 		}
 	}
 	,parseVal: function(t,val) {
 		switch(t[1]) {
-		case 3:
-			if(new EReg("^-?[0-9]+$","").match(val)) return Std.parseInt(val);
-			break;
 		case 1:
 			if(HxOverrides.cca(val,0) == 34) {
 				var esc = false;
@@ -4047,60 +4350,85 @@ Model.prototype = {
 				var out_b = "";
 				try {
 					while(true) {
-						if(p == val.length) throw new js__$Boot_HaxeError("Unclosed \"");
+						if(p == val.length) {
+							throw new js__$Boot_HaxeError("Unclosed \"");
+						}
 						var c = HxOverrides.cca(val,p++);
 						if(esc) {
 							out_b += String.fromCharCode(c);
 							esc = false;
-						} else if(c != null) switch(c) {
-						case 34:
-							if(p < val.length) throw new js__$Boot_HaxeError("Invalid content after string '" + val);
-							throw "__break__";
-							break;
-						case 92:
-							esc = true;
-							break;
-						default:
+						} else if(c == null) {
 							out_b += String.fromCharCode(c);
-						} else out_b += String.fromCharCode(c);
+						} else {
+							switch(c) {
+							case 34:
+								if(p < val.length) {
+									throw new js__$Boot_HaxeError("Invalid content after string '" + val);
+								}
+								throw "__break__";
+								break;
+							case 92:
+								esc = true;
+								break;
+							default:
+								out_b += String.fromCharCode(c);
+							}
+						}
 					}
 				} catch( e ) { if( e != "__break__" ) throw e; }
 				return out_b;
-			} else if(new EReg("^[A-Za-z0-9_]+$","").match(val)) return val;
+			} else if(new EReg("^[A-Za-z0-9_]+$","").match(val)) {
+				return val;
+			}
 			throw new js__$Boot_HaxeError("String requires quotes '" + val + "'");
 			break;
 		case 2:
-			if(val == "true") return true;
-			if(val == "false") return false;
+			if(val == "true") {
+				return true;
+			}
+			if(val == "false") {
+				return false;
+			}
+			break;
+		case 3:
+			if(new EReg("^-?[0-9]+$","").match(val)) {
+				return Std.parseInt(val);
+			}
 			break;
 		case 4:
 			var f = parseFloat(val);
-			if(!isNaN(f)) return f;
+			if(!isNaN(f)) {
+				return f;
+			}
 			break;
-		case 9:
-			var t1 = t[2];
-			var tmp;
-			var _this = this.tmap;
-			if(__map_reserved[t1] != null) tmp = _this.getReserved(t1); else tmp = _this.h[t1];
-			return this.parseTypeVal(tmp,val);
 		case 6:
-			var t2 = t[2];
-			var tmp2;
-			var _this2 = this.smap;
-			if(__map_reserved[t2] != null) tmp2 = _this2.getReserved(t2); else tmp2 = _this2.h[t2];
-			var r = tmp2.index.get(val);
-			if(r == null) throw new js__$Boot_HaxeError(val + " is not a known " + t2 + " id");
+			var t1 = t[2];
+			var _this = this.smap;
+			var r = (__map_reserved[t1] != null?_this.getReserved(t1):_this.h[t1]).index.get(val);
+			if(r == null) {
+				throw new js__$Boot_HaxeError(val + " is not a known " + t1 + " id");
+			}
 			return r.id;
+		case 9:
+			var t2 = t[2];
+			var _this1 = this.tmap;
+			return this.parseTypeVal(__map_reserved[t2] != null?_this1.getReserved(t2):_this1.h[t2],val);
 		case 11:
-			if(val.charAt(0) == "#") val = "0x" + HxOverrides.substr(val,1,null);
-			if(new EReg("^-?[0-9]+$","").match(val) || new EReg("^0x[0-9A-Fa-f]+$","").match(val)) return Std.parseInt(val);
+			if(val.charAt(0) == "#") {
+				val = "0x" + HxOverrides.substr(val,1,null);
+			}
+			if(new EReg("^-?[0-9]+$","").match(val) || new EReg("^0x[0-9A-Fa-f]+$","").match(val)) {
+				return Std.parseInt(val);
+			}
 			break;
 		default:
 		}
 		throw new js__$Boot_HaxeError("'" + val + "' should be " + this.typeStr(t));
 	}
 	,parseTypeVal: function(t,val) {
-		if(t == null || val == null) throw new js__$Boot_HaxeError("Missing val/type");
+		if(t == null || val == null) {
+			throw new js__$Boot_HaxeError("Missing val/type");
+		}
 		val = StringTools.trim(val);
 		var missingCloseParent = false;
 		var pos = val.indexOf("(");
@@ -4112,85 +4440,111 @@ Model.prototype = {
 		} else {
 			id = HxOverrides.substr(val,0,pos);
 			val = HxOverrides.substr(val,pos + 1,null);
-			if(StringTools.endsWith(val,")")) val = HxOverrides.substr(val,0,val.length - 1); else missingCloseParent = true;
+			if(StringTools.endsWith(val,")")) {
+				val = HxOverrides.substr(val,0,val.length - 1);
+			} else {
+				missingCloseParent = true;
+			}
 			args = [];
 			var p = 0;
 			var start = 0;
 			var pc = 0;
 			while(p < val.length) {
 				var _g = HxOverrides.cca(val,p++);
-				if(_g != null) switch(_g) {
-				case 40:
-					++pc;
-					break;
-				case 41:
-					if(pc == 0) throw new js__$Boot_HaxeError("Extra )");
-					--pc;
-					break;
-				case 34:
-					var esc = false;
-					try {
-						while(true) {
-							if(p == val.length) throw new js__$Boot_HaxeError("Unclosed \"");
-							var c = HxOverrides.cca(val,p++);
-							if(esc) esc = false; else if(c != null) switch(c) {
-							case 34:
-								throw "__break__";
-								break;
-							case 92:
-								esc = true;
-								break;
+				if(_g != null) {
+					switch(_g) {
+					case 34:
+						var esc = false;
+						try {
+							while(true) {
+								if(p == val.length) {
+									throw new js__$Boot_HaxeError("Unclosed \"");
+								}
+								var c = HxOverrides.cca(val,p++);
+								if(esc) {
+									esc = false;
+								} else {
+									switch(c) {
+									case 34:
+										throw "__break__";
+										break;
+									case 92:
+										esc = true;
+										break;
+									}
+								}
 							}
+						} catch( e ) { if( e != "__break__" ) throw e; }
+						break;
+					case 40:
+						++pc;
+						break;
+					case 41:
+						if(pc == 0) {
+							throw new js__$Boot_HaxeError("Extra )");
 						}
-					} catch( e ) { if( e != "__break__" ) throw e; }
-					break;
-				case 44:
-					if(pc == 0) {
-						args.push(HxOverrides.substr(val,start,p - start - 1));
-						start = p;
+						--pc;
+						break;
+					case 44:
+						if(pc == 0) {
+							args.push(HxOverrides.substr(val,start,p - start - 1));
+							start = p;
+						}
+						break;
+					default:
 					}
-					break;
-				default:
 				}
 			}
-			if(pc > 0) missingCloseParent = true;
-			if(p > start || start > 0 && p == start) args.push(HxOverrides.substr(val,start,p - start));
+			if(pc > 0) {
+				missingCloseParent = true;
+			}
+			if(p > start || start > 0 && p == start) {
+				args.push(HxOverrides.substr(val,start,p - start));
+			}
 		}
 		var _g1 = 0;
 		var _g2 = t.cases.length;
 		while(_g1 < _g2) {
 			var i = _g1++;
-			var c2 = t.cases[i];
-			if(c2.name == id) {
+			var c1 = t.cases[i];
+			if(c1.name == id) {
 				var vals = [i];
-				var _g22 = 0;
-				var _g3 = c2.args;
-				while(_g22 < _g3.length) {
-					var a = _g3[_g22];
-					++_g22;
+				var _g21 = 0;
+				var _g3 = c1.args;
+				while(_g21 < _g3.length) {
+					var a = _g3[_g21];
+					++_g21;
 					var v = args.shift();
 					if(v == null) {
-						if(a.opt) vals.push(null); else throw new js__$Boot_HaxeError("Missing argument " + a.name + " : " + this.typeStr(a.type));
+						if(a.opt) {
+							vals.push(null);
+						} else {
+							throw new js__$Boot_HaxeError("Missing argument " + a.name + " : " + this.typeStr(a.type));
+						}
 					} else {
 						v = StringTools.trim(v);
 						if(a.opt && v == "null") {
 							vals.push(null);
 							continue;
 						}
-						var val2;
+						var val1;
 						try {
-							val2 = this.parseVal(a.type,v);
+							val1 = this.parseVal(a.type,v);
 						} catch( e ) {
 							if (e instanceof js__$Boot_HaxeError) e = e.val;
 							if( js_Boot.__instanceof(e,String) ) {
 								throw new js__$Boot_HaxeError(e + " for " + a.name);
 							} else throw(e);
 						}
-						vals.push(val2);
+						vals.push(val1);
 					}
 				}
-				if(args.length > 0) throw new js__$Boot_HaxeError("Extra argument '" + args.shift() + "'");
-				if(missingCloseParent) throw new js__$Boot_HaxeError("Missing )");
+				if(args.length > 0) {
+					throw new js__$Boot_HaxeError("Extra argument '" + args.shift() + "'");
+				}
+				if(missingCloseParent) {
+					throw new js__$Boot_HaxeError("Missing )");
+				}
 				while(vals[vals.length - 1] == null) vals.pop();
 				return vals;
 			}
@@ -4199,26 +4553,25 @@ Model.prototype = {
 	}
 	,parseType: function(tstr) {
 		switch(tstr) {
-		case "Int":
-			return cdb_ColumnType.TInt;
-		case "Float":
-			return cdb_ColumnType.TFloat;
 		case "Bool":
 			return cdb_ColumnType.TBool;
+		case "Float":
+			return cdb_ColumnType.TFloat;
+		case "Int":
+			return cdb_ColumnType.TInt;
 		case "String":
 			return cdb_ColumnType.TString;
 		default:
-			var tmp;
 			var _this = this.tmap;
-			if(__map_reserved[tstr] != null) tmp = _this.existsReserved(tstr); else tmp = _this.h.hasOwnProperty(tstr);
-			if(tmp) return cdb_ColumnType.TCustom(tstr); else {
-				var tmp1;
+			if(__map_reserved[tstr] != null?_this.existsReserved(tstr):_this.h.hasOwnProperty(tstr)) {
+				return cdb_ColumnType.TCustom(tstr);
+			} else {
 				var _this1 = this.smap;
-				if(__map_reserved[tstr] != null) tmp1 = _this1.existsReserved(tstr); else tmp1 = _this1.h.hasOwnProperty(tstr);
-				if(tmp1) return cdb_ColumnType.TRef(tstr); else {
+				if(__map_reserved[tstr] != null?_this1.existsReserved(tstr):_this1.h.hasOwnProperty(tstr)) {
+					return cdb_ColumnType.TRef(tstr);
+				} else {
 					if(StringTools.endsWith(tstr,">")) {
-						var tname = tstr.split("<").shift();
-						var tparam = HxOverrides.substr(HxOverrides.substr(tstr,tname.length + 1,null),0,-1);
+						HxOverrides.substr(HxOverrides.substr(tstr,tstr.split("<").shift().length + 1,null),0,-1);
 					}
 					throw new js__$Boot_HaxeError("Unknown type " + tstr);
 				}
@@ -4226,7 +4579,9 @@ Model.prototype = {
 		}
 	}
 	,typeCasesToString: function(t,prefix) {
-		if(prefix == null) prefix = "";
+		if(prefix == null) {
+			prefix = "";
+		}
 		var arr = [];
 		var _g = 0;
 		var _g1 = t.cases;
@@ -4243,7 +4598,9 @@ Model.prototype = {
 					var a = _g3[_g2];
 					++_g2;
 					var k = "";
-					if(a.opt) k += "?";
+					if(a.opt) {
+						k = "?";
+					}
 					k += a.name + " : " + this.typeStr(a.type);
 					out.push(k);
 				}
@@ -4264,15 +4621,23 @@ Model.prototype = {
 			var line = _g1[_g];
 			++_g;
 			var line1 = StringTools.trim(line);
-			if(line1 == "") continue;
-			if(HxOverrides.cca(line1,line1.length - 1) == 59) line1 = HxOverrides.substr(line1,1,null);
+			if(line1 == "") {
+				continue;
+			}
+			if(HxOverrides.cca(line1,line1.length - 1) == 59) {
+				line1 = HxOverrides.substr(line1,1,null);
+			}
 			var pos = line1.indexOf("(");
 			var name = null;
 			var args = [];
-			if(pos < 0) name = line1; else {
+			if(pos < 0) {
+				name = line1;
+			} else {
 				name = HxOverrides.substr(line1,0,pos);
 				line1 = HxOverrides.substr(line1,pos + 1,null);
-				if(HxOverrides.cca(line1,line1.length - 1) != 41) throw new js__$Boot_HaxeError("Missing closing parent in " + line1);
+				if(HxOverrides.cca(line1,line1.length - 1) != 41) {
+					throw new js__$Boot_HaxeError("Missing closing parent in " + line1);
+				}
 				line1 = HxOverrides.substr(line1,0,line1.length - 1);
 				var _g2 = 0;
 				var _g3 = line1.split(",");
@@ -4280,7 +4645,9 @@ Model.prototype = {
 					var arg = _g3[_g2];
 					++_g2;
 					var tname = arg.split(":");
-					if(tname.length != 2) throw new js__$Boot_HaxeError("Required name:type in '" + arg + "'");
+					if(tname.length != 2) {
+						throw new js__$Boot_HaxeError("Required name:type in '" + arg + "'");
+					}
 					var opt = false;
 					var id = StringTools.trim(tname[0]);
 					if(id.charAt(0) == "?") {
@@ -4288,15 +4655,27 @@ Model.prototype = {
 						id = StringTools.trim(HxOverrides.substr(id,1,null));
 					}
 					var t = StringTools.trim(tname[1]);
-					if(!this.r_ident.match(id)) throw new js__$Boot_HaxeError("Invalid identifier " + id);
+					if(!this.r_ident.match(id)) {
+						throw new js__$Boot_HaxeError("Invalid identifier " + id);
+					}
 					var c = { name : id, type : this.parseType(t), typeStr : null};
-					if(opt) c.opt = true;
+					if(opt) {
+						c.opt = true;
+					}
 					args.push(c);
 				}
 			}
-			if(!this.r_ident.match(name)) throw new js__$Boot_HaxeError("Invalid identifier " + line1);
-			if(__map_reserved[name] != null?cmap.existsReserved(name):cmap.h.hasOwnProperty(name)) throw new js__$Boot_HaxeError("Duplicate identifier " + name);
-			if(__map_reserved[name] != null) cmap.setReserved(name,true); else cmap.h[name] = true;
+			if(!this.r_ident.match(name)) {
+				throw new js__$Boot_HaxeError("Invalid identifier " + line1);
+			}
+			if(__map_reserved[name] != null?cmap.existsReserved(name):cmap.h.hasOwnProperty(name)) {
+				throw new js__$Boot_HaxeError("Duplicate identifier " + name);
+			}
+			if(__map_reserved[name] != null) {
+				cmap.setReserved(name,true);
+			} else {
+				cmap.h[name] = true;
+			}
 			cases.push({ name : name, args : args});
 		}
 		return cases;
@@ -4313,11 +4692,10 @@ Model.prototype = {
 			while(_g1_head != null) {
 				var val = _g1_head.item;
 				_g1_head = _g1_head.next;
-				var b = val;
-				if(a.name == b.name) {
-					pairs.push({ a : a, b : b});
+				if(a.name == val.name) {
+					pairs.push({ a : a, b : val});
 					oldL.remove(a);
-					newL.remove(b);
+					newL.remove(val);
 					break;
 				}
 			}
@@ -4326,16 +4704,14 @@ Model.prototype = {
 		while(_g_head != null) {
 			var val1 = _g_head.item;
 			_g_head = _g_head.next;
-			var a1 = val1;
 			var _g_head1 = newL.h;
 			while(_g_head1 != null) {
 				var val2 = _g_head1.item;
 				_g_head1 = _g_head1.next;
-				var b2 = val2;
-				if(Lambda.indexOf(oldA,a1) == Lambda.indexOf(newA,b2)) {
-					pairs.push({ a : a1, b : b2});
-					oldL.remove(a1);
-					newL.remove(b2);
+				if(Lambda.indexOf(oldA,val1) == Lambda.indexOf(newA,val2)) {
+					pairs.push({ a : val1, b : val2});
+					oldL.remove(val1);
+					newL.remove(val2);
 					break;
 				}
 			}
@@ -4344,8 +4720,7 @@ Model.prototype = {
 		while(_g_head2 != null) {
 			var val3 = _g_head2.item;
 			_g_head2 = _g_head2.next;
-			var a3 = val3;
-			pairs.push({ a : a3, b : null});
+			pairs.push({ a : val3, b : null});
 		}
 		return pairs;
 	}
@@ -4368,23 +4743,23 @@ Model.prototype = {
 			}
 		}
 		var _g4 = 0;
-		var _g14 = this.data.customTypes;
-		while(_g4 < _g14.length) {
-			var t4 = _g14[_g4];
+		var _g11 = this.data.customTypes;
+		while(_g4 < _g11.length) {
+			var t1 = _g11[_g4];
 			++_g4;
-			var _g24 = 0;
-			var _g34 = t4.cases;
-			while(_g24 < _g34.length) {
-				var c4 = _g34[_g24];
-				++_g24;
-				var _g44 = 0;
-				var _g5 = c4.args;
-				while(_g44 < _g5.length) {
-					var a = _g5[_g44];
-					++_g44;
-					var t5 = callb(a.type);
-					if(t5 != a.type) {
-						a.type = t5;
+			var _g21 = 0;
+			var _g31 = t1.cases;
+			while(_g21 < _g31.length) {
+				var c1 = _g31[_g21];
+				++_g21;
+				var _g41 = 0;
+				var _g5 = c1.args;
+				while(_g41 < _g5.length) {
+					var a = _g5[_g41];
+					++_g41;
+					var t2 = callb(a.type);
+					if(t2 != a.type) {
+						a.type = t2;
 						a.typeStr = null;
 					}
 				}
@@ -4392,7 +4767,7 @@ Model.prototype = {
 		}
 	}
 	,updateRefs: function(sheet,refMap) {
-		var _g3 = this;
+		var _gthis = this;
 		var convertTypeRec = null;
 		convertTypeRec = function(t,o) {
 			var c = t.cases[o[0]];
@@ -4401,73 +4776,75 @@ Model.prototype = {
 			while(_g1 < _g) {
 				var i = _g1++;
 				var v = o[i + 1];
-				if(v == null) continue;
+				if(v == null) {
+					continue;
+				}
 				var _g2 = c.args[i].type;
 				switch(_g2[1]) {
 				case 6:
-					var n = _g2[2];
-					if(n == sheet.name) {
-						var tmp;
+					if(_g2[2] == sheet.name) {
 						var key = v;
-						if(__map_reserved[key] != null) tmp = refMap.getReserved(key); else tmp = refMap.h[key];
-						var v1 = tmp;
-						if(v1 == null) continue;
+						var v1 = __map_reserved[key] != null?refMap.getReserved(key):refMap.h[key];
+						if(v1 == null) {
+							continue;
+						}
 						o[i + 1] = v1;
 					}
 					break;
 				case 9:
 					var name = _g2[2];
-					var tmp1;
-					var _this = _g3.tmap;
-					if(__map_reserved[name] != null) tmp1 = _this.getReserved(name); else tmp1 = _this.h[name];
-					convertTypeRec(tmp1,v);
+					var _this = _gthis.tmap;
+					convertTypeRec(__map_reserved[name] != null?_this.getReserved(name):_this.h[name],v);
 					break;
 				default:
 				}
 			}
 		};
 		var convertTypeRec1 = convertTypeRec;
-		var _g4 = 0;
-		var _g14 = this.data.sheets;
-		while(_g4 < _g14.length) {
-			var s = _g14[_g4];
-			++_g4;
-			var _g24 = 0;
-			var _g34 = s.columns;
-			while(_g24 < _g34.length) {
-				var c4 = _g34[_g24];
-				++_g24;
-				var _g44 = c4.type;
-				switch(_g44[1]) {
+		var _g3 = 0;
+		var _g11 = this.data.sheets;
+		while(_g3 < _g11.length) {
+			var s = _g11[_g3];
+			++_g3;
+			var _g21 = 0;
+			var _g31 = s.columns;
+			while(_g21 < _g31.length) {
+				var c1 = _g31[_g21];
+				++_g21;
+				var _g4 = c1.type;
+				switch(_g4[1]) {
 				case 6:
-					var n4 = _g44[2];
-					if(n4 == sheet.name) {
-						var _g5 = 0;
-						var _g6 = SheetData.getLines(s);
-						while(_g5 < _g6.length) {
-							var obj = _g6[_g5];
-							++_g5;
-							var id = Reflect.field(obj,c4.name);
-							if(id == null) continue;
+					if(_g4[2] == sheet.name) {
+						var _g41 = 0;
+						var _g5 = SheetData.getLines(s);
+						while(_g41 < _g5.length) {
+							var obj = _g5[_g41];
+							++_g41;
+							var id = Reflect.field(obj,c1.name);
+							if(id == null) {
+								continue;
+							}
 							id = __map_reserved[id] != null?refMap.getReserved(id):refMap.h[id];
-							if(id == null) continue;
-							obj[c4.name] = id;
+							if(id == null) {
+								continue;
+							}
+							obj[c1.name] = id;
 						}
 					}
 					break;
 				case 9:
-					var t4 = _g44[2];
-					var _g54 = 0;
-					var _g64 = SheetData.getLines(s);
-					while(_g54 < _g64.length) {
-						var obj4 = _g64[_g54];
-						++_g54;
-						var o4 = Reflect.field(obj4,c4.name);
-						if(o4 == null) continue;
-						var tmp4;
-						var _this4 = this.tmap;
-						if(__map_reserved[t4] != null) tmp4 = _this4.getReserved(t4); else tmp4 = _this4.h[t4];
-						convertTypeRec1(tmp4,o4);
+					var t1 = _g4[2];
+					var _g42 = 0;
+					var _g51 = SheetData.getLines(s);
+					while(_g42 < _g51.length) {
+						var obj1 = _g51[_g42];
+						++_g42;
+						var o1 = Reflect.field(obj1,c1.name);
+						if(o1 == null) {
+							continue;
+						}
+						var _this1 = this.tmap;
+						convertTypeRec1(__map_reserved[t1] != null?_this1.getReserved(t1):_this1.h[t1],o1);
 					}
 					break;
 				default:
@@ -4476,16 +4853,17 @@ Model.prototype = {
 		}
 	}
 	,updateType: function(old,t) {
-		var _g2 = this;
+		var _gthis = this;
 		var casesPairs = this.makePairs(old.cases,t.cases);
 		var convMap = [];
 		var _g = 0;
 		while(_g < casesPairs.length) {
 			var p = casesPairs[_g];
 			++_g;
-			if(p.b == null) continue;
-			var id = Lambda.indexOf(t.cases,p.b);
-			var conv = { def : [id], args : []};
+			if(p.b == null) {
+				continue;
+			}
+			var conv = { def : [Lambda.indexOf(t.cases,p.b)], args : []};
 			var args = this.makePairs(p.a.args,p.b.args);
 			var _g1 = 0;
 			while(_g1 < args.length) {
@@ -4502,168 +4880,186 @@ Model.prototype = {
 				var b = [a.b];
 				var a1 = a.a;
 				var c = this.getConvFunction(a1.type,b[0].type);
-				if(c == null) throw new js__$Boot_HaxeError("Cannot convert " + p.a.name + "." + a1.name + ":" + this.typeStr(a1.type) + " to " + p.b.name + "." + b[0].name + ":" + this.typeStr(b[0].type));
+				if(c == null) {
+					throw new js__$Boot_HaxeError("Cannot convert " + p.a.name + "." + a1.name + ":" + this.typeStr(a1.type) + " to " + p.b.name + "." + b[0].name + ":" + this.typeStr(b[0].type));
+				}
 				var f = [c.f];
-				if(f[0] == null) f[0] = (function() {
-					return function(x) {
-						return x;
-					};
-				})();
+				if(f[0] == null) {
+					f[0] = (function() {
+						return function(x) {
+							return x;
+						};
+					})();
+				}
 				if(a1.opt != b[0].opt) {
 					var oldf = [f[0]];
-					if(a1.opt) f[0] = (function(oldf1,b1) {
-						return function(v) {
-							v = oldf1[0](v);
-							if(v == null) return _g2.getDefault(b1[0]); else return v;
-						};
-					})(oldf,b); else {
+					if(a1.opt) {
+						f[0] = (function(oldf1,b1) {
+							return function(v) {
+								v = oldf1[0](v);
+								if(v == null) {
+									return _gthis.getDefault(b1[0]);
+								} else {
+									return v;
+								}
+							};
+						})(oldf,b);
+					} else {
 						var def = [this.getDefault(a1)];
 						f[0] = (function(def1,oldf2) {
-							return function(v2) {
-								if(v2 == def1[0]) return null; else return oldf2[0](v2);
+							return function(v1) {
+								if(v1 == def1[0]) {
+									return null;
+								} else {
+									return oldf2[0](v1);
+								}
 							};
 						})(def,oldf);
 					}
 				}
 				var index = [Lambda.indexOf(p.b.args,b[0])];
-				conv.args[Lambda.indexOf(p.a.args,a1)] = (function(index2,f2,b2) {
-					return function(v3) {
-						v3 = f2[0](v3);
-						if(v3 == null && b2[0].opt) return null; else return { index : index2[0], v : v3};
+				conv.args[Lambda.indexOf(p.a.args,a1)] = (function(index1,f1,b2) {
+					return function(v2) {
+						v2 = f1[0](v2);
+						if(v2 == null && b2[0].opt) {
+							return null;
+						} else {
+							return { index : index1[0], v : v2};
+						}
 					};
 				})(index,f,b);
 			}
-			var _g13 = 0;
-			var _g23 = p.b.args;
-			while(_g13 < _g23.length) {
-				var b3 = _g23[_g13];
-				++_g13;
+			var _g11 = 0;
+			var _g2 = p.b.args;
+			while(_g11 < _g2.length) {
+				var b3 = _g2[_g11];
+				++_g11;
 				conv.def.push(this.getDefault(b3));
 			}
 			while(conv.def[conv.def.length - 1] == null) conv.def.pop();
 			convMap[Lambda.indexOf(old.cases,p.a)] = conv;
 		}
 		var convertTypeRec = null;
-		convertTypeRec = function(t3,v4) {
-			if(t3 == null) return null;
-			if(t3 == old) {
-				var conv4 = convMap[v4[0]];
-				if(conv4 == null) return null;
-				var out = conv4.def.slice();
-				var _g14 = 0;
-				var _g4 = conv4.args.length;
-				while(_g14 < _g4) {
-					var i = _g14++;
-					var v5 = conv4.args[i](v4[i + 1]);
-					if(v5 == null) continue;
-					out[v5.index + 1] = v5.v;
+		convertTypeRec = function(t1,v3) {
+			if(t1 == null) {
+				return null;
+			}
+			if(t1 == old) {
+				var conv1 = convMap[v3[0]];
+				if(conv1 == null) {
+					return null;
+				}
+				var out = conv1.def.slice();
+				var _g12 = 0;
+				var _g3 = conv1.args.length;
+				while(_g12 < _g3) {
+					var i = _g12++;
+					var v4 = conv1.args[i](v3[i + 1]);
+					if(v4 == null) {
+						continue;
+					}
+					out[v4.index + 1] = v4.v;
 				}
 				return out;
 			}
-			var c4 = t3.cases[v4[0]];
-			var _g15 = 0;
-			var _g5 = c4.args.length;
-			while(_g15 < _g5) {
-				var i5 = _g15++;
-				var _g25 = c4.args[i5].type;
-				switch(_g25[1]) {
-				case 9:
-					var tname = _g25[2];
-					var av = v4[i5 + 1];
+			var c1 = t1.cases[v3[0]];
+			var _g13 = 0;
+			var _g4 = c1.args.length;
+			while(_g13 < _g4) {
+				var i1 = _g13++;
+				var _g21 = c1.args[i1].type;
+				if(_g21[1] == 9) {
+					var tname = _g21[2];
+					var av = v3[i1 + 1];
 					if(av != null) {
-						var tmp = i5 + 1;
-						var tmp5;
-						var _this = _g2.tmap;
-						if(__map_reserved[tname] != null) tmp5 = _this.getReserved(tname); else tmp5 = _this.h[tname];
-						v4[tmp] = convertTypeRec(tmp5,av);
+						var tmp = i1 + 1;
+						var _this = _gthis.tmap;
+						v3[tmp] = convertTypeRec(__map_reserved[tname] != null?_this.getReserved(tname):_this.h[tname],av);
 					}
-					break;
-				default:
 				}
 			}
-			return v4;
+			return v3;
 		};
 		var convertTypeRec1 = convertTypeRec;
-		var _g6 = 0;
-		var _g16 = this.data.sheets;
-		while(_g6 < _g16.length) {
-			var s = _g16[_g6];
-			++_g6;
-			var _g26 = 0;
-			var _g3 = s.columns;
-			while(_g26 < _g3.length) {
-				var c6 = _g3[_g26];
-				++_g26;
-				var _g46 = c6.type;
-				switch(_g46[1]) {
-				case 9:
-					var tname6 = _g46[2];
-					var tmp6;
-					var _this6 = this.tmap;
-					if(__map_reserved[tname6] != null) tmp6 = _this6.getReserved(tname6); else tmp6 = _this6.h[tname6];
-					var t2 = tmp6;
-					var _g56 = 0;
-					var _g66 = SheetData.getLines(s);
-					while(_g56 < _g66.length) {
-						var obj = _g66[_g56];
-						++_g56;
-						var v6 = Reflect.field(obj,c6.name);
-						if(v6 != null) {
-							v6 = convertTypeRec1(t2,v6);
-							if(v6 == null) Reflect.deleteField(obj,c6.name); else obj[c6.name] = v6;
+		var _g5 = 0;
+		var _g14 = this.data.sheets;
+		while(_g5 < _g14.length) {
+			var s = _g14[_g5];
+			++_g5;
+			var _g22 = 0;
+			var _g31 = s.columns;
+			while(_g22 < _g31.length) {
+				var c2 = _g31[_g22];
+				++_g22;
+				var _g41 = c2.type;
+				if(_g41[1] == 9) {
+					var tname1 = _g41[2];
+					var _this1 = this.tmap;
+					var t2 = __map_reserved[tname1] != null?_this1.getReserved(tname1):_this1.h[tname1];
+					var _g42 = 0;
+					var _g51 = SheetData.getLines(s);
+					while(_g42 < _g51.length) {
+						var obj = _g51[_g42];
+						++_g42;
+						var v5 = Reflect.field(obj,c2.name);
+						if(v5 != null) {
+							v5 = convertTypeRec1(t2,v5);
+							if(v5 == null) {
+								Reflect.deleteField(obj,c2.name);
+							} else {
+								obj[c2.name] = v5;
+							}
 						}
 					}
-					if(tname6 == old.name && t.name != old.name) {
-						c6.type = cdb_ColumnType.TCustom(t.name);
-						c6.typeStr = null;
+					if(tname1 == old.name && t.name != old.name) {
+						c2.type = cdb_ColumnType.TCustom(t.name);
+						c2.typeStr = null;
 					}
-					break;
-				default:
 				}
 			}
 		}
 		if(t.name != old.name) {
-			var _g7 = 0;
-			var _g17 = this.data.customTypes;
-			while(_g7 < _g17.length) {
-				var t27 = _g17[_g7];
-				++_g7;
-				var _g27 = 0;
-				var _g37 = t27.cases;
-				while(_g27 < _g37.length) {
-					var c7 = _g37[_g27];
-					++_g27;
-					var _g47 = 0;
-					var _g57 = c7.args;
-					while(_g47 < _g57.length) {
-						var a7 = _g57[_g47];
-						++_g47;
-						var _g67 = a7.type;
-						switch(_g67[1]) {
-						case 9:
-							var n = _g67[2];
-							if(n == old.name) {
-								a7.type = cdb_ColumnType.TCustom(t.name);
-								a7.typeStr = null;
+			var _g6 = 0;
+			var _g15 = this.data.customTypes;
+			while(_g6 < _g15.length) {
+				var t21 = _g15[_g6];
+				++_g6;
+				var _g23 = 0;
+				var _g32 = t21.cases;
+				while(_g23 < _g32.length) {
+					var c3 = _g32[_g23];
+					++_g23;
+					var _g43 = 0;
+					var _g52 = c3.args;
+					while(_g43 < _g52.length) {
+						var a2 = _g52[_g43];
+						++_g43;
+						var _g61 = a2.type;
+						if(_g61[1] == 9) {
+							if(_g61[2] == old.name) {
+								a2.type = cdb_ColumnType.TCustom(t.name);
+								a2.typeStr = null;
 							}
-							break;
-						default:
 						}
 					}
 				}
 			}
 			this.tmap.remove(old.name);
 			old.name = t.name;
-			var _this7 = this.tmap;
+			var _this2 = this.tmap;
 			var key = old.name;
-			if(__map_reserved[key] != null) _this7.setReserved(key,old); else _this7.h[key] = old;
+			if(__map_reserved[key] != null) {
+				_this2.setReserved(key,old);
+			} else {
+				_this2.h[key] = old;
+			}
 		}
 		old.cases = t.cases;
 	}
 	,__class__: Model
 };
 var Main = function() {
-	var _g = this;
+	var _gthis = this;
 	Model.call(this);
 	this.window = js_node_webkit_Window.get();
 	this.window.on("resize",$bind(this,this.onResize));
@@ -4688,34 +5084,40 @@ var Main = function() {
 			$("#search i").click();
 			return;
 		}
-	}).keyup(function(_2) {
-		_g.searchFilter($(this).val());
+	}).keyup(function(_1) {
+		_gthis.searchFilter($(this).val());
 	});
-	$("#search i").click(function(_3) {
-		_g.searchFilter(null);
+	$("#search i").click(function(_2) {
+		_gthis.searchFilter(null);
 		$("#search").toggle();
 	});
 	this.cursor = { s : null, x : 0, y : 0};
 	this.pages = new JqPages(this);
 	this.load(true);
-	var t = new haxe_Timer(1000);
-	t.run = $bind(this,this.checkTime);
+	new haxe_Timer(1000).run = $bind(this,this.checkTime);
 };
 $hxClasses["Main"] = Main;
 Main.__name__ = ["Main"];
 Main.main = function() {
-	if(js_node_Fs.accessSync == null) js_node_Fs.accessSync = function(path) {
-		if(!js_node_Fs.existsSync(path)) throw new js__$Boot_HaxeError(path + " does not exists");
-	};
+	if(js_node_Fs.accessSync == null) {
+		js_node_Fs.accessSync = function(path) {
+			if(!js_node_Fs.existsSync(path)) {
+				throw new js__$Boot_HaxeError(path + " does not exists");
+			}
+		};
+	}
 	Main.inst = new Main();
-	var o = window;
-	o._ = Main.inst;
+	window._ = Main.inst;
 };
 Main.__super__ = Model;
 Main.prototype = $extend(Model.prototype,{
 	searchFilter: function(filter) {
-		if(filter == "") filter = null;
-		if(filter != null) filter = filter.toLowerCase();
+		if(filter == "") {
+			filter = null;
+		}
+		if(filter != null) {
+			filter = filter.toLowerCase();
+		}
 		var lines = $("table.sheet tr").not(".head");
 		lines.removeClass("filtered");
 		if(filter != null) {
@@ -4723,7 +5125,9 @@ Main.prototype = $extend(Model.prototype,{
 			var _g_j = lines;
 			while(_g_i < _g_j.length) {
 				var t = _g_j[_g_i++];
-				if(t.textContent.toLowerCase().indexOf(filter) < 0) t.classList.add("filtered");
+				if(t.textContent.toLowerCase().indexOf(filter) < 0) {
+					t.classList.add("filtered");
+				}
 			}
 			while(lines.length > 0) {
 				lines = lines.filter(".list").not(".filtered").prev();
@@ -4732,7 +5136,9 @@ Main.prototype = $extend(Model.prototype,{
 		}
 	}
 	,onResize: function(_) {
-		if(this.level != null) this.level.onResize();
+		if(this.level != null) {
+			this.level.onResize();
+		}
 		this.pages.onResize();
 	}
 	,onMouseMove: function(e) {
@@ -4751,27 +5157,47 @@ Main.prototype = $extend(Model.prototype,{
 		js_node_webkit_Clipboard.get().set(this.clipboard.text,"text");
 	}
 	,moveCursor: function(dx,dy,shift,ctrl) {
-		if(this.cursor.s == null) return;
+		if(this.cursor.s == null) {
+			return;
+		}
 		if(this.cursor.x == -1 && ctrl) {
-			if(dy != 0) this.moveLine(this.cursor.s,this.cursor.y,dy);
+			if(dy != 0) {
+				this.moveLine(this.cursor.s,this.cursor.y,dy);
+			}
 			this.updateCursor();
 			return;
 		}
-		if(dx < 0 && this.cursor.x >= 0) this.cursor.x--;
-		if(dy < 0 && this.cursor.y > 0) this.cursor.y--;
-		if(dx > 0 && this.cursor.x < this.cursor.s.columns.length - 1) this.cursor.x++;
-		if(dy > 0 && this.cursor.y < this.cursor.s.lines.length - 1) this.cursor.y++;
+		if(dx < 0 && this.cursor.x >= 0) {
+			this.cursor.x--;
+		}
+		if(dy < 0 && this.cursor.y > 0) {
+			this.cursor.y--;
+		}
+		if(dx > 0 && this.cursor.x < this.cursor.s.columns.length - 1) {
+			this.cursor.x++;
+		}
+		if(dy > 0 && this.cursor.y < this.cursor.s.lines.length - 1) {
+			this.cursor.y++;
+		}
 		this.cursor.select = null;
 		this.updateCursor();
 	}
 	,isInput: function() {
-		if(window.document.activeElement != null) return window.document.activeElement.nodeName == "INPUT"; else return false;
+		if(window.document.activeElement != null) {
+			return window.document.activeElement.nodeName == "INPUT";
+		} else {
+			return false;
+		}
 	}
 	,onKeyPress: function(e) {
-		if(!e.ctrlKey && !this.isInput()) $(".cursor").not(".edit").dblclick();
+		if(!e.ctrlKey && !this.isInput()) {
+			$(".cursor").not(".edit").dblclick();
+		}
 	}
 	,getSelection: function() {
-		if(this.cursor.s == null) return null;
+		if(this.cursor.s == null) {
+			return null;
+		}
 		var x1 = this.cursor.x < 0?0:this.cursor.x;
 		var x2 = this.cursor.x < 0?this.cursor.s.columns.length - 1:this.cursor.select != null?this.cursor.select.x:x1;
 		var y1 = this.cursor.y;
@@ -4789,10 +5215,64 @@ Main.prototype = $extend(Model.prototype,{
 		return { x1 : x1, x2 : x2, y1 : y1, y2 : y2};
 	}
 	,onKey: function(e) {
-		if(this.isInput()) return;
+		if(this.isInput()) {
+			return;
+		}
 		var inCDB = this.level == null && this.pages.curPage < 0;
-		var _g = e.keyCode;
-		switch(_g) {
+		switch(e.keyCode) {
+		case 9:
+			if(e.ctrlKey) {
+				var sheets = this.data.sheets.filter(function(s) {
+					return !s.props.hide;
+				});
+				var pos = (this.level == null?Lambda.indexOf(sheets,this.viewSheet):sheets.length + Lambda.indexOf(this.levels,this.level)) + 1;
+				var s1 = sheets[pos % (sheets.length + this.levels.length)];
+				if(s1 != null) {
+					this.selectSheet(s1);
+				} else {
+					var level = this.levels[pos - sheets.length];
+					if(level != null) {
+						this.selectLevel(level);
+					}
+				}
+			} else {
+				this.moveCursor(e.shiftKey?-1:1,0,false,false);
+			}
+			break;
+		case 13:
+			if(inCDB) {
+				if(this.cursor.s != null && $(".cursor.t_list,.cursor.t_properties").click().length > 0) {
+					e.preventDefault();
+				}
+			}
+			break;
+		case 27:
+			if(this.cursor.s != null && this.cursor.s.parent != null) {
+				var p = this.cursor.s.parent;
+				this.setCursor(p.sheet,p.column,p.line);
+				$(".cursor").click();
+			} else if(this.cursor.select != null) {
+				this.cursor.select = null;
+				this.updateCursor();
+			}
+			break;
+		case 32:
+			e.preventDefault();
+			break;
+		case 37:
+			this.moveCursor(-1,0,e.shiftKey,e.ctrlKey);
+			break;
+		case 38:
+			this.moveCursor(0,-1,e.shiftKey,e.ctrlKey);
+			e.preventDefault();
+			break;
+		case 39:
+			this.moveCursor(1,0,e.shiftKey,e.ctrlKey);
+			break;
+		case 40:
+			this.moveCursor(0,1,e.shiftKey,e.ctrlKey);
+			e.preventDefault();
+			break;
 		case 45:
 			if(inCDB) {
 				if(this.cursor.s != null) {
@@ -4807,30 +5287,34 @@ Main.prototype = $extend(Model.prototype,{
 				if(this.cursor.s != null) {
 					if(this.cursor.s.props.isProps) {
 						var l = this.getLine(this.cursor.s,this.cursor.y);
-						if(l != null) Reflect.deleteField(this.cursor.s.lines[0],l.attr("colName"));
+						if(l != null) {
+							Reflect.deleteField(this.cursor.s.lines[0],l.attr("colName"));
+						}
 					} else if(this.cursor.x < 0) {
-						var s = this.getSelection();
-						var y = s.y2;
-						while(y >= s.y1) {
+						var s2 = this.getSelection();
+						var y = s2.y2;
+						while(y >= s2.y1) {
 							SheetData.deleteLine(this.cursor.s,y);
 							--y;
 						}
-						this.cursor.y = s.y1;
+						this.cursor.y = s2.y1;
 						this.cursor.select = null;
 					} else {
-						var s1 = this.getSelection();
-						var _g2 = s1.y1;
-						var _g1 = s1.y2 + 1;
-						while(_g2 < _g1) {
-							var y1 = _g2++;
-							var obj = this.cursor.s.lines[y1];
-							var _g4 = s1.x1;
-							var _g3 = s1.x2 + 1;
-							while(_g4 < _g3) {
-								var x = _g4++;
-								var c = this.cursor.s.columns[x];
+						var s3 = this.getSelection();
+						var _g1 = s3.y1;
+						var _g = s3.y2 + 1;
+						while(_g1 < _g) {
+							var obj = this.cursor.s.lines[_g1++];
+							var _g3 = s3.x1;
+							var _g2 = s3.x2 + 1;
+							while(_g3 < _g2) {
+								var c = this.cursor.s.columns[_g3++];
 								var def = this.getDefault(c);
-								if(def == null) Reflect.deleteField(obj,c.name); else obj[c.name] = def;
+								if(def == null) {
+									Reflect.deleteField(obj,c.name);
+								} else {
+									obj[c.name] = def;
+								}
 							}
 						}
 					}
@@ -4839,37 +5323,100 @@ Main.prototype = $extend(Model.prototype,{
 				this.save();
 			}
 			break;
-		case 38:
-			this.moveCursor(0,-1,e.shiftKey,e.ctrlKey);
-			e.preventDefault();
-			break;
-		case 40:
-			this.moveCursor(0,1,e.shiftKey,e.ctrlKey);
-			e.preventDefault();
-			break;
-		case 37:
-			this.moveCursor(-1,0,e.shiftKey,e.ctrlKey);
-			break;
-		case 39:
-			this.moveCursor(1,0,e.shiftKey,e.ctrlKey);
-			break;
-		case 13:
-			if(inCDB) {
-				if(this.cursor.s != null && $(".cursor.t_list,.cursor.t_properties").click().length > 0) e.preventDefault();
+		case 67:
+			if(e.ctrlKey) {
+				if(this.cursor.s != null) {
+					var s4 = this.getSelection();
+					var data = [];
+					var _g11 = s4.y1;
+					var _g4 = s4.y2 + 1;
+					while(_g11 < _g4) {
+						var obj1 = this.cursor.s.lines[_g11++];
+						var out = { };
+						var _g31 = s4.x1;
+						var _g21 = s4.x2 + 1;
+						while(_g31 < _g21) {
+							var c1 = this.cursor.s.columns[_g31++];
+							var v = Reflect.field(obj1,c1.name);
+							if(v != null) {
+								out[c1.name] = v;
+							}
+						}
+						data.push(out);
+					}
+					var _g5 = [];
+					var _g22 = s4.x1;
+					var _g12 = s4.x2 + 1;
+					while(_g22 < _g12) _g5.push(this.cursor.s.columns[_g22++]);
+					this.setClipBoard(_g5,data);
+				}
 			}
 			break;
-		case 32:
-			e.preventDefault();
+		case 70:
+			if(e.ctrlKey && inCDB) {
+				var s5 = $("#search");
+				s5.show();
+				s5.find("input").focus().select();
+			}
 			break;
-		case 90:
-			if(e.ctrlKey && this.pages.curPage < 0) {
-				if(this.history.length > 0) {
-					this.redo.push(this.curSavedData);
-					this.curSavedData = this.history.pop();
-					this.quickLoad(this.curSavedData);
-					this.initContent();
-					this.save(false);
+		case 86:
+			if(e.ctrlKey) {
+				if(this.cursor.s == null || this.clipboard == null || js_node_webkit_Clipboard.get().get("text") != this.clipboard.text) {
+					return;
 				}
+				var sheet = this.cursor.s;
+				var posX = this.cursor.x < 0?0:this.cursor.x;
+				var posY = this.cursor.y < 0?0:this.cursor.y;
+				var _g6 = 0;
+				var _g13 = this.clipboard.data;
+				while(_g6 < _g13.length) {
+					var obj11 = _g13[_g6];
+					++_g6;
+					if(posY == sheet.lines.length) {
+						SheetData.newLine(sheet);
+					}
+					var obj2 = sheet.lines[posY];
+					var _g32 = 0;
+					var _g23 = this.clipboard.schema.length;
+					while(_g32 < _g23) {
+						var cid = _g32++;
+						var c11 = this.clipboard.schema[cid];
+						var c2 = sheet.columns[cid + posX];
+						if(c2 == null) {
+							continue;
+						}
+						var f = this.getConvFunction(c11.type,c2.type);
+						var v1 = Reflect.field(obj11,c11.name);
+						if(f == null) {
+							v1 = this.getDefault(c2);
+						} else {
+							if(v1 != null) {
+								v1 = JSON.parse(JSON.stringify(v1));
+							}
+							if(f.f != null) {
+								v1 = f.f(v1);
+							}
+						}
+						if(v1 == null && !c2.opt) {
+							v1 = this.getDefault(c2);
+						}
+						if(v1 == null) {
+							Reflect.deleteField(obj2,c2.name);
+						} else {
+							obj2[c2.name] = v1;
+						}
+					}
+					++posY;
+				}
+				this.makeSheet(sheet);
+				this.refresh();
+				this.save();
+			}
+			break;
+		case 88:
+			if(e.ctrlKey) {
+				this.onKey({ keyCode : 67, ctrlKey : true});
+				this.onKey({ keyCode : 46});
 			}
 			break;
 		case 89:
@@ -4883,163 +5430,79 @@ Main.prototype = $extend(Model.prototype,{
 				}
 			}
 			break;
-		case 67:
-			if(e.ctrlKey) {
-				if(this.cursor.s != null) {
-					var s2 = this.getSelection();
-					var data = [];
-					var _g22 = s2.y1;
-					var _g13 = s2.y2 + 1;
-					while(_g22 < _g13) {
-						var y3 = _g22++;
-						var obj3 = this.cursor.s.lines[y3];
-						var out = { };
-						var _g43 = s2.x1;
-						var _g33 = s2.x2 + 1;
-						while(_g43 < _g33) {
-							var x3 = _g43++;
-							var c3 = this.cursor.s.columns[x3];
-							var v = Reflect.field(obj3,c3.name);
-							if(v != null) out[c3.name] = v;
-						}
-						data.push(out);
-					}
-					var _g12 = [];
-					var _g34 = s2.x1;
-					var _g24 = s2.x2 + 1;
-					while(_g34 < _g24) {
-						var x4 = _g34++;
-						_g12.push(this.cursor.s.columns[x4]);
-					}
-					this.setClipBoard(_g12,data);
+		case 90:
+			if(e.ctrlKey && this.pages.curPage < 0) {
+				if(this.history.length > 0) {
+					this.redo.push(this.curSavedData);
+					this.curSavedData = this.history.pop();
+					this.quickLoad(this.curSavedData);
+					this.initContent();
+					this.save(false);
 				}
-			}
-			break;
-		case 88:
-			if(e.ctrlKey) {
-				this.onKey({ keyCode : 67, ctrlKey : true});
-				this.onKey({ keyCode : 46});
-			}
-			break;
-		case 86:
-			if(e.ctrlKey) {
-				if(this.cursor.s == null || this.clipboard == null || js_node_webkit_Clipboard.get().get("text") != this.clipboard.text) return;
-				var sheet = this.cursor.s;
-				var posX = this.cursor.x < 0?0:this.cursor.x;
-				var posY = this.cursor.y < 0?0:this.cursor.y;
-				var _g14 = 0;
-				var _g25 = this.clipboard.data;
-				while(_g14 < _g25.length) {
-					var obj1 = _g25[_g14];
-					++_g14;
-					if(posY == sheet.lines.length) SheetData.newLine(sheet);
-					var obj2 = sheet.lines[posY];
-					var _g45 = 0;
-					var _g35 = this.clipboard.schema.length;
-					while(_g45 < _g35) {
-						var cid = _g45++;
-						var c1 = this.clipboard.schema[cid];
-						var c2 = sheet.columns[cid + posX];
-						if(c2 == null) continue;
-						var f = this.getConvFunction(c1.type,c2.type);
-						var v5 = Reflect.field(obj1,c1.name);
-						if(f == null) v5 = this.getDefault(c2); else {
-							if(v5 != null) v5 = JSON.parse(JSON.stringify(v5));
-							if(f.f != null) v5 = f.f(v5);
-						}
-						if(v5 == null && !c2.opt) v5 = this.getDefault(c2);
-						if(v5 == null) Reflect.deleteField(obj2,c2.name); else obj2[c2.name] = v5;
-					}
-					++posY;
-				}
-				this.makeSheet(sheet);
-				this.refresh();
-				this.save();
-			}
-			break;
-		case 9:
-			if(e.ctrlKey) {
-				var sheets = this.data.sheets.filter(function(s5) {
-					return !s5.props.hide;
-				});
-				var pos = (this.level == null?Lambda.indexOf(sheets,this.viewSheet):sheets.length + Lambda.indexOf(this.levels,this.level)) + 1;
-				var s6 = sheets[pos % (sheets.length + this.levels.length)];
-				if(s6 != null) this.selectSheet(s6); else {
-					var level = this.levels[pos - sheets.length];
-					if(level != null) this.selectLevel(level);
-				}
-			} else this.moveCursor(e.shiftKey?-1:1,0,false,false);
-			break;
-		case 27:
-			if(this.cursor.s != null && this.cursor.s.parent != null) {
-				var p = this.cursor.s.parent;
-				this.setCursor(p.sheet,p.column,p.line);
-				$(".cursor").click();
-			} else if(this.cursor.select != null) {
-				this.cursor.select = null;
-				this.updateCursor();
 			}
 			break;
 		case 113:
-			if(inCDB) $(".cursor").not(".edit").dblclick();
+			if(inCDB) {
+				$(".cursor").not(".edit").dblclick();
+			}
 			break;
 		case 114:
-			if(this.cursor.s != null) this.showReferences(this.cursor.s,this.cursor.y);
+			if(this.cursor.s != null) {
+				this.showReferences(this.cursor.s,this.cursor.y);
+			}
 			break;
 		case 115:
 			if(this.cursor.s != null && this.cursor.x >= 0) {
-				var c6 = this.cursor.s.columns[this.cursor.x];
-				var id = Reflect.field(this.cursor.s.lines[this.cursor.y],c6.name);
-				var _g16 = c6.type;
-				switch(_g16[1]) {
-				case 6:
-					var s7 = _g16[2];
-					var tmp;
+				var c3 = this.cursor.s.columns[this.cursor.x];
+				var id = Reflect.field(this.cursor.s.lines[this.cursor.y],c3.name);
+				var _g7 = c3.type;
+				if(_g7[1] == 6) {
+					var s6 = _g7[2];
 					var _this = this.smap;
-					if(__map_reserved[s7] != null) tmp = _this.getReserved(s7); else tmp = _this.h[s7];
-					var sd = tmp;
+					var sd = __map_reserved[s6] != null?_this.getReserved(s6):_this.h[s6];
 					if(sd != null) {
-						var tmp7;
-						var _this7 = sd.index;
-						if(__map_reserved[id] != null) tmp7 = _this7.getReserved(id); else tmp7 = _this7.h[id];
-						var k = tmp7;
+						var _this1 = sd.index;
+						var k = __map_reserved[id] != null?_this1.getReserved(id):_this1.h[id];
 						if(k != null) {
 							var index = Lambda.indexOf(sd.s.lines,k.obj);
 							if(index >= 0) {
-								var _this8 = this.sheetCursors;
+								var _this2 = this.sheetCursors;
 								var value = { s : sd.s, x : 0, y : index};
-								if(__map_reserved[s7] != null) _this8.setReserved(s7,value); else _this8.h[s7] = value;
+								if(__map_reserved[s6] != null) {
+									_this2.setReserved(s6,value);
+								} else {
+									_this2.h[s6] = value;
+								}
 								this.selectSheet(sd.s);
 							}
 						}
 					}
-					break;
-				default:
 				}
-			}
-			break;
-		case 70:
-			if(e.ctrlKey && inCDB) {
-				var s8 = $("#search");
-				s8.show();
-				s8.find("input").focus().select();
 			}
 			break;
 		default:
 		}
-		if(this.level != null) this.level.onKey(e);
-		if(this.pages.curPage >= 0) this.pages.onKey(e);
+		if(this.level != null) {
+			this.level.onKey(e);
+		}
+		if(this.pages.curPage >= 0) {
+			this.pages.onKey(e);
+		}
 	}
 	,onKeyUp: function(e) {
-		if(this.level != null && !this.isInput()) this.level.onKeyUp(e);
+		if(this.level != null && !this.isInput()) {
+			this.level.onKeyUp(e);
+		}
 	}
 	,getLine: function(sheet,index) {
 		return $("table[sheet='" + SheetData.getPath(sheet) + "'] > tbody > tr").not(".head,.separator,.list").eq(index);
 	}
 	,showReferences: function(sheet,index) {
-		var _g3 = this;
+		var _gthis = this;
 		var results = SheetData.getReferences(sheet,index);
-		if(results == null) return;
+		if(results == null) {
+			return;
+		}
 		if(results.length == 0) {
 			this.setErrorMessage("Not found");
 			var f = $bind(this,this.setErrorMessage);
@@ -5078,42 +5541,54 @@ Main.prototype = $extend(Model.prototype,{
 			var slast = [rs[0].s[rs[0].s.length - 1]];
 			$("<td>").text(slast[0].s.name.split("@").join(".") + "." + slast[0].c).appendTo(l);
 			var path = [];
-			var _g22 = 0;
-			var _g12 = rs[0].s.length;
-			while(_g22 < _g12) {
-				var i = _g22++;
+			var _g21 = 0;
+			var _g11 = rs[0].s.length;
+			while(_g21 < _g11) {
+				var i = _g21++;
 				var s = rs[0].s[i];
 				var oid = Reflect.field(rs[0].o.path[i],s.id);
-				if(oid == null || oid == "") path.push(s.s.name.split("@").pop() + "[" + rs[0].o.indexes[i] + "]"); else path.push(oid);
+				if(oid == null || oid == "") {
+					path.push(s.s.name.split("@").pop() + "[" + rs[0].o.indexes[i] + "]");
+				} else {
+					path.push(oid);
+				}
 			}
 			$("<td>").text(path.join(".")).appendTo(l);
-			l.click((function(slast2,rs2) {
+			l.click((function(slast1,rs1) {
 				return function(e) {
 					var key = null;
-					var _g23 = 0;
-					var _g13 = rs2[0].s.length - 1;
-					while(_g23 < _g13) {
-						var i3 = _g23++;
-						var p = rs2[0].s[i3];
-						key = SheetData.getPath(p.s) + "@" + p.c + ":" + rs2[0].o.indexes[i3];
-						var _this = _g3.openedList;
-						if(__map_reserved[key] != null) _this.setReserved(key,true); else _this.h[key] = true;
+					var _g22 = 0;
+					var _g12 = rs1[0].s.length - 1;
+					while(_g22 < _g12) {
+						var i1 = _g22++;
+						var p = rs1[0].s[i1];
+						key = SheetData.getPath(p.s) + "@" + p.c + ":" + rs1[0].o.indexes[i1];
+						var _this = _gthis.openedList;
+						if(__map_reserved[key] != null) {
+							_this.setReserved(key,true);
+						} else {
+							_this.h[key] = true;
+						}
 					}
-					var starget = rs2[0].s[0].s;
-					var value = { s : { name : slast2[0].s.name, path : key, separators : [], lines : [], columns : [], props : { }}, x : -1, y : rs2[0].o.indexes[rs2[0].o.indexes.length - 1]};
-					var _this3 = _g3.sheetCursors;
-					var key3 = starget.name;
-					if(__map_reserved[key3] != null) _this3.setReserved(key3,value); else _this3.h[key3] = value;
-					_g3.selectSheet(starget);
+					var starget = rs1[0].s[0].s;
+					var value = { s : { name : slast1[0].s.name, path : key, separators : [], lines : [], columns : [], props : { }}, x : -1, y : rs1[0].o.indexes[rs1[0].o.indexes.length - 1]};
+					var _this1 = _gthis.sheetCursors;
+					var key1 = starget.name;
+					if(__map_reserved[key1] != null) {
+						_this1.setReserved(key1,value);
+					} else {
+						_this1.h[key1] = value;
+					}
+					_gthis.selectSheet(starget);
 					e.stopPropagation();
 				};
 			})(slast,rs));
 		}
-		res.change(function(e3) {
+		res.change(function(e1) {
 			div.slideUp(100,function() {
 				res.remove();
 			});
-			e3.stopPropagation();
+			e1.stopPropagation();
 		});
 		res.insertAfter(line);
 		div.slideDown(100);
@@ -5128,8 +5603,7 @@ Main.prototype = $extend(Model.prototype,{
 		}
 	}
 	,changed: function(sheet,c,index,old) {
-		var _g = c.type;
-		switch(_g[1]) {
+		switch(c.type[1]) {
 		case 7:
 			this.saveImages();
 			break;
@@ -5139,17 +5613,18 @@ Main.prototype = $extend(Model.prototype,{
 			var newV = Reflect.field(obj,c.name);
 			if(newV != null && oldV != null && oldV.file != newV.file && !sys_FileSystem.exists(this.getAbsPath(oldV.file)) && sys_FileSystem.exists(this.getAbsPath(newV.file))) {
 				var change = false;
-				var _g2 = 0;
-				var _g1 = sheet.lines.length;
-				while(_g2 < _g1) {
-					var i = _g2++;
-					var t = Reflect.field(sheet.lines[i],c.name);
+				var _g1 = 0;
+				var _g = sheet.lines.length;
+				while(_g1 < _g) {
+					var t = Reflect.field(sheet.lines[_g1++],c.name);
 					if(t != null && t.file == oldV.file) {
 						t.file = newV.file;
 						change = true;
 					}
 				}
-				if(change) this.refresh();
+				if(change) {
+					this.refresh();
+				}
 			}
 			SheetData.updateValue(sheet,c,index,old);
 			break;
@@ -5159,12 +5634,18 @@ Main.prototype = $extend(Model.prototype,{
 		this.save();
 	}
 	,setErrorMessage: function(msg) {
-		if(msg == null) $(".errorMsg").hide(); else $(".errorMsg").text(msg).show();
+		if(msg == null) {
+			$(".errorMsg").hide();
+		} else {
+			$(".errorMsg").text(msg).show();
+		}
 	}
 	,tileHtml: function(v,isInline) {
 		var path = this.getAbsPath(v.file);
 		if(!this.quickExists(path)) {
-			if(isInline) return "";
+			if(isInline) {
+				return "";
+			}
 			return "<span class=\"error\">" + v.file + "</span>";
 		}
 		var id = Main.UID++;
@@ -5178,180 +5659,214 @@ Main.prototype = $extend(Model.prototype,{
 	}
 	,valueHtml: function(c,v,sheet,obj) {
 		if(v == null) {
-			if(c.opt) return "&nbsp;";
+			if(c.opt) {
+				return "&nbsp;";
+			}
 			return "<span class=\"error\">#NULL</span>";
 		}
 		var _g = c.type;
 		switch(_g[1]) {
-		case 3:case 4:
-			var _g1 = c.display;
-			if(_g1 != null) switch(_g1) {
-			case 1:
-				return Math.round(v * 10000) / 100 + "%";
-			default:
-				return Std.string(v) + "";
-			} else return Std.string(v) + "";
-			break;
 		case 0:
-			if(v == "") return "<span class=\"error\">#MISSING</span>"; else {
-				var tmp;
+			if(v == "") {
+				return "<span class=\"error\">#MISSING</span>";
+			} else {
 				var _this = this.smap;
 				var key = sheet.name;
-				if(__map_reserved[key] != null) tmp = _this.getReserved(key); else tmp = _this.h[key];
-				if(tmp.index.get(v).obj == obj) return v; else return "<span class=\"error\">#DUP(" + Std.string(v) + ")</span>";
+				if((__map_reserved[key] != null?_this.getReserved(key):_this.h[key]).index.get(v).obj == obj) {
+					return v;
+				} else {
+					return "<span class=\"error\">#DUP(" + Std.string(v) + ")</span>";
+				}
 			}
 			break;
 		case 1:case 12:
-			if(v == "") return "&nbsp;"; else return StringTools.htmlEscape(v);
-			break;
-		case 6:
-			var sname = _g[2];
-			if(v == "") return "<span class=\"error\">#MISSING</span>"; else {
-				var tmp1;
-				var _this1 = this.smap;
-				if(__map_reserved[sname] != null) tmp1 = _this1.getReserved(sname); else tmp1 = _this1.h[sname];
-				var s = tmp1;
-				var tmp2;
-				var _this2 = s.index;
-				var key2 = v;
-				if(__map_reserved[key2] != null) tmp2 = _this2.getReserved(key2); else tmp2 = _this2.h[key2];
-				var i = tmp2;
-				if(i == null) return "<span class=\"error\">#REF(" + Std.string(v) + ")</span>"; else return (i.ico == null?"":this.tileHtml(i.ico,true) + " ") + StringTools.htmlEscape(i.disp);
+			if(v == "") {
+				return "&nbsp;";
+			} else {
+				return StringTools.htmlEscape(v);
 			}
 			break;
 		case 2:
-			if(v) return "Y"; else return "N";
+			if(v) {
+				return "Y";
+			} else {
+				return "N";
+			}
+			break;
+		case 3:case 4:
+			var _g1 = c.display;
+			if(_g1 == null) {
+				return Std.string(v) + "";
+			} else if(_g1 == 1) {
+				return Math.round(v * 10000) / 100 + "%";
+			} else {
+				return Std.string(v) + "";
+			}
 			break;
 		case 5:
-			var values = _g[2];
-			return values[v];
+			return _g[2][v];
+		case 6:
+			var sname = _g[2];
+			if(v == "") {
+				return "<span class=\"error\">#MISSING</span>";
+			} else {
+				var _this1 = this.smap;
+				var _this2 = (__map_reserved[sname] != null?_this1.getReserved(sname):_this1.h[sname]).index;
+				var key1 = v;
+				var i = __map_reserved[key1] != null?_this2.getReserved(key1):_this2.h[key1];
+				if(i == null) {
+					return "<span class=\"error\">#REF(" + Std.string(v) + ")</span>";
+				} else {
+					return (i.ico == null?"":this.tileHtml(i.ico,true) + " ") + StringTools.htmlEscape(i.disp);
+				}
+			}
+			break;
 		case 7:
-			if(v == "") return "<span class=\"error\">#MISSING</span>"; else {
+			if(v == "") {
+				return "<span class=\"error\">#MISSING</span>";
+			} else {
 				var data = Reflect.field(this.imageBank,v);
-				if(data == null) return "<span class=\"error\">#NOTFOUND(" + Std.string(v) + ")</span>"; else return "<img src=\"" + data + "\"/>";
+				if(data == null) {
+					return "<span class=\"error\">#NOTFOUND(" + Std.string(v) + ")</span>";
+				} else {
+					return "<img src=\"" + data + "\"/>";
+				}
 			}
 			break;
 		case 8:
 			var a = v;
-			var tmp3;
 			var _this3 = SheetData.model.smap;
-			var key3 = sheet.name + "@" + c.name;
-			if(__map_reserved[key3] != null) tmp3 = _this3.getReserved(key3); else tmp3 = _this3.h[key3];
-			var ps = tmp3.s;
+			var key2 = sheet.name + "@" + c.name;
+			var ps = (__map_reserved[key2] != null?_this3.getReserved(key2):_this3.h[key2]).s;
 			var out = [];
 			var size = 0;
-			var _g13 = 0;
-			while(_g13 < a.length) {
-				var v3 = a[_g13];
-				++_g13;
+			var _g2 = 0;
+			while(_g2 < a.length) {
+				var v1 = a[_g2];
+				++_g2;
 				var vals = [];
-				var _g2 = 0;
-				var _g3 = ps.columns;
-				while(_g2 < _g3.length) {
-					var c4 = _g3[_g2];
-					++_g2;
-					var _g4 = c4.type;
-					switch(_g4[1]) {
+				var _g11 = 0;
+				var _g21 = ps.columns;
+				while(_g11 < _g21.length) {
+					var c1 = _g21[_g11];
+					++_g11;
+					switch(c1.type[1]) {
 					case 8:case 17:
 						continue;
 						break;
 					default:
-						vals.push(this.valueHtml(c4,Reflect.field(v3,c4.name),ps,v3));
+						vals.push(this.valueHtml(c1,Reflect.field(v1,c1.name),ps,v1));
 					}
 				}
-				var v4 = vals.length == 1?vals[0]:"" + Std.string(vals);
+				var v2 = vals.length == 1?vals[0]:"" + Std.string(vals);
 				if(size > 100) {
 					out.push("...");
 					break;
 				}
-				var vstr = v4;
-				if(v4.indexOf("<") >= 0) {
+				var vstr = v2;
+				if(v2.indexOf("<") >= 0) {
 					vstr = new EReg("<img src=\"[^\"]+\" style=\"display:none\"[^>]+>","g").replace(vstr,"");
 					vstr = new EReg("<img src=\"[^\"]+\"/>","g").replace(vstr,"[I]");
 					vstr = new EReg("<div id=\"[^>]+></div>","g").replace(vstr,"[D]");
 				}
 				size += vstr.length;
-				out.push(v4);
+				out.push(v2);
 			}
-			if(out.length == 0) return "[]";
+			if(out.length == 0) {
+				return "[]";
+			}
 			return out.join(", ");
-		case 17:
-			var tmp4;
-			var _this4 = SheetData.model.smap;
-			var key4 = sheet.name + "@" + c.name;
-			if(__map_reserved[key4] != null) tmp4 = _this4.getReserved(key4); else tmp4 = _this4.h[key4];
-			var ps4 = tmp4.s;
-			var out4 = [];
-			var _g14 = 0;
-			var _g24 = ps4.columns;
-			while(_g14 < _g24.length) {
-				var c5 = _g24[_g14];
-				++_g14;
-				var pval = Reflect.field(v,c5.name);
-				if(pval == null && c5.opt) continue;
-				out4.push(c5.name + " : " + this.valueHtml(c5,pval,ps4,v));
-			}
-			return out4.join("<br/>");
 		case 9:
 			var name = _g[2];
-			var tmp5;
-			var _this5 = this.tmap;
-			if(__map_reserved[name] != null) tmp5 = _this5.getReserved(name); else tmp5 = _this5.h[name];
-			var t = tmp5;
-			var a5 = v;
-			var cas = t.cases[a5[0]];
+			var _this4 = this.tmap;
+			var t = __map_reserved[name] != null?_this4.getReserved(name):_this4.h[name];
+			var a1 = v;
+			var cas = t.cases[a1[0]];
 			var str = cas.name;
 			if(cas.args.length > 0) {
 				str += "(";
-				var out5 = [];
-				var pos = 1;
-				var _g25 = 1;
-				var _g15 = a5.length;
-				while(_g25 < _g15) {
-					var i5 = _g25++;
-					out5.push(this.valueHtml(cas.args[i5 - 1],a5[i5],sheet,this));
+				var out1 = [];
+				var _g12 = 1;
+				var _g3 = a1.length;
+				while(_g12 < _g3) {
+					var i1 = _g12++;
+					out1.push(this.valueHtml(cas.args[i1 - 1],a1[i1],sheet,this));
 				}
-				str += out5.join(",");
+				str += out1.join(",");
 				str += ")";
 			}
 			return str;
 		case 10:
-			var values5 = _g[2];
-			var v5 = v;
+			var values = _g[2];
+			var v3 = v;
 			var flags = [];
-			var _g26 = 0;
-			var _g16 = values5.length;
-			while(_g26 < _g16) {
-				var i6 = _g26++;
-				if((v5 & 1 << i6) != 0) flags.push(StringTools.htmlEscape(values5[i6]));
+			var _g13 = 0;
+			var _g4 = values.length;
+			while(_g13 < _g4) {
+				var i2 = _g13++;
+				if((v3 & 1 << i2) != 0) {
+					flags.push(StringTools.htmlEscape(values[i2]));
+				}
 			}
-			if(flags.length == 0) return String.fromCharCode(8709); else return flags.join("|<wbr>");
+			if(flags.length == 0) {
+				return String.fromCharCode(8709);
+			} else {
+				return flags.join("|<wbr>");
+			}
 			break;
 		case 11:
-			var id = Main.UID++;
+			Main.UID++;
 			return "<div class=\"color\" style=\"background-color:#" + StringTools.hex(v,6) + "\"></div>";
 		case 13:
 			var path = this.getAbsPath(v);
 			var ext = v.split(".").pop().toLowerCase();
 			var html = v == ""?"<span class=\"error\">#MISSING</span>":StringTools.htmlEscape(v);
-			if(v != "" && !this.quickExists(path)) html = "<span class=\"error\">" + html + "</span>"; else if(ext == "png" || ext == "jpg" || ext == "jpeg" || ext == "gif") html = "<span class=\"preview\">" + html + "<div class=\"previewContent\"><div class=\"label\"></div><img src=\"" + path + "\" onload=\"$(this).parent().find('.label').text(this.width+'x'+this.height)\"/></div></span>";
-			if(v != "") html += " <input type=\"submit\" value=\"open\" onclick=\"_.openFile('" + path + "')\"/>";
+			if(v != "" && !this.quickExists(path)) {
+				html = "<span class=\"error\">" + html + "</span>";
+			} else if(ext == "png" || ext == "jpg" || ext == "jpeg" || ext == "gif") {
+				html = "<span class=\"preview\">" + html + "<div class=\"previewContent\"><div class=\"label\"></div><img src=\"" + path + "\" onload=\"$(this).parent().find('.label').text(this.width+'x'+this.height)\"/></div></span>";
+			}
+			if(v != "") {
+				html += " <input type=\"submit\" value=\"open\" onclick=\"_.openFile('" + path + "')\"/>";
+			}
 			return html;
 		case 14:
 			return this.tileHtml(v);
 		case 15:
-			var v6 = v;
-			var path6 = this.getAbsPath(v6.file);
-			if(!this.quickExists(path6)) return "<span class=\"error\">" + v6.file + "</span>"; else return "#DATA";
+			var v4 = v;
+			if(!this.quickExists(this.getAbsPath(v4.file))) {
+				return "<span class=\"error\">" + v4.file + "</span>";
+			} else {
+				return "#DATA";
+			}
 			break;
 		case 16:
-			var str6 = Std.string(v).split("\n").join(" ").split("\t").join("");
-			if(str6.length > 50) str6 = HxOverrides.substr(str6,0,47) + "...";
-			return str6;
+			var str1 = Std.string(v).split("\n").join(" ").split("\t").join("");
+			if(str1.length > 50) {
+				str1 = HxOverrides.substr(str1,0,47) + "...";
+			}
+			return str1;
+		case 17:
+			var _this5 = SheetData.model.smap;
+			var key3 = sheet.name + "@" + c.name;
+			var ps1 = (__map_reserved[key3] != null?_this5.getReserved(key3):_this5.h[key3]).s;
+			var out2 = [];
+			var _g5 = 0;
+			var _g14 = ps1.columns;
+			while(_g5 < _g14.length) {
+				var c2 = _g14[_g5];
+				++_g5;
+				var pval = Reflect.field(v,c2.name);
+				if(pval == null && c2.opt) {
+					continue;
+				}
+				out2.push(c2.name + " : " + this.valueHtml(c2,pval,ps1,v));
+			}
+			return out2.join("<br/>");
 		}
 	}
 	,popupLine: function(sheet,index) {
-		var _g = this;
+		var _gthis = this;
 		var n = new js_node_webkit_Menu();
 		var nup = new js_node_webkit_MenuItem({ label : "Move Up"});
 		var ndown = new js_node_webkit_MenuItem({ label : "Move Down"});
@@ -5359,58 +5874,64 @@ Main.prototype = $extend(Model.prototype,{
 		var ndel = new js_node_webkit_MenuItem({ label : "Delete"});
 		var nsep = new js_node_webkit_MenuItem({ label : "Separator", type : "checkbox"});
 		var nref = new js_node_webkit_MenuItem({ label : "Show References"});
-		var _g1 = 0;
-		var _g11 = [nup,ndown,nins,ndel,nsep,nref];
-		while(_g1 < _g11.length) {
-			var m = _g11[_g1];
-			++_g1;
+		var _g = 0;
+		var _g1 = [nup,ndown,nins,ndel,nsep,nref];
+		while(_g < _g1.length) {
+			var m = _g1[_g];
+			++_g;
 			n.append(m);
 		}
 		var sepIndex = Lambda.indexOf(sheet.separators,index);
 		nsep.checked = sepIndex >= 0;
 		nins.click = function() {
-			_g.newLine(sheet,index);
+			_gthis.newLine(sheet,index);
 		};
 		nup.click = function() {
-			_g.moveLine(sheet,index,-1);
+			_gthis.moveLine(sheet,index,-1);
 		};
 		ndown.click = function() {
-			_g.moveLine(sheet,index,1);
+			_gthis.moveLine(sheet,index,1);
 		};
 		ndel.click = function() {
 			SheetData.deleteLine(sheet,index);
-			_g.refresh();
-			_g.save();
+			_gthis.refresh();
+			_gthis.save();
 		};
 		nsep.click = function() {
 			if(sepIndex >= 0) {
 				sheet.separators.splice(sepIndex,1);
-				if(sheet.props.separatorTitles != null) sheet.props.separatorTitles.splice(sepIndex,1);
+				if(sheet.props.separatorTitles != null) {
+					sheet.props.separatorTitles.splice(sepIndex,1);
+				}
 			} else {
 				sepIndex = sheet.separators.length;
-				var _g12 = 0;
+				var _g11 = 0;
 				var _g2 = sheet.separators.length;
-				while(_g12 < _g2) {
-					var i = _g12++;
+				while(_g11 < _g2) {
+					var i = _g11++;
 					if(sheet.separators[i] > index) {
 						sepIndex = i;
 						break;
 					}
 				}
 				sheet.separators.splice(sepIndex,0,index);
-				if(sheet.props.separatorTitles != null && sheet.props.separatorTitles.length > sepIndex) sheet.props.separatorTitles.splice(sepIndex,0,null);
+				if(sheet.props.separatorTitles != null && sheet.props.separatorTitles.length > sepIndex) {
+					sheet.props.separatorTitles.splice(sepIndex,0,null);
+				}
 			}
-			_g.refresh();
-			_g.save();
+			_gthis.refresh();
+			_gthis.save();
 		};
 		nref.click = function() {
-			_g.showReferences(sheet,index);
+			_gthis.showReferences(sheet,index);
 		};
-		if(sheet.props.hide) nsep.enabled = false;
+		if(sheet.props.hide) {
+			nsep.enabled = false;
+		}
 		n.popup(this.mousePos.x,this.mousePos.y);
 	}
 	,popupColumn: function(sheet,c,isProperties) {
-		var _g4 = this;
+		var _gthis = this;
 		var n = new js_node_webkit_Menu();
 		var nedit = new js_node_webkit_MenuItem({ label : "Edit"});
 		var nins = new js_node_webkit_MenuItem({ label : "Add Column"});
@@ -5426,117 +5947,128 @@ Main.prototype = $extend(Model.prototype,{
 			++_g;
 			n.append(m);
 		}
-		var _g2 = c.type;
-		switch(_g2[1]) {
-		case 0:case 1:case 5:case 10:
+		switch(c.type[1]) {
+		case 3:case 4:
 			var conv = new js_node_webkit_MenuItem({ label : "Convert"});
 			var cm = new js_node_webkit_Menu();
-			var _g12 = 0;
-			var _g24 = [{ n : "lowercase", f : function(s) {
-				return s.toLowerCase();
-			}},{ n : "UPPERCASE", f : function(s2) {
-				return s2.toUpperCase();
-			}},{ n : "UpperIdent", f : function(s3) {
-				return HxOverrides.substr(s3,0,1).toUpperCase() + HxOverrides.substr(s3,1,null);
-			}},{ n : "lowerIdent", f : function(s4) {
-				return HxOverrides.substr(s4,0,1).toLowerCase() + HxOverrides.substr(s4,1,null);
+			var _g2 = 0;
+			var _g11 = [{ n : "* 10", f : function(s) {
+				return s * 10;
+			}},{ n : "/ 10", f : function(s1) {
+				return s1 / 10;
+			}},{ n : "+ 1", f : function(s2) {
+				return s2 + 1;
+			}},{ n : "- 1", f : function(s3) {
+				return s3 - 1;
 			}}];
-			while(_g12 < _g24.length) {
-				var k = [_g24[_g12]];
-				++_g12;
-				var m4 = new js_node_webkit_MenuItem({ label : k[0].n});
-				m4.click = (function(k4) {
+			while(_g2 < _g11.length) {
+				var k = [_g11[_g2]];
+				++_g2;
+				var m1 = new js_node_webkit_MenuItem({ label : k[0].n});
+				m1.click = (function(k1) {
 					return function() {
-						var _g3 = c.type;
-						switch(_g3[1]) {
-						case 5:
-							var values = _g3[2];
-							var _g5 = 0;
-							var _g44 = values.length;
-							while(_g5 < _g44) {
-								var i = _g5++;
-								values[i] = k4[0].f(values[i]);
-							}
-							break;
-						case 10:
-							var values4 = _g3[2];
-							var _g54 = 0;
-							var _g45 = values4.length;
-							while(_g54 < _g45) {
-								var i5 = _g54++;
-								values4[i5] = k4[0].f(values4[i5]);
-							}
-							break;
-						default:
-							var refMap = new haxe_ds_StringMap();
-							var _g46 = 0;
-							var _g56 = SheetData.getLines(sheet);
-							while(_g46 < _g56.length) {
-								var obj = _g56[_g46];
-								++_g46;
-								var t = Reflect.field(obj,c.name);
-								if(t != null && t != "") {
-									var t2 = k4[0].f(t);
-									if(t2 == null && !c.opt) t2 = "";
-									if(t2 == null) Reflect.deleteField(obj,c.name); else {
-										obj[c.name] = t2;
-										if(t2 != "") {
-											if(__map_reserved[t] != null) refMap.setReserved(t,t2); else refMap.h[t] = t2;
-										}
-									}
+						var _g21 = 0;
+						var _g3 = SheetData.getLines(sheet);
+						while(_g21 < _g3.length) {
+							var obj = _g3[_g21];
+							++_g21;
+							var t = Reflect.field(obj,c.name);
+							if(t != null) {
+								var t2 = k1[0].f(t);
+								if(c.type == cdb_ColumnType.TInt) {
+									t2 = t2 | 0;
 								}
+								obj[c.name] = t2;
 							}
-							if(c.type == cdb_ColumnType.TId) _g4.updateRefs(sheet,refMap);
-							_g4.makeSheet(sheet);
 						}
-						_g4.refresh();
-						_g4.save();
+						_gthis.refresh();
+						_gthis.save();
 					};
 				})(k);
-				cm.append(m4);
+				cm.append(m1);
 			}
 			conv.submenu = cm;
 			n.append(conv);
 			break;
-		case 3:case 4:
-			var conv6 = new js_node_webkit_MenuItem({ label : "Convert"});
-			var cm6 = new js_node_webkit_Menu();
-			var _g16 = 0;
-			var _g29 = [{ n : "* 10", f : function(s6) {
-				return s6 * 10;
-			}},{ n : "/ 10", f : function(s7) {
-				return s7 / 10;
-			}},{ n : "+ 1", f : function(s8) {
-				return s8 + 1;
-			}},{ n : "- 1", f : function(s9) {
-				return s9 - 1;
+		case 0:case 1:case 5:case 10:
+			var conv1 = new js_node_webkit_MenuItem({ label : "Convert"});
+			var cm1 = new js_node_webkit_Menu();
+			var _g4 = 0;
+			var _g12 = [{ n : "lowercase", f : function(s4) {
+				return s4.toLowerCase();
+			}},{ n : "UPPERCASE", f : function(s5) {
+				return s5.toUpperCase();
+			}},{ n : "UpperIdent", f : function(s6) {
+				return HxOverrides.substr(s6,0,1).toUpperCase() + HxOverrides.substr(s6,1,null);
+			}},{ n : "lowerIdent", f : function(s7) {
+				return HxOverrides.substr(s7,0,1).toLowerCase() + HxOverrides.substr(s7,1,null);
 			}}];
-			while(_g16 < _g29.length) {
-				var k9 = [_g29[_g16]];
-				++_g16;
-				var m9 = new js_node_webkit_MenuItem({ label : k9[0].n});
-				m9.click = (function(k10) {
+			while(_g4 < _g12.length) {
+				var k2 = [_g12[_g4]];
+				++_g4;
+				var m2 = new js_node_webkit_MenuItem({ label : k2[0].n});
+				m2.click = (function(k3) {
 					return function() {
-						var _g310 = 0;
-						var _g410 = SheetData.getLines(sheet);
-						while(_g310 < _g410.length) {
-							var obj10 = _g410[_g310];
-							++_g310;
-							var t10 = Reflect.field(obj10,c.name);
-							if(t10 != null) {
-								var t210 = k10[0].f(t10);
-								if(c.type == cdb_ColumnType.TInt) t210 = t210 | 0;
-								obj10[c.name] = t210;
+						var _g22 = c.type;
+						switch(_g22[1]) {
+						case 5:
+							var values = _g22[2];
+							var _g31 = 0;
+							var _g23 = values.length;
+							while(_g31 < _g23) {
+								var i = _g31++;
+								values[i] = k3[0].f(values[i]);
 							}
+							break;
+						case 10:
+							var values1 = _g22[2];
+							var _g32 = 0;
+							var _g24 = values1.length;
+							while(_g32 < _g24) {
+								var i1 = _g32++;
+								values1[i1] = k3[0].f(values1[i1]);
+							}
+							break;
+						default:
+							var refMap = new haxe_ds_StringMap();
+							var _g25 = 0;
+							var _g33 = SheetData.getLines(sheet);
+							while(_g25 < _g33.length) {
+								var obj1 = _g33[_g25];
+								++_g25;
+								var t1 = Reflect.field(obj1,c.name);
+								if(t1 != null && t1 != "") {
+									var t21 = k3[0].f(t1);
+									if(t21 == null && !c.opt) {
+										t21 = "";
+									}
+									if(t21 == null) {
+										Reflect.deleteField(obj1,c.name);
+									} else {
+										obj1[c.name] = t21;
+										if(t21 != "") {
+											if(__map_reserved[t1] != null) {
+												refMap.setReserved(t1,t21);
+											} else {
+												refMap.h[t1] = t21;
+											}
+										}
+									}
+								}
+							}
+							if(c.type == cdb_ColumnType.TId) {
+								_gthis.updateRefs(sheet,refMap);
+							}
+							_gthis.makeSheet(sheet);
 						}
-						_g4.refresh();
-						_g4.save();
+						_gthis.refresh();
+						_gthis.save();
 					};
-				})(k9);
-				cm6.append(m9);
+				})(k2);
+				cm1.append(m2);
 			}
-			conv6.submenu = cm6;
-			n.append(conv6);
+			conv1.submenu = cm1;
+			n.append(conv1);
 			break;
 		default:
 		}
@@ -5544,8 +6076,7 @@ Main.prototype = $extend(Model.prototype,{
 		nicon.checked = sheet.props.displayIcon == c.name;
 		ndisp.enabled = false;
 		nicon.enabled = false;
-		var _g10 = c.type;
-		switch(_g10[1]) {
+		switch(c.type[1]) {
 		case 1:case 6:
 			ndisp.enabled = true;
 			break;
@@ -5555,48 +6086,58 @@ Main.prototype = $extend(Model.prototype,{
 		default:
 		}
 		nedit.click = function() {
-			_g4.newColumn(sheet.name,c);
+			_gthis.newColumn(sheet.name,c);
 		};
 		nleft.click = function() {
 			var index = Lambda.indexOf(sheet.columns,c);
 			if(index > 0) {
 				HxOverrides.remove(sheet.columns,c);
 				sheet.columns.splice(index - 1,0,c);
-				_g4.refresh();
-				_g4.save();
+				_gthis.refresh();
+				_gthis.save();
 			}
 		};
 		nright.click = function() {
-			var index10 = Lambda.indexOf(sheet.columns,c);
-			if(index10 < sheet.columns.length - 1) {
+			var index1 = Lambda.indexOf(sheet.columns,c);
+			if(index1 < sheet.columns.length - 1) {
 				HxOverrides.remove(sheet.columns,c);
-				sheet.columns.splice(index10 + 1,0,c);
-				_g4.refresh();
-				_g4.save();
+				sheet.columns.splice(index1 + 1,0,c);
+				_gthis.refresh();
+				_gthis.save();
 			}
 		};
 		ndel.click = function() {
-			if(!isProperties || window.confirm("Do you really want to delete this property for all objects?")) _g4.deleteColumn(sheet,c.name);
+			if(!isProperties || window.confirm("Do you really want to delete this property for all objects?")) {
+				_gthis.deleteColumn(sheet,c.name);
+			}
 		};
 		ndisp.click = function() {
-			if(sheet.props.displayColumn == c.name) sheet.props.displayColumn = null; else sheet.props.displayColumn = c.name;
-			_g4.makeSheet(sheet);
-			_g4.refresh();
-			_g4.save();
+			if(sheet.props.displayColumn == c.name) {
+				sheet.props.displayColumn = null;
+			} else {
+				sheet.props.displayColumn = c.name;
+			}
+			_gthis.makeSheet(sheet);
+			_gthis.refresh();
+			_gthis.save();
 		};
 		nicon.click = function() {
-			if(sheet.props.displayIcon == c.name) sheet.props.displayIcon = null; else sheet.props.displayIcon = c.name;
-			_g4.makeSheet(sheet);
-			_g4.refresh();
-			_g4.save();
+			if(sheet.props.displayIcon == c.name) {
+				sheet.props.displayIcon = null;
+			} else {
+				sheet.props.displayIcon = c.name;
+			}
+			_gthis.makeSheet(sheet);
+			_gthis.refresh();
+			_gthis.save();
 		};
 		nins.click = function() {
-			_g4.newColumn(sheet.name,null,Lambda.indexOf(sheet.columns,c) + 1);
+			_gthis.newColumn(sheet.name,null,Lambda.indexOf(sheet.columns,c) + 1);
 		};
 		n.popup(this.mousePos.x,this.mousePos.y);
 	}
 	,popupSheet: function(s,li) {
-		var _g = this;
+		var _gthis = this;
 		var n = new js_node_webkit_Menu();
 		var nins = new js_node_webkit_MenuItem({ label : "Add Sheet"});
 		var nleft = new js_node_webkit_MenuItem({ label : "Move Left"});
@@ -5605,108 +6146,118 @@ Main.prototype = $extend(Model.prototype,{
 		var ndel = new js_node_webkit_MenuItem({ label : "Delete"});
 		var nindex = new js_node_webkit_MenuItem({ label : "Add Index", type : "checkbox"});
 		var ngroup = new js_node_webkit_MenuItem({ label : "Add Group", type : "checkbox"});
-		var _g1 = 0;
-		var _g11 = [nins,nleft,nright,nren,ndel,nindex,ngroup];
-		while(_g1 < _g11.length) {
-			var m = _g11[_g1];
-			++_g1;
+		var _g = 0;
+		var _g1 = [nins,nleft,nright,nren,ndel,nindex,ngroup];
+		while(_g < _g1.length) {
+			var m = _g1[_g];
+			++_g;
 			n.append(m);
 		}
 		nleft.click = function() {
 			var prev = -1;
-			var _g2 = 0;
-			var _g12 = _g.data.sheets.length;
-			while(_g2 < _g12) {
-				var i = _g2++;
-				var s2 = _g.data.sheets[i];
-				if(s == s2) break;
-				if(!s2.props.hide) prev = i;
+			var _g11 = 0;
+			var _g2 = _gthis.data.sheets.length;
+			while(_g11 < _g2) {
+				var i = _g11++;
+				var s2 = _gthis.data.sheets[i];
+				if(s == s2) {
+					break;
+				}
+				if(!s2.props.hide) {
+					prev = i;
+				}
 			}
-			if(prev < 0) return;
-			HxOverrides.remove(_g.data.sheets,s);
-			_g.data.sheets.splice(prev,0,s);
-			_g.prefs.curSheet = prev;
-			_g.initContent();
-			_g.save();
+			if(prev < 0) {
+				return;
+			}
+			HxOverrides.remove(_gthis.data.sheets,s);
+			_gthis.data.sheets.splice(prev,0,s);
+			_gthis.prefs.curSheet = prev;
+			_gthis.initContent();
+			_gthis.save();
 		};
 		nright.click = function() {
 			var found = null;
-			var _g22 = 0;
-			var _g13 = _g.data.sheets.length;
-			while(_g22 < _g13) {
-				var i3 = _g22++;
-				var s23 = _g.data.sheets[i3];
-				if(s == s23) found = -1; else if(!s23.props.hide && found != null) {
-					found = i3;
+			var _g12 = 0;
+			var _g3 = _gthis.data.sheets.length;
+			while(_g12 < _g3) {
+				var i1 = _g12++;
+				var s21 = _gthis.data.sheets[i1];
+				if(s == s21) {
+					found = -1;
+				} else if(!s21.props.hide && found != null) {
+					found = i1;
 					break;
 				}
 			}
-			if(found == null || found < 0) return;
-			HxOverrides.remove(_g.data.sheets,s);
-			_g.data.sheets.splice(found,0,s);
-			_g.prefs.curSheet = found;
-			_g.initContent();
-			_g.save();
+			if(found == null || found < 0) {
+				return;
+			}
+			HxOverrides.remove(_gthis.data.sheets,s);
+			_gthis.data.sheets.splice(found,0,s);
+			_gthis.prefs.curSheet = found;
+			_gthis.initContent();
+			_gthis.save();
 		};
 		ndel.click = function() {
-			_g.deleteSheet(s);
-			_g.initContent();
-			_g.save();
+			_gthis.deleteSheet(s);
+			_gthis.initContent();
+			_gthis.save();
 		};
 		nins.click = function() {
-			_g.newSheet();
+			_gthis.newSheet();
 		};
 		nindex.checked = s.props.hasIndex;
 		nindex.click = function() {
 			if(s.props.hasIndex) {
-				var _g3 = 0;
-				var _g14 = SheetData.getLines(s);
-				while(_g3 < _g14.length) {
-					var o = _g14[_g3];
-					++_g3;
+				var _g4 = 0;
+				var _g13 = SheetData.getLines(s);
+				while(_g4 < _g13.length) {
+					var o = _g13[_g4];
+					++_g4;
 					Reflect.deleteField(o,"index");
 				}
 				s.props.hasIndex = false;
 			} else {
-				var _g4 = 0;
-				var _g15 = s.columns;
-				while(_g4 < _g15.length) {
-					var c = _g15[_g4];
-					++_g4;
+				var _g5 = 0;
+				var _g14 = s.columns;
+				while(_g5 < _g14.length) {
+					var c = _g14[_g5];
+					++_g5;
 					if(c.name == "index") {
-						_g.error("Column 'index' already exists");
+						_gthis.error("Column 'index' already exists");
 						return;
 					}
 				}
 				s.props.hasIndex = true;
 			}
-			_g.save();
+			_gthis.save();
 		};
 		ngroup.checked = s.props.hasGroup;
 		ngroup.click = function() {
 			if(s.props.hasGroup) {
-				var _g5 = 0;
-				var _g16 = SheetData.getLines(s);
-				while(_g5 < _g16.length) {
-					var o6 = _g16[_g5];
-					++_g5;
-					Reflect.deleteField(o6,"group");
+				var _g6 = 0;
+				var _g15 = SheetData.getLines(s);
+				while(_g6 < _g15.length) {
+					var o1 = _g15[_g6];
+					++_g6;
+					Reflect.deleteField(o1,"group");
 				}
 				s.props.hasGroup = false;
 			} else {
-				var _g6 = 0;
-				var _g17 = s.columns;
-				while(_g6 < _g17.length) {
-					var c7 = _g17[_g6];
-					++_g6;
-					if(c7.name == "group") {
-						_g.error("Column 'group' already exists");
+				var _g7 = 0;
+				var _g16 = s.columns;
+				while(_g7 < _g16.length) {
+					var c1 = _g16[_g7];
+					++_g7;
+					if(c1.name == "group") {
+						_gthis.error("Column 'group' already exists");
 						return;
 					}
 				}
 				s.props.hasGroup = true;
 			}
-			_g.save();
+			_gthis.save();
 		};
 		nren.click = function() {
 			li.dblclick();
@@ -5716,462 +6267,429 @@ Main.prototype = $extend(Model.prototype,{
 			nlevel.checked = s.props.level != null;
 			n.append(nlevel);
 			nlevel.click = function() {
-				if(s.props.level != null) Reflect.deleteField(s.props,"level"); else s.props.level = { tileSets : { }};
-				_g.save();
-				_g.refresh();
+				if(s.props.level != null) {
+					Reflect.deleteField(s.props,"level");
+				} else {
+					s.props.level = { tileSets : { }};
+				}
+				_gthis.save();
+				_gthis.refresh();
 			};
 		}
 		n.popup(this.mousePos.x,this.mousePos.y);
 	}
 	,editCell: function(c,v,sheet,index) {
-		var _g = this;
+		var _gthis = this;
 		var obj = sheet.lines[index];
 		var val = Reflect.field(obj,c.name);
 		var old = val;
-		var html = _g.valueHtml(c,val,sheet,obj);
-		if(v.hasClass("edit")) return;
+		var html = _gthis.valueHtml(c,val,sheet,obj);
+		if(v.hasClass("edit")) {
+			return;
+		}
 		var editDone = function() {
 			v.html(html);
 			v.removeClass("edit");
-			_g.setErrorMessage();
+			_gthis.setErrorMessage();
 		};
-		{
-			var _g1 = c.type;
-			switch(_g1[1]) {
-			case 3:case 4:case 1:case 0:case 9:case 16:
-				v.empty();
-				var i = $("<input>");
-				v.addClass("edit");
-				i.appendTo(v);
-				if(val != null) {
-					var _g11 = c.type;
-					switch(_g11[1]) {
-					case 9:
-						var t = _g11[2];
-						i.val(this.typeValToString((function($this) {
-							var $r;
-							var _this = $this.tmap;
-							$r = __map_reserved[t] != null?_this.getReserved(t):_this.h[t];
-							return $r;
-						}(this)),val));
-						break;
-					case 16:
-						i.val(JSON.stringify(val));
-						break;
-					default:
-						i.val("" + Std.string(val));
-					}
-				}
-				i.change(function(e) {
-					e.stopPropagation();
-				});
-				i.keydown(function(e1) {
-					var _g12 = e1.keyCode;
-					switch(_g12) {
-					case 27:
-						editDone();
-						break;
-					case 13:
-						i.blur();
-						e1.preventDefault();
-						break;
-					case 38:case 40:
-						i.blur();
-						return;
-					case 9:
-						i.blur();
-						_g.moveCursor(e1.shiftKey?-1:1,0,false,false);
-						haxe_Timer.delay(function() {
-							$(".cursor").dblclick();
-						},1);
-						e1.preventDefault();
-						break;
-					default:
-					}
-					e1.stopPropagation();
-				});
-				i.blur(function(_) {
-					var nv = i.val();
-					var old2 = val;
-					var prevObj = c.type == cdb_ColumnType.TId && old2 != null?(function($this) {
-						var $r;
-						var this2 = ((function($this) {
-							var $r;
-							var _this2 = _g.smap;
-							var key = sheet.name;
-							$r = __map_reserved[key] != null?_this2.getReserved(key):_this2.h[key];
-							return $r;
-						}($this))).index;
-						$r = this2.get(val);
-						return $r;
-					}(this)):null;
-					var prevTarget = null;
-					if(nv == "" && c.opt) {
-						if(val != null) {
-							val = html = null;
-							Reflect.deleteField(obj,c.name);
-							_g.changed(sheet,c,index,old);
-						}
-					} else {
-						var val2 = (function($this) {
-							var $r;
-							var _g13 = c.type;
-							$r = (function($this) {
-								var $r;
-								switch(_g13[1]) {
-								case 3:
-									$r = Std.parseInt(nv);
-									break;
-								case 4:
-									$r = (function($this) {
-										var $r;
-										var f = parseFloat(nv);
-										$r = isNaN(f)?null:f;
-										return $r;
-									}($this));
-									break;
-								case 0:
-									$r = _g.r_ident.match(nv)?nv:null;
-									break;
-								case 9:
-									$r = (function($this) {
-										var $r;
-										var t3 = _g13[2];
-										$r = (function($this) {
-											var $r;
-											try {
-												$r = _g.parseTypeVal((function($this) {
-													var $r;
-													var _this3 = _g.tmap;
-													$r = __map_reserved[t3] != null?_this3.getReserved(t3):_this3.h[t3];
-													return $r;
-												}($this)),nv);
-											} catch( e3 ) {
-												$r = null;
-											}
-											return $r;
-										}($this));
-										return $r;
-									}($this));
-									break;
-								case 16:
-									$r = (function($this) {
-										var $r;
-										try {
-											$r = _g.parseDynamic(nv);
-										} catch( e4 ) {
-											$r = null;
-										}
-										return $r;
-									}($this));
-									break;
-								default:
-									$r = nv;
-								}
-								return $r;
-							}($this));
-							return $r;
-						}(this));
-						if(val2 != val && val2 != null) {
-							prevTarget = (function($this) {
-								var $r;
-								var this4 = ((function($this) {
-									var $r;
-									var _this4 = _g.smap;
-									var key4 = sheet.name;
-									$r = __map_reserved[key4] != null?_this4.getReserved(key4):_this4.h[key4];
-									return $r;
-								}($this))).index;
-								$r = this4.get(val2);
-								return $r;
-							}(this));
-							if(c.type == cdb_ColumnType.TId && val != null && (prevObj == null || prevObj.obj == obj)) {
-								var m = new haxe_ds_StringMap();
-								var key5 = val;
-								var value = val2;
-								if(__map_reserved[key5] != null) m.setReserved(key5,value); else m.h[key5] = value;
-								_g.updateRefs(sheet,m);
-							}
-							val = val2;
-							obj[c.name] = val;
-							_g.changed(sheet,c,index,old);
-							html = _g.valueHtml(c,val,sheet,obj);
-						}
-					}
-					editDone();
-					if(c.type == cdb_ColumnType.TId && prevObj != null && old2 != val && (prevObj.obj == obj && (function($this) {
-						var $r;
-						var this6 = ((function($this) {
-							var $r;
-							var _this5 = _g.smap;
-							var key6 = sheet.name;
-							$r = __map_reserved[key6] != null?_this5.getReserved(key6):_this5.h[key6];
-							return $r;
-						}($this))).index;
-						$r = this6.get(old2);
-						return $r;
-					}(this)) != null || prevTarget != null && ((function($this) {
-						var $r;
-						var this7 = ((function($this) {
-							var $r;
-							var _this6 = _g.smap;
-							var key7 = sheet.name;
-							$r = __map_reserved[key7] != null?_this6.getReserved(key7):_this6.h[key7];
-							return $r;
-						}($this))).index;
-						$r = this7.get(val);
-						return $r;
-					}(this))).obj != prevTarget.obj)) {
-						_g.refresh();
-						return;
-					}
-				});
-				{
-					var _g17 = c.type;
-					switch(_g17[1]) {
-					case 9:
-						var t7 = _g17[2];
-						var t8 = (function($this) {
-							var $r;
-							var _this7 = $this.tmap;
-							$r = __map_reserved[t7] != null?_this7.getReserved(t7):_this7.h[t7];
-							return $r;
-						}(this));
-						i.keyup(function(_8) {
-							var str = i.val();
-							try {
-								if(str != "") _g.parseTypeVal(t8,str);
-								_g.setErrorMessage();
-								i.removeClass("error");
-							} catch( msg ) {
-								if (msg instanceof js__$Boot_HaxeError) msg = msg.val;
-								if( js_Boot.__instanceof(msg,String) ) {
-									_g.setErrorMessage(msg);
-									i.addClass("error");
-								} else throw(msg);
-							}
-						});
-						break;
-					default:
-					}
-				}
-				i.focus();
-				i.select();
-				break;
-			case 5:
-				var values = _g1[2];
-				v.empty();
-				var s = $("<select>");
-				v.addClass("edit");
-				var _g2 = 0;
-				var _g18 = values.length;
-				while(_g2 < _g18) {
-					var i8 = _g2++;
-					$("<option>").attr("value","" + i8).attr(val == i8?"selected":"_sel","selected").text(values[i8]).appendTo(s);
-				}
-				if(c.opt) $("<option>").attr("value","-1").text("--- None ---").prependTo(s);
-				v.append(s);
-				s.change(function(e8) {
-					val = Std.parseInt(s.val());
-					if(val < 0) {
-						val = null;
-						Reflect.deleteField(obj,c.name);
-					} else obj[c.name] = val;
-					html = _g.valueHtml(c,val,sheet,obj);
-					_g.changed(sheet,c,index,old);
-					editDone();
-					e8.stopPropagation();
-				});
-				s.keydown(function(e9) {
-					var _g19 = e9.keyCode;
-					switch(_g19) {
-					case 37:case 39:
-						s.blur();
-						return;
-					case 9:
-						s.blur();
-						_g.moveCursor(e9.shiftKey?-1:1,0,false,false);
-						haxe_Timer.delay(function() {
-							$(".cursor").dblclick();
-						},1);
-						e9.preventDefault();
-						break;
-					default:
-					}
-					e9.stopPropagation();
-				});
-				s.blur(function(_9) {
-					editDone();
-				});
-				s.focus();
-				var event = window.document.createEvent("MouseEvents");
-				event.initMouseEvent("mousedown",true,true,window);
-				s[0].dispatchEvent(event);
-				break;
-			case 6:
-				var sname = _g1[2];
-				var sdat = (function($this) {
-					var $r;
-					var _this9 = $this.smap;
-					$r = __map_reserved[sname] != null?_this9.getReserved(sname):_this9.h[sname];
-					return $r;
-				}(this));
-				if(sdat == null) return;
-				v.empty();
-				v.addClass("edit");
-				var s9 = $("<select>");
-				var elts = (function($this) {
-					var $r;
-					var _g110 = [];
-					{
-						var _g210 = 0;
-						var _g3 = sdat.all;
-						while(_g210 < _g3.length) {
-							var d = _g3[_g210];
-							++_g210;
-							_g110.push({ id : d.id, ico : d.ico, text : d.disp});
-						}
-					}
-					$r = _g110;
-					return $r;
-				}(this));
-				if(c.opt || val == null || val == "") elts.unshift({ id : "~", ico : null, text : "--- None ---"});
-				v.append(s9);
-				s9.change(function(e10) {
-					e10.stopPropagation();
-				});
-				var props = { data : elts};
-				if(sdat.s.props.displayIcon != null) {
-					var buildElement = function(i10) {
-						var text = StringTools.htmlEscape(i10.text);
-						return $("<div>" + (i10.ico == null?"<div style='display:inline-block;width:16px'/>":_g.tileHtml(i10.ico,true)) + " " + text + "</div>");
-					};
-					props.templateResult = props.templateSelection = buildElement;
-				}
-				s9.select2(props);
-				s9.select2("val",val == null?"":val);
-				s9.select2("open");
-				s9.change(function(e11) {
-					val = s9.val();
-					if(val == "~") {
-						val = null;
-						Reflect.deleteField(obj,c.name);
-					} else obj[c.name] = val;
-					html = _g.valueHtml(c,val,sheet,obj);
-					_g.changed(sheet,c,index,old);
-					editDone();
-				});
-				s9.on("select2:close",null,function(_11) {
-					editDone();
-				});
-				break;
-			case 2:
-				if(c.opt && val == false) {
+		var _g = c.type;
+		switch(_g[1]) {
+		case 2:
+			if(c.opt && val == false) {
+				val = null;
+				Reflect.deleteField(obj,c.name);
+			} else {
+				val = !val;
+				obj[c.name] = val;
+			}
+			v.html(_gthis.valueHtml(c,val,sheet,obj));
+			_gthis.changed(sheet,c,index,old);
+			break;
+		case 5:
+			var values = _g[2];
+			v.empty();
+			var s = $("<select>");
+			v.addClass("edit");
+			var _g1 = 0;
+			var _g2 = values.length;
+			while(_g1 < _g2) {
+				var i = _g1++;
+				$("<option>").attr("value","" + i).attr(val == i?"selected":"_sel","selected").text(values[i]).appendTo(s);
+			}
+			if(c.opt) {
+				$("<option>").attr("value","-1").text("--- None ---").prependTo(s);
+			}
+			v.append(s);
+			s.change(function(e) {
+				val = Std.parseInt(s.val());
+				if(val < 0) {
 					val = null;
 					Reflect.deleteField(obj,c.name);
 				} else {
-					val = !val;
 					obj[c.name] = val;
 				}
-				v.html(_g.valueHtml(c,val,sheet,obj));
-				_g.changed(sheet,c,index,old);
-				break;
-			case 7:
-				var i12 = $("<input>").attr("type","file").css("display","none").change(function(e12) {
-					var j = $(this);
-					var file = j.val();
-					var ext = file.split(".").pop().toLowerCase();
-					if(ext == "jpeg") ext = "jpg";
-					if(ext != "png" && ext != "gif" && ext != "jpg") {
-						_g.error("Unsupported image extension " + ext);
-						return;
-					}
-					var bytes = (function($this) {
-						var $r;
-						var _this12 = js_node_Fs.readFileSync(file);
-						$r = haxe_io_Bytes.ofData(_this12.buffer);
-						return $r;
-					}(this));
-					var md5 = haxe_crypto_Md5.make(bytes).toHex();
-					if(_g.imageBank == null) _g.imageBank = { };
-					if(!(function($this) {
-						var $r;
-						var o = _g.imageBank;
-						$r = Object.prototype.hasOwnProperty.call(o,md5);
-						return $r;
-					}(this))) {
-						var data = "data:image/" + ext + ";base64," + new haxe_crypto_BaseCode(haxe_io_Bytes.ofString("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/")).encodeBytes(bytes).toString();
-						var o12 = _g.imageBank;
-						o12[md5] = data;
-					}
-					val = md5;
-					obj[c.name] = val;
-					v.html(_g.valueHtml(c,val,sheet,obj));
-					_g.changed(sheet,c,index,old);
-					j.remove();
-				});
-				i12.appendTo($("body"));
-				i12.click();
-				break;
-			case 10:
-				var values12 = _g1[2];
-				var div = $("<div>").addClass("flagValues");
-				div.click(function(e13) {
-					e13.stopPropagation();
-				}).dblclick(function(e14) {
-					e14.stopPropagation();
-				});
-				var _g214 = 0;
-				var _g114 = values12.length;
-				while(_g214 < _g114) {
-					var i14 = [_g214++];
-					var f15 = $("<input>").attr("type","checkbox").prop("checked",(val & 1 << i14[0]) != 0).change((function(i15) {
-						return function(e15) {
-							val &= ~(1 << i15[0]);
-							if($(this).prop("checked")) val |= 1 << i15[0];
-							e15.stopPropagation();
-						};
-					})(i14));
-					$("<label>").text(values12[i14[0]]).appendTo(div).append(f15);
+				html = _gthis.valueHtml(c,val,sheet,obj);
+				_gthis.changed(sheet,c,index,old);
+				editDone();
+				e.stopPropagation();
+			});
+			s.keydown(function(e1) {
+				var _g3 = e1.keyCode;
+				switch(_g3) {
+				case 9:
+					s.blur();
+					_gthis.moveCursor(e1.shiftKey?-1:1,0,false,false);
+					haxe_Timer.delay(function() {
+						$(".cursor").dblclick();
+					},1);
+					e1.preventDefault();
+					break;
+				case 37:case 39:
+					s.blur();
+					return;
+				default:
 				}
-				v.empty();
-				v.append(div);
-				this.cursor.onchange = function() {
-					if(c.opt && val == 0) {
-						val = null;
-						Reflect.deleteField(obj,c.name);
-					} else obj[c.name] = val;
-					html = _g.valueHtml(c,val,sheet,obj);
-					editDone();
-					_g.save();
-				};
-				break;
-			case 15:
-				break;
-			case 11:
-				var id = Std.random(1);
-				v.html("<div class=\"modal\" onclick=\"$('#_c" + id + "').spectrum('toggle')\"></div><input type=\"text\" id=\"_c" + id + "\"/>");
-				var spect = $("#_c" + id);
-				spect.spectrum({ color : "#" + StringTools.hex(val,6), showInput : true, showButtons : false, change : function() {
-					spect.spectrum("hide");
-				}, hide : function(vcol) {
-					var color = Std.parseInt("0x" + Std.string(vcol.toHex()));
-					val = color;
-					obj[c.name] = color;
-					v.html(_g.valueHtml(c,val,sheet,obj));
-					_g.save();
-				}}).spectrum("show");
-				break;
-			case 8:case 12:case 13:case 14:case 17:
-				throw new js__$Boot_HaxeError("assert2");
-				break;
+				e1.stopPropagation();
+			});
+			s.blur(function(_) {
+				editDone();
+			});
+			s.focus();
+			var event = window.document.createEvent("MouseEvents");
+			event.initMouseEvent("mousedown",true,true,window);
+			s[0].dispatchEvent(event);
+			break;
+		case 6:
+			var sname = _g[2];
+			var _this = this.smap;
+			var sdat = __map_reserved[sname] != null?_this.getReserved(sname):_this.h[sname];
+			if(sdat == null) {
+				return;
 			}
+			v.empty();
+			v.addClass("edit");
+			var s1 = $("<select>");
+			var _g4 = [];
+			var _g11 = 0;
+			var _g21 = sdat.all;
+			while(_g11 < _g21.length) {
+				var d = _g21[_g11];
+				++_g11;
+				_g4.push({ id : d.id, ico : d.ico, text : d.disp});
+			}
+			var elts = _g4;
+			if(c.opt || val == null || val == "") {
+				elts.unshift({ id : "~", ico : null, text : "--- None ---"});
+			}
+			v.append(s1);
+			s1.change(function(e2) {
+				e2.stopPropagation();
+			});
+			var props = { data : elts};
+			if(sdat.s.props.displayIcon != null) {
+				var buildElement = function(i1) {
+					var text = StringTools.htmlEscape(i1.text);
+					return $("<div>" + (i1.ico == null?"<div style='display:inline-block;width:16px'/>":_gthis.tileHtml(i1.ico,true)) + " " + text + "</div>");
+				};
+				props.templateResult = props.templateSelection = buildElement;
+			}
+			s1.select2(props);
+			s1.select2("val",val == null?"":val);
+			s1.select2("open");
+			s1.change(function(e3) {
+				val = s1.val();
+				if(val == "~") {
+					val = null;
+					Reflect.deleteField(obj,c.name);
+				} else {
+					obj[c.name] = val;
+				}
+				html = _gthis.valueHtml(c,val,sheet,obj);
+				_gthis.changed(sheet,c,index,old);
+				editDone();
+			});
+			s1.on("select2:close",null,function(_1) {
+				editDone();
+			});
+			break;
+		case 7:
+			var i2 = $("<input>").attr("type","file").css("display","none").change(function(e4) {
+				var j = $(this);
+				var file = j.val();
+				var ext = file.split(".").pop().toLowerCase();
+				if(ext == "jpeg") {
+					ext = "jpg";
+				}
+				if(ext != "png" && ext != "gif" && ext != "jpg") {
+					_gthis.error("Unsupported image extension " + ext);
+					return;
+				}
+				var bytes = haxe_io_Bytes.ofData(js_node_Fs.readFileSync(file).buffer);
+				var md5 = haxe_crypto_Md5.make(bytes).toHex();
+				if(_gthis.imageBank == null) {
+					_gthis.imageBank = { };
+				}
+				if(!Object.prototype.hasOwnProperty.call(_gthis.imageBank,md5)) {
+					var data = "data:image/" + ext + ";base64," + new haxe_crypto_BaseCode(haxe_io_Bytes.ofString("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/")).encodeBytes(bytes).toString();
+					_gthis.imageBank[md5] = data;
+				}
+				val = md5;
+				obj[c.name] = val;
+				v.html(_gthis.valueHtml(c,val,sheet,obj));
+				_gthis.changed(sheet,c,index,old);
+				j.remove();
+			});
+			i2.appendTo($("body"));
+			i2.click();
+			break;
+		case 0:case 1:case 3:case 4:case 9:case 16:
+			v.empty();
+			var i3 = $("<input>");
+			v.addClass("edit");
+			i3.appendTo(v);
+			if(val != null) {
+				var _g5 = c.type;
+				switch(_g5[1]) {
+				case 9:
+					var t = _g5[2];
+					var _this1 = this.tmap;
+					i3.val(this.typeValToString(__map_reserved[t] != null?_this1.getReserved(t):_this1.h[t],val));
+					break;
+				case 16:
+					i3.val(JSON.stringify(val));
+					break;
+				default:
+					i3.val("" + Std.string(val));
+				}
+			}
+			i3.change(function(e5) {
+				e5.stopPropagation();
+			});
+			i3.keydown(function(e6) {
+				var _g12 = e6.keyCode;
+				switch(_g12) {
+				case 9:
+					i3.blur();
+					_gthis.moveCursor(e6.shiftKey?-1:1,0,false,false);
+					haxe_Timer.delay(function() {
+						$(".cursor").dblclick();
+					},1);
+					e6.preventDefault();
+					break;
+				case 13:
+					i3.blur();
+					e6.preventDefault();
+					break;
+				case 27:
+					editDone();
+					break;
+				case 38:case 40:
+					i3.blur();
+					return;
+				default:
+				}
+				e6.stopPropagation();
+			});
+			i3.blur(function(_2) {
+				var nv = i3.val();
+				var old1 = val;
+				var prevObj;
+				if(c.type == cdb_ColumnType.TId && old1 != null) {
+					var _this2 = _gthis.smap;
+					var key = sheet.name;
+					prevObj = (__map_reserved[key] != null?_this2.getReserved(key):_this2.h[key]).index.get(val);
+				} else {
+					prevObj = null;
+				}
+				var prevTarget = null;
+				if(nv == "" && c.opt) {
+					if(val != null) {
+						html = null;
+						val = html;
+						Reflect.deleteField(obj,c.name);
+						_gthis.changed(sheet,c,index,old);
+					}
+				} else {
+					var val2;
+					var _g13 = c.type;
+					switch(_g13[1]) {
+					case 0:
+						if(_gthis.r_ident.match(nv)) {
+							val2 = nv;
+						} else {
+							val2 = null;
+						}
+						break;
+					case 3:
+						val2 = Std.parseInt(nv);
+						break;
+					case 4:
+						var f = parseFloat(nv);
+						if(isNaN(f)) {
+							val2 = null;
+						} else {
+							val2 = f;
+						}
+						break;
+					case 9:
+						var t1 = _g13[2];
+						try {
+							var _this3 = _gthis.tmap;
+							val2 = _gthis.parseTypeVal(__map_reserved[t1] != null?_this3.getReserved(t1):_this3.h[t1],nv);
+						} catch( e7 ) {
+							val2 = null;
+						}
+						break;
+					case 16:
+						try {
+							val2 = _gthis.parseDynamic(nv);
+						} catch( e8 ) {
+							val2 = null;
+						}
+						break;
+					default:
+						val2 = nv;
+					}
+					if(val2 != val && val2 != null) {
+						var _this4 = _gthis.smap;
+						var key1 = sheet.name;
+						prevTarget = (__map_reserved[key1] != null?_this4.getReserved(key1):_this4.h[key1]).index.get(val2);
+						if(c.type == cdb_ColumnType.TId && val != null && (prevObj == null || prevObj.obj == obj)) {
+							var m = new haxe_ds_StringMap();
+							var key2 = val;
+							var value = val2;
+							if(__map_reserved[key2] != null) {
+								m.setReserved(key2,value);
+							} else {
+								m.h[key2] = value;
+							}
+							_gthis.updateRefs(sheet,m);
+						}
+						val = val2;
+						obj[c.name] = val;
+						_gthis.changed(sheet,c,index,old);
+						html = _gthis.valueHtml(c,val,sheet,obj);
+					}
+				}
+				editDone();
+				var tmp;
+				if(c.type == cdb_ColumnType.TId && prevObj != null && old1 != val) {
+					var tmp1;
+					if(prevObj.obj == obj) {
+						var _this5 = _gthis.smap;
+						var key3 = sheet.name;
+						tmp1 = (__map_reserved[key3] != null?_this5.getReserved(key3):_this5.h[key3]).index.get(old1) != null;
+					} else {
+						tmp1 = false;
+					}
+					if(!tmp1) {
+						if(prevTarget != null) {
+							var _this6 = _gthis.smap;
+							var key4 = sheet.name;
+							tmp = (__map_reserved[key4] != null?_this6.getReserved(key4):_this6.h[key4]).index.get(val).obj != prevTarget.obj;
+						} else {
+							tmp = false;
+						}
+					} else {
+						tmp = true;
+					}
+				} else {
+					tmp = false;
+				}
+				if(tmp) {
+					_gthis.refresh();
+					return;
+				}
+			});
+			var _g14 = c.type;
+			if(_g14[1] == 9) {
+				var t2 = _g14[2];
+				var _this7 = this.tmap;
+				var t3 = __map_reserved[t2] != null?_this7.getReserved(t2):_this7.h[t2];
+				i3.keyup(function(_3) {
+					var str = i3.val();
+					try {
+						if(str != "") {
+							_gthis.parseTypeVal(t3,str);
+						}
+						_gthis.setErrorMessage();
+						i3.removeClass("error");
+					} catch( msg ) {
+						if (msg instanceof js__$Boot_HaxeError) msg = msg.val;
+						if( js_Boot.__instanceof(msg,String) ) {
+							_gthis.setErrorMessage(msg);
+							i3.addClass("error");
+						} else throw(msg);
+					}
+				});
+			}
+			i3.focus();
+			i3.select();
+			break;
+		case 10:
+			var values1 = _g[2];
+			var div = $("<div>").addClass("flagValues");
+			div.click(function(e9) {
+				e9.stopPropagation();
+			}).dblclick(function(e10) {
+				e10.stopPropagation();
+			});
+			var _g15 = 0;
+			var _g6 = values1.length;
+			while(_g15 < _g6) {
+				var i4 = [_g15++];
+				var f1 = $("<input>").attr("type","checkbox").prop("checked",(val & 1 << i4[0]) != 0).change((function(i5) {
+					return function(e11) {
+						val &= ~(1 << i5[0]);
+						if($(this).prop("checked")) {
+							val |= 1 << i5[0];
+						}
+						e11.stopPropagation();
+					};
+				})(i4));
+				$("<label>").text(values1[i4[0]]).appendTo(div).append(f1);
+			}
+			v.empty();
+			v.append(div);
+			this.cursor.onchange = function() {
+				if(c.opt && val == 0) {
+					val = null;
+					Reflect.deleteField(obj,c.name);
+				} else {
+					obj[c.name] = val;
+				}
+				html = _gthis.valueHtml(c,val,sheet,obj);
+				editDone();
+				_gthis.save();
+			};
+			break;
+		case 11:
+			var id = Std.random(1);
+			v.html("<div class=\"modal\" onclick=\"$('#_c" + id + "').spectrum('toggle')\"></div><input type=\"text\" id=\"_c" + id + "\"/>");
+			var spect = $("#_c" + id);
+			spect.spectrum({ color : "#" + StringTools.hex(val,6), showInput : true, showButtons : false, change : function() {
+				spect.spectrum("hide");
+			}, hide : function(vcol) {
+				var color = Std.parseInt("0x" + Std.string(vcol.toHex()));
+				val = color;
+				obj[c.name] = color;
+				v.html(_gthis.valueHtml(c,val,sheet,obj));
+				_gthis.save();
+			}}).spectrum("show");
+			break;
+		case 8:case 12:case 13:case 14:case 17:
+			throw new js__$Boot_HaxeError("assert2");
+			break;
+		case 15:
+			break;
 		}
 	}
 	,updateCursor: function() {
 		$(".selected").removeClass("selected");
 		$(".cursor").removeClass("cursor");
-		if(this.cursor.s == null) return;
+		if(this.cursor.s == null) {
+			return;
+		}
 		if(this.cursor.y < 0) {
 			this.cursor.y = 0;
 			this.cursor.select = null;
@@ -6191,7 +6709,11 @@ Main.prototype = $extend(Model.prototype,{
 			if(this.cursor.select != null) {
 				var y = this.cursor.y;
 				while(this.cursor.select.y != y) {
-					if(this.cursor.select.y > y) y++; else y--;
+					if(this.cursor.select.y > y) {
+						++y;
+					} else {
+						--y;
+					}
 					this.getLine(this.cursor.s,y).addClass("selected");
 				}
 			}
@@ -6208,13 +6730,17 @@ Main.prototype = $extend(Model.prototype,{
 			}
 		}
 		var e = l[0];
-		if(e != null) e.scrollIntoViewIfNeeded();
+		if(e != null) {
+			e.scrollIntoViewIfNeeded();
+		}
 	}
 	,refresh: function() {
 		var t = $("<table>");
 		this.checkCursor = true;
 		this.fillTable(t,this.viewSheet);
-		if(this.cursor.s != this.viewSheet && this.checkCursor) this.setCursor(this.viewSheet,null,null,null,false);
+		if(this.cursor.s != this.viewSheet && this.checkCursor) {
+			this.setCursor(this.viewSheet,null,null,null,false);
+		}
 		var content = $("#content");
 		content.empty();
 		t.appendTo(content);
@@ -6222,47 +6748,53 @@ Main.prototype = $extend(Model.prototype,{
 		this.updateCursor();
 	}
 	,chooseFile: function(callb,cancel) {
-		var _g = this;
+		var _gthis = this;
 		if(this.prefs.curFile == null) {
 			this.error("Please save CDB file first");
-			if(cancel != null) cancel();
+			if(cancel != null) {
+				cancel();
+			}
 			return;
 		}
 		var fs = $("#fileSelect");
-		if(fs.attr("nwworkingdir") == null) fs.attr("nwworkingdir",new haxe_io_Path(this.prefs.curFile).dir);
+		if(fs.attr("nwworkingdir") == null) {
+			fs.attr("nwworkingdir",new haxe_io_Path(this.prefs.curFile).dir);
+		}
 		fs.change(function(_) {
 			fs.unbind("change");
 			var path = fs.val().split("\\").join("/");
 			fs.val("");
 			if(path == "") {
-				if(cancel != null) cancel();
+				if(cancel != null) {
+					cancel();
+				}
 				return;
 			}
 			fs.attr("nwworkingdir","");
 			var parts = path.split("/");
-			var base = _g.prefs.curFile.split("\\").join("/").split("/");
+			var base = _gthis.prefs.curFile.split("\\").join("/").split("/");
 			base.pop();
 			while(parts.length > 1 && base.length > 0 && parts[0] == base[0]) {
 				parts.shift();
 				base.shift();
 			}
-			if(parts.length == 0 || parts[0] != "" && parts[0].charAt(1) != ":") while(base.length > 0) {
-				parts.unshift("..");
-				base.pop();
+			if(parts.length == 0 || parts[0] != "" && parts[0].charAt(1) != ":") {
+				while(base.length > 0) {
+					parts.unshift("..");
+					base.pop();
+				}
 			}
-			var relPath = parts.join("/");
-			callb(relPath);
+			callb(parts.join("/"));
 		}).click();
 	}
 	,fillProps: function(content,sheet,props) {
-		var _g3 = this;
+		var _gthis = this;
 		content.addClass("sheet");
 		content.attr("sheet",SheetData.getPath(sheet));
 		var _g = [];
 		var _g1 = 0;
 		var _g2 = Reflect.fields(props);
 		while(_g1 < _g2.length) {
-			var f = _g2[_g1];
 			++_g1;
 			_g.push(null);
 		}
@@ -6283,35 +6815,35 @@ Main.prototype = $extend(Model.prototype,{
 			var l = [$("<tr>").attr("colName",c[0].name).appendTo(content)];
 			var th = $("<th>").text(c[0].name).appendTo(l[0]);
 			var td = [$("<td>").addClass("c").addClass("t_" + HxOverrides.substr(c[0].type[0],1,null).toLowerCase()).html(this.valueHtml(c[0],v,sheet,props)).appendTo(l[0])];
-			var index1 = [index++];
-			l[0].click((function(index2) {
+			var tmp = index++;
+			l[0].click((function(index1) {
 				return function(e) {
-					_g3.setCursor(sheet,0,index2[0]);
+					_gthis.setCursor(sheet,0,index1[0]);
 					e.stopPropagation();
 				};
-			})(index1));
-			th.mousedown((function(l2,c2) {
-				return function(e2) {
-					if(e2.which == 3) {
-						var f2 = $bind(_g3,_g3.popupColumn);
+			})([tmp]));
+			th.mousedown((function(l1,c1) {
+				return function(e1) {
+					if(e1.which == 3) {
+						var f = $bind(_gthis,_gthis.popupColumn);
 						var a1 = sheet;
-						var c3 = c2[0];
+						var c2 = c1[0];
 						haxe_Timer.delay((function() {
 							return function() {
-								f2(a1,c3,true);
+								f(a1,c2,true);
 							};
 						})(),1);
-						e2.preventDefault();
-						l2[0].click();
+						e1.preventDefault();
+						l1[0].click();
 						return;
 					}
 				};
 			})(l,c));
-			td[0].dblclick((function(td3,c4) {
-				return function(e4) {
-					_g3.editCell(c4[0],td3[0],sheet,0);
-					e4.preventDefault();
-					e4.stopPropagation();
+			td[0].dblclick((function(td1,c3) {
+				return function(e2) {
+					_gthis.editCell(c3[0],td1[0],sheet,0);
+					e2.preventDefault();
+					e2.stopPropagation();
 				};
 			})(td,c));
 		}
@@ -6319,37 +6851,39 @@ Main.prototype = $extend(Model.prototype,{
 		end = $("<td>").attr("colspan","2").appendTo(end);
 		var sel = $("<select>").appendTo(end);
 		$("<option>").attr("value","").text("--- Choose ---").appendTo(sel);
-		var _g14 = 0;
-		while(_g14 < available.length) {
-			var c5 = available[_g14];
-			++_g14;
-			$("<option>").attr("value",c5.name).text(c5.name).appendTo(sel);
+		var _g12 = 0;
+		while(_g12 < available.length) {
+			var c4 = available[_g12];
+			++_g12;
+			$("<option>").attr("value",c4.name).text(c4.name).appendTo(sel);
 		}
 		$("<option>").attr("value","new").text("New property...").appendTo(sel);
-		sel.change(function(e5) {
-			e5.stopPropagation();
-			var v5 = sel.val();
-			if(v5 == "") return;
-			sel.val("");
-			if(v5 == "new") {
-				_g3.newColumn(sheet.name);
+		sel.change(function(e3) {
+			e3.stopPropagation();
+			var v1 = sel.val();
+			if(v1 == "") {
 				return;
 			}
-			var _g15 = 0;
-			while(_g15 < available.length) {
-				var c6 = available[_g15];
-				++_g15;
-				if(c6.name == v5) {
-					props[c6.name] = _g3.getDefault(c6,true);
-					_g3.save();
-					_g3.refresh();
+			sel.val("");
+			if(v1 == "new") {
+				_gthis.newColumn(sheet.name);
+				return;
+			}
+			var _g13 = 0;
+			while(_g13 < available.length) {
+				var c5 = available[_g13];
+				++_g13;
+				if(c5.name == v1) {
+					props[c5.name] = _gthis.getDefault(c5,true);
+					_gthis.save();
+					_gthis.refresh();
 					return;
 				}
 			}
 		});
 	}
 	,fillTable: function(content,sheet) {
-		var _g4 = this;
+		var _gthis = this;
 		if(sheet.columns.length == 0) {
 			content.html("<a href=\"javascript:_.newColumn('" + sheet.name + "')\">Add a column</a>");
 			return;
@@ -6358,23 +6892,27 @@ Main.prototype = $extend(Model.prototype,{
 		var inTodo = false;
 		var cols = $("<tr>").addClass("head");
 		var _g = [];
-		var _g11 = 0;
+		var _g1 = 0;
 		var _g2 = cdb_ColumnType.__constructs__.slice();
-		while(_g11 < _g2.length) {
-			var t = _g2[_g11];
-			++_g11;
+		while(_g1 < _g2.length) {
+			var t = _g2[_g1];
+			++_g1;
 			_g.push(HxOverrides.substr(t,1,null).toLowerCase());
 		}
 		var types = _g;
 		$("<td>").addClass("start").appendTo(cols).click(function(_) {
-			if(sheet.props.hide) content.change(); else $("tr.list table").change();
+			if(sheet.props.hide) {
+				content.change();
+			} else {
+				$("tr.list table").change();
+			}
 		});
 		content.addClass("sheet");
 		content.attr("sheet",SheetData.getPath(sheet));
 		content.click(function(e) {
 			e.stopPropagation();
 		});
-		var _g1 = [];
+		var _g11 = [];
 		var _g3 = 0;
 		var _g21 = sheet.lines.length;
 		while(_g3 < _g21) {
@@ -6386,7 +6924,7 @@ Main.prototype = $extend(Model.prototype,{
 				return function(e1) {
 					if(e1.which == 3) {
 						head1[0].click();
-						var f = $bind(_g4,_g4.popupLine);
+						var f = $bind(_gthis,_gthis.popupLine);
 						var a1 = sheet;
 						var a2 = i1[0];
 						haxe_Timer.delay((function() {
@@ -6400,36 +6938,42 @@ Main.prototype = $extend(Model.prototype,{
 				};
 			})(head,i)).click((function(i2) {
 				return function(e2) {
-					if(e2.shiftKey && _g4.cursor.s == sheet && _g4.cursor.x < 0) {
-						_g4.cursor.select = { x : -1, y : i2[0]};
-						_g4.updateCursor();
-					} else _g4.setCursor(sheet,-1,i2[0]);
+					if(e2.shiftKey && _gthis.cursor.s == sheet && _gthis.cursor.x < 0) {
+						_gthis.cursor.select = { x : -1, y : i2[0]};
+						_gthis.updateCursor();
+					} else {
+						_gthis.setCursor(sheet,-1,i2[0]);
+					}
 				};
 			})(i));
 			head[0].appendTo(l);
-			_g1.push(l);
+			_g11.push(l);
 		}
-		var lines = _g1;
+		var lines = _g11;
 		var colCount = sheet.columns.length;
-		if(sheet.props.level != null) ++colCount;
-		var _g32 = 0;
+		if(sheet.props.level != null) {
+			++colCount;
+		}
+		var _g31 = 0;
 		var _g22 = sheet.columns.length;
-		while(_g32 < _g22) {
-			var cindex = [_g32++];
+		while(_g31 < _g22) {
+			var cindex = [_g31++];
 			var c = [sheet.columns[cindex[0]]];
 			var col = $("<td>");
 			col.text(c[0].name);
 			col.css("width",(100 / colCount | 0) + "%");
-			if(sheet.props.displayColumn == c[0].name) col.addClass("display");
-			col.mousedown((function(c2) {
+			if(sheet.props.displayColumn == c[0].name) {
+				col.addClass("display");
+			}
+			col.mousedown((function(c1) {
 				return function(e3) {
 					if(e3.which == 3) {
-						var f3 = $bind(_g4,_g4.popupColumn);
-						var a13 = sheet;
-						var c3 = c2[0];
+						var f1 = $bind(_gthis,_gthis.popupColumn);
+						var a11 = sheet;
+						var c2 = c1[0];
 						haxe_Timer.delay((function() {
 							return function() {
-								f3(a13,c3);
+								f1(a11,c2);
 							};
 						})(),1);
 						e3.preventDefault();
@@ -6437,469 +6981,513 @@ Main.prototype = $extend(Model.prototype,{
 					}
 				};
 			})(c));
-			col.dblclick((function(c4) {
-				return function(_4) {
-					_g4.newColumn(sheet.name,c4[0]);
+			col.dblclick((function(c3) {
+				return function(_1) {
+					_gthis.newColumn(sheet.name,c3[0]);
 				};
 			})(c));
 			cols.append(col);
 			var ctype = "t_" + types[c[0].type[1]];
 			var _g5 = 0;
-			var _g44 = sheet.lines.length;
-			while(_g5 < _g44) {
+			var _g4 = sheet.lines.length;
+			while(_g5 < _g4) {
 				var index = [_g5++];
 				var obj = [sheet.lines[index[0]]];
 				var val = [Reflect.field(obj[0],c[0].name)];
 				var v = [$("<td>").addClass(ctype).addClass("c")];
-				var l4 = [lines[index[0]]];
-				v[0].appendTo(l4[0]);
+				var l1 = [lines[index[0]]];
+				v[0].appendTo(l1[0]);
 				var html = [this.valueHtml(c[0],val[0],sheet,obj[0])];
-				if(html[0] == "&nbsp;") v[0].text(" "); else if(html[0].indexOf("<") < 0 && html[0].indexOf("&") < 0) v[0].text(html[0]); else v[0].html(html[0]);
+				if(html[0] == "&nbsp;") {
+					v[0].text(" ");
+				} else if(html[0].indexOf("<") < 0 && html[0].indexOf("&") < 0) {
+					v[0].text(html[0]);
+				} else {
+					v[0].html(html[0]);
+				}
 				v[0].data("index",cindex[0]);
-				v[0].click((function(index5,cindex5) {
-					return function(e5) {
+				v[0].click((function(index1,cindex1) {
+					return function(e4) {
 						if(!inTodo) {
-							if(e5.shiftKey && _g4.cursor.s == sheet) {
-								_g4.cursor.select = { x : cindex5[0], y : index5[0]};
-								_g4.updateCursor();
-								e5.stopImmediatePropagation();
-							} else _g4.setCursor(sheet,cindex5[0],index5[0]);
+							if(e4.shiftKey && _gthis.cursor.s == sheet) {
+								_gthis.cursor.select = { x : cindex1[0], y : index1[0]};
+								_gthis.updateCursor();
+								e4.stopImmediatePropagation();
+							} else {
+								_gthis.setCursor(sheet,cindex1[0],index1[0]);
+							}
 						}
-						e5.stopPropagation();
+						e4.stopPropagation();
 					};
 				})(index,cindex));
-				var set = [(function(html4,v4,val4,obj4,index4,c5) {
+				var set = [(function(html1,v1,val1,obj1,index2,c4) {
 					return function(val2) {
-						var old = val4[0];
-						val4[0] = val2;
-						if(val4[0] == null) Reflect.deleteField(obj4[0],c5[0].name); else obj4[0][c5[0].name] = val4[0];
-						html4[0] = _g4.valueHtml(c5[0],val4[0],sheet,obj4[0]);
-						v4[0].html(html4[0]);
-						_g4.changed(sheet,c5[0],index4[0],old);
+						var old = val1[0];
+						val1[0] = val2;
+						if(val1[0] == null) {
+							Reflect.deleteField(obj1[0],c4[0].name);
+						} else {
+							obj1[0][c4[0].name] = val1[0];
+						}
+						html1[0] = _gthis.valueHtml(c4[0],val1[0],sheet,obj1[0]);
+						v1[0].html(html1[0]);
+						_gthis.changed(sheet,c4[0],index2[0],old);
 					};
 				})(html,v,val,obj,index,c)];
-				var _g6 = c[0].type;
-				switch(_g6[1]) {
+				switch(c[0].type[1]) {
 				case 7:
-					v[0].find("img").addClass("deletable").change((function(obj5,c6) {
-						return function(e6) {
-							if(Reflect.field(obj5[0],c6[0].name) != null) {
-								Reflect.deleteField(obj5[0],c6[0].name);
-								_g4.refresh();
-								_g4.save();
+					v[0].find("img").addClass("deletable").change((function(obj2,c5) {
+						return function(e5) {
+							if(Reflect.field(obj2[0],c5[0].name) != null) {
+								Reflect.deleteField(obj2[0],c5[0].name);
+								_gthis.refresh();
+								_gthis.save();
 							}
 						};
 					})(obj,c)).click((function() {
-						return function(e7) {
+						return function(e6) {
 							$(this).addClass("selected");
-							e7.stopPropagation();
+							e6.stopPropagation();
 						};
 					})());
-					v[0].dblclick((function(v7,index7,c7) {
-						return function(_7) {
-							_g4.editCell(c7[0],v7[0],sheet,index7[0]);
+					v[0].dblclick((function(v2,index3,c6) {
+						return function(_2) {
+							_gthis.editCell(c6[0],v2[0],sheet,index3[0]);
 						};
 					})(v,index,c));
 					break;
 				case 8:
 					var key = [SheetData.getPath(sheet) + "@" + c[0].name + ":" + index[0]];
-					v[0].click((function(key7,html7,l7,v8,val8,obj8,index8,c8,cindex8) {
-						return function(e8) {
-							var next = l7[0].next("tr.list");
+					v[0].click((function(key1,html2,l2,v3,val3,obj3,index4,c7,cindex2) {
+						return function(e7) {
+							var next = l2[0].next("tr.list");
 							if(next.length > 0) {
-								if(next.data("name") == c8[0].name) {
+								if(next.data("name") == c7[0].name) {
 									next.change();
 									return;
 								}
 								next.change();
 							}
-							next = $("<tr>").addClass("list").data("name",c8[0].name);
+							next = $("<tr>").addClass("list").data("name",c7[0].name);
 							$("<td>").appendTo(next);
 							var cell = $("<td>").attr("colspan","" + colCount).appendTo(next);
 							var div = $("<div>").appendTo(cell);
-							if(!inTodo) div.hide();
-							var content8 = $("<table>").appendTo(div);
-							var tmp8;
-							var _this8 = SheetData.model.smap;
-							var key8 = sheet.name + "@" + c8[0].name;
-							if(__map_reserved[key8] != null) tmp8 = _this8.getReserved(key8); else tmp8 = _this8.h[key8];
-							var psheet = tmp8.s;
-							if(val8[0] == null) {
-								val8[0] = [];
-								obj8[0][c8[0].name] = val8[0];
+							if(!inTodo) {
+								div.hide();
 							}
-							psheet = { columns : psheet.columns, props : psheet.props, name : psheet.name, path : key7[0], parent : { sheet : sheet, column : cindex8[0], line : index8[0]}, lines : val8[0], separators : []};
-							_g4.fillTable(content8,psheet);
-							next.insertAfter(l7[0]);
-							v8[0].text("...");
-							var _this9 = _g4.openedList;
-							if(__map_reserved[key7[0]] != null) _this9.setReserved(key7[0],true); else _this9.h[key7[0]] = true;
-							next.change((function(key9,html9,v9,val9,obj9,c9) {
-								return function(e9) {
-									if(c9[0].opt && val9[0].length == 0) {
-										val9[0] = null;
-										Reflect.deleteField(obj9[0],c9[0].name);
+							var content1 = $("<table>").appendTo(div);
+							var _this = SheetData.model.smap;
+							var key2 = sheet.name + "@" + c7[0].name;
+							var psheet = (__map_reserved[key2] != null?_this.getReserved(key2):_this.h[key2]).s;
+							if(val3[0] == null) {
+								val3[0] = [];
+								obj3[0][c7[0].name] = val3[0];
+							}
+							psheet = { columns : psheet.columns, props : psheet.props, name : psheet.name, path : key1[0], parent : { sheet : sheet, column : cindex2[0], line : index4[0]}, lines : val3[0], separators : []};
+							_gthis.fillTable(content1,psheet);
+							next.insertAfter(l2[0]);
+							v3[0].text("...");
+							var _this1 = _gthis.openedList;
+							if(__map_reserved[key1[0]] != null) {
+								_this1.setReserved(key1[0],true);
+							} else {
+								_this1.h[key1[0]] = true;
+							}
+							next.change((function(key3,html3,v4,val4,obj4,c8) {
+								return function(e8) {
+									if(c8[0].opt && val4[0].length == 0) {
+										val4[0] = null;
+										Reflect.deleteField(obj4[0],c8[0].name);
 									}
-									html9[0] = _g4.valueHtml(c9[0],val9[0],sheet,obj9[0]);
-									v9[0].html(html9[0]);
+									html3[0] = _gthis.valueHtml(c8[0],val4[0],sheet,obj4[0]);
+									v4[0].html(html3[0]);
 									div.slideUp(100,(function() {
 										return function() {
 											next.remove();
 										};
 									})());
-									_g4.openedList.remove(key9[0]);
-									e9.stopPropagation();
+									_gthis.openedList.remove(key3[0]);
+									e8.stopPropagation();
 								};
-							})(key7,html7,v8,val8,obj8,c8));
+							})(key1,html2,v3,val3,obj3,c7));
 							if(inTodo) {
-								if(_g4.cursor.s != null && SheetData.getPath(_g4.cursor.s) == SheetData.getPath(psheet)) {
-									_g4.cursor.s = psheet;
-									_g4.checkCursor = false;
+								if(_gthis.cursor.s != null && SheetData.getPath(_gthis.cursor.s) == SheetData.getPath(psheet)) {
+									_gthis.cursor.s = psheet;
+									_gthis.checkCursor = false;
 								}
 							} else {
 								div.slideDown(100);
-								_g4.setCursor(psheet);
+								_gthis.setCursor(psheet);
 							}
-							e8.stopPropagation();
+							e7.stopPropagation();
 						};
-					})(key,html,l4,v,val,obj,index,c,cindex));
-					var tmp;
-					var _this = this.openedList;
-					if(__map_reserved[key[0]] != null) tmp = _this.getReserved(key[0]); else tmp = _this.h[key[0]];
-					if(tmp) todo.push((function(v10) {
-						return function() {
-							v10[0].click();
-						};
-					})(v));
-					break;
-				case 17:
-					var key10 = [SheetData.getPath(sheet) + "@" + c[0].name + ":" + index[0]];
-					v[0].click((function(key11,html11,l11,v11,val11,obj11,index11,c11,cindex11) {
-						return function(e11) {
-							var next11 = l11[0].next("tr.list");
-							if(next11.length > 0) {
-								if(next11.data("name") == c11[0].name) {
-									next11.change();
-									return;
-								}
-								next11.change();
-							}
-							next11 = $("<tr>").addClass("list").data("name",c11[0].name);
-							$("<td>").appendTo(next11);
-							var cell11 = $("<td>").attr("colspan","" + colCount).appendTo(next11);
-							var div11 = $("<div>").appendTo(cell11);
-							if(!inTodo) div11.hide();
-							var content11 = $("<table>").addClass("props").appendTo(div11);
-							var tmp11;
-							var _this11 = SheetData.model.smap;
-							var key12 = sheet.name + "@" + c11[0].name;
-							if(__map_reserved[key12] != null) tmp11 = _this11.getReserved(key12); else tmp11 = _this11.h[key12];
-							var psheet12 = tmp11.s;
-							if(val11[0] == null) {
-								val11[0] = { };
-								obj11[0][c11[0].name] = val11[0];
-							}
-							psheet12 = { columns : psheet12.columns, props : psheet12.props, name : psheet12.name, path : key11[0], parent : { sheet : sheet, column : cindex11[0], line : index11[0]}, lines : [val11[0]], separators : []};
-							_g4.fillProps(content11,psheet12,val11[0]);
-							next11.insertAfter(l11[0]);
-							v11[0].text("...");
-							var _this12 = _g4.openedList;
-							if(__map_reserved[key11[0]] != null) _this12.setReserved(key11[0],true); else _this12.h[key11[0]] = true;
-							next11.change((function(key13,html13,v13,val13,obj13,c13) {
-								return function(e13) {
-									if(c13[0].opt && Reflect.fields(val13[0]).length == 0) {
-										val13[0] = null;
-										Reflect.deleteField(obj13[0],c13[0].name);
-									}
-									html13[0] = _g4.valueHtml(c13[0],val13[0],sheet,obj13[0]);
-									v13[0].html(html13[0]);
-									div11.slideUp(100,(function() {
-										return function() {
-											next11.remove();
-										};
-									})());
-									_g4.openedList.remove(key13[0]);
-									e13.stopPropagation();
-								};
-							})(key11,html11,v11,val11,obj11,c11));
-							if(inTodo) {
-								if(_g4.cursor.s != null && SheetData.getPath(_g4.cursor.s) == SheetData.getPath(psheet12)) {
-									_g4.cursor.s = psheet12;
-									_g4.checkCursor = false;
-								}
-							} else {
-								div11.slideDown(100);
-								_g4.setCursor(psheet12);
-							}
-							e11.stopPropagation();
-						};
-					})(key10,html,l4,v,val,obj,index,c,cindex));
-					var tmp10;
-					var _this10 = this.openedList;
-					if(__map_reserved[key10[0]] != null) tmp10 = _this10.getReserved(key10[0]); else tmp10 = _this10.h[key10[0]];
-					if(tmp10) todo.push((function(v14) {
-						return function() {
-							v14[0].click();
-						};
-					})(v));
+					})(key,html,l1,v,val,obj,index,c,cindex));
+					var _this2 = this.openedList;
+					if(__map_reserved[key[0]] != null?_this2.getReserved(key[0]):_this2.h[key[0]]) {
+						todo.push((function(v5) {
+							return function() {
+								v5[0].click();
+							};
+						})(v));
+					}
 					break;
 				case 12:
 					break;
 				case 13:
-					v[0].find("input").addClass("deletable").change((function(obj14,c14) {
-						return function(e14) {
-							if(Reflect.field(obj14[0],c14[0].name) != null) {
-								Reflect.deleteField(obj14[0],c14[0].name);
-								_g4.refresh();
-								_g4.save();
+					v[0].find("input").addClass("deletable").change((function(obj5,c9) {
+						return function(e9) {
+							if(Reflect.field(obj5[0],c9[0].name) != null) {
+								Reflect.deleteField(obj5[0],c9[0].name);
+								_gthis.refresh();
+								_gthis.save();
 							}
 						};
 					})(obj,c));
-					v[0].dblclick((function(set14) {
-						return function(_14) {
-							_g4.chooseFile((function(set15) {
+					v[0].dblclick((function(set1) {
+						return function(_3) {
+							_gthis.chooseFile((function(set2) {
 								return function(path) {
-									set15[0](path);
-									_g4.save();
+									set2[0](path);
+									_gthis.save();
 								};
-							})(set14));
+							})(set1));
 						};
 					})(set));
 					break;
 				case 14:
-					v[0].find("div").addClass("deletable").change((function(obj15,c15) {
-						return function(e15) {
-							if(Reflect.field(obj15[0],c15[0].name) != null) {
-								Reflect.deleteField(obj15[0],c15[0].name);
-								_g4.refresh();
-								_g4.save();
+					v[0].find("div").addClass("deletable").change((function(obj6,c10) {
+						return function(e10) {
+							if(Reflect.field(obj6[0],c10[0].name) != null) {
+								Reflect.deleteField(obj6[0],c10[0].name);
+								_gthis.refresh();
+								_gthis.save();
 							}
 						};
 					})(obj,c));
-					v[0].dblclick((function(set16,v16,val16,index16,c16) {
-						return function(_16) {
-							var rv = val16[0];
+					v[0].dblclick((function(set3,v6,val5,index5,c11) {
+						return function(_4) {
+							var rv = val5[0];
 							var file = rv == null?null:rv.file;
 							var size = rv == null?16:rv.size;
 							var posX = rv == null?0:rv.x;
 							var posY = rv == null?0:rv.y;
 							var width = rv == null?null:rv.width;
 							var height = rv == null?null:rv.height;
-							if(width == null) width = 1;
-							if(height == null) height = 1;
+							if(width == null) {
+								width = 1;
+							}
+							if(height == null) {
+								height = 1;
+							}
 							if(file == null) {
-								var i18 = index16[0] - 1;
-								while(i18 >= 0) {
-									var o = sheet.lines[i18--];
-									var v2 = Reflect.field(o,c16[0].name);
-									if(v2 != null) {
-										file = v2.file;
-										size = v2.size;
+								var i3 = index5[0] - 1;
+								while(i3 >= 0) {
+									var v21 = Reflect.field(sheet.lines[i3--],c11[0].name);
+									if(v21 != null) {
+										file = v21.file;
+										size = v21.size;
 										break;
 									}
 								}
 							}
-							var setVal = (function(set17) {
+							var setVal = (function(set4) {
 								return function() {
-									var v17 = { file : file, size : size, x : posX, y : posY};
-									if(width != 1) v17.width = width;
-									if(height != 1) v17.height = height;
-									set17[0](v17);
+									var v7 = { file : file, size : size, x : posX, y : posY};
+									if(width != 1) {
+										v7.width = width;
+									}
+									if(height != 1) {
+										v7.height = height;
+									}
+									set4[0](v7);
 								};
-							})(set16);
+							})(set3);
 							if(file == null) {
-								_g4.chooseFile((function(v18) {
-									return function(path18) {
-										file = path18;
+								_gthis.chooseFile((function(v8) {
+									return function(path1) {
+										file = path1;
 										setVal();
-										v18[0].dblclick();
+										v8[0].dblclick();
 									};
-								})(v16));
+								})(v6));
 								return;
 							}
 							var dialog = $($(".tileSelect").parent().html()).prependTo($("body"));
 							var maxWidth = 1000000;
 							var maxHeight = 1000000;
-							dialog.find(".tileView").css({ backgroundImage : "url(\"" + _g4.getAbsPath(file) + "\")"}).mousemove((function() {
-								return function(e18) {
+							dialog.find(".tileView").css({ backgroundImage : "url(\"" + _gthis.getAbsPath(file) + "\")"}).mousemove((function() {
+								return function(e11) {
 									var off = $(this).offset();
-									posX = (e18.pageX - off.left) / size | 0;
-									posY = (e18.pageY - off.top) / size | 0;
-									if((posX + width) * size > maxWidth) posX = (maxWidth / size | 0) - width;
-									if((posY + height) * size > maxHeight) posY = (maxHeight / size | 0) - height;
-									if(posX < 0) posX = 0;
-									if(posY < 0) posY = 0;
+									posX = (e11.pageX - off.left) / size | 0;
+									posY = (e11.pageY - off.top) / size | 0;
+									if((posX + width) * size > maxWidth) {
+										posX = (maxWidth / size | 0) - width;
+									}
+									if((posY + height) * size > maxHeight) {
+										posY = (maxHeight / size | 0) - height;
+									}
+									if(posX < 0) {
+										posX = 0;
+									}
+									if(posY < 0) {
+										posY = 0;
+									}
 									$(".tileCursor").not(".current").css({ marginLeft : size * posX - 1 + "px", marginTop : size * posY - 1 + "px"});
 								};
 							})()).click((function() {
-								return function(_18) {
+								return function(_5) {
 									setVal();
 									dialog.remove();
-									_g4.save();
+									_gthis.save();
 								};
 							})());
 							dialog.find("[name=size]").val("" + size).change((function() {
-								return function(_19) {
+								return function(_6) {
 									size = Std.parseInt($(this).val());
 									$(".tileCursor").css({ width : size * width + "px", height : size * height + "px"});
 									$(".tileCursor.current").css({ marginLeft : size * posX - 2 + "px", marginTop : size * posY - 2 + "px"});
 								};
 							})()).change();
 							dialog.find("[name=width]").val("" + width).change((function() {
-								return function(_20) {
+								return function(_7) {
 									width = Std.parseInt($(this).val());
 									$(".tileCursor").css({ width : size * width + "px", height : size * height + "px"});
 								};
 							})()).change();
 							dialog.find("[name=height]").val("" + height).change((function() {
-								return function(_21) {
+								return function(_8) {
 									height = Std.parseInt($(this).val());
 									$(".tileCursor").css({ width : size * width + "px", height : size * height + "px"});
 								};
 							})()).change();
 							dialog.find("[name=cancel]").click((function() {
-								return function(_22) {
+								return function(_9) {
 									dialog.remove();
 								};
 							})());
-							dialog.find("[name=file]").click((function(v22) {
-								return function(_23) {
-									_g4.chooseFile((function(v23) {
-										return function(f23) {
-											file = f23;
+							dialog.find("[name=file]").click((function(v9) {
+								return function(_10) {
+									_gthis.chooseFile((function(v10) {
+										return function(f2) {
+											file = f2;
 											dialog.remove();
 											setVal();
-											_g4.save();
-											v23[0].dblclick();
+											_gthis.save();
+											v10[0].dblclick();
 										};
-									})(v22));
+									})(v9));
 								};
-							})(v16));
+							})(v6));
 							dialog.keydown((function() {
-								return function(e23) {
-									e23.stopPropagation();
+								return function(e12) {
+									e12.stopPropagation();
 								};
 							})()).keypress((function() {
-								return function(e24) {
-									e24.stopPropagation();
+								return function(e13) {
+									e13.stopPropagation();
 								};
 							})());
 							dialog.show();
-							var i17 = window.document.createElement("img");
-							i17.onload = (function() {
-								return function(_24) {
-									maxWidth = i17.width;
-									maxHeight = i17.height;
-									dialog.find(".tileView").height(i17.height).width(i17.width);
-									dialog.find(".tilePath").text(file + " (" + i17.width + "x" + i17.height + ")");
+							var i4 = window.document.createElement("img");
+							i4.onload = (function() {
+								return function(_11) {
+									maxWidth = i4.width;
+									maxHeight = i4.height;
+									dialog.find(".tileView").height(i4.height).width(i4.width);
+									dialog.find(".tilePath").text(file + " (" + i4.width + "x" + i4.height + ")");
 								};
 							})();
-							i17.src = _g4.getAbsPath(file);
+							i4.src = _gthis.getAbsPath(file);
 						};
 					})(set,v,val,index,c));
 					break;
+				case 17:
+					var key4 = [SheetData.getPath(sheet) + "@" + c[0].name + ":" + index[0]];
+					v[0].click((function(key5,html4,l3,v11,val6,obj7,index6,c12,cindex3) {
+						return function(e14) {
+							var next1 = l3[0].next("tr.list");
+							if(next1.length > 0) {
+								if(next1.data("name") == c12[0].name) {
+									next1.change();
+									return;
+								}
+								next1.change();
+							}
+							next1 = $("<tr>").addClass("list").data("name",c12[0].name);
+							$("<td>").appendTo(next1);
+							var cell1 = $("<td>").attr("colspan","" + colCount).appendTo(next1);
+							var div1 = $("<div>").appendTo(cell1);
+							if(!inTodo) {
+								div1.hide();
+							}
+							var content2 = $("<table>").addClass("props").appendTo(div1);
+							var _this3 = SheetData.model.smap;
+							var key6 = sheet.name + "@" + c12[0].name;
+							var psheet1 = (__map_reserved[key6] != null?_this3.getReserved(key6):_this3.h[key6]).s;
+							if(val6[0] == null) {
+								val6[0] = { };
+								obj7[0][c12[0].name] = val6[0];
+							}
+							psheet1 = { columns : psheet1.columns, props : psheet1.props, name : psheet1.name, path : key5[0], parent : { sheet : sheet, column : cindex3[0], line : index6[0]}, lines : [val6[0]], separators : []};
+							_gthis.fillProps(content2,psheet1,val6[0]);
+							next1.insertAfter(l3[0]);
+							v11[0].text("...");
+							var _this4 = _gthis.openedList;
+							if(__map_reserved[key5[0]] != null) {
+								_this4.setReserved(key5[0],true);
+							} else {
+								_this4.h[key5[0]] = true;
+							}
+							next1.change((function(key7,html5,v12,val7,obj8,c13) {
+								return function(e15) {
+									if(c13[0].opt && Reflect.fields(val7[0]).length == 0) {
+										val7[0] = null;
+										Reflect.deleteField(obj8[0],c13[0].name);
+									}
+									html5[0] = _gthis.valueHtml(c13[0],val7[0],sheet,obj8[0]);
+									v12[0].html(html5[0]);
+									div1.slideUp(100,(function() {
+										return function() {
+											next1.remove();
+										};
+									})());
+									_gthis.openedList.remove(key7[0]);
+									e15.stopPropagation();
+								};
+							})(key5,html4,v11,val6,obj7,c12));
+							if(inTodo) {
+								if(_gthis.cursor.s != null && SheetData.getPath(_gthis.cursor.s) == SheetData.getPath(psheet1)) {
+									_gthis.cursor.s = psheet1;
+									_gthis.checkCursor = false;
+								}
+							} else {
+								div1.slideDown(100);
+								_gthis.setCursor(psheet1);
+							}
+							e14.stopPropagation();
+						};
+					})(key4,html,l1,v,val,obj,index,c,cindex));
+					var _this5 = this.openedList;
+					if(__map_reserved[key4[0]] != null?_this5.getReserved(key4[0]):_this5.h[key4[0]]) {
+						todo.push((function(v13) {
+							return function() {
+								v13[0].click();
+							};
+						})(v));
+					}
+					break;
 				default:
-					v[0].dblclick((function(v24,index24,c24) {
-						return function(e25) {
-							_g4.editCell(c24[0],v24[0],sheet,index24[0]);
+					v[0].dblclick((function(v14,index7,c14) {
+						return function(e16) {
+							_gthis.editCell(c14[0],v14[0],sheet,index7[0]);
 						};
 					})(v,index,c));
 				}
 			}
 		}
 		if(sheet.lines.length == 0) {
-			var l25 = $("<tr><td colspan=\"" + (sheet.columns.length + 1) + "\"><a href=\"javascript:_.insertLine()\">Insert Line</a></td></tr>");
-			l25.find("a").click(function(_25) {
-				_g4.setCursor(sheet);
+			var l4 = $("<tr><td colspan=\"" + (sheet.columns.length + 1) + "\"><a href=\"javascript:_.insertLine()\">Insert Line</a></td></tr>");
+			l4.find("a").click(function(_12) {
+				_gthis.setCursor(sheet);
 			});
-			lines.push(l25);
+			lines.push(l4);
 		}
 		if(sheet.props.level != null) {
-			var col25 = $("<td style='width:35px'>");
-			cols.prepend(col25);
-			var _g325 = 0;
-			var _g225 = sheet.lines.length;
-			while(_g325 < _g225) {
-				var index25 = [_g325++];
-				var l26 = [lines[index25[0]]];
-				var c26 = $("<input type='submit' value='Edit'>");
-				$("<td>").append(c26).prependTo(l26[0]);
-				c26.click((function(l27,index27) {
-					return function(_27) {
-						l27[0].click();
+			cols.prepend($("<td style='width:35px'>"));
+			var _g32 = 0;
+			var _g23 = sheet.lines.length;
+			while(_g32 < _g23) {
+				var index8 = [_g32++];
+				var l5 = [lines[index8[0]]];
+				var c15 = $("<input type='submit' value='Edit'>");
+				$("<td>").append(c15).prependTo(l5[0]);
+				c15.click((function(l6,index9) {
+					return function(_13) {
+						l6[0].click();
 						var found = null;
-						var _g527 = 0;
-						var _g627 = _g4.levels;
-						while(_g527 < _g627.length) {
-							var l28 = _g627[_g527];
-							++_g527;
-							if(l28.sheet == sheet && l28.index == index27[0]) found = l28;
+						var _g41 = 0;
+						var _g51 = _gthis.levels;
+						while(_g41 < _g51.length) {
+							var l7 = _g51[_g41];
+							++_g41;
+							if(l7.sheet == sheet && l7.index == index9[0]) {
+								found = l7;
+							}
 						}
 						if(found == null) {
-							found = new Level(_g4,sheet,index27[0]);
-							_g4.levels.push(found);
-							_g4.selectLevel(found);
-							_g4.initContent();
-						} else _g4.selectLevel(found);
+							found = new Level(_gthis,sheet,index9[0]);
+							_gthis.levels.push(found);
+							_gthis.selectLevel(found);
+							_gthis.initContent();
+						} else {
+							_gthis.selectLevel(found);
+						}
 					};
-				})(l26,index25));
+				})(l5,index8));
 			}
 		}
 		content.empty();
 		content.append(cols);
 		var snext = 0;
-		var _g328 = 0;
-		var _g228 = lines.length;
-		while(_g328 < _g228) {
-			var i28 = _g328++;
-			while(sheet.separators[snext] == i28) {
+		var _g33 = 0;
+		var _g24 = lines.length;
+		while(_g33 < _g24) {
+			var i5 = _g33++;
+			while(sheet.separators[snext] == i5) {
 				var sep = $("<tr>").addClass("separator").append("<td colspan=\"" + (colCount + 1) + "\">").appendTo(content);
-				var content28 = [sep.find("td")];
+				var content3 = [sep.find("td")];
 				var title = [sheet.props.separatorTitles != null?sheet.props.separatorTitles[snext]:null];
-				if(title[0] != null) content28[0].text(title[0]);
-				var pos = [snext];
-				sep.dblclick((function(pos28,title28,content29) {
-					return function(e29) {
-						content29[0].empty();
-						$("<input>").appendTo(content29[0]).focus().val(title28[0] == null?"":title28[0]).blur((function(pos29,title29,content30) {
-							return function(_30) {
-								title29[0] = $(this).val();
+				if(title[0] != null) {
+					content3[0].text(title[0]);
+				}
+				sep.dblclick((function(pos,title1,content4) {
+					return function(e17) {
+						content4[0].empty();
+						$("<input>").appendTo(content4[0]).focus().val(title1[0] == null?"":title1[0]).blur((function(pos1,title2,content5) {
+							return function(_14) {
+								title2[0] = $(this).val();
 								$(this).remove();
-								content30[0].text(title29[0]);
+								content5[0].text(title2[0]);
 								var titles = sheet.props.separatorTitles;
-								if(titles == null) titles = [];
-								while(titles.length < pos29[0]) titles.push(null);
-								titles[pos29[0]] = title29[0] == ""?null:title29[0];
+								if(titles == null) {
+									titles = [];
+								}
+								while(titles.length < pos1[0]) titles.push(null);
+								titles[pos1[0]] = title2[0] == ""?null:title2[0];
 								while(titles[titles.length - 1] == null && titles.length > 0) titles.pop();
-								if(titles.length == 0) titles = null;
+								if(titles.length == 0) {
+									titles = null;
+								}
 								sheet.props.separatorTitles = titles;
-								_g4.save();
+								_gthis.save();
 							};
-						})(pos28,title28,content29)).keypress((function() {
-							return function(e30) {
-								e30.stopPropagation();
+						})(pos,title1,content4)).keypress((function() {
+							return function(e18) {
+								e18.stopPropagation();
 							};
-						})()).keydown((function(title30,content31) {
-							return function(e31) {
-								if(e31.keyCode == 13) {
+						})()).keydown((function(title3,content6) {
+							return function(e19) {
+								if(e19.keyCode == 13) {
 									$(this).blur();
-									e31.preventDefault();
-								} else if(e31.keyCode == 27) content31[0].text(title30[0]);
-								e31.stopPropagation();
+									e19.preventDefault();
+								} else if(e19.keyCode == 27) {
+									content6[0].text(title3[0]);
+								}
+								e19.stopPropagation();
 							};
-						})(title28,content29));
+						})(title1,content4));
 					};
-				})(pos,title,content28));
+				})([snext],title,content3));
 				++snext;
 			}
-			content.append(lines[i28]);
+			content.append(lines[i5]);
 		}
 		inTodo = true;
-		var _g231 = 0;
-		while(_g231 < todo.length) {
-			var t31 = todo[_g231];
-			++_g231;
-			t31();
+		var _g25 = 0;
+		while(_g25 < todo.length) {
+			var t1 = todo[_g25];
+			++_g25;
+			t1();
 		}
 		inTodo = false;
 	}
@@ -6907,9 +7495,15 @@ Main.prototype = $extend(Model.prototype,{
 		js_node_webkit_Shell.openItem(file);
 	}
 	,setCursor: function(s,x,y,sel,update) {
-		if(update == null) update = true;
-		if(y == null) y = 0;
-		if(x == null) x = 0;
+		if(update == null) {
+			update = true;
+		}
+		if(y == null) {
+			y = 0;
+		}
+		if(x == null) {
+			x = 0;
+		}
 		this.cursor.s = s;
 		this.cursor.x = x;
 		this.cursor.y = y;
@@ -6919,34 +7513,46 @@ Main.prototype = $extend(Model.prototype,{
 			this.cursor.onchange = null;
 			ch();
 		}
-		if(update) this.updateCursor();
+		if(update) {
+			this.updateCursor();
+		}
 	}
 	,selectSheet: function(s,manual) {
-		if(manual == null) manual = true;
+		if(manual == null) {
+			manual = true;
+		}
 		this.viewSheet = s;
 		this.pages.curPage = -1;
-		var tmp;
 		var _this = this.sheetCursors;
 		var key = s.name;
-		if(__map_reserved[key] != null) tmp = _this.getReserved(key); else tmp = _this.h[key];
-		this.cursor = tmp;
+		this.cursor = __map_reserved[key] != null?_this.getReserved(key):_this.h[key];
 		if(this.cursor == null) {
 			this.cursor = { x : 0, y : 0, s : s};
 			var _this1 = this.sheetCursors;
 			var key1 = s.name;
 			var value = this.cursor;
-			if(__map_reserved[key1] != null) _this1.setReserved(key1,value); else _this1.h[key1] = value;
+			if(__map_reserved[key1] != null) {
+				_this1.setReserved(key1,value);
+			} else {
+				_this1.h[key1] = value;
+			}
 		}
 		if(manual) {
-			if(this.level != null) this.level.dispose();
+			if(this.level != null) {
+				this.level.dispose();
+			}
 			this.level = null;
 		}
 		this.prefs.curSheet = Lambda.indexOf(this.data.sheets,s);
 		$("#sheets li").removeClass("active").filter("#sheet_" + this.prefs.curSheet).addClass("active");
-		if(manual) this.refresh();
+		if(manual) {
+			this.refresh();
+		}
 	}
 	,selectLevel: function(l) {
-		if(this.level != null) this.level.dispose();
+		if(this.level != null) {
+			this.level.dispose();
+		}
 		this.pages.curPage = -1;
 		this.level = l;
 		this.level.init();
@@ -6954,9 +7560,11 @@ Main.prototype = $extend(Model.prototype,{
 	}
 	,closeLevel: function(l) {
 		l.dispose();
-		var i = Lambda.indexOf(this.levels,l);
+		Lambda.indexOf(this.levels,l);
 		HxOverrides.remove(this.levels,l);
-		if(this.level == l) this.level = null;
+		if(this.level == l) {
+			this.level = null;
+		}
 		this.initContent();
 	}
 	,newSheet: function() {
@@ -6966,27 +7574,27 @@ Main.prototype = $extend(Model.prototype,{
 	}
 	,deleteColumn: function(sheet,cname) {
 		if(cname == null) {
-			var tmp;
 			var _this = this.smap;
 			var key = this.colProps.sheet;
-			if(__map_reserved[key] != null) tmp = _this.getReserved(key); else tmp = _this.h[key];
-			sheet = tmp.s;
+			sheet = (__map_reserved[key] != null?_this.getReserved(key):_this.h[key]).s;
 			cname = this.colProps.ref.name;
 		}
-		if(!SheetData.deleteColumn(sheet,cname)) return;
+		if(!SheetData.deleteColumn(sheet,cname)) {
+			return;
+		}
 		$("#newcol").hide();
 		this.refresh();
 		this.save();
 	}
 	,editTypes: function() {
-		var _g = this;
+		var _gthis = this;
 		if(this.typesStr == null) {
 			var tl = [];
-			var _g1 = 0;
-			var _g11 = this.data.customTypes;
-			while(_g1 < _g11.length) {
-				var t = _g11[_g1];
-				++_g1;
+			var _g = 0;
+			var _g1 = this.data.customTypes;
+			while(_g < _g1.length) {
+				var t = _g1[_g];
+				++_g;
 				tl.push("enum " + t.name + " {\n" + this.typeCasesToString(t,"\t") + "\n}");
 			}
 			this.typesStr = tl.join("\n\n");
@@ -6999,44 +7607,56 @@ Main.prototype = $extend(Model.prototype,{
 		var types;
 		text.change(function(_) {
 			var nstr = text.val();
-			if(nstr == _g.typesStr) return;
-			_g.typesStr = nstr;
+			if(nstr == _gthis.typesStr) {
+				return;
+			}
+			_gthis.typesStr = nstr;
 			var errors = [];
-			var t1 = StringTools.trim(_g.typesStr);
+			var t1 = StringTools.trim(_gthis.typesStr);
 			var r = new EReg("^enum[ \r\n\t]+([A-Za-z0-9_]+)[ \r\n\t]*\\{([^}]*)\\}","");
-			var oldTMap = _g.tmap;
+			var oldTMap = _gthis.tmap;
 			var descs = [];
-			_g.tmap = new haxe_ds_StringMap();
+			_gthis.tmap = new haxe_ds_StringMap();
 			types = [];
 			while(r.match(t1)) {
 				var name = r.matched(1);
 				var desc = r.matched(2);
-				var tmp;
-				var _this = _g.tmap;
-				if(__map_reserved[name] != null) tmp = _this.getReserved(name); else tmp = _this.h[name];
-				if(tmp != null) errors.push("Duplicate type " + name);
+				var _this = _gthis.tmap;
+				if((__map_reserved[name] != null?_this.getReserved(name):_this.h[name]) != null) {
+					errors.push("Duplicate type " + name);
+				}
 				var td = { name : name, cases : []};
-				var _this1 = _g.tmap;
-				if(__map_reserved[name] != null) _this1.setReserved(name,td); else _this1.h[name] = td;
+				var _this1 = _gthis.tmap;
+				if(__map_reserved[name] != null) {
+					_this1.setReserved(name,td);
+				} else {
+					_this1.h[name] = td;
+				}
 				descs.push(desc);
 				types.push(td);
 				t1 = StringTools.trim(r.matchedRight());
 			}
-			var _g12 = 0;
-			while(_g12 < types.length) {
-				var t2 = types[_g12];
-				++_g12;
+			var _g2 = 0;
+			while(_g2 < types.length) {
+				var t2 = types[_g2];
+				++_g2;
 				try {
-					t2.cases = _g.parseTypeCases(descs.shift());
+					t2.cases = _gthis.parseTypeCases(descs.shift());
 				} catch( msg ) {
 					if (msg instanceof js__$Boot_HaxeError) msg = msg.val;
 					errors.push(msg);
 				}
 			}
-			_g.tmap = oldTMap;
-			if(t1 != "") errors.push("Invalid " + StringTools.htmlEscape(t1));
-			_g.setErrorMessage(errors.length == 0?null:errors.join("<br>"));
-			if(errors.length == 0) apply.removeAttr("disabled"); else apply.attr("disabled","");
+			_gthis.tmap = oldTMap;
+			if(t1 != "") {
+				errors.push("Invalid " + StringTools.htmlEscape(t1));
+			}
+			_gthis.setErrorMessage(errors.length == 0?null:errors.join("<br>"));
+			if(errors.length == 0) {
+				apply.removeAttr("disabled");
+			} else {
+				apply.attr("disabled","");
+			}
 		});
 		text.keydown(function(e) {
 			if(e.keyCode == 9) {
@@ -7045,77 +7665,80 @@ Main.prototype = $extend(Model.prototype,{
 			}
 			e.stopPropagation();
 		});
-		text.keyup(function(e2) {
+		text.keyup(function(e1) {
 			text.change();
-			e2.stopPropagation();
+			e1.stopPropagation();
 		});
 		text.val(this.typesStr);
-		cancel.click(function(_2) {
-			_g.typesStr = null;
-			_g.setErrorMessage();
-			_g.quickLoad(_g.curSavedData);
-			_g.initContent();
+		cancel.click(function(_1) {
+			_gthis.typesStr = null;
+			_gthis.setErrorMessage();
+			_gthis.quickLoad(_gthis.curSavedData);
+			_gthis.initContent();
 		});
-		apply.click(function(_3) {
-			var tpairs = _g.makePairs(_g.data.customTypes,types);
-			var _g13 = 0;
-			while(_g13 < tpairs.length) {
-				var p = tpairs[_g13];
-				++_g13;
+		apply.click(function(_2) {
+			var tpairs = _gthis.makePairs(_gthis.data.customTypes,types);
+			var _g3 = 0;
+			while(_g3 < tpairs.length) {
+				var p = tpairs[_g3];
+				++_g3;
 				if(p.b == null) {
 					var t3 = p.a;
-					var _g2 = 0;
-					var _g3 = _g.data.sheets;
-					while(_g2 < _g3.length) {
-						var s = _g3[_g2];
-						++_g2;
-						var _g4 = 0;
-						var _g5 = s.columns;
-						while(_g4 < _g5.length) {
-							var c = _g5[_g4];
-							++_g4;
-							var _g6 = c.type;
-							switch(_g6[1]) {
-							case 9:
-								var name3 = _g6[2];
-								if(name3 == t3.name) {
-									_g.error("Type " + name3 + " used by " + s.name + "@" + c.name + " cannot be removed");
+					var _g11 = 0;
+					var _g21 = _gthis.data.sheets;
+					while(_g11 < _g21.length) {
+						var s = _g21[_g11];
+						++_g11;
+						var _g31 = 0;
+						var _g4 = s.columns;
+						while(_g31 < _g4.length) {
+							var c = _g4[_g31];
+							++_g31;
+							var _g5 = c.type;
+							if(_g5[1] == 9) {
+								var name1 = _g5[2];
+								if(name1 == t3.name) {
+									_gthis.error("Type " + name1 + " used by " + s.name + "@" + c.name + " cannot be removed");
 									return;
 								}
-								break;
-							default:
 							}
 						}
 					}
 				}
 			}
-			var _g14 = 0;
-			while(_g14 < types.length) {
-				var t4 = [types[_g14]];
-				++_g14;
+			var _g6 = 0;
+			while(_g6 < types.length) {
+				var t4 = [types[_g6]];
+				++_g6;
 				if(!Lambda.exists(tpairs,(function(t5) {
-					return function(p5) {
-						return p5.b == t5[0];
+					return function(p1) {
+						return p1.b == t5[0];
 					};
-				})(t4))) _g.data.customTypes.push(t4[0]);
-			}
-			var _g15 = 0;
-			while(_g15 < tpairs.length) {
-				var p6 = tpairs[_g15];
-				++_g15;
-				if(p6.b == null) HxOverrides.remove(_g.data.customTypes,p6.a); else try {
-					_g.updateType(p6.a,p6.b);
-				} catch( msg6 ) {
-					if (msg6 instanceof js__$Boot_HaxeError) msg6 = msg6.val;
-					if( js_Boot.__instanceof(msg6,String) ) {
-						_g.error("Error while updating " + p6.b.name + " : " + msg6);
-						return;
-					} else throw(msg6);
+				})(t4))) {
+					_gthis.data.customTypes.push(t4[0]);
 				}
 			}
-			_g.initContent();
-			_g.typesStr = null;
-			_g.save();
+			var _g7 = 0;
+			while(_g7 < tpairs.length) {
+				var p2 = tpairs[_g7];
+				++_g7;
+				if(p2.b == null) {
+					HxOverrides.remove(_gthis.data.customTypes,p2.a);
+				} else {
+					try {
+						_gthis.updateType(p2.a,p2.b);
+					} catch( msg1 ) {
+						if (msg1 instanceof js__$Boot_HaxeError) msg1 = msg1.val;
+						if( js_Boot.__instanceof(msg1,String) ) {
+							_gthis.error("Error while updating " + p2.b.name + " : " + msg1);
+							return;
+						} else throw(msg1);
+					}
+				}
+			}
+			_gthis.initContent();
+			_gthis.typesStr = null;
+			_gthis.save();
 		});
 		this.typesStr = null;
 		text.change();
@@ -7130,7 +7753,9 @@ Main.prototype = $extend(Model.prototype,{
 		while(_g1 < _g) {
 			var i = _g1++;
 			var s = this.data.sheets[i];
-			if(s.props.hide) continue;
+			if(s.props.hide) {
+				continue;
+			}
 			$("<option>").attr("value","" + i).text(s.name).appendTo(sheets);
 		}
 		var types = $("[name=ctype]");
@@ -7141,9 +7766,9 @@ Main.prototype = $extend(Model.prototype,{
 		});
 		$("<option>").attr("value","").text("--- Select ---").appendTo(types);
 		var _g2 = 0;
-		var _g12 = this.data.customTypes;
-		while(_g2 < _g12.length) {
-			var t = _g12[_g2];
+		var _g11 = this.data.customTypes;
+		while(_g2 < _g11.length) {
+			var t = _g11[_g2];
 			++_g2;
 			$("<option>").attr("value","" + t.name).text(t.name).appendTo(types);
 		}
@@ -7159,28 +7784,25 @@ Main.prototype = $extend(Model.prototype,{
 			var _g3 = ref.type;
 			switch(_g3[1]) {
 			case 5:
-				var values = _g3[2];
-				form.find("[name=values]").val(values.join(","));
-				break;
-			case 10:
-				var values3 = _g3[2];
-				form.find("[name=values]").val(values3.join(","));
+				form.find("[name=values]").val(_g3[2].join(","));
 				break;
 			case 6:
 				var sname = _g3[2];
-				form.find("[name=sheet]").val("" + Lambda.indexOf(this.data.sheets,Lambda.find(this.data.sheets,function(s3) {
-					return s3.name == sname;
-				})));
-				break;
-			case 12:
-				var sname3 = _g3[2];
-				form.find("[name=sheet]").val("" + Lambda.indexOf(this.data.sheets,Lambda.find(this.data.sheets,function(s3) {
-					return s3.name == sname3;
+				form.find("[name=sheet]").val("" + Lambda.indexOf(this.data.sheets,Lambda.find(this.data.sheets,function(s1) {
+					return s1.name == sname;
 				})));
 				break;
 			case 9:
-				var name = _g3[2];
-				form.find("[name=ctype]").val(name);
+				form.find("[name=ctype]").val(_g3[2]);
+				break;
+			case 10:
+				form.find("[name=values]").val(_g3[2].join(","));
+				break;
+			case 12:
+				var sname1 = _g3[2];
+				form.find("[name=sheet]").val("" + Lambda.indexOf(this.data.sheets,Lambda.find(this.data.sheets,function(s2) {
+					return s2.name == sname1;
+				})));
 				break;
 			default:
 			}
@@ -7199,7 +7821,9 @@ Main.prototype = $extend(Model.prototype,{
 		this.save();
 	}
 	,insertLine: function() {
-		if(this.cursor.s != null) this.newLine(this.cursor.s);
+		if(this.cursor.s != null) {
+			this.newLine(this.cursor.s);
+		}
 	}
 	,createSheet: function(name,level) {
 		name = StringTools.trim(name);
@@ -7210,19 +7834,21 @@ Main.prototype = $extend(Model.prototype,{
 		var _g = 0;
 		var _g1 = this.data.sheets;
 		while(_g < _g1.length) {
-			var s1 = _g1[_g];
+			var s = _g1[_g];
 			++_g;
-			if(s1.name == name) {
+			if(s.name == name) {
 				this.error("Sheet name already in use");
 				return;
 			}
 		}
 		$("#newsheet").hide();
-		var s = { name : name, columns : [], lines : [], separators : [], props : { }};
+		var s1 = { name : name, columns : [], lines : [], separators : [], props : { }};
 		this.prefs.curSheet = this.data.sheets.length;
-		this.data.sheets.push(s);
-		this.makeSheet(s);
-		if(level) this.initLevel(s);
+		this.data.sheets.push(s1);
+		this.makeSheet(s1);
+		if(level) {
+			this.initLevel(s1);
+		}
 		this.initContent();
 		this.save();
 	}
@@ -7241,17 +7867,17 @@ Main.prototype = $extend(Model.prototype,{
 				var col = { name : c.n, type : c.t, typeStr : null};
 				SheetData.addColumn(s,col);
 				if(c.n == "layers") {
-					var tmp;
 					var _this = SheetData.model.smap;
 					var key = s.name + "@" + col.name;
-					if(__map_reserved[key] != null) tmp = _this.getReserved(key); else tmp = _this.h[key];
-					var s1 = tmp.s;
+					var s1 = (__map_reserved[key] != null?_this.getReserved(key):_this.h[key]).s;
 					SheetData.addColumn(s1,{ name : "name", type : cdb_ColumnType.TString, typeStr : null});
 					SheetData.addColumn(s1,{ name : "data", type : cdb_ColumnType.TTileLayer, typeStr : null});
 				}
 			}
 		}
-		if(s.props.level == null) s.props.level = { tileSets : { }};
+		if(s.props.level == null) {
+			s.props.level = { tileSets : { }};
+		}
 		if(s.lines.length == 0 && s.parent == null) {
 			var o = SheetData.newLine(s);
 			o.width = 128;
@@ -7262,37 +7888,39 @@ Main.prototype = $extend(Model.prototype,{
 		var v = { };
 		var cols = $("#col_form input, #col_form select").not("[type=submit]");
 		var _g_i = 0;
-		var _g_j = cols;
-		while(_g_i < _g_j.length) {
-			var i = $(_g_j[_g_i++]);
+		while(_g_i < cols.length) {
+			var i = $(cols[_g_i++]);
 			v[i.attr("name")] = i.attr("type") == "checkbox"?i["is"](":checked")?"on":null:i.val();
 		}
 		var sheet;
-		if(this.colProps.sheet == null) sheet = this.viewSheet; else {
-			var tmp;
+		if(this.colProps.sheet == null) {
+			sheet = this.viewSheet;
+		} else {
 			var _this = this.smap;
 			var key = this.colProps.sheet;
-			if(__map_reserved[key] != null) tmp = _this.getReserved(key); else tmp = _this.h[key];
-			sheet = tmp.s;
+			sheet = (__map_reserved[key] != null?_this.getReserved(key):_this.h[key]).s;
 		}
 		var refColumn = this.colProps.ref;
 		var t;
-		var _g = v.type;
-		switch(_g) {
-		case "id":
-			t = cdb_ColumnType.TId;
-			break;
-		case "int":
-			t = cdb_ColumnType.TInt;
-			break;
-		case "float":
-			t = cdb_ColumnType.TFloat;
-			break;
-		case "string":
-			t = cdb_ColumnType.TString;
-			break;
+		switch(v.type) {
 		case "bool":
 			t = cdb_ColumnType.TBool;
+			break;
+		case "color":
+			t = cdb_ColumnType.TColor;
+			break;
+		case "custom":
+			var _this1 = this.tmap;
+			var key1 = v.ctype;
+			var t1 = __map_reserved[key1] != null?_this1.getReserved(key1):_this1.h[key1];
+			if(t1 == null) {
+				this.error("Type not found");
+				return;
+			}
+			t = cdb_ColumnType.TCustom(t1.name);
+			break;
+		case "dynamic":
+			t = cdb_ColumnType.TDynamic;
 			break;
 		case "enum":
 			var vals = StringTools.trim(v.values).split(",");
@@ -7300,14 +7928,17 @@ Main.prototype = $extend(Model.prototype,{
 				this.error("Missing value list");
 				return;
 			}
-			var _g1 = [];
-			var _g2 = 0;
-			while(_g2 < vals.length) {
-				var f = vals[_g2];
-				++_g2;
-				_g1.push(StringTools.trim(f));
+			var _g = [];
+			var _g1 = 0;
+			while(_g1 < vals.length) {
+				var f = vals[_g1];
+				++_g1;
+				_g.push(StringTools.trim(f));
 			}
-			t = cdb_ColumnType.TEnum(_g1);
+			t = cdb_ColumnType.TEnum(_g);
+			break;
+		case "file":
+			t = cdb_ColumnType.TFile;
 			break;
 		case "flags":
 			var vals1 = StringTools.trim(v.values).split(",");
@@ -7315,74 +7946,71 @@ Main.prototype = $extend(Model.prototype,{
 				this.error("Missing value list");
 				return;
 			}
-			var _g11 = [];
-			var _g21 = 0;
-			while(_g21 < vals1.length) {
-				var f1 = vals1[_g21];
-				++_g21;
-				_g11.push(StringTools.trim(f1));
+			var _g2 = [];
+			var _g11 = 0;
+			while(_g11 < vals1.length) {
+				var f1 = vals1[_g11];
+				++_g11;
+				_g2.push(StringTools.trim(f1));
 			}
-			t = cdb_ColumnType.TFlags(_g11);
+			t = cdb_ColumnType.TFlags(_g2);
 			break;
-		case "ref":
+		case "float":
+			t = cdb_ColumnType.TFloat;
+			break;
+		case "id":
+			t = cdb_ColumnType.TId;
+			break;
+		case "image":
+			t = cdb_ColumnType.TImage;
+			break;
+		case "int":
+			t = cdb_ColumnType.TInt;
+			break;
+		case "layer":
 			var s = this.data.sheets[Std.parseInt(v.sheet)];
 			if(s == null) {
 				this.error("Sheet not found");
 				return;
 			}
-			t = cdb_ColumnType.TRef(s.name);
-			break;
-		case "image":
-			t = cdb_ColumnType.TImage;
+			t = cdb_ColumnType.TLayer(s.name);
 			break;
 		case "list":
 			t = cdb_ColumnType.TList;
 			break;
-		case "custom":
-			var tmp1;
-			var _this1 = this.tmap;
-			var key1 = v.ctype;
-			if(__map_reserved[key1] != null) tmp1 = _this1.getReserved(key1); else tmp1 = _this1.h[key1];
-			var t1 = tmp1;
-			if(t1 == null) {
-				this.error("Type not found");
-				return;
-			}
-			t = cdb_ColumnType.TCustom(t1.name);
+		case "properties":
+			t = cdb_ColumnType.TProperties;
 			break;
-		case "color":
-			t = cdb_ColumnType.TColor;
-			break;
-		case "layer":
+		case "ref":
 			var s1 = this.data.sheets[Std.parseInt(v.sheet)];
 			if(s1 == null) {
 				this.error("Sheet not found");
 				return;
 			}
-			t = cdb_ColumnType.TLayer(s1.name);
+			t = cdb_ColumnType.TRef(s1.name);
 			break;
-		case "file":
-			t = cdb_ColumnType.TFile;
-			break;
-		case "tilepos":
-			t = cdb_ColumnType.TTilePos;
+		case "string":
+			t = cdb_ColumnType.TString;
 			break;
 		case "tilelayer":
 			t = cdb_ColumnType.TTileLayer;
 			break;
-		case "dynamic":
-			t = cdb_ColumnType.TDynamic;
-			break;
-		case "properties":
-			t = cdb_ColumnType.TProperties;
+		case "tilepos":
+			t = cdb_ColumnType.TTilePos;
 			break;
 		default:
 			return;
 		}
 		var c = { type : t, typeStr : null, name : v.name};
-		if(v.req != "on") c.opt = true;
-		if(v.display != "0") c.display = Std.parseInt(v.display);
-		if(v.localizable == "on") c.kind = "localizable";
+		if(v.req != "on") {
+			c.opt = true;
+		}
+		if(v.display != "0") {
+			c.display = Std.parseInt(v.display);
+		}
+		if(v.localizable == "on") {
+			c.kind = "localizable";
+		}
 		if(refColumn != null) {
 			var err = Model.prototype.updateColumn.call(this,sheet,refColumn,c);
 			if(err != null) {
@@ -7399,21 +8027,19 @@ Main.prototype = $extend(Model.prototype,{
 			}
 			if(sheet.props.isProps && this.cursor.s.columns == sheet.columns) {
 				var obj = this.cursor.s.lines[0];
-				if(obj != null) obj[c.name] = this.getDefault(c,true);
+				if(obj != null) {
+					obj[c.name] = this.getDefault(c,true);
+				}
 			}
 		}
 		$("#newcol").hide();
-		var _g_i1 = 0;
-		var _g_j1 = cols;
-		while(_g_i1 < _g_j1.length) {
-			var c1 = $(_g_j1[_g_i1++]);
-			c1.val("");
-		}
+		var _g1_i = 0;
+		while(_g1_i < cols.length) $(cols[_g1_i++]).val("");
 		this.refresh();
 		this.save();
 	}
 	,initContent: function() {
-		var _g2 = this;
+		var _gthis = this;
 		Model.prototype.initContent.call(this);
 		$("body").spectrum.clearAll();
 		var sheets = $("ul#sheets");
@@ -7422,149 +8048,154 @@ Main.prototype = $extend(Model.prototype,{
 		var _g = this.data.sheets.length;
 		while(_g1 < _g) {
 			var i = _g1++;
-			var s1 = [this.data.sheets[i]];
-			if(s1[0].props.hide) continue;
+			var s = [this.data.sheets[i]];
+			if(s[0].props.hide) {
+				continue;
+			}
 			var li = [$("<li>")];
-			li[0].text(s1[0].name).attr("id","sheet_" + i).appendTo(sheets).click((function(s2) {
+			li[0].text(s[0].name).attr("id","sheet_" + i).appendTo(sheets).click((function(s1) {
 				return function(_) {
-					_g2.selectSheet(s2[0]);
+					_gthis.selectSheet(s1[0]);
 				};
-			})(s1)).dblclick((function(li2,s3) {
-				return function(_3) {
-					li2[0].empty();
-					$("<input>").val(s3[0].name).appendTo(li2[0]).focus().blur((function(li3,s4) {
-						return function(_4) {
-							li3[0].text(s4[0].name);
+			})(s)).dblclick((function(li1,s2) {
+				return function(_1) {
+					li1[0].empty();
+					$("<input>").val(s2[0].name).appendTo(li1[0]).focus().blur((function(li2,s3) {
+						return function(_2) {
+							li2[0].text(s3[0].name);
 							var name = $(this).val();
-							if(!_g2.r_ident.match(name)) {
-								_g2.error("Invalid sheet name");
+							if(!_gthis.r_ident.match(name)) {
+								_gthis.error("Invalid sheet name");
 								return;
 							}
-							var f = (function($this) {
-								var $r;
-								var _this = _g2.smap;
-								$r = __map_reserved[name] != null?_this.getReserved(name):_this.h[name];
-								return $r;
-							}(this));
+							var _this = _gthis.smap;
+							var f = __map_reserved[name] != null?_this.getReserved(name):_this.h[name];
 							if(f != null) {
-								if(f.s != s4[0]) _g2.error("Sheet name already in use");
+								if(f.s != s3[0]) {
+									_gthis.error("Sheet name already in use");
+								}
 								return;
 							}
-							var old4 = s4[0].name;
-							s4[0].name = name;
-							_g2.mapType((function() {
+							var old = s3[0].name;
+							s3[0].name = name;
+							_gthis.mapType((function() {
 								return function(t) {
-									return (function($this) {
-										var $r;
-										switch(t[1]) {
-										case 6:
-											$r = (function($this) {
-												var $r;
-												var o = t[2];
-												$r = o == old4?cdb_ColumnType.TRef(name):t;
-												return $r;
-											}($this));
-											break;
-										case 12:
-											$r = (function($this) {
-												var $r;
-												var o4 = t[2];
-												$r = o4 == old4?cdb_ColumnType.TLayer(name):t;
-												return $r;
-											}($this));
-											break;
-										default:
-											$r = t;
+									switch(t[1]) {
+									case 6:
+										var o = t[2];
+										if(o == old) {
+											return cdb_ColumnType.TRef(name);
+										} else {
+											return t;
 										}
-										return $r;
-									}(this));
+										break;
+									case 12:
+										var o1 = t[2];
+										if(o1 == old) {
+											return cdb_ColumnType.TLayer(name);
+										} else {
+											return t;
+										}
+										break;
+									default:
+										return t;
+									}
 								};
 							})());
-							var _g3 = 0;
-							var _g4 = _g2.data.sheets;
-							while(_g3 < _g4.length) {
-								var s5 = _g4[_g3];
-								++_g3;
-								if(StringTools.startsWith(s5.name,old4 + "@")) s5.name = name + "@" + (function($this) {
-									var $r;
-									var pos = old4.length + 1;
-									$r = HxOverrides.substr(s5.name,pos,null);
-									return $r;
-								}(this));
+							var _g2 = 0;
+							var _g3 = _gthis.data.sheets;
+							while(_g2 < _g3.length) {
+								var s4 = _g3[_g2];
+								++_g2;
+								if(StringTools.startsWith(s4.name,old + "@")) {
+									s4.name = name + "@" + HxOverrides.substr(s4.name,old.length + 1,null);
+								}
 							}
-							_g2.initContent();
-							_g2.save();
+							_gthis.initContent();
+							_gthis.save();
 						};
-					})(li2,s3)).keydown((function() {
+					})(li1,s2)).keydown((function() {
 						return function(e) {
-							if(e.keyCode == 13) $(this).blur(); else if(e.keyCode == 27) _g2.initContent();
+							if(e.keyCode == 13) {
+								$(this).blur();
+							} else if(e.keyCode == 27) {
+								_gthis.initContent();
+							}
 							e.stopPropagation();
 						};
 					})()).keypress((function() {
-						return function(e5) {
-							e5.stopPropagation();
+						return function(e1) {
+							e1.stopPropagation();
 						};
 					})());
 				};
-			})(li,s1)).mousedown((function(li5,s6) {
-				return function(e6) {
-					if(e6.which == 3) {
-						haxe_Timer.delay((function($this) {
-							var $r;
-							var f6 = $bind(_g2,_g2.popupSheet);
-							var s7 = s6[0];
-							var li7 = li5[0];
-							$r = (function() {
-								return function() {
-									f6(s7,li7);
-								};
-							})();
-							return $r;
-						}(this)),1);
-						e6.stopPropagation();
+			})(li,s)).mousedown((function(li3,s5) {
+				return function(e2) {
+					if(e2.which == 3) {
+						var f1 = $bind(_gthis,_gthis.popupSheet);
+						var s6 = s5[0];
+						var li4 = li3[0];
+						haxe_Timer.delay((function() {
+							return function() {
+								f1(s6,li4);
+							};
+						})(),1);
+						e2.stopPropagation();
 					}
 				};
-			})(li,s1));
+			})(li,s));
 		}
 		this.pages.updateTabs();
-		var s = this.data.sheets[this.prefs.curSheet];
-		if(s == null) s = this.data.sheets[0];
-		if(s != null) this.selectSheet(s,false);
-		var old = this.levels;
+		var s7 = this.data.sheets[this.prefs.curSheet];
+		if(s7 == null) {
+			s7 = this.data.sheets[0];
+		}
+		if(s7 != null) {
+			this.selectSheet(s7,false);
+		}
+		var old1 = this.levels;
 		var lcur = null;
 		this.levels = [];
-		var _g7 = 0;
-		while(_g7 < old.length) {
-			var level = old[_g7];
-			++_g7;
-			if(!(function($this) {
-				var $r;
-				var _this8 = $this.smap;
-				var key8 = level.sheetPath;
-				$r = __map_reserved[key8] != null?_this8.existsReserved(key8):_this8.h.hasOwnProperty(key8);
-				return $r;
-			}(this))) continue;
-			var s8 = ((function($this) {
-				var $r;
-				var _this7 = $this.smap;
-				var key = level.sheetPath;
-				$r = __map_reserved[key] != null?_this7.getReserved(key):_this7.h[key];
-				return $r;
-			}(this))).s;
-			if(s8.lines.length < level.index) continue;
+		var _g4 = 0;
+		while(_g4 < old1.length) {
+			var level = old1[_g4];
+			++_g4;
+			var _this1 = this.smap;
+			var key = level.sheetPath;
+			if(!(__map_reserved[key] != null?_this1.existsReserved(key):_this1.h.hasOwnProperty(key))) {
+				continue;
+			}
+			var _this2 = this.smap;
+			var key1 = level.sheetPath;
+			var s8 = (__map_reserved[key1] != null?_this2.getReserved(key1):_this2.h[key1]).s;
+			if(s8.lines.length < level.index) {
+				continue;
+			}
 			var l = [new Level(this,s8,level.index)];
-			if(level == this.level) lcur = l[0];
+			if(level == this.level) {
+				lcur = l[0];
+			}
 			this.levels.push(l[0]);
-			var li8 = $("<li>");
-			var name8 = level.getName();
-			if(name8 == "") name8 = "???";
-			li8.text(name8).attr("id","level_" + l[0].sheetPath.split(".").join("_") + "_" + l[0].index).appendTo(sheets).click((function(l8) {
-				return function(_8) {
-					_g2.selectLevel(l8[0]);
+			var li5 = $("<li>");
+			var name1 = level.getName();
+			if(name1 == "") {
+				name1 = "???";
+			}
+			li5.text(name1).attr("id","level_" + l[0].sheetPath.split(".").join("_") + "_" + l[0].index).appendTo(sheets).click((function(l1) {
+				return function(_3) {
+					_gthis.selectLevel(l1[0]);
 				};
 			})(l));
 		}
-		if(this.pages.curPage >= 0) this.pages.select(); else if(lcur != null) this.selectLevel(lcur); else if(this.data.sheets.length == 0) $("#content").html("<a href='javascript:_.newSheet()'>Create a sheet</a>"); else this.refresh();
+		if(this.pages.curPage >= 0) {
+			this.pages.select();
+		} else if(lcur != null) {
+			this.selectLevel(lcur);
+		} else if(this.data.sheets.length == 0) {
+			$("#content").html("<a href='javascript:_.newSheet()'>Create a sheet</a>");
+		} else {
+			this.refresh();
+		}
 	}
 	,cleanLayers: function() {
 		var count = 0;
@@ -7573,7 +8204,9 @@ Main.prototype = $extend(Model.prototype,{
 		while(_g < _g1.length) {
 			var s = _g1[_g];
 			++_g;
-			if(s.props.level == null) continue;
+			if(s.props.level == null) {
+				continue;
+			}
 			var ts = s.props.level.tileSets;
 			var usedLayers = new haxe_ds_StringMap();
 			var _g2 = 0;
@@ -7581,27 +8214,29 @@ Main.prototype = $extend(Model.prototype,{
 			while(_g2 < _g3.length) {
 				var c = _g3[_g2];
 				++_g2;
-				var _g4 = c.type;
-				switch(_g4[1]) {
-				case 8:
-					var tmp;
+				if(c.type[1] == 8) {
 					var _this = SheetData.model.smap;
 					var key = s.name + "@" + c.name;
-					if(__map_reserved[key] != null) tmp = _this.getReserved(key); else tmp = _this.h[key];
-					var sub = tmp.s;
-					if(!SheetData.hasColumn(sub,"data",[cdb_ColumnType.TTileLayer])) continue;
-					var _g5 = 0;
-					var _g6 = SheetData.getLines(sub);
-					while(_g5 < _g6.length) {
-						var obj = _g6[_g5];
-						++_g5;
-						var v = obj.data;
-						if(v == null || v.file == null) continue;
-						var key1 = v.file;
-						if(__map_reserved[key1] != null) usedLayers.setReserved(key1,true); else usedLayers.h[key1] = true;
+					var sub = (__map_reserved[key] != null?_this.getReserved(key):_this.h[key]).s;
+					if(!SheetData.hasColumn(sub,"data",[cdb_ColumnType.TTileLayer])) {
+						continue;
 					}
-					break;
-				default:
+					var _g4 = 0;
+					var _g5 = SheetData.getLines(sub);
+					while(_g4 < _g5.length) {
+						var obj = _g5[_g4];
+						++_g4;
+						var v = obj.data;
+						if(v == null || v.file == null) {
+							continue;
+						}
+						var key1 = v.file;
+						if(__map_reserved[key1] != null) {
+							usedLayers.setReserved(key1,true);
+						} else {
+							usedLayers.h[key1] = true;
+						}
+					}
 				}
 			}
 			var _g21 = 0;
@@ -7618,7 +8253,7 @@ Main.prototype = $extend(Model.prototype,{
 		return count;
 	}
 	,initMenu: function() {
-		var _g = this;
+		var _gthis = this;
 		var menu = new js_node_webkit_Menu({ type : "menubar"});
 		var mfile = new js_node_webkit_MenuItem({ label : "File"});
 		var mfiles = new js_node_webkit_Menu();
@@ -7629,24 +8264,24 @@ Main.prototype = $extend(Model.prototype,{
 		var mclean = new js_node_webkit_MenuItem({ label : "Clean Images"});
 		this.mcompress = new js_node_webkit_MenuItem({ label : "Enable Compression", type : "checkbox"});
 		this.mcompress.click = function() {
-			_g.setCompressionMode(_g.mcompress.checked);
-			_g.save();
+			_gthis.setCompressionMode(_gthis.mcompress.checked);
+			_gthis.save();
 		};
 		var mabout = new js_node_webkit_MenuItem({ label : "About"});
 		var mexit = new js_node_webkit_MenuItem({ label : "Exit"});
 		var mdebug = new js_node_webkit_MenuItem({ label : "Dev"});
 		mnew.click = function() {
-			_g.prefs.curFile = null;
-			_g.load(true);
+			_gthis.prefs.curFile = null;
+			_gthis.load(true);
 		};
 		mdebug.click = function() {
-			_g.window.showDevTools();
+			_gthis.window.showDevTools();
 		};
 		mopen.click = function() {
 			var i = $("<input>").attr("type","file").css("display","none").change(function(e) {
 				var j = $(this);
-				_g.prefs.curFile = j.val();
-				_g.load();
+				_gthis.prefs.curFile = j.val();
+				_gthis.load();
 				j.remove();
 			});
 			i.appendTo($("body"));
@@ -7655,27 +8290,33 @@ Main.prototype = $extend(Model.prototype,{
 		msave.click = function() {
 			var i1 = $("<input>").attr("type","file").attr("nwsaveas","new.cdb").css("display","none").change(function(e1) {
 				var j1 = $(this);
-				_g.prefs.curFile = j1.val();
-				_g.save();
+				_gthis.prefs.curFile = j1.val();
+				_gthis.save();
 				j1.remove();
 			});
 			i1.appendTo($("body"));
 			i1.click();
 		};
 		mclean.click = function() {
-			var lcount = _g.cleanLayers();
+			var lcount = _gthis.cleanLayers();
 			var icount = 0;
-			if(_g.imageBank != null) {
-				var count = Reflect.fields(_g.imageBank).length;
-				_g.cleanImages();
-				var count2 = Reflect.fields(_g.imageBank).length;
+			if(_gthis.imageBank != null) {
+				var count = Reflect.fields(_gthis.imageBank).length;
+				_gthis.cleanImages();
+				var count2 = Reflect.fields(_gthis.imageBank).length;
 				icount = count - count2;
-				if(count2 == 0) _g.imageBank = null;
+				if(count2 == 0) {
+					_gthis.imageBank = null;
+				}
 			}
-			_g.error([lcount + " tileset data removed",icount + " unused images removed"].join("\n"));
-			_g.refresh();
-			if(lcount > 0) _g.save();
-			if(icount > 0) _g.saveImages();
+			_gthis.error([lcount + " tileset data removed",icount + " unused images removed"].join("\n"));
+			_gthis.refresh();
+			if(lcount > 0) {
+				_gthis.save();
+			}
+			if(icount > 0) {
+				_gthis.saveImages();
+			}
 		};
 		mexit.click = function() {
 			process.exit(0);
@@ -7684,49 +8325,59 @@ Main.prototype = $extend(Model.prototype,{
 			$("#about").show();
 		};
 		var mrecents = new js_node_webkit_Menu();
-		var _g1 = 0;
-		var _g11 = this.prefs.recent;
-		while(_g1 < _g11.length) {
-			var file = [_g11[_g1]];
-			++_g1;
+		var _g = 0;
+		var _g1 = this.prefs.recent;
+		while(_g < _g1.length) {
+			var file = [_g1[_g]];
+			++_g;
 			var m = new js_node_webkit_MenuItem({ label : file[0]});
 			m.click = (function(file1) {
 				return function() {
-					_g.prefs.curFile = file1[0];
-					_g.load();
+					_gthis.prefs.curFile = file1[0];
+					_gthis.load();
 				};
 			})(file);
 			mrecents.append(m);
 		}
 		mrecent.submenu = mrecents;
 		var _g2 = 0;
-		var _g12 = [mnew,mopen,mrecent,msave,mclean,this.mcompress,mabout,mexit];
-		while(_g2 < _g12.length) {
-			var m2 = _g12[_g2];
+		var _g11 = [mnew,mopen,mrecent,msave,mclean,this.mcompress,mabout,mexit];
+		while(_g2 < _g11.length) {
+			var m1 = _g11[_g2];
 			++_g2;
-			mfiles.append(m2);
+			mfiles.append(m1);
 		}
 		mfile.submenu = mfiles;
 		menu.append(mfile);
 		menu.append(mdebug);
 		this.window.menu = menu;
-		if(this.prefs.windowPos.x > 0 && this.prefs.windowPos.y > 0) this.window.moveTo(this.prefs.windowPos.x,this.prefs.windowPos.y);
-		if(this.prefs.windowPos.w > 50 && this.prefs.windowPos.h > 50) this.window.resizeTo(this.prefs.windowPos.w,this.prefs.windowPos.h);
+		if(this.prefs.windowPos.x > 0 && this.prefs.windowPos.y > 0) {
+			this.window.moveTo(this.prefs.windowPos.x,this.prefs.windowPos.y);
+		}
+		if(this.prefs.windowPos.w > 50 && this.prefs.windowPos.h > 50) {
+			this.window.resizeTo(this.prefs.windowPos.w,this.prefs.windowPos.h);
+		}
 		this.window.show();
-		if(this.prefs.windowPos.max) this.window.maximize();
+		if(this.prefs.windowPos.max) {
+			this.window.maximize();
+		}
 		this.window.on("close",function() {
-			if(_g.prefs.curFile == null && _g.data.sheets.length > 0) {
-				if(!window.confirm("Do you want to exit without saving your changes?")) return;
+			if(_gthis.prefs.curFile == null && _gthis.data.sheets.length > 0) {
+				if(!window.confirm("Do you want to exit without saving your changes?")) {
+					return;
+				}
 			}
-			if(!_g.prefs.windowPos.max) _g.prefs.windowPos = { x : _g.window.x, y : _g.window.y, w : _g.window.width, h : _g.window.height, max : false};
-			_g.savePrefs();
-			_g.window.close(true);
+			if(!_gthis.prefs.windowPos.max) {
+				_gthis.prefs.windowPos = { x : _gthis.window.x, y : _gthis.window.y, w : _gthis.window.width, h : _gthis.window.height, max : false};
+			}
+			_gthis.savePrefs();
+			_gthis.window.close(true);
 		});
 		this.window.on("maximize",function() {
-			_g.prefs.windowPos.max = true;
+			_gthis.prefs.windowPos.max = true;
 		});
 		this.window.on("unmaximize",function() {
-			_g.prefs.windowPos.max = false;
+			_gthis.prefs.windowPos.max = false;
 		});
 	}
 	,getFileTime: function() {
@@ -7737,12 +8388,18 @@ Main.prototype = $extend(Model.prototype,{
 		}
 	}
 	,checkTime: function() {
-		if(this.prefs.curFile == null) return;
+		if(this.prefs.curFile == null) {
+			return;
+		}
 		var fileTime = this.getFileTime();
-		if(fileTime != this.lastSave && fileTime != 0) this.load();
+		if(fileTime != this.lastSave && fileTime != 0) {
+			this.load();
+		}
 	}
 	,load: function(noError) {
-		if(noError == null) noError = false;
+		if(noError == null) {
+			noError = false;
+		}
 		if(sys_FileSystem.exists(this.prefs.curFile + ".mine") && !Resolver.resolveConflict(this.prefs.curFile)) {
 			this.error("CDB file has unresolved conflict, merge by hand before reloading.");
 			return;
@@ -7750,12 +8407,16 @@ Main.prototype = $extend(Model.prototype,{
 		Model.prototype.load.call(this,noError);
 		HxOverrides.remove(this.prefs.recent,this.prefs.curFile);
 		this.prefs.recent.unshift(this.prefs.curFile);
-		if(this.prefs.recent.length > 8) this.prefs.recent.pop();
+		if(this.prefs.recent.length > 8) {
+			this.prefs.recent.pop();
+		}
 		this.lastSave = this.getFileTime();
 		this.mcompress.checked = this.data.compress;
 	}
 	,save: function(history) {
-		if(history == null) history = true;
+		if(history == null) {
+			history = true;
+		}
 		Model.prototype.save.call(this,history);
 		this.lastSave = this.getFileTime();
 	}
@@ -7777,27 +8438,55 @@ Reflect.fields = function(o) {
 	if(o != null) {
 		var hasOwnProperty = Object.prototype.hasOwnProperty;
 		for( var f in o ) {
-		if(f != "__id__" && f != "hx__closures__" && hasOwnProperty.call(o,f)) a.push(f);
+		if(f != "__id__" && f != "hx__closures__" && hasOwnProperty.call(o,f)) {
+			a.push(f);
+		}
 		}
 	}
 	return a;
 };
 Reflect.isFunction = function(f) {
-	return typeof(f) == "function" && !(f.__name__ || f.__ename__);
+	if(typeof(f) == "function") {
+		return !(f.__name__ || f.__ename__);
+	} else {
+		return false;
+	}
 };
 Reflect.compare = function(a,b) {
-	if(a == b) return 0; else if(a > b) return 1; else return -1;
+	if(a == b) {
+		return 0;
+	} else if(a > b) {
+		return 1;
+	} else {
+		return -1;
+	}
 };
 Reflect.isObject = function(v) {
-	if(v == null) return false;
+	if(v == null) {
+		return false;
+	}
 	var t = typeof(v);
-	return t == "string" || t == "object" && v.__enum__ == null || t == "function" && (v.__name__ || v.__ename__) != null;
+	if(!(t == "string" || t == "object" && v.__enum__ == null)) {
+		if(t == "function") {
+			return (v.__name__ || v.__ename__) != null;
+		} else {
+			return false;
+		}
+	} else {
+		return true;
+	}
 };
 Reflect.isEnumValue = function(v) {
-	if(v != null) return v.__enum__ != null; else return false;
+	if(v != null) {
+		return v.__enum__ != null;
+	} else {
+		return false;
+	}
 };
 Reflect.deleteField = function(o,field) {
-	if(!Object.prototype.hasOwnProperty.call(o,field)) return false;
+	if(!Object.prototype.hasOwnProperty.call(o,field)) {
+		return false;
+	}
 	delete(o[field]);
 	return true;
 };
@@ -7832,12 +8521,18 @@ Resolver.prototype = {
 			++_g;
 			if(StringTools.startsWith(f,basePath + ".r")) {
 				var rev = Std.parseInt(HxOverrides.substr(f,basePath.length + 2,null));
-				if(minRev == 0 || minRev > rev) minRev = rev;
-				if(maxRev == 0 || maxRev < rev) maxRev = rev;
+				if(minRev == 0 || minRev > rev) {
+					minRev = rev;
+				}
+				if(maxRev == 0 || maxRev < rev) {
+					maxRev = rev;
+				}
 			}
 		}
 		var merged = js_node_Fs.readFileSync(file,{ encoding : "utf8"}).split("<<<<<<< .mine");
-		if(merged.length == 1) return true;
+		if(merged.length == 1) {
+			return true;
+		}
 		var endConflict = new EReg(">>>>>>> \\.r[0-9]+[\r\n]+","");
 		var _g11 = 1;
 		var _g2 = merged.length;
@@ -7859,10 +8554,12 @@ Resolver.prototype = {
 				this.hasError = true;
 			} else throw(e);
 		}
-		if(this.hasError) return false;
+		if(this.hasError) {
+			return false;
+		}
 		try {
 			js_node_Fs.writeFileSync(process.env.TEMP + "/" + basePath + ".merged" + minRev + "_" + maxRev,js_node_Fs.readFileSync(file,{ encoding : "utf8"}));
-		} catch( e2 ) {
+		} catch( e1 ) {
 		}
 		js_node_Fs.writeFileSync(file,JSON.stringify(other,null,"\t"));
 		js_node_Fs.unlinkSync(file + ".mine");
@@ -7875,8 +8572,12 @@ Resolver.prototype = {
 		this.hasError = true;
 	}
 	,resolveRec: function(mine,origin,other,path) {
-		if(mine == origin || mine == other) return other;
-		if(other == origin) return mine;
+		if(mine == origin || mine == other) {
+			return other;
+		}
+		if(other == origin) {
+			return mine;
+		}
 		if((mine instanceof Array) && mine.__enum__ == null) {
 			var target = other;
 			if(origin == null) {
@@ -7885,14 +8586,20 @@ Resolver.prototype = {
 					other = [];
 					target = other;
 				}
-			} else if(target == null) target = []; else if(other.length != mine.length) this.resolveError("Array resize conflict",path);
+			} else if(target == null) {
+				target = [];
+			} else if(other.length != mine.length) {
+				this.resolveError("Array resize conflict",path);
+			}
 			var _g1 = 0;
 			var _g = mine.length;
 			while(_g1 < _g) {
 				var i = _g1++;
 				var mv = mine[i];
 				var name = Reflect.field(mv,"id");
-				if(name == null) name = Reflect.field(mv,"name");
+				if(name == null) {
+					name = Reflect.field(mv,"name");
+				}
 				path.push(typeof(name) == "string"?name + "#" + i:"[" + i + "]");
 				target[i] = this.resolveRec(mv,origin[i],target[i],path);
 				path.pop();
@@ -7905,50 +8612,70 @@ Resolver.prototype = {
 					other = { };
 					target1 = other;
 				}
-			} else if(target1 == null) target1 = { };
+			} else if(target1 == null) {
+				target1 = { };
+			}
 			var _g2 = 0;
-			var _g12 = Reflect.fields(target1);
-			while(_g2 < _g12.length) {
-				var f = _g12[_g2];
+			var _g11 = Reflect.fields(target1);
+			while(_g2 < _g11.length) {
+				var f = _g11[_g2];
 				++_g2;
-				if(!Object.prototype.hasOwnProperty.call(mine,f)) mine[f] = null;
+				if(!Object.prototype.hasOwnProperty.call(mine,f)) {
+					mine[f] = null;
+				}
 			}
 			var _g3 = 0;
-			var _g13 = Reflect.fields(mine);
-			while(_g3 < _g13.length) {
-				var f3 = _g13[_g3];
+			var _g12 = Reflect.fields(mine);
+			while(_g3 < _g12.length) {
+				var f1 = _g12[_g3];
 				++_g3;
-				path.push(f3);
-				target1[f3] = this.resolveRec(Reflect.field(mine,f3),Reflect.field(origin,f3),Reflect.field(target1,f3),path);
+				path.push(f1);
+				target1[f1] = this.resolveRec(Reflect.field(mine,f1),Reflect.field(origin,f1),Reflect.field(target1,f1),path);
 				path.pop();
 			}
 		} else {
-			if(typeof(mine) == "string" && typeof(other) == "string") try {
-				var dorigin = cdb_Lz4Reader.decodeString(origin);
-				var dmine = cdb_Lz4Reader.decodeString(mine);
-				var dother = cdb_Lz4Reader.decodeString(other);
-				if(dorigin.length != dmine.length || dorigin.length != dother.length) throw new js__$Boot_HaxeError("resized");
-				var _g14 = 0;
-				var _g4 = dorigin.length;
-				while(_g14 < _g4) {
-					var i4 = _g14++;
-					var mine4 = dmine.b[i4];
-					var origin4 = dorigin.b[i4];
-					var other4 = dother.b[i4];
-					if(mine4 == origin4 || mine4 == other4) continue;
-					if(other4 == origin4) dother.b[i4] = mine4 & 255; else throw new js__$Boot_HaxeError("conflict");
+			if(typeof(mine) == "string" && typeof(other) == "string") {
+				try {
+					var dorigin = cdb_Lz4Reader.decodeString(origin);
+					var dmine = cdb_Lz4Reader.decodeString(mine);
+					var dother = cdb_Lz4Reader.decodeString(other);
+					if(dorigin.length != dmine.length || dorigin.length != dother.length) {
+						throw new js__$Boot_HaxeError("resized");
+					}
+					var _g13 = 0;
+					var _g4 = dorigin.length;
+					while(_g13 < _g4) {
+						var i1 = _g13++;
+						var mine1 = dmine.b[i1];
+						var origin1 = dorigin.b[i1];
+						var other1 = dother.b[i1];
+						if(mine1 == origin1 || mine1 == other1) {
+							continue;
+						}
+						if(other1 == origin1) {
+							dother.b[i1] = mine1 & 255;
+						} else {
+							throw new js__$Boot_HaxeError("conflict");
+						}
+					}
+					return cdb_Lz4Reader.encodeBytes(dother,other.substr(0,5) == "BCJNG");
+				} catch( e ) {
 				}
-				return cdb_Lz4Reader.encodeBytes(dother,other.substr(0,5) == "BCJNG");
-			} catch( e ) {
 			}
 			var display = function(v) {
 				var str = Std.string(v);
-				if(str.length > 50) str = HxOverrides.substr(str,0,50) + "...";
+				if(str.length > 50) {
+					str = HxOverrides.substr(str,0,50) + "...";
+				}
 				return str;
 			};
 			var r = window.confirm("A conflict has been found in " + path.join(".") + "\nOrigin = " + display(origin) + "    Mine = " + display(mine) + "    Other = " + display(other) + "\nDo you want to keep your changes (OK) or discard them (CANCEL) ?\n\n");
-			if(!window.confirm("Are you sure ?")) throw new js__$Boot_HaxeError("Resolve aborted");
-			if(r) other = mine;
+			if(!window.confirm("Are you sure ?")) {
+				throw new js__$Boot_HaxeError("Resolve aborted");
+			}
+			if(r) {
+				other = mine;
+			}
 		}
 		return other;
 	}
@@ -7961,36 +8688,34 @@ var SheetData = function() { };
 $hxClasses["SheetData"] = SheetData;
 SheetData.__name__ = ["SheetData"];
 SheetData.getSheet = function(name) {
-	var tmp;
 	var _this = SheetData.model.smap;
-	if(__map_reserved[name] != null) tmp = _this.getReserved(name); else tmp = _this.h[name];
-	return tmp.s;
+	return (__map_reserved[name] != null?_this.getReserved(name):_this.h[name]).s;
 };
 SheetData.isLevel = function(sheet) {
 	return sheet.props.level != null;
 };
 SheetData.getSub = function(sheet,c) {
-	var tmp;
 	var _this = SheetData.model.smap;
 	var key = sheet.name + "@" + c.name;
-	if(__map_reserved[key] != null) tmp = _this.getReserved(key); else tmp = _this.h[key];
-	return tmp.s;
+	return (__map_reserved[key] != null?_this.getReserved(key):_this.h[key]).s;
 };
 SheetData.getParent = function(sheet) {
-	if(!sheet.props.hide) return null;
+	if(!sheet.props.hide) {
+		return null;
+	}
 	var parts = sheet.name.split("@");
 	var colName = parts.pop();
 	var name = parts.join("@");
-	var tmp;
 	var _this = SheetData.model.smap;
-	if(__map_reserved[name] != null) tmp = _this.getReserved(name); else tmp = _this.h[name];
-	return { s : tmp.s, c : colName};
+	return { s : (__map_reserved[name] != null?_this.getReserved(name):_this.h[name]).s, c : colName};
 };
 SheetData.getLines = function(sheet) {
 	var p = SheetData.getParent(sheet);
-	if(p == null) return sheet.lines;
+	if(p == null) {
+		return sheet.lines;
+	}
 	if(p.s.props.level != null && p.c == "tileProps") {
-		var all1 = [];
+		var all = [];
 		var sets = p.s.props.level.tileSets;
 		var _g = 0;
 		var _g1 = Reflect.fields(sets);
@@ -7998,45 +8723,51 @@ SheetData.getLines = function(sheet) {
 			var f = _g1[_g];
 			++_g;
 			var t = Reflect.field(sets,f);
-			if(t.props == null) continue;
+			if(t.props == null) {
+				continue;
+			}
 			var _g2 = 0;
 			var _g3 = t.props;
 			while(_g2 < _g3.length) {
 				var p1 = _g3[_g2];
 				++_g2;
-				if(p1 != null) all1.push(p1);
+				if(p1 != null) {
+					all.push(p1);
+				}
 			}
 		}
-		return all1;
+		return all;
 	}
-	var all = [];
+	var all1 = [];
 	if(sheet.props.isProps) {
 		var _g4 = 0;
-		var _g14 = SheetData.getLines(p.s);
-		while(_g4 < _g14.length) {
-			var obj = _g14[_g4];
+		var _g11 = SheetData.getLines(p.s);
+		while(_g4 < _g11.length) {
+			var obj = _g11[_g4];
 			++_g4;
 			var v = Reflect.field(obj,p.c);
-			if(v != null) all.push(v);
+			if(v != null) {
+				all1.push(v);
+			}
 		}
 	} else {
 		var _g5 = 0;
-		var _g15 = SheetData.getLines(p.s);
-		while(_g5 < _g15.length) {
-			var obj5 = _g15[_g5];
+		var _g12 = SheetData.getLines(p.s);
+		while(_g5 < _g12.length) {
+			var obj1 = _g12[_g5];
 			++_g5;
-			var v5 = Reflect.field(obj5,p.c);
-			if(v5 != null) {
-				var _g25 = 0;
-				while(_g25 < v5.length) {
-					var v6 = v5[_g25];
-					++_g25;
-					all.push(v6);
+			var v1 = Reflect.field(obj1,p.c);
+			if(v1 != null) {
+				var _g21 = 0;
+				while(_g21 < v1.length) {
+					var v2 = v1[_g21];
+					++_g21;
+					all1.push(v2);
 				}
 			}
 		}
 	}
-	return all;
+	return all1;
 };
 SheetData.getObjects = function(sheet) {
 	var p = SheetData.getParent(sheet);
@@ -8081,30 +8812,40 @@ SheetData.newLine = function(sheet,index) {
 		var c = _g1[_g];
 		++_g;
 		var d = SheetData.model.getDefault(c);
-		if(d != null) o[c.name] = d;
+		if(d != null) {
+			o[c.name] = d;
+		}
 	}
-	if(index == null) sheet.lines.push(o); else {
-		var _g12 = 0;
-		var _g3 = sheet.separators.length;
-		while(_g12 < _g3) {
-			var i = _g12++;
+	if(index == null) {
+		sheet.lines.push(o);
+	} else {
+		var _g11 = 0;
+		var _g2 = sheet.separators.length;
+		while(_g11 < _g2) {
+			var i = _g11++;
 			var s = sheet.separators[i];
-			if(s > index) sheet.separators[i] = s + 1;
+			if(s > index) {
+				sheet.separators[i] = s + 1;
+			}
 		}
 		sheet.lines.splice(index + 1,0,o);
-		var _g2 = [];
-		var _g23 = 0;
-		var _g13 = sheet.lines.length;
-		while(_g23 < _g13) {
-			var i3 = _g23++;
-			_g2.push(i3 <= index?i3:i3 + 1);
+		var _g3 = [];
+		var _g21 = 0;
+		var _g12 = sheet.lines.length;
+		while(_g21 < _g12) {
+			var i1 = _g21++;
+			_g3.push(i1 <= index?i1:i1 + 1);
 		}
-		SheetData.changeLineOrder(sheet,_g2);
+		SheetData.changeLineOrder(sheet,_g3);
 	}
 	return o;
 };
 SheetData.getPath = function(sheet) {
-	if(sheet.path == null) return sheet.name; else return sheet.path;
+	if(sheet.path == null) {
+		return sheet.name;
+	} else {
+		return sheet.path;
+	}
 };
 SheetData.hasColumn = function(s,name,types) {
 	var _g = 0;
@@ -8118,7 +8859,9 @@ SheetData.hasColumn = function(s,name,types) {
 				while(_g2 < types.length) {
 					var t = types[_g2];
 					++_g2;
-					if(Type.enumEq(c.type,t)) return true;
+					if(Type.enumEq(c.type,t)) {
+						return true;
+					}
 				}
 				return false;
 			}
@@ -8130,55 +8873,47 @@ SheetData.hasColumn = function(s,name,types) {
 SheetData.moveLine = function(sheet,index,delta) {
 	if(delta < 0 && index > 0) {
 		var _g1 = 0;
-		var _g2 = sheet.separators.length;
-		while(_g1 < _g2) {
+		var _g = sheet.separators.length;
+		while(_g1 < _g) {
 			var i = _g1++;
 			if(sheet.separators[i] == index) {
-				var i2 = i;
-				while(i2 < sheet.separators.length - 1 && sheet.separators[i2 + 1] == index) ++i2;
-				sheet.separators[i2]++;
+				var i1 = i;
+				while(i1 < sheet.separators.length - 1 && sheet.separators[i1 + 1] == index) ++i1;
+				sheet.separators[i1]++;
 				return index;
 			}
 		}
 		var l = sheet.lines[index];
 		sheet.lines.splice(index,1);
 		sheet.lines.splice(index - 1,0,l);
-		var _g = [];
-		var _g22 = 0;
-		var _g12 = sheet.lines.length;
-		while(_g22 < _g12) {
-			var i3 = _g22++;
-			_g.push(i3);
-		}
-		var arr = _g;
-		arr[index] = index - 1;
-		arr[index - 1] = index;
-		SheetData.changeLineOrder(sheet,arr);
+		var _g2 = [];
+		var _g21 = 0;
+		var _g11 = sheet.lines.length;
+		while(_g21 < _g11) _g2.push(_g21++);
+		_g2[index] = index - 1;
+		_g2[index - 1] = index;
+		SheetData.changeLineOrder(sheet,_g2);
 		return index - 1;
 	} else if(delta > 0 && sheet != null && index < sheet.lines.length - 1) {
-		var _g13 = 0;
-		var _g4 = sheet.separators.length;
-		while(_g13 < _g4) {
-			var i4 = _g13++;
-			if(sheet.separators[i4] == index + 1) {
-				sheet.separators[i4]--;
+		var _g12 = 0;
+		var _g3 = sheet.separators.length;
+		while(_g12 < _g3) {
+			var i2 = _g12++;
+			if(sheet.separators[i2] == index + 1) {
+				sheet.separators[i2]--;
 				return index;
 			}
 		}
-		var l3 = sheet.lines[index];
+		var l1 = sheet.lines[index];
 		sheet.lines.splice(index,1);
-		sheet.lines.splice(index + 1,0,l3);
-		var _g3 = [];
-		var _g24 = 0;
-		var _g14 = sheet.lines.length;
-		while(_g24 < _g14) {
-			var i5 = _g24++;
-			_g3.push(i5);
-		}
-		var arr3 = _g3;
-		arr3[index] = index + 1;
-		arr3[index + 1] = index;
-		SheetData.changeLineOrder(sheet,arr3);
+		sheet.lines.splice(index + 1,0,l1);
+		var _g4 = [];
+		var _g22 = 0;
+		var _g13 = sheet.lines.length;
+		while(_g22 < _g13) _g4.push(_g22++);
+		_g4[index] = index + 1;
+		_g4[index + 1] = index;
+		SheetData.changeLineOrder(sheet,_g4);
 		return index + 1;
 	}
 	return null;
@@ -8191,9 +8926,8 @@ SheetData.deleteLine = function(sheet,index) {
 		var i = _g2++;
 		_g.push(i < index?i:i - 1);
 	}
-	var arr = _g;
-	arr[index] = -1;
-	SheetData.changeLineOrder(sheet,arr);
+	_g[index] = -1;
+	SheetData.changeLineOrder(sheet,_g);
 	sheet.lines.splice(index,1);
 	var prev = -1;
 	var toRemove = null;
@@ -8203,13 +8937,19 @@ SheetData.deleteLine = function(sheet,index) {
 		var i1 = _g21++;
 		var s = sheet.separators[i1];
 		if(s > index) {
-			if(prev == s) toRemove = i1;
+			if(prev == s) {
+				toRemove = i1;
+			}
 			sheet.separators[i1] = s - 1;
-		} else prev = s;
+		} else {
+			prev = s;
+		}
 	}
 	if(toRemove != null) {
 		sheet.separators.splice(toRemove,1);
-		if(sheet.props.separatorTitles != null) sheet.props.separatorTitles.splice(toRemove,1);
+		if(sheet.props.separatorTitles != null) {
+			sheet.props.separatorTitles.splice(toRemove,1);
+		}
 	}
 };
 SheetData.deleteColumn = function(sheet,cname) {
@@ -8236,11 +8976,9 @@ SheetData.deleteColumn = function(sheet,cname) {
 				SheetData.model.makeSheet(sheet);
 			}
 			if(c.type == cdb_ColumnType.TList || c.type == cdb_ColumnType.TProperties) {
-				var tmp;
 				var _this = SheetData.model.smap;
 				var key = sheet.name + "@" + c.name;
-				if(__map_reserved[key] != null) tmp = _this.getReserved(key); else tmp = _this.h[key];
-				SheetData.model.deleteSheet(tmp.s);
+				SheetData.model.deleteSheet((__map_reserved[key] != null?_this.getReserved(key):_this.h[key]).s);
 			}
 			return true;
 		}
@@ -8253,30 +8991,50 @@ SheetData.addColumn = function(sheet,c,index) {
 	while(_g < _g1.length) {
 		var c2 = _g1[_g];
 		++_g;
-		if(c2.name == c.name) return "Column already exists"; else if(c2.type == cdb_ColumnType.TId && c.type == cdb_ColumnType.TId) return "Only one ID allowed";
+		if(c2.name == c.name) {
+			return "Column already exists";
+		} else if(c2.type == cdb_ColumnType.TId && c.type == cdb_ColumnType.TId) {
+			return "Only one ID allowed";
+		}
 	}
-	if(c.name == "index" && sheet.props.hasIndex) return "Sheet already has an index";
-	if(c.name == "group" && sheet.props.hasGroup) return "Sheet already has a group";
-	if(index == null) sheet.columns.push(c); else sheet.columns.splice(index,0,c);
+	if(c.name == "index" && sheet.props.hasIndex) {
+		return "Sheet already has an index";
+	}
+	if(c.name == "group" && sheet.props.hasGroup) {
+		return "Sheet already has a group";
+	}
+	if(index == null) {
+		sheet.columns.push(c);
+	} else {
+		sheet.columns.splice(index,0,c);
+	}
 	var _g2 = 0;
-	var _g12 = SheetData.getLines(sheet);
-	while(_g2 < _g12.length) {
-		var i = _g12[_g2];
+	var _g11 = SheetData.getLines(sheet);
+	while(_g2 < _g11.length) {
+		var i = _g11[_g2];
 		++_g2;
 		var def = SheetData.model.getDefault(c);
-		if(def != null) i[c.name] = def;
+		if(def != null) {
+			i[c.name] = def;
+		}
 	}
 	if(c.type == cdb_ColumnType.TList || c.type == cdb_ColumnType.TProperties) {
 		var s = { name : sheet.name + "@" + c.name, props : { hide : true}, separators : [], lines : [], columns : []};
-		if(c.type == cdb_ColumnType.TProperties) s.props.isProps = true;
+		if(c.type == cdb_ColumnType.TProperties) {
+			s.props.isProps = true;
+		}
 		SheetData.model.data.sheets.push(s);
 		SheetData.model.makeSheet(s);
 	}
 	return null;
 };
 SheetData.objToString = function(sheet,obj,esc) {
-	if(esc == null) esc = false;
-	if(obj == null) return "null";
+	if(esc == null) {
+		esc = false;
+	}
+	if(obj == null) {
+		return "null";
+	}
 	var fl = [];
 	var _g = 0;
 	var _g1 = sheet.columns;
@@ -8284,34 +9042,40 @@ SheetData.objToString = function(sheet,obj,esc) {
 		var c = _g1[_g];
 		++_g;
 		var v = Reflect.field(obj,c.name);
-		if(v == null) continue;
+		if(v == null) {
+			continue;
+		}
 		fl.push(c.name + " : " + SheetData.colToString(sheet,c,v,esc));
 	}
-	if(fl.length == 0) return "{}";
+	if(fl.length == 0) {
+		return "{}";
+	}
 	return "{ " + fl.join(", ") + " }";
 };
 SheetData.colToString = function(sheet,c,v,esc) {
-	if(esc == null) esc = false;
-	if(v == null) return "null";
-	var _g = c.type;
-	switch(_g[1]) {
-	case 8:
+	if(esc == null) {
+		esc = false;
+	}
+	if(v == null) {
+		return "null";
+	}
+	if(c.type[1] == 8) {
 		var a = v;
-		if(a.length == 0) return "[]";
-		var tmp;
+		if(a.length == 0) {
+			return "[]";
+		}
 		var _this = SheetData.model.smap;
 		var key = sheet.name + "@" + c.name;
-		if(__map_reserved[key] != null) tmp = _this.getReserved(key); else tmp = _this.h[key];
-		var s = tmp.s;
-		var _g1 = [];
-		var _g2 = 0;
-		while(_g2 < a.length) {
-			var v1 = a[_g2];
-			++_g2;
-			_g1.push(SheetData.objToString(s,v1,esc));
+		var s = (__map_reserved[key] != null?_this.getReserved(key):_this.h[key]).s;
+		var _g = [];
+		var _g1 = 0;
+		while(_g1 < a.length) {
+			var v1 = a[_g1];
+			++_g1;
+			_g.push(SheetData.objToString(s,v1,esc));
 		}
-		return "[ " + _g1.join(", ") + " ]";
-	default:
+		return "[ " + _g.join(", ") + " ]";
+	} else {
 		return SheetData.model.valToString(c.type,v,esc);
 	}
 };
@@ -8327,38 +9091,35 @@ SheetData.changeLineOrder = function(sheet,remap) {
 			var c = _g3[_g2];
 			++_g2;
 			var _g4 = c.type;
-			switch(_g4[1]) {
-			case 12:
-				var t = _g4[2];
-				if(t == sheet.name) {
-					var _g5 = 0;
-					var _g6 = SheetData.getLines(s);
-					while(_g5 < _g6.length) {
-						var obj = _g6[_g5];
-						++_g5;
+			if(_g4[1] == 12) {
+				if(_g4[2] == sheet.name) {
+					var _g41 = 0;
+					var _g5 = SheetData.getLines(s);
+					while(_g41 < _g5.length) {
+						var obj = _g5[_g41];
+						++_g41;
 						var ldat = Reflect.field(obj,c.name);
-						if(ldat == null || ldat == "") continue;
-						var _g7 = [];
-						var _g8 = 0;
-						while(_g8 < 256) {
-							var i = _g8++;
-							_g7.push(i);
+						if(ldat == null || ldat == "") {
+							continue;
 						}
-						var d = cdb__$Types_Layer_$Impl_$.decode(ldat,_g7);
-						var _g9 = 0;
-						var _g81 = d.length;
-						while(_g9 < _g81) {
-							var i1 = _g9++;
-							var r = remap[d[i1]];
-							if(r < 0) r = 0;
-							d[i1] = r;
+						var _g6 = [];
+						var _g7 = 0;
+						while(_g7 < 256) _g6.push(_g7++);
+						var d = cdb__$Types_Layer_$Impl_$.decode(ldat,_g6);
+						var _g8 = 0;
+						var _g71 = d.length;
+						while(_g8 < _g71) {
+							var i = _g8++;
+							var r = remap[d[i]];
+							if(r < 0) {
+								r = 0;
+							}
+							d[i] = r;
 						}
 						ldat = cdb__$Types_Layer_$Impl_$.encode(d,SheetData.model.data.compress);
 						obj[c.name] = ldat;
 					}
 				}
-				break;
-			default:
 			}
 		}
 	}
@@ -8367,73 +9128,64 @@ SheetData.getReferences = function(sheet,index) {
 	var id = null;
 	var _g = 0;
 	var _g1 = sheet.columns;
-	try {
-		while(_g < _g1.length) {
-			var c = _g1[_g];
-			++_g;
-			var _g2 = c.type;
-			switch(_g2[1]) {
-			case 0:
-				id = Reflect.field(sheet.lines[index],c.name);
-				throw "__break__";
-				break;
-			default:
-			}
+	while(_g < _g1.length) {
+		var c = _g1[_g];
+		++_g;
+		if(c.type[1] == 0) {
+			id = Reflect.field(sheet.lines[index],c.name);
+			break;
 		}
-	} catch( e ) { if( e != "__break__" ) throw e; }
-	if(id == "" || id == null) return null;
+	}
+	if(id == "" || id == null) {
+		return null;
+	}
 	var results = [];
-	var _g3 = 0;
-	var _g13 = SheetData.model.data.sheets;
-	while(_g3 < _g13.length) {
-		var s = _g13[_g3];
-		++_g3;
-		var _g23 = 0;
-		var _g33 = s.columns;
-		while(_g23 < _g33.length) {
-			var c3 = _g33[_g23];
-			++_g23;
-			var _g4 = c3.type;
+	var _g2 = 0;
+	var _g11 = SheetData.model.data.sheets;
+	while(_g2 < _g11.length) {
+		var s = _g11[_g2];
+		++_g2;
+		var _g21 = 0;
+		var _g3 = s.columns;
+		while(_g21 < _g3.length) {
+			var c1 = _g3[_g21];
+			++_g21;
+			var _g4 = c1.type;
 			switch(_g4[1]) {
 			case 6:
-				var sname = _g4[2];
-				if(sname == sheet.name) {
+				if(_g4[2] == sheet.name) {
 					var sheets = [];
-					var p = { s : s, c : c3.name, id : null};
+					var p = { s : s, c : c1.name, id : null};
 					while(true) {
-						var _g5 = 0;
-						var _g6 = p.s.columns;
-						try {
-							while(_g5 < _g6.length) {
-								var c4 = _g6[_g5];
-								++_g5;
-								var _g7 = c4.type;
-								switch(_g7[1]) {
-								case 0:
-									p.id = c4.name;
-									throw "__break__";
-									break;
-								default:
-								}
+						var _g41 = 0;
+						var _g5 = p.s.columns;
+						while(_g41 < _g5.length) {
+							var c2 = _g5[_g41];
+							++_g41;
+							if(c2.type[1] == 0) {
+								p.id = c2.name;
+								break;
 							}
-						} catch( e ) { if( e != "__break__" ) throw e; }
+						}
 						sheets.unshift(p);
 						var p2 = SheetData.getParent(p.s);
-						if(p2 == null) break;
+						if(p2 == null) {
+							break;
+						}
 						p = { s : p2.s, c : p2.c, id : null};
 					}
-					var _g54 = 0;
-					var _g64 = SheetData.getObjects(s);
-					while(_g54 < _g64.length) {
-						var o = _g64[_g54];
-						++_g54;
-						var obj = o.path[o.path.length - 1];
-						if(Reflect.field(obj,c3.name) == id) results.push({ s : sheets, o : o});
+					var _g42 = 0;
+					var _g51 = SheetData.getObjects(s);
+					while(_g42 < _g51.length) {
+						var o = _g51[_g42];
+						++_g42;
+						if(Reflect.field(o.path[o.path.length - 1],c1.name) == id) {
+							results.push({ s : sheets, o : o});
+						}
 					}
 				}
 				break;
 			case 9:
-				var tname = _g4[2];
 				break;
 			default:
 			}
@@ -8442,8 +9194,7 @@ SheetData.getReferences = function(sheet,index) {
 	return results;
 };
 SheetData.updateValue = function(sheet,c,index,old) {
-	var _g = c.type;
-	switch(_g[1]) {
+	switch(c.type[1]) {
 	case 0:
 		SheetData.model.makeSheet(sheet);
 		break;
@@ -8454,160 +9205,156 @@ SheetData.updateValue = function(sheet,c,index,old) {
 			var newH = Reflect.field(obj,"height");
 			var oldW = newW;
 			var oldH = newH;
-			if(c.name == "width") oldW = old; else oldH = old;
+			if(c.name == "width") {
+				oldW = old;
+			} else {
+				oldH = old;
+			}
 			var remapTileLayer = function(v) {
-				if(v == null) return null;
+				if(v == null) {
+					return null;
+				}
 				var odat = cdb__$Types_TileLayerData_$Impl_$.decode(v.data);
 				var ndat = [];
-				if(odat[0] == 65535) ndat = odat; else {
+				if(odat[0] == 65535) {
+					ndat = odat;
+				} else {
 					var pos = 0;
-					var _g2 = 0;
-					var _g1 = newH;
-					while(_g2 < _g1) {
-						var y = _g2++;
-						if(y >= oldH) {
-							var _g4 = 0;
-							var _g3 = newW;
-							while(_g4 < _g3) {
-								var x = _g4++;
-								ndat.push(0);
-							}
-						} else if(newW <= oldW) {
-							var _g41 = 0;
-							var _g31 = newW;
-							while(_g41 < _g31) {
-								var x1 = _g41++;
-								ndat.push(odat[pos++]);
-							}
-							pos += oldW - newW;
-						} else {
-							var _g42 = 0;
-							var _g32 = oldW;
-							while(_g42 < _g32) {
-								var x2 = _g42++;
-								ndat.push(odat[pos++]);
-							}
-							var _g43 = oldW;
-							var _g33 = newW;
-							while(_g43 < _g33) {
-								var x3 = _g43++;
-								ndat.push(0);
-							}
+					var _g1 = 0;
+					var _g = newH;
+					while(_g1 < _g) if(_g1++ >= oldH) {
+						var _g3 = 0;
+						var _g2 = newW;
+						while(_g3 < _g2) {
+							++_g3;
+							ndat.push(0);
+						}
+					} else if(newW <= oldW) {
+						var _g31 = 0;
+						var _g21 = newW;
+						while(_g31 < _g21) {
+							++_g31;
+							ndat.push(odat[pos++]);
+						}
+						pos += oldW - newW;
+					} else {
+						var _g32 = 0;
+						var _g22 = oldW;
+						while(_g32 < _g22) {
+							++_g32;
+							ndat.push(odat[pos++]);
+						}
+						var _g33 = oldW;
+						var _g23 = newW;
+						while(_g33 < _g23) {
+							++_g33;
+							ndat.push(0);
 						}
 					}
 				}
 				return { file : v.file, size : v.size, stride : v.stride, data : cdb__$Types_TileLayerData_$Impl_$.encode(ndat,SheetData.model.data.compress)};
 			};
-			var _g13 = 0;
-			var _g23 = sheet.columns;
-			while(_g13 < _g23.length) {
-				var c3 = _g23[_g13];
-				++_g13;
-				var v3 = Reflect.field(obj,c3.name);
-				if(v3 == null) continue;
-				var _g34 = c3.type;
-				switch(_g34[1]) {
-				case 12:
-					var v4 = v3;
-					var _g44 = [];
-					var _g5 = 0;
-					while(_g5 < 256) {
-						var i = _g5++;
-						_g44.push(i);
-					}
-					var odat4 = cdb__$Types_Layer_$Impl_$.decode(v4,_g44);
-					var ndat4 = [];
-					var _g6 = 0;
-					var _g54 = newH;
-					while(_g6 < _g54) {
-						var y4 = _g6++;
-						var _g8 = 0;
-						var _g7 = newW;
-						while(_g8 < _g7) {
-							var x4 = _g8++;
-							var k = y4 < oldH && x4 < oldW?odat4[x4 + y4 * oldW]:0;
-							ndat4.push(k);
-						}
-					}
-					v4 = cdb__$Types_Layer_$Impl_$.encode(ndat4,SheetData.model.data.compress);
-					obj[c3.name] = v4;
-					break;
+			var _g4 = 0;
+			var _g11 = sheet.columns;
+			while(_g4 < _g11.length) {
+				var c1 = _g11[_g4];
+				++_g4;
+				var v1 = Reflect.field(obj,c1.name);
+				if(v1 == null) {
+					continue;
+				}
+				switch(c1.type[1]) {
 				case 8:
-					var tmp;
 					var _this = SheetData.model.smap;
-					var key = sheet.name + "@" + c3.name;
-					if(__map_reserved[key] != null) tmp = _this.getReserved(key); else tmp = _this.h[key];
-					var s = tmp.s;
+					var key = sheet.name + "@" + c1.name;
+					var s = (__map_reserved[key] != null?_this.getReserved(key):_this.h[key]).s;
 					if(SheetData.hasColumn(s,"x",[cdb_ColumnType.TInt,cdb_ColumnType.TFloat]) && SheetData.hasColumn(s,"y",[cdb_ColumnType.TInt,cdb_ColumnType.TFloat])) {
-						var elts = Reflect.field(obj,c3.name);
-						var _g45 = 0;
-						var _g55 = elts.slice();
-						while(_g45 < _g55.length) {
-							var e = _g55[_g45];
-							++_g45;
-							if(e.x >= newW || e.y >= newH) HxOverrides.remove(elts,e);
+						var elts = Reflect.field(obj,c1.name);
+						var _g24 = 0;
+						var _g34 = elts.slice();
+						while(_g24 < _g34.length) {
+							var e = _g34[_g24];
+							++_g24;
+							if(e.x >= newW || e.y >= newH) {
+								HxOverrides.remove(elts,e);
+							}
 						}
 					} else if(SheetData.hasColumn(s,"data",[cdb_ColumnType.TTileLayer])) {
-						var a = v3;
-						var _g46 = 0;
-						while(_g46 < a.length) {
-							var o = a[_g46];
-							++_g46;
+						var a = v1;
+						var _g25 = 0;
+						while(_g25 < a.length) {
+							var o = a[_g25];
+							++_g25;
 							o.data = remapTileLayer(o.data);
 						}
 					}
 					break;
+				case 12:
+					var v2 = v1;
+					var _g26 = [];
+					var _g35 = 0;
+					while(_g35 < 256) _g26.push(_g35++);
+					var odat1 = cdb__$Types_Layer_$Impl_$.decode(v2,_g26);
+					var ndat1 = [];
+					var _g41 = 0;
+					var _g36 = newH;
+					while(_g41 < _g36) {
+						var y = _g41++;
+						var _g6 = 0;
+						var _g5 = newW;
+						while(_g6 < _g5) {
+							var x = _g6++;
+							ndat1.push(y < oldH && x < oldW?odat1[x + y * oldW]:0);
+						}
+					}
+					v2 = cdb__$Types_Layer_$Impl_$.encode(ndat1,SheetData.model.data.compress);
+					obj[c1.name] = v2;
+					break;
 				case 15:
-					obj[c3.name] = remapTileLayer(v3);
+					obj[c1.name] = remapTileLayer(v1);
 					break;
 				default:
 				}
 			}
 		} else {
 			if(sheet.props.displayColumn == c.name) {
-				var obj6 = sheet.lines[index];
-				var tmp6;
-				var _this6 = SheetData.model.smap;
-				var key6 = sheet.name;
-				if(__map_reserved[key6] != null) tmp6 = _this6.getReserved(key6); else tmp6 = _this6.h[key6];
-				var s6 = tmp6;
-				var _g16 = 0;
-				var _g26 = sheet.columns;
-				while(_g16 < _g26.length) {
-					var cid = _g26[_g16];
-					++_g16;
+				var obj1 = sheet.lines[index];
+				var _this1 = SheetData.model.smap;
+				var key1 = sheet.name;
+				var s1 = __map_reserved[key1] != null?_this1.getReserved(key1):_this1.h[key1];
+				var _g7 = 0;
+				var _g12 = sheet.columns;
+				while(_g7 < _g12.length) {
+					var cid = _g12[_g7];
+					++_g7;
 					if(cid.type == cdb_ColumnType.TId) {
-						var id = Reflect.field(obj6,cid.name);
+						var id = Reflect.field(obj1,cid.name);
 						if(id != null) {
-							var disp = Reflect.field(obj6,c.name);
-							if(disp == null) disp = "#" + id;
-							var tmp7;
-							var _this7 = s6.index;
-							if(__map_reserved[id] != null) tmp7 = _this7.getReserved(id); else tmp7 = _this7.h[id];
-							tmp7.disp = disp;
+							var disp = Reflect.field(obj1,c.name);
+							if(disp == null) {
+								disp = "#" + id;
+							}
+							var _this2 = s1.index;
+							(__map_reserved[id] != null?_this2.getReserved(id):_this2.h[id]).disp = disp;
 						}
 					}
 				}
 			}
 			if(sheet.props.displayIcon == c.name) {
-				var obj7 = sheet.lines[index];
-				var tmp8;
-				var _this8 = SheetData.model.smap;
-				var key8 = sheet.name;
-				if(__map_reserved[key8] != null) tmp8 = _this8.getReserved(key8); else tmp8 = _this8.h[key8];
-				var s8 = tmp8;
-				var _g18 = 0;
-				var _g28 = sheet.columns;
-				while(_g18 < _g28.length) {
-					var cid8 = _g28[_g18];
-					++_g18;
-					if(cid8.type == cdb_ColumnType.TId) {
-						var id8 = Reflect.field(obj7,cid8.name);
-						if(id8 != null) {
-							var tmp9;
-							var _this9 = s8.index;
-							if(__map_reserved[id8] != null) tmp9 = _this9.getReserved(id8); else tmp9 = _this9.h[id8];
-							tmp9.ico = Reflect.field(obj7,c.name);
+				var obj2 = sheet.lines[index];
+				var _this3 = SheetData.model.smap;
+				var key2 = sheet.name;
+				var s2 = __map_reserved[key2] != null?_this3.getReserved(key2):_this3.h[key2];
+				var _g8 = 0;
+				var _g13 = sheet.columns;
+				while(_g8 < _g13.length) {
+					var cid1 = _g13[_g8];
+					++_g8;
+					if(cid1.type == cdb_ColumnType.TId) {
+						var id1 = Reflect.field(obj2,cid1.name);
+						if(id1 != null) {
+							var _this4 = s2.index;
+							(__map_reserved[id1] != null?_this4.getReserved(id1):_this4.h[id1]).ico = Reflect.field(obj2,c.name);
 						}
 					}
 				}
@@ -8616,49 +9363,43 @@ SheetData.updateValue = function(sheet,c,index,old) {
 		break;
 	default:
 		if(sheet.props.displayColumn == c.name) {
-			var obj9 = sheet.lines[index];
-			var tmp10;
-			var _this10 = SheetData.model.smap;
-			var key10 = sheet.name;
-			if(__map_reserved[key10] != null) tmp10 = _this10.getReserved(key10); else tmp10 = _this10.h[key10];
-			var s10 = tmp10;
-			var _g110 = 0;
-			var _g210 = sheet.columns;
-			while(_g110 < _g210.length) {
-				var cid10 = _g210[_g110];
-				++_g110;
-				if(cid10.type == cdb_ColumnType.TId) {
-					var id10 = Reflect.field(obj9,cid10.name);
-					if(id10 != null) {
-						var disp10 = Reflect.field(obj9,c.name);
-						if(disp10 == null) disp10 = "#" + id10;
-						var tmp11;
-						var _this11 = s10.index;
-						if(__map_reserved[id10] != null) tmp11 = _this11.getReserved(id10); else tmp11 = _this11.h[id10];
-						tmp11.disp = disp10;
+			var obj3 = sheet.lines[index];
+			var _this5 = SheetData.model.smap;
+			var key3 = sheet.name;
+			var s3 = __map_reserved[key3] != null?_this5.getReserved(key3):_this5.h[key3];
+			var _g9 = 0;
+			var _g14 = sheet.columns;
+			while(_g9 < _g14.length) {
+				var cid2 = _g14[_g9];
+				++_g9;
+				if(cid2.type == cdb_ColumnType.TId) {
+					var id2 = Reflect.field(obj3,cid2.name);
+					if(id2 != null) {
+						var disp1 = Reflect.field(obj3,c.name);
+						if(disp1 == null) {
+							disp1 = "#" + id2;
+						}
+						var _this6 = s3.index;
+						(__map_reserved[id2] != null?_this6.getReserved(id2):_this6.h[id2]).disp = disp1;
 					}
 				}
 			}
 		}
 		if(sheet.props.displayIcon == c.name) {
-			var obj11 = sheet.lines[index];
-			var tmp12;
-			var _this12 = SheetData.model.smap;
-			var key12 = sheet.name;
-			if(__map_reserved[key12] != null) tmp12 = _this12.getReserved(key12); else tmp12 = _this12.h[key12];
-			var s12 = tmp12;
-			var _g112 = 0;
-			var _g212 = sheet.columns;
-			while(_g112 < _g212.length) {
-				var cid12 = _g212[_g112];
-				++_g112;
-				if(cid12.type == cdb_ColumnType.TId) {
-					var id12 = Reflect.field(obj11,cid12.name);
-					if(id12 != null) {
-						var tmp13;
-						var _this13 = s12.index;
-						if(__map_reserved[id12] != null) tmp13 = _this13.getReserved(id12); else tmp13 = _this13.h[id12];
-						tmp13.ico = Reflect.field(obj11,c.name);
+			var obj4 = sheet.lines[index];
+			var _this7 = SheetData.model.smap;
+			var key4 = sheet.name;
+			var s4 = __map_reserved[key4] != null?_this7.getReserved(key4):_this7.h[key4];
+			var _g10 = 0;
+			var _g15 = sheet.columns;
+			while(_g10 < _g15.length) {
+				var cid3 = _g15[_g10];
+				++_g10;
+				if(cid3.type == cdb_ColumnType.TId) {
+					var id3 = Reflect.field(obj4,cid3.name);
+					if(id3 != null) {
+						var _this8 = s4.index;
+						(__map_reserved[id3] != null?_this8.getReserved(id3):_this8.h[id3]).ico = Reflect.field(obj4,c.name);
 					}
 				}
 			}
@@ -8676,12 +9417,20 @@ Std["int"] = function(x) {
 };
 Std.parseInt = function(x) {
 	var v = parseInt(x,10);
-	if(v == 0 && (HxOverrides.cca(x,1) == 120 || HxOverrides.cca(x,1) == 88)) v = parseInt(x);
-	if(isNaN(v)) return null;
+	if(v == 0 && (HxOverrides.cca(x,1) == 120 || HxOverrides.cca(x,1) == 88)) {
+		v = parseInt(x);
+	}
+	if(isNaN(v)) {
+		return null;
+	}
 	return v;
 };
 Std.random = function(x) {
-	if(x <= 0) return 0; else return Math.floor(Math.random() * x);
+	if(x <= 0) {
+		return 0;
+	} else {
+		return Math.floor(Math.random() * x);
+	}
 };
 var StringBuf = function() {
 	this.b = "";
@@ -8696,44 +9445,71 @@ $hxClasses["StringTools"] = StringTools;
 StringTools.__name__ = ["StringTools"];
 StringTools.htmlEscape = function(s,quotes) {
 	s = s.split("&").join("&amp;").split("<").join("&lt;").split(">").join("&gt;");
-	if(quotes) return s.split("\"").join("&quot;").split("'").join("&#039;"); else return s;
+	if(quotes) {
+		return s.split("\"").join("&quot;").split("'").join("&#039;");
+	} else {
+		return s;
+	}
 };
 StringTools.startsWith = function(s,start) {
-	if(s.length >= start.length) return HxOverrides.substr(s,0,start.length) == start; else return false;
+	if(s.length >= start.length) {
+		return HxOverrides.substr(s,0,start.length) == start;
+	} else {
+		return false;
+	}
 };
 StringTools.endsWith = function(s,end) {
 	var elen = end.length;
 	var slen = s.length;
-	if(slen >= elen) return HxOverrides.substr(s,slen - elen,elen) == end; else return false;
+	if(slen >= elen) {
+		return HxOverrides.substr(s,slen - elen,elen) == end;
+	} else {
+		return false;
+	}
 };
 StringTools.isSpace = function(s,pos) {
 	var c = HxOverrides.cca(s,pos);
-	if(!(c > 8 && c < 14)) return c == 32; else return true;
+	if(!(c > 8 && c < 14)) {
+		return c == 32;
+	} else {
+		return true;
+	}
 };
 StringTools.ltrim = function(s) {
 	var l = s.length;
 	var r = 0;
 	while(r < l && StringTools.isSpace(s,r)) ++r;
-	if(r > 0) return HxOverrides.substr(s,r,l - r); else return s;
+	if(r > 0) {
+		return HxOverrides.substr(s,r,l - r);
+	} else {
+		return s;
+	}
 };
 StringTools.rtrim = function(s) {
 	var l = s.length;
 	var r = 0;
 	while(r < l && StringTools.isSpace(s,l - r - 1)) ++r;
-	if(r > 0) return HxOverrides.substr(s,0,l - r); else return s;
+	if(r > 0) {
+		return HxOverrides.substr(s,0,l - r);
+	} else {
+		return s;
+	}
 };
 StringTools.trim = function(s) {
 	return StringTools.ltrim(StringTools.rtrim(s));
 };
 StringTools.hex = function(n,digits) {
 	var s = "";
-	var hexChars = "0123456789ABCDEF";
 	while(true) {
-		s = hexChars.charAt(n & 15) + s;
+		s = "0123456789ABCDEF".charAt(n & 15) + s;
 		n >>>= 4;
-		if(!(n > 0)) break;
+		if(!(n > 0)) {
+			break;
+		}
 	}
-	if(digits != null) while(s.length < digits) s = "0" + s;
+	if(digits != null) {
+		while(s.length < digits) s = "0" + s;
+	}
 	return s;
 };
 var ValueType = $hxClasses["ValueType"] = { __ename__ : ["ValueType"], __constructs__ : ["TNull","TInt","TFloat","TBool","TObject","TFunction","TClass","TEnum","TUnknown"] };
@@ -8765,7 +9541,9 @@ $hxClasses["Type"] = Type;
 Type.__name__ = ["Type"];
 Type.getClassName = function(c) {
 	var a = c.__name__;
-	if(a == null) return null;
+	if(a == null) {
+		return null;
+	}
 	return a.join(".");
 };
 Type.getEnumName = function(e) {
@@ -8774,12 +9552,16 @@ Type.getEnumName = function(e) {
 };
 Type.resolveClass = function(name) {
 	var cl = $hxClasses[name];
-	if(cl == null || !cl.__name__) return null;
+	if(cl == null || !cl.__name__) {
+		return null;
+	}
 	return cl;
 };
 Type.resolveEnum = function(name) {
 	var e = $hxClasses[name];
-	if(e == null || !e.__ename__) return null;
+	if(e == null || !e.__ename__) {
+		return null;
+	}
 	return e;
 };
 Type.createEmptyInstance = function(cl) {
@@ -8788,17 +9570,25 @@ Type.createEmptyInstance = function(cl) {
 };
 Type.createEnum = function(e,constr,params) {
 	var f = Reflect.field(e,constr);
-	if(f == null) throw new js__$Boot_HaxeError("No such constructor " + constr);
+	if(f == null) {
+		throw new js__$Boot_HaxeError("No such constructor " + constr);
+	}
 	if(Reflect.isFunction(f)) {
-		if(params == null) throw new js__$Boot_HaxeError("Constructor " + constr + " need parameters");
+		if(params == null) {
+			throw new js__$Boot_HaxeError("Constructor " + constr + " need parameters");
+		}
 		return f.apply(e,params);
 	}
-	if(params != null && params.length != 0) throw new js__$Boot_HaxeError("Constructor " + constr + " does not need parameters");
+	if(params != null && params.length != 0) {
+		throw new js__$Boot_HaxeError("Constructor " + constr + " does not need parameters");
+	}
 	return f;
 };
 Type.createEnumIndex = function(e,index,params) {
 	var c = e.__constructs__[index];
-	if(c == null) throw new js__$Boot_HaxeError(index + " is not a valid enum constructor index");
+	if(c == null) {
+		throw new js__$Boot_HaxeError(index + " is not a valid enum constructor index");
+	}
 	return Type.createEnum(e,c,params);
 };
 Type["typeof"] = function(v) {
@@ -8806,21 +9596,31 @@ Type["typeof"] = function(v) {
 	switch(_g) {
 	case "boolean":
 		return ValueType.TBool;
-	case "string":
-		return ValueType.TClass(String);
+	case "function":
+		if(v.__name__ || v.__ename__) {
+			return ValueType.TObject;
+		}
+		return ValueType.TFunction;
 	case "number":
-		if(Math.ceil(v) == v % 2147483648.0) return ValueType.TInt;
+		if(Math.ceil(v) == v % 2147483648.0) {
+			return ValueType.TInt;
+		}
 		return ValueType.TFloat;
 	case "object":
-		if(v == null) return ValueType.TNull;
+		if(v == null) {
+			return ValueType.TNull;
+		}
 		var e = v.__enum__;
-		if(e != null) return ValueType.TEnum(e);
+		if(e != null) {
+			return ValueType.TEnum(e);
+		}
 		var c = js_Boot.getClass(v);
-		if(c != null) return ValueType.TClass(c);
+		if(c != null) {
+			return ValueType.TClass(c);
+		}
 		return ValueType.TObject;
-	case "function":
-		if(v.__name__ || v.__ename__) return ValueType.TObject;
-		return ValueType.TFunction;
+	case "string":
+		return ValueType.TClass(String);
 	case "undefined":
 		return ValueType.TNull;
 	default:
@@ -8828,17 +9628,25 @@ Type["typeof"] = function(v) {
 	}
 };
 Type.enumEq = function(a,b) {
-	if(a == b) return true;
+	if(a == b) {
+		return true;
+	}
 	try {
-		if(a[0] != b[0]) return false;
+		if(a[0] != b[0]) {
+			return false;
+		}
 		var _g1 = 2;
 		var _g = a.length;
 		while(_g1 < _g) {
 			var i = _g1++;
-			if(!Type.enumEq(a[i],b[i])) return false;
+			if(!Type.enumEq(a[i],b[i])) {
+				return false;
+			}
 		}
 		var e = a.__enum__;
-		if(e != b.__enum__ || e == null) return false;
+		if(e != b.__enum__ || e == null) {
+			return false;
+		}
 	} catch( e1 ) {
 		return false;
 	}
@@ -8916,9 +9724,8 @@ haxe_Serializer.prototype = {
 		return this.buf.b;
 	}
 	,serializeString: function(s) {
-		var x;
 		var _this = this.shash;
-		if(__map_reserved[s] != null) x = _this.getReserved(s); else x = _this.h[s];
+		var x = __map_reserved[s] != null?_this.getReserved(s):_this.h[s];
 		if(x != null) {
 			this.buf.b += "R";
 			this.buf.b += x == null?"null":"" + x;
@@ -8926,7 +9733,11 @@ haxe_Serializer.prototype = {
 		}
 		var _this1 = this.shash;
 		var value = this.scount++;
-		if(__map_reserved[s] != null) _this1.setReserved(s,value); else _this1.h[s] = value;
+		if(__map_reserved[s] != null) {
+			_this1.setReserved(s,value);
+		} else {
+			_this1.h[s] = value;
+		}
 		this.buf.b += "y";
 		s = encodeURIComponent(s);
 		this.buf.b += Std.string(s.length);
@@ -8977,159 +9788,17 @@ haxe_Serializer.prototype = {
 			break;
 		case 2:
 			var v2 = v;
-			if(isNaN(v2)) this.buf.b += "k"; else if(!isFinite(v2)) this.buf.b += v2 < 0?"m":"p"; else {
+			if(isNaN(v2)) {
+				this.buf.b += "k";
+			} else if(!isFinite(v2)) {
+				this.buf.b += v2 < 0?"m":"p";
+			} else {
 				this.buf.b += "d";
 				this.buf.b += v2 == null?"null":"" + v2;
 			}
 			break;
 		case 3:
 			this.buf.b += v?"t":"f";
-			break;
-		case 6:
-			var c = _g[2];
-			if(c == String) {
-				this.serializeString(v);
-				return;
-			}
-			if(this.useCache && this.serializeRef(v)) return;
-			switch(c) {
-			case Array:
-				var ucount = 0;
-				this.buf.b += "a";
-				var l = v.length;
-				var _g2 = 0;
-				var _g1 = l;
-				while(_g2 < _g1) {
-					var i = _g2++;
-					if(v[i] == null) ++ucount; else {
-						if(ucount > 0) {
-							if(ucount == 1) this.buf.b += "n"; else {
-								this.buf.b += "u";
-								this.buf.b += ucount == null?"null":"" + ucount;
-							}
-							ucount = 0;
-						}
-						this.serialize(v[i]);
-					}
-				}
-				if(ucount > 0) {
-					if(ucount == 1) this.buf.b += "n"; else {
-						this.buf.b += "u";
-						this.buf.b += ucount == null?"null":"" + ucount;
-					}
-				}
-				this.buf.b += "h";
-				break;
-			case List:
-				this.buf.b += "l";
-				var v3 = v;
-				var _g1_head = v3.h;
-				while(_g1_head != null) {
-					var val = _g1_head.item;
-					_g1_head = _g1_head.next;
-					var i3 = val;
-					this.serialize(i3);
-				}
-				this.buf.b += "h";
-				break;
-			case Date:
-				var d = v;
-				this.buf.b += "v";
-				this.buf.b += Std.string(d.getTime());
-				break;
-			case haxe_ds_StringMap:
-				this.buf.b += "b";
-				var v4 = v;
-				var tmp = v4.keys();
-				while(tmp.hasNext()) {
-					var k = tmp.next();
-					this.serializeString(k);
-					this.serialize(__map_reserved[k] != null?v4.getReserved(k):v4.h[k]);
-				}
-				this.buf.b += "h";
-				break;
-			case haxe_ds_IntMap:
-				this.buf.b += "q";
-				var v5 = v;
-				var tmp5 = v5.keys();
-				while(tmp5.hasNext()) {
-					var k5 = tmp5.next();
-					this.buf.b += ":";
-					this.buf.b += k5 == null?"null":"" + k5;
-					this.serialize(v5.h[k5]);
-				}
-				this.buf.b += "h";
-				break;
-			case haxe_ds_ObjectMap:
-				this.buf.b += "M";
-				var v6 = v;
-				var tmp6 = v6.keys();
-				while(tmp6.hasNext()) {
-					var k6 = tmp6.next();
-					var id = Reflect.field(k6,"__id__");
-					Reflect.deleteField(k6,"__id__");
-					this.serialize(k6);
-					k6.__id__ = id;
-					this.serialize(v6.h[k6.__id__]);
-				}
-				this.buf.b += "h";
-				break;
-			case haxe_io_Bytes:
-				var v7 = v;
-				this.buf.b += "s";
-				this.buf.b += Std.string(Math.ceil(v7.length * 8 / 6));
-				this.buf.b += ":";
-				var i7 = 0;
-				var max = v7.length - 2;
-				var b64 = haxe_Serializer.BASE64_CODES;
-				if(b64 == null) {
-					var length = haxe_Serializer.BASE64.length;
-					var this7 = new Array(length);
-					b64 = this7;
-					var _g27 = 0;
-					var _g17 = haxe_Serializer.BASE64.length;
-					while(_g27 < _g17) {
-						var i8 = _g27++;
-						b64[i8] = HxOverrides.cca(haxe_Serializer.BASE64,i8);
-					}
-					haxe_Serializer.BASE64_CODES = b64;
-				}
-				while(i7 < max) {
-					var b1 = v7.b[i7++];
-					var b2 = v7.b[i7++];
-					var b3 = v7.b[i7++];
-					this.buf.b += String.fromCharCode(b64[b1 >> 2]);
-					this.buf.b += String.fromCharCode(b64[(b1 << 4 | b2 >> 4) & 63]);
-					this.buf.b += String.fromCharCode(b64[(b2 << 2 | b3 >> 6) & 63]);
-					this.buf.b += String.fromCharCode(b64[b3 & 63]);
-				}
-				if(i7 == max) {
-					var b18 = v7.b[i7++];
-					var b28 = v7.b[i7++];
-					this.buf.b += String.fromCharCode(b64[b18 >> 2]);
-					this.buf.b += String.fromCharCode(b64[(b18 << 4 | b28 >> 4) & 63]);
-					this.buf.b += String.fromCharCode(b64[b28 << 2 & 63]);
-				} else if(i7 == max + 1) {
-					var b19 = v7.b[i7++];
-					this.buf.b += String.fromCharCode(b64[b19 >> 2]);
-					this.buf.b += String.fromCharCode(b64[b19 << 4 & 63]);
-				}
-				break;
-			default:
-				if(this.useCache) this.cache.pop();
-				if(v.hxSerialize != null) {
-					this.buf.b += "C";
-					this.serializeString(Type.getClassName(c));
-					if(this.useCache) this.cache.push(v);
-					v.hxSerialize(this);
-					this.buf.b += "g";
-				} else {
-					this.buf.b += "c";
-					this.serializeString(Type.getClassName(c));
-					if(this.useCache) this.cache.push(v);
-					this.serializeFields(v);
-				}
-			}
 			break;
 		case 4:
 			if(js_Boot.__instanceof(v,Class)) {
@@ -9140,36 +9809,198 @@ haxe_Serializer.prototype = {
 				this.buf.b += "B";
 				this.serializeString(Type.getEnumName(v));
 			} else {
-				if(this.useCache && this.serializeRef(v)) return;
+				if(this.useCache && this.serializeRef(v)) {
+					return;
+				}
 				this.buf.b += "o";
 				this.serializeFields(v);
 			}
 			break;
+		case 5:
+			throw new js__$Boot_HaxeError("Cannot serialize function");
+			break;
+		case 6:
+			var c = _g[2];
+			if(c == String) {
+				this.serializeString(v);
+				return;
+			}
+			if(this.useCache && this.serializeRef(v)) {
+				return;
+			}
+			switch(c) {
+			case Array:
+				var ucount = 0;
+				this.buf.b += "a";
+				var l = v.length;
+				var _g1 = 0;
+				var _g2 = l;
+				while(_g1 < _g2) {
+					var i = _g1++;
+					if(v[i] == null) {
+						++ucount;
+					} else {
+						if(ucount > 0) {
+							if(ucount == 1) {
+								this.buf.b += "n";
+							} else {
+								this.buf.b += "u";
+								this.buf.b += ucount == null?"null":"" + ucount;
+							}
+							ucount = 0;
+						}
+						this.serialize(v[i]);
+					}
+				}
+				if(ucount > 0) {
+					if(ucount == 1) {
+						this.buf.b += "n";
+					} else {
+						this.buf.b += "u";
+						this.buf.b += ucount == null?"null":"" + ucount;
+					}
+				}
+				this.buf.b += "h";
+				break;
+			case Date:
+				var d = v;
+				this.buf.b += "v";
+				this.buf.b += Std.string(d.getTime());
+				break;
+			case List:
+				this.buf.b += "l";
+				var v3 = v;
+				var _g_head = v3.h;
+				while(_g_head != null) {
+					var val = _g_head.item;
+					_g_head = _g_head.next;
+					this.serialize(val);
+				}
+				this.buf.b += "h";
+				break;
+			case haxe_ds_IntMap:
+				this.buf.b += "q";
+				var v4 = v;
+				var tmp = v4.keys();
+				while(tmp.hasNext()) {
+					var k = tmp.next();
+					this.buf.b += ":";
+					this.buf.b += k == null?"null":"" + k;
+					this.serialize(v4.h[k]);
+				}
+				this.buf.b += "h";
+				break;
+			case haxe_ds_ObjectMap:
+				this.buf.b += "M";
+				var v5 = v;
+				var tmp1 = v5.keys();
+				while(tmp1.hasNext()) {
+					var k1 = tmp1.next();
+					var id = Reflect.field(k1,"__id__");
+					Reflect.deleteField(k1,"__id__");
+					this.serialize(k1);
+					k1.__id__ = id;
+					this.serialize(v5.h[k1.__id__]);
+				}
+				this.buf.b += "h";
+				break;
+			case haxe_ds_StringMap:
+				this.buf.b += "b";
+				var v6 = v;
+				var tmp2 = v6.keys();
+				while(tmp2.hasNext()) {
+					var k2 = tmp2.next();
+					this.serializeString(k2);
+					this.serialize(__map_reserved[k2] != null?v6.getReserved(k2):v6.h[k2]);
+				}
+				this.buf.b += "h";
+				break;
+			case haxe_io_Bytes:
+				var v7 = v;
+				this.buf.b += "s";
+				this.buf.b += Std.string(Math.ceil(v7.length * 8 / 6));
+				this.buf.b += ":";
+				var i1 = 0;
+				var max = v7.length - 2;
+				var b64 = haxe_Serializer.BASE64_CODES;
+				if(b64 == null) {
+					var length = haxe_Serializer.BASE64.length;
+					b64 = new Array(length);
+					var _g11 = 0;
+					var _g3 = haxe_Serializer.BASE64.length;
+					while(_g11 < _g3) {
+						var i2 = _g11++;
+						b64[i2] = HxOverrides.cca(haxe_Serializer.BASE64,i2);
+					}
+					haxe_Serializer.BASE64_CODES = b64;
+				}
+				while(i1 < max) {
+					var b1 = v7.b[i1++];
+					var b2 = v7.b[i1++];
+					var b3 = v7.b[i1++];
+					this.buf.b += String.fromCharCode(b64[b1 >> 2]);
+					this.buf.b += String.fromCharCode(b64[(b1 << 4 | b2 >> 4) & 63]);
+					this.buf.b += String.fromCharCode(b64[(b2 << 2 | b3 >> 6) & 63]);
+					this.buf.b += String.fromCharCode(b64[b3 & 63]);
+				}
+				if(i1 == max) {
+					var b11 = v7.b[i1++];
+					var b21 = v7.b[i1++];
+					this.buf.b += String.fromCharCode(b64[b11 >> 2]);
+					this.buf.b += String.fromCharCode(b64[(b11 << 4 | b21 >> 4) & 63]);
+					this.buf.b += String.fromCharCode(b64[b21 << 2 & 63]);
+				} else if(i1 == max + 1) {
+					var b12 = v7.b[i1++];
+					this.buf.b += String.fromCharCode(b64[b12 >> 2]);
+					this.buf.b += String.fromCharCode(b64[b12 << 4 & 63]);
+				}
+				break;
+			default:
+				if(this.useCache) {
+					this.cache.pop();
+				}
+				if(v.hxSerialize != null) {
+					this.buf.b += "C";
+					this.serializeString(Type.getClassName(c));
+					if(this.useCache) {
+						this.cache.push(v);
+					}
+					v.hxSerialize(this);
+					this.buf.b += "g";
+				} else {
+					this.buf.b += "c";
+					this.serializeString(Type.getClassName(c));
+					if(this.useCache) {
+						this.cache.push(v);
+					}
+					this.serializeFields(v);
+				}
+			}
+			break;
 		case 7:
-			var e = _g[2];
 			if(this.useCache) {
-				if(this.serializeRef(v)) return;
+				if(this.serializeRef(v)) {
+					return;
+				}
 				this.cache.pop();
 			}
 			this.buf.b += Std.string(this.useEnumIndex?"j":"w");
-			this.serializeString(Type.getEnumName(e));
+			this.serializeString(Type.getEnumName(_g[2]));
 			if(this.useEnumIndex) {
 				this.buf.b += ":";
 				this.buf.b += Std.string(v[1]);
-			} else this.serializeString(v[0]);
-			this.buf.b += ":";
-			var l9 = v.length;
-			this.buf.b += Std.string(l9 - 2);
-			var _g29 = 2;
-			var _g19 = l9;
-			while(_g29 < _g19) {
-				var i9 = _g29++;
-				this.serialize(v[i9]);
+			} else {
+				this.serializeString(v[0]);
 			}
-			if(this.useCache) this.cache.push(v);
-			break;
-		case 5:
-			throw new js__$Boot_HaxeError("Cannot serialize function");
+			this.buf.b += ":";
+			var l1 = v.length;
+			this.buf.b += Std.string(l1 - 2);
+			var _g12 = 2;
+			var _g4 = l1;
+			while(_g12 < _g4) this.serialize(v[_g12++]);
+			if(this.useCache) {
+				this.cache.push(v);
+			}
 			break;
 		default:
 			throw new js__$Boot_HaxeError("Cannot serialize " + Std.string(v));
@@ -9186,8 +10017,7 @@ cdb_SchemaSerializer.__super__ = haxe_Serializer;
 cdb_SchemaSerializer.prototype = $extend(haxe_Serializer.prototype,{
 	serializeRef: function(v) {
 		if(js_Boot.__instanceof(v,cdb__$BinSerializer_Schema)) {
-			var s = v;
-			this.serializeString(s.name);
+			this.serializeString(v.name);
 			return true;
 		}
 		return haxe_Serializer.prototype.serializeRef.call(this,v);
@@ -9231,13 +10061,11 @@ cdb_BinSerializer.init = function() {
 			var s = haxe_Unserializer.run(Reflect.field(metas,m)[0]);
 			s.tag = 0;
 			cdb_BinSerializer.schemas.h[s.id] = s;
-			var _g2 = s.kind;
-			switch(_g2[1]) {
-			case 0:
+			if(s.kind[1] == 0) {
 				s.enumValue = Type.resolveEnum(s.name);
-				if(s.enumValue == null) throw new js__$Boot_HaxeError("Missing enum " + s.name);
-				break;
-			default:
+				if(s.enumValue == null) {
+					throw new js__$Boot_HaxeError("Missing enum " + s.name);
+				}
 			}
 		}
 		cdb_BinSerializer.inst = new cdb_BinSerializer();
@@ -9280,7 +10108,9 @@ cdb_BinSerializer.checkSchemasData = function(b) {
 		while(tmp.hasNext()) {
 			var s = tmp.next();
 			if(s.name == name) {
-				if(s.hash != hash) out.push(s);
+				if(s.hash != hash) {
+					out.push(s);
+				}
 				break;
 			}
 		}
@@ -9295,14 +10125,10 @@ cdb_BinSerializer.getSchemasData = function() {
 		var s = tmp.next();
 		b.b.push(s.name.length);
 		var src = haxe_io_Bytes.ofString(s.name);
-		var b1 = b.b;
 		var b2 = src.b;
 		var _g1 = 0;
 		var _g = src.length;
-		while(_g1 < _g) {
-			var i = _g1++;
-			b.b.push(b2[i]);
-		}
+		while(_g1 < _g) b.b.push(b2[_g1++]);
 		b.b.push(s.hash & 255);
 		b.b.push(s.hash >> 8 & 255);
 		b.b.push(s.hash >> 16 & 255);
@@ -9318,7 +10144,9 @@ cdb_BinSerializer.prototype = {
 		o[n] = v;
 	}
 	,serializeInt: function(v) {
-		if(v >= 0 && v < 64) this.out.b.push(v); else if(v >= 0 && v < 16384) {
+		if(v >= 0 && v < 64) {
+			this.out.b.push(v);
+		} else if(v >= 0 && v < 16384) {
 			this.out.b.push(v & 63 | 64);
 			this.out.b.push(v >> 6);
 		} else if(v >= 0 && v < 4194304) {
@@ -9335,18 +10163,8 @@ cdb_BinSerializer.prototype = {
 	}
 	,serializeData: function(d,v) {
 		switch(d[1]) {
-		case 6:
-			var d1 = d[2];
-			if(v == null) this.out.b.push(0); else {
-				this.out.b.push(1);
-				this.serializeData(d1,v);
-			}
-			break;
 		case 0:
 			this.serializeInt(v);
-			break;
-		case 3:
-			this.out.addInt64(haxe_io_FPHelper.doubleToI64(v));
 			break;
 		case 1:
 			this.out.b.push(v?1:0);
@@ -9356,73 +10174,55 @@ cdb_BinSerializer.prototype = {
 			this.serializeInt(s.length);
 			var _this = this.out;
 			var src = haxe_io_Bytes.ofString(s);
-			var b1 = _this.b;
 			var b2 = src.b;
 			var _g1 = 0;
 			var _g = src.length;
-			while(_g1 < _g) {
-				var i = _g1++;
-				_this.b.push(b2[i]);
+			while(_g1 < _g) _this.b.push(b2[_g1++]);
+			break;
+		case 3:
+			this.out.addInt64(haxe_io_FPHelper.doubleToI64(v));
+			break;
+		case 4:
+			var b = v;
+			this.serializeInt(b.length);
+			var _this1 = this.out;
+			var b21 = b.b;
+			var _g11 = 0;
+			var _g2 = b.length;
+			while(_g11 < _g2) _this1.b.push(b21[_g11++]);
+			break;
+		case 5:
+			var str = haxe_Serializer.run(v);
+			this.serializeInt(str.length);
+			var _this2 = this.out;
+			var src1 = haxe_io_Bytes.ofString(str);
+			var b22 = src1.b;
+			var _g12 = 0;
+			var _g3 = src1.length;
+			while(_g12 < _g3) _this2.b.push(b22[_g12++]);
+			break;
+		case 6:
+			var d1 = d[2];
+			if(v == null) {
+				this.out.b.push(0);
+			} else {
+				this.out.b.push(1);
+				this.serializeData(d1,v);
 			}
 			break;
 		case 7:
 			var d2 = d[2];
 			var a = v;
 			this.serializeInt(a.length);
-			var _g2 = 0;
-			while(_g2 < a.length) {
-				var v2 = a[_g2];
-				++_g2;
-				this.serializeData(d2,v2);
+			var _g4 = 0;
+			while(_g4 < a.length) {
+				var v1 = a[_g4];
+				++_g4;
+				this.serializeData(d2,v1);
 			}
 			break;
 		case 8:
-			var sid = d[2];
-			this.serializeSchema(cdb_BinSerializer.schemas.h[sid],v);
-			break;
-		case 11:
-			var d3 = d[2];
-			var m = v;
-			var tmp = m.keys();
-			while(tmp.hasNext()) {
-				var k = tmp.next();
-				this.serializeInt(k.length);
-				var _this3 = this.out;
-				var src3 = haxe_io_Bytes.ofString(k);
-				var b13 = _this3.b;
-				var b23 = src3.b;
-				var _g13 = 0;
-				var _g3 = src3.length;
-				while(_g13 < _g3) {
-					var i3 = _g13++;
-					_this3.b.push(b23[i3]);
-				}
-				this.serializeData(d3,__map_reserved[k] != null?m.getReserved(k):m.h[k]);
-			}
-			this.out.b.push(255);
-			break;
-		case 10:
-			var d4 = d[2];
-			var m4 = v;
-			var tmp4 = m4.keys();
-			while(tmp4.hasNext()) {
-				var k4 = tmp4.next();
-				this.serializeInt(k4);
-				this.serializeData(d4,m4.h[k4]);
-			}
-			this.out.b.push(255);
-			break;
-		case 12:
-			var d5 = d[3];
-			var s5 = d[2];
-			var m5 = v;
-			var tmp5 = m5.keys();
-			while(tmp5.hasNext()) {
-				var k5 = tmp5.next();
-				this.serializeSchema(s5,k5);
-				this.serializeData(d5,m5.get(k5));
-			}
-			this.out.b.push(255);
+			this.serializeSchema(cdb_BinSerializer.schemas.h[d[2]],v);
 			break;
 		case 9:
 			var fields = d[2];
@@ -9433,32 +10233,45 @@ cdb_BinSerializer.prototype = {
 				this.serializeData(f.d,v[f.n]);
 			}
 			break;
-		case 5:
-			var str = haxe_Serializer.run(v);
-			this.serializeInt(str.length);
-			var _this5 = this.out;
-			var src5 = haxe_io_Bytes.ofString(str);
-			var b15 = _this5.b;
-			var b25 = src5.b;
-			var _g15 = 0;
-			var _g6 = src5.length;
-			while(_g15 < _g6) {
-				var i6 = _g15++;
-				_this5.b.push(b25[i6]);
+		case 10:
+			var d3 = d[2];
+			var m = v;
+			var tmp = m.keys();
+			while(tmp.hasNext()) {
+				var k = tmp.next();
+				this.serializeInt(k);
+				this.serializeData(d3,m.h[k]);
 			}
+			this.out.b.push(255);
 			break;
-		case 4:
-			var b = v;
-			this.serializeInt(b.length);
-			var _this6 = this.out;
-			var b16 = _this6.b;
-			var b26 = b.b;
-			var _g16 = 0;
-			var _g7 = b.length;
-			while(_g16 < _g7) {
-				var i7 = _g16++;
-				_this6.b.push(b26[i7]);
+		case 11:
+			var d4 = d[2];
+			var m1 = v;
+			var tmp1 = m1.keys();
+			while(tmp1.hasNext()) {
+				var k1 = tmp1.next();
+				this.serializeInt(k1.length);
+				var _this3 = this.out;
+				var src2 = haxe_io_Bytes.ofString(k1);
+				var b23 = src2.b;
+				var _g13 = 0;
+				var _g6 = src2.length;
+				while(_g13 < _g6) _this3.b.push(b23[_g13++]);
+				this.serializeData(d4,__map_reserved[k1] != null?m1.getReserved(k1):m1.h[k1]);
 			}
+			this.out.b.push(255);
+			break;
+		case 12:
+			var d5 = d[3];
+			var s1 = d[2];
+			var m2 = v;
+			var tmp2 = m2.keys();
+			while(tmp2.hasNext()) {
+				var k2 = tmp2.next();
+				this.serializeSchema(s1,k2);
+				this.serializeData(d5,m2.get(k2));
+			}
+			this.out.b.push(255);
 			break;
 		}
 	}
@@ -9473,40 +10286,42 @@ cdb_BinSerializer.prototype = {
 		var _g = s.kind;
 		switch(_g[1]) {
 		case 0:
-			var constructs = _g[2];
 			var id = v[1];
 			this.out.b.push(id);
-			var c = constructs[id];
-			if(c == null) return;
+			var c = _g[2][id];
+			if(c == null) {
+				return;
+			}
 			var p = v.slice(2);
-			var _g2 = 0;
-			var _g1 = c.length;
-			while(_g2 < _g1) {
-				var i = _g2++;
+			var _g1 = 0;
+			var _g2 = c.length;
+			while(_g1 < _g2) {
+				var i = _g1++;
 				this.serializeData(c[i],p[i]);
 			}
 			break;
 		case 1:
 			var fields = _g[2];
-			var _g11 = 0;
-			while(_g11 < fields.length) {
-				var f = fields[_g11];
-				++_g11;
+			var _g3 = 0;
+			while(_g3 < fields.length) {
+				var f = fields[_g3];
+				++_g3;
 				this.serializeData(f.d,v[f.n]);
 			}
 			break;
 		case 2:
-			var choices = _g[2];
 			if(v == null) {
 				this.out.b.push(255);
 				cdb_BinSerializer.gadtTip = -1;
 				return;
 			}
 			var t = cdb_BinSerializer.gadtTip;
-			if(t == -1) throw new js__$Boot_HaxeError("Missing GADT Tip");
+			if(t == -1) {
+				throw new js__$Boot_HaxeError("Missing GADT Tip");
+			}
 			cdb_BinSerializer.gadtTip = -1;
 			this.out.b.push(t);
-			this.serializeData(choices[t],v);
+			this.serializeData(_g[2][t],v);
 			break;
 		}
 	}
@@ -9515,30 +10330,28 @@ cdb_BinSerializer.prototype = {
 	}
 	,readInt: function() {
 		var b = this.bytes.b[this.position++];
-		if(b < 64) return b;
-		if(b < 128) return b & 63 | this.bytes.b[this.position++] << 6;
-		if(b < 192) {
-			var b21 = this.bytes.b[this.position++];
-			var b31 = this.bytes.b[this.position++];
-			return b & 63 | b21 << 6 | b31 << 14;
+		if(b < 64) {
+			return b;
 		}
-		var b1 = this.bytes.b[this.position++];
-		var b2 = this.bytes.b[this.position++];
-		var b3 = this.bytes.b[this.position++];
-		var b4 = this.bytes.b[this.position++];
-		return b1 | b2 << 8 | b3 << 16 | b4 << 24;
+		if(b < 128) {
+			return b & 63 | this.bytes.b[this.position++] << 6;
+		}
+		if(b < 192) {
+			return b & 63 | this.bytes.b[this.position++] << 6 | this.bytes.b[this.position++] << 14;
+		}
+		return this.bytes.b[this.position++] | this.bytes.b[this.position++] << 8 | this.bytes.b[this.position++] << 16 | this.bytes.b[this.position++] << 24;
 	}
 	,unserializeData: function(d) {
 		switch(d[1]) {
 		case 0:
 			return this.readInt();
 		case 1:
-			if(this.bytes.b[this.position++] != 0) return true; else return false;
+			if(this.bytes.b[this.position++] != 0) {
+				return true;
+			} else {
+				return false;
+			}
 			break;
-		case 6:
-			var d1 = d[2];
-			if(this.bytes.b[this.position++] == 0) return null;
-			return this.unserializeData(d1);
 		case 2:
 			var len = this.readInt();
 			var str = this.bytes.getString(this.position,len);
@@ -9548,46 +10361,48 @@ cdb_BinSerializer.prototype = {
 			var f = this.bytes.getDouble(this.position);
 			this.position += 8;
 			return f;
-		case 5:
-			var len1 = this.readInt();
-			var str1 = this.bytes.getString(this.position,len1);
-			this.position += len1;
-			return haxe_Unserializer.run(str1);
 		case 4:
-			var len2 = this.readInt();
-			var b = this.bytes.sub(this.position,len2);
-			this.position += len2;
+			var len1 = this.readInt();
+			var b = this.bytes.sub(this.position,len1);
+			this.position += len1;
 			return b;
+		case 5:
+			var len2 = this.readInt();
+			var str1 = this.bytes.getString(this.position,len2);
+			this.position += len2;
+			return haxe_Unserializer.run(str1);
+		case 6:
+			var d1 = d[2];
+			if(this.bytes.b[this.position++] == 0) {
+				return null;
+			}
+			return this.unserializeData(d1);
 		case 7:
 			var d2 = d[2];
 			var len3 = this.readInt();
 			var _g = [];
 			var _g2 = 0;
-			var _g1 = len3;
-			while(_g2 < _g1) {
-				var i = _g2++;
+			while(_g2 < len3) {
+				++_g2;
 				_g.push(this.unserializeData(d2));
 			}
 			return _g;
+		case 8:
+			return this.unserializeSchema(cdb_BinSerializer.schemas.h[d[2]]);
 		case 9:
 			var fields = d[2];
 			var o = { };
-			var _g3 = 0;
-			while(_g3 < fields.length) {
-				var f3 = fields[_g3];
-				++_g3;
-				o[f3.n] = this.unserializeData(f3.d);
+			var _g1 = 0;
+			while(_g1 < fields.length) {
+				var f1 = fields[_g1];
+				++_g1;
+				o[f1.n] = this.unserializeData(f1.d);
 			}
 			return o;
-		case 8:
-			var sid = d[2];
-			return this.unserializeSchema(cdb_BinSerializer.schemas.h[sid]);
 		case 10:
 			var d3 = d[2];
 			var m = new haxe_ds_IntMap();
-			while(true) {
-				var i3 = this.bytes.b[this.position++];
-				if(i3 == 255) break;
+			while(this.bytes.b[this.position++] != 255) {
 				this.position--;
 				var key = this.readInt();
 				var value = this.unserializeData(d3);
@@ -9596,30 +10411,29 @@ cdb_BinSerializer.prototype = {
 			return m;
 		case 11:
 			var d4 = d[2];
-			var m4 = new haxe_ds_StringMap();
-			while(true) {
-				var i4 = this.bytes.b[this.position++];
-				if(i4 == 255) break;
+			var m1 = new haxe_ds_StringMap();
+			while(this.bytes.b[this.position++] != 255) {
 				this.position--;
 				var len4 = this.readInt();
-				var key4 = this.bytes.getString(this.position,len4);
+				var key1 = this.bytes.getString(this.position,len4);
 				this.position += len4;
-				var value4 = this.unserializeData(d4);
-				if(__map_reserved[key4] != null) m4.setReserved(key4,value4); else m4.h[key4] = value4;
+				var value1 = this.unserializeData(d4);
+				if(__map_reserved[key1] != null) {
+					m1.setReserved(key1,value1);
+				} else {
+					m1.h[key1] = value1;
+				}
 			}
-			return m4;
+			return m1;
 		case 12:
 			var d5 = d[3];
 			var s = d[2];
-			var m5 = new haxe_ds_EnumValueMap();
-			while(true) {
-				var i5 = this.bytes.b[this.position++];
-				if(i5 == 255) break;
+			var m2 = new haxe_ds_EnumValueMap();
+			while(this.bytes.b[this.position++] != 255) {
 				this.position--;
-				var key5 = this.unserializeSchema(s);
-				m5.set(key5,this.unserializeData(d5));
+				m2.set(this.unserializeSchema(s),this.unserializeData(d5));
 			}
-			return m5;
+			return m2;
 		}
 	}
 	,unserializeSchema: function(s) {
@@ -9628,7 +10442,9 @@ cdb_BinSerializer.prototype = {
 			h |= this.bytes.b[this.position++] << 8;
 			h |= this.bytes.b[this.position++] << 16;
 			h |= this.bytes.b[this.position++] << 24;
-			if(h != s.hash) throw new js__$Boot_HaxeError(new cdb_SchemaError(s));
+			if(h != s.hash) {
+				throw new js__$Boot_HaxeError(new cdb_SchemaError(s));
+			}
 			s.tag = this.tag;
 		}
 		var _g = s.kind;
@@ -9637,31 +10453,33 @@ cdb_BinSerializer.prototype = {
 			var constructs = _g[2];
 			var id = this.bytes.b[this.position++];
 			var c = constructs[id];
-			if(c == null) return Type.createEnumIndex(s.enumValue,id);
+			if(c == null) {
+				return Type.createEnumIndex(s.enumValue,id);
+			}
 			var _g1 = [];
-			var _g2 = 0;
-			while(_g2 < c.length) {
-				var d = c[_g2];
-				++_g2;
+			var _g11 = 0;
+			while(_g11 < c.length) {
+				var d = c[_g11];
+				++_g11;
 				_g1.push(this.unserializeData(d));
 			}
-			var args = _g1;
-			return Type.createEnumIndex(s.enumValue,id,args);
-		case 2:
-			var choices = _g[2];
-			var c1 = choices[this.bytes.b[this.position++]];
-			if(c1 == null) return null;
-			return this.unserializeData(c1);
+			return Type.createEnumIndex(s.enumValue,id,_g1);
 		case 1:
 			var fields = _g[2];
 			var o = { };
-			var _g11 = 0;
-			while(_g11 < fields.length) {
-				var f = fields[_g11];
-				++_g11;
+			var _g2 = 0;
+			while(_g2 < fields.length) {
+				var f = fields[_g2];
+				++_g2;
 				o[f.n] = this.unserializeData(f.d);
 			}
 			return o;
+		case 2:
+			var c1 = _g[2][this.bytes.b[this.position++]];
+			if(c1 == null) {
+				return null;
+			}
+			return this.unserializeData(c1);
 		}
 	}
 	,__class__: cdb_BinSerializer
@@ -9715,8 +10533,7 @@ var cdb__$Data_TileMode_$Impl_$ = {};
 $hxClasses["cdb._Data.TileMode_Impl_"] = cdb__$Data_TileMode_$Impl_$;
 cdb__$Data_TileMode_$Impl_$.__name__ = ["cdb","_Data","TileMode_Impl_"];
 cdb__$Data_TileMode_$Impl_$._new = function(s) {
-	var this1 = s;
-	return this1;
+	return s;
 };
 cdb__$Data_TileMode_$Impl_$.ofString = function(s) {
 	return cdb__$Data_TileMode_$Impl_$._new(s);
@@ -9729,9 +10546,10 @@ var cdb_Lz4Reader = function() {
 $hxClasses["cdb.Lz4Reader"] = cdb_Lz4Reader;
 cdb_Lz4Reader.__name__ = ["cdb","Lz4Reader"];
 cdb_Lz4Reader.uncompress = function(src,srcPos,srcLen,out,outPos) {
-	var outSave = outPos;
 	var srcEnd = srcPos + srcLen;
-	if(srcLen == 0) return [srcPos,outPos,0];
+	if(srcLen == 0) {
+		return [srcPos,outPos,0];
+	}
 	var outLen = out.length;
 	while(true) {
 		var start = srcPos;
@@ -9743,10 +10561,14 @@ cdb_Lz4Reader.uncompress = function(src,srcPos,srcLen,out,outPos) {
 			while(true) {
 				b = src.b[srcPos++];
 				litLen += b;
-				if(!(b == 255)) break;
+				if(!(b == 255)) {
+					break;
+				}
 			}
 		}
-		if(outPos + litLen > outLen) return [start,outPos,litLen + matchLen];
+		if(outPos + litLen > outLen) {
+			return [start,outPos,litLen + matchLen];
+		}
 		switch(litLen) {
 		case 0:
 			break;
@@ -9773,7 +10595,9 @@ cdb_Lz4Reader.uncompress = function(src,srcPos,srcLen,out,outPos) {
 			outPos += litLen;
 			srcPos += litLen;
 		}
-		if(srcPos >= srcEnd) break;
+		if(srcPos >= srcEnd) {
+			break;
+		}
 		var offset = src.b[srcPos++];
 		offset |= src.b[srcPos++] << 8;
 		if(matchLen == 15) {
@@ -9781,11 +10605,15 @@ cdb_Lz4Reader.uncompress = function(src,srcPos,srcLen,out,outPos) {
 			while(true) {
 				b1 = src.b[srcPos++];
 				matchLen += b1;
-				if(!(b1 == 255)) break;
+				if(!(b1 == 255)) {
+					break;
+				}
 			}
 		}
 		matchLen += 4;
-		if(outPos + matchLen > outLen) return [start,outPos - litLen,litLen + matchLen];
+		if(outPos + matchLen > outLen) {
+			return [start,outPos - litLen,litLen + matchLen];
+		}
 		if(matchLen >= 64 && matchLen <= offset) {
 			out.blit(outPos,out,outPos - offset,matchLen);
 			outPos += matchLen;
@@ -9797,13 +10625,19 @@ cdb_Lz4Reader.uncompress = function(src,srcPos,srcLen,out,outPos) {
 			}
 		}
 	}
-	if(srcPos != srcEnd) throw new js__$Boot_HaxeError("Read too much data " + (srcPos - srcLen));
+	if(srcPos != srcEnd) {
+		throw new js__$Boot_HaxeError("Read too much data " + (srcPos - srcLen));
+	}
 	return [srcPos,outPos,0];
 };
 cdb_Lz4Reader.decodeString = function(s) {
-	if(s == "") return new haxe_io_Bytes(new ArrayBuffer(0));
+	if(s == "") {
+		return new haxe_io_Bytes(new ArrayBuffer(0));
+	}
 	var k = haxe_crypto_Base64.decode(s);
-	if(k.b[0] != 4 || k.b[1] != 34 || k.b[2] != 77 || k.b[3] != 24) return k;
+	if(k.b[0] != 4 || k.b[1] != 34 || k.b[2] != 77 || k.b[3] != 24) {
+		return k;
+	}
 	var tmp = new Uint8Array(k.length);
 	var _g1 = 0;
 	var _g = k.length;
@@ -9816,8 +10650,8 @@ cdb_Lz4Reader.decodeString = function(s) {
 	var _g11 = 0;
 	var _g2 = k1.length;
 	while(_g11 < _g2) {
-		var i2 = _g11++;
-		b.b[i2] = k1[i2] & 255;
+		var i1 = _g11++;
+		b.b[i1] = k1[i1] & 255;
 	}
 	return b;
 };
@@ -9835,8 +10669,8 @@ cdb_Lz4Reader.encodeBytes = function(b,compress) {
 		var _g11 = 0;
 		var _g2 = tmp.length;
 		while(_g11 < _g2) {
-			var i2 = _g11++;
-			b.b[i2] = tmp[i2] & 255;
+			var i1 = _g11++;
+			b.b[i1] = tmp[i1] & 255;
 		}
 	}
 	return haxe_crypto_Base64.encode(b);
@@ -9849,7 +10683,9 @@ cdb_Lz4Reader.prototype = {
 		var size = out.length;
 		while(true) {
 			size = size * 3 >> 1;
-			if(!(size < pos + len)) break;
+			if(!(size < pos + len)) {
+				break;
+			}
 		}
 		var out2 = new haxe_io_Bytes(new ArrayBuffer(size));
 		out2.blit(0,out,0,pos);
@@ -9858,35 +10694,52 @@ cdb_Lz4Reader.prototype = {
 	,read: function(bytes) {
 		this.bytes = bytes;
 		this.pos = 0;
-		if(this.bytes.b[this.pos++] != 4 || this.bytes.b[this.pos++] != 34 || this.bytes.b[this.pos++] != 77 || this.bytes.b[this.pos++] != 24) throw new js__$Boot_HaxeError("Invalid header");
+		if(this.bytes.b[this.pos++] != 4 || this.bytes.b[this.pos++] != 34 || this.bytes.b[this.pos++] != 77 || this.bytes.b[this.pos++] != 24) {
+			throw new js__$Boot_HaxeError("Invalid header");
+		}
 		var flags = this.bytes.b[this.pos++];
-		if(flags >> 6 != 1) throw new js__$Boot_HaxeError("Invalid version " + (flags >> 6));
+		if(flags >> 6 != 1) {
+			throw new js__$Boot_HaxeError("Invalid version " + (flags >> 6));
+		}
 		var blockChecksum = (flags & 16) != 0;
 		var streamSize = (flags & 8) != 0;
-		var streamChecksum = (flags & 4) != 0;
-		if((flags & 2) != 0) throw new js__$Boot_HaxeError("assert");
+		if((flags & 2) != 0) {
+			throw new js__$Boot_HaxeError("assert");
+		}
 		var presetDict = (flags & 1) != 0;
 		var bd = this.bytes.b[this.pos++];
-		if((bd & 128) != 0) throw new js__$Boot_HaxeError("assert");
-		var maxBlockSize = [0,0,0,0,65536,262144,1048576,4194304][bd >> 4 & 7];
-		if(maxBlockSize == 0) throw new js__$Boot_HaxeError("assert");
-		if((bd & 15) != 0) throw new js__$Boot_HaxeError("assert");
-		if(streamSize) this.pos += 8;
-		if(presetDict) throw new js__$Boot_HaxeError("Preset dictionary not supported");
-		var headerChk = this.bytes.b[this.pos++];
+		if((bd & 128) != 0) {
+			throw new js__$Boot_HaxeError("assert");
+		}
+		if([0,0,0,0,65536,262144,1048576,4194304][bd >> 4 & 7] == 0) {
+			throw new js__$Boot_HaxeError("assert");
+		}
+		if((bd & 15) != 0) {
+			throw new js__$Boot_HaxeError("assert");
+		}
+		if(streamSize) {
+			this.pos += 8;
+		}
+		if(presetDict) {
+			throw new js__$Boot_HaxeError("Preset dictionary not supported");
+		}
+		this.pos++;
 		var out = new haxe_io_Bytes(new ArrayBuffer(128));
 		var outPos = 0;
 		while(true) {
 			var size = this.bytes.b[this.pos++] | this.bytes.b[this.pos++] << 8 | this.bytes.b[this.pos++] << 16 | this.bytes.b[this.pos++] << 24;
-			if(size == 0) break;
+			if(size == 0) {
+				break;
+			}
 			if((size & -16) == 407710288) {
-				var dataSize = this.bytes.b[this.pos++] | this.bytes.b[this.pos++] << 8 | this.bytes.b[this.pos++] << 16 | this.bytes.b[this.pos++] << 24;
-				this.pos += dataSize;
+				this.pos += this.bytes.b[this.pos++] | this.bytes.b[this.pos++] << 8 | this.bytes.b[this.pos++] << 16 | this.bytes.b[this.pos++] << 24;
 				continue;
 			}
 			if((size & -2147483648) != 0) {
 				size &= 2147483647;
-				if(outPos + out.length < size) out = this.grow(out,outPos,size);
+				if(outPos + out.length < size) {
+					out = this.grow(out,outPos,size);
+				}
 				out.blit(outPos,bytes,this.pos,size);
 				outPos += size;
 				this.pos += size;
@@ -9897,10 +10750,14 @@ cdb_Lz4Reader.prototype = {
 					this.pos = r[0];
 					outPos = r[1];
 					var req = r[2];
-					if(req > 0) out = this.grow(out,outPos,req);
+					if(req > 0) {
+						out = this.grow(out,outPos,req);
+					}
 				}
 			}
-			if(blockChecksum) this.pos += 4;
+			if(blockChecksum) {
+				this.pos += 4;
+			}
 		}
 		return out.sub(0,outPos);
 	}
@@ -9911,63 +10768,67 @@ $hxClasses["cdb.Parser"] = cdb_Parser;
 cdb_Parser.__name__ = ["cdb","Parser"];
 cdb_Parser.saveType = function(t) {
 	switch(t[1]) {
+	case 5:
+		return t[1] + ":" + t[2].join(",");
 	case 6:case 9:case 12:
 		return t[1] + ":" + Std.string(t.slice(2)[0]);
-	case 5:
-		var values = t[2];
-		return t[1] + ":" + values.join(",");
 	case 10:
-		var values1 = t[2];
-		return t[1] + ":" + values1.join(",");
-	case 0:case 1:case 8:case 3:case 7:case 4:case 2:case 11:case 13:case 14:case 15:case 16:case 17:
+		return t[1] + ":" + t[2].join(",");
+	case 0:case 1:case 2:case 3:case 4:case 7:case 8:case 11:case 13:case 14:case 15:case 16:case 17:
 		return Std.string(t[1]);
 	}
 };
 cdb_Parser.getType = function(str) {
 	var _g = Std.parseInt(str);
-	if(_g != null) switch(_g) {
-	case 0:
-		return cdb_ColumnType.TId;
-	case 1:
-		return cdb_ColumnType.TString;
-	case 2:
-		return cdb_ColumnType.TBool;
-	case 3:
-		return cdb_ColumnType.TInt;
-	case 4:
-		return cdb_ColumnType.TFloat;
-	case 5:
-		return cdb_ColumnType.TEnum(HxOverrides.substr(str,str.indexOf(":") + 1,null).split(","));
-	case 6:
-		return cdb_ColumnType.TRef(HxOverrides.substr(str,str.indexOf(":") + 1,null));
-	case 7:
-		return cdb_ColumnType.TImage;
-	case 8:
-		return cdb_ColumnType.TList;
-	case 9:
-		return cdb_ColumnType.TCustom(HxOverrides.substr(str,str.indexOf(":") + 1,null));
-	case 10:
-		return cdb_ColumnType.TFlags(HxOverrides.substr(str,str.indexOf(":") + 1,null).split(","));
-	case 11:
-		return cdb_ColumnType.TColor;
-	case 12:
-		return cdb_ColumnType.TLayer(HxOverrides.substr(str,str.indexOf(":") + 1,null));
-	case 13:
-		return cdb_ColumnType.TFile;
-	case 14:
-		return cdb_ColumnType.TTilePos;
-	case 15:
-		return cdb_ColumnType.TTileLayer;
-	case 16:
-		return cdb_ColumnType.TDynamic;
-	case 17:
-		return cdb_ColumnType.TProperties;
-	default:
+	if(_g == null) {
 		throw new js__$Boot_HaxeError("Unknown type " + str);
-	} else throw new js__$Boot_HaxeError("Unknown type " + str);
+	} else {
+		switch(_g) {
+		case 0:
+			return cdb_ColumnType.TId;
+		case 1:
+			return cdb_ColumnType.TString;
+		case 2:
+			return cdb_ColumnType.TBool;
+		case 3:
+			return cdb_ColumnType.TInt;
+		case 4:
+			return cdb_ColumnType.TFloat;
+		case 5:
+			return cdb_ColumnType.TEnum(HxOverrides.substr(str,str.indexOf(":") + 1,null).split(","));
+		case 6:
+			return cdb_ColumnType.TRef(HxOverrides.substr(str,str.indexOf(":") + 1,null));
+		case 7:
+			return cdb_ColumnType.TImage;
+		case 8:
+			return cdb_ColumnType.TList;
+		case 9:
+			return cdb_ColumnType.TCustom(HxOverrides.substr(str,str.indexOf(":") + 1,null));
+		case 10:
+			return cdb_ColumnType.TFlags(HxOverrides.substr(str,str.indexOf(":") + 1,null).split(","));
+		case 11:
+			return cdb_ColumnType.TColor;
+		case 12:
+			return cdb_ColumnType.TLayer(HxOverrides.substr(str,str.indexOf(":") + 1,null));
+		case 13:
+			return cdb_ColumnType.TFile;
+		case 14:
+			return cdb_ColumnType.TTilePos;
+		case 15:
+			return cdb_ColumnType.TTileLayer;
+		case 16:
+			return cdb_ColumnType.TDynamic;
+		case 17:
+			return cdb_ColumnType.TProperties;
+		default:
+			throw new js__$Boot_HaxeError("Unknown type " + str);
+		}
+	}
 };
 cdb_Parser.parse = function(content) {
-	if(content == null) throw new js__$Boot_HaxeError("CDB content is null");
+	if(content == null) {
+		throw new js__$Boot_HaxeError("CDB content is null");
+	}
 	var data = JSON.parse(content);
 	var _g = 0;
 	var _g1 = data.sheets;
@@ -9984,20 +10845,20 @@ cdb_Parser.parse = function(content) {
 		}
 	}
 	var _g4 = 0;
-	var _g14 = data.customTypes;
-	while(_g4 < _g14.length) {
-		var t = _g14[_g4];
+	var _g11 = data.customTypes;
+	while(_g4 < _g11.length) {
+		var t = _g11[_g4];
 		++_g4;
-		var _g24 = 0;
-		var _g34 = t.cases;
-		while(_g24 < _g34.length) {
-			var c4 = _g34[_g24];
-			++_g24;
-			var _g44 = 0;
-			var _g5 = c4.args;
-			while(_g44 < _g5.length) {
-				var a = _g5[_g44];
-				++_g44;
+		var _g21 = 0;
+		var _g31 = t.cases;
+		while(_g21 < _g31.length) {
+			var c1 = _g31[_g21];
+			++_g21;
+			var _g41 = 0;
+			var _g5 = c1.args;
+			while(_g41 < _g5.length) {
+				var a = _g5[_g41];
+				++_g41;
 				a.type = cdb_Parser.getType(a.typeStr);
 				a.typeStr = null;
 			}
@@ -10018,61 +10879,65 @@ cdb_Parser.save = function(data) {
 			var c = _g3[_g2];
 			++_g2;
 			save.push(c.type);
-			if(c.typeStr == null) c.typeStr = cdb_Parser.saveType(c.type);
+			if(c.typeStr == null) {
+				c.typeStr = cdb_Parser.saveType(c.type);
+			}
 			Reflect.deleteField(c,"type");
 		}
 	}
 	var _g4 = 0;
-	var _g14 = data.customTypes;
-	while(_g4 < _g14.length) {
-		var t = _g14[_g4];
+	var _g11 = data.customTypes;
+	while(_g4 < _g11.length) {
+		var t = _g11[_g4];
 		++_g4;
-		var _g24 = 0;
-		var _g34 = t.cases;
-		while(_g24 < _g34.length) {
-			var c4 = _g34[_g24];
-			++_g24;
-			var _g44 = 0;
-			var _g5 = c4.args;
-			while(_g44 < _g5.length) {
-				var a = _g5[_g44];
-				++_g44;
+		var _g21 = 0;
+		var _g31 = t.cases;
+		while(_g21 < _g31.length) {
+			var c1 = _g31[_g21];
+			++_g21;
+			var _g41 = 0;
+			var _g5 = c1.args;
+			while(_g41 < _g5.length) {
+				var a = _g5[_g41];
+				++_g41;
 				save.push(a.type);
-				if(a.typeStr == null) a.typeStr = cdb_Parser.saveType(a.type);
+				if(a.typeStr == null) {
+					a.typeStr = cdb_Parser.saveType(a.type);
+				}
 				Reflect.deleteField(a,"type");
 			}
 		}
 	}
 	var str = JSON.stringify(data,null,"\t");
 	var _g6 = 0;
-	var _g16 = data.sheets;
-	while(_g6 < _g16.length) {
-		var s6 = _g16[_g6];
+	var _g12 = data.sheets;
+	while(_g6 < _g12.length) {
+		var s1 = _g12[_g6];
 		++_g6;
-		var _g26 = 0;
-		var _g36 = s6.columns;
-		while(_g26 < _g36.length) {
-			var c6 = _g36[_g26];
-			++_g26;
-			c6.type = save.shift();
+		var _g22 = 0;
+		var _g32 = s1.columns;
+		while(_g22 < _g32.length) {
+			var c2 = _g32[_g22];
+			++_g22;
+			c2.type = save.shift();
 		}
 	}
 	var _g7 = 0;
-	var _g17 = data.customTypes;
-	while(_g7 < _g17.length) {
-		var t7 = _g17[_g7];
+	var _g13 = data.customTypes;
+	while(_g7 < _g13.length) {
+		var t1 = _g13[_g7];
 		++_g7;
-		var _g27 = 0;
-		var _g37 = t7.cases;
-		while(_g27 < _g37.length) {
-			var c7 = _g37[_g27];
-			++_g27;
-			var _g47 = 0;
-			var _g57 = c7.args;
-			while(_g47 < _g57.length) {
-				var a7 = _g57[_g47];
-				++_g47;
-				a7.type = save.shift();
+		var _g23 = 0;
+		var _g33 = t1.cases;
+		while(_g23 < _g33.length) {
+			var c3 = _g33[_g23];
+			++_g23;
+			var _g42 = 0;
+			var _g51 = c3.args;
+			while(_g42 < _g51.length) {
+				var a1 = _g51[_g42];
+				++_g42;
+				a1.type = save.shift();
 			}
 		}
 	}
@@ -10084,233 +10949,281 @@ var cdb_TileBuilder = function(t,stride,total) {
 	this.groundMap = [];
 	var _g1 = 0;
 	var _g = total + 1;
-	while(_g1 < _g) {
-		var i = _g1++;
-		this.groundMap[i] = 0;
-	}
+	while(_g1 < _g) this.groundMap[_g1++] = 0;
 	this.groundMap[0] = 0;
 	this.borders = [];
 	var tmp = new haxe_ds_StringMap();
 	var _g2 = 0;
-	var _g12 = t.sets;
-	while(_g2 < _g12.length) {
-		var s = _g12[_g2];
+	var _g11 = t.sets;
+	while(_g2 < _g11.length) {
+		var s = _g11[_g2];
 		++_g2;
-		var _g22 = s.t;
-		switch(_g22) {
-		case "ground":
+		if(s.t == "ground") {
 			if(s.opts.name != "" && s.opts.name != null) {
-				var tmp2;
 				var key = s.opts.name;
-				if(__map_reserved[key] != null) tmp2 = tmp.getReserved(key); else tmp2 = tmp.h[key];
-				var g = tmp2;
+				var g = __map_reserved[key] != null?tmp.getReserved(key):tmp.h[key];
 				if(g == null) {
 					g = [];
-					var key2 = s.opts.name;
-					if(__map_reserved[key2] != null) tmp.setReserved(key2,g); else tmp.h[key2] = g;
+					var key1 = s.opts.name;
+					if(__map_reserved[key1] != null) {
+						tmp.setReserved(key1,g);
+					} else {
+						tmp.h[key1] = g;
+					}
 				}
 				g.push(s);
 			}
-			break;
-		default:
 		}
 	}
 	var allGrounds = Lambda.array(tmp);
 	allGrounds.sort(function(g1,g2) {
-		var tmp3;
 		var v = g1[0].opts.priority;
-		if(v == null) tmp3 = 0; else tmp3 = v;
-		var tmp4;
-		var v4 = g2[0].opts.priority;
-		if(v4 == null) tmp4 = 0; else tmp4 = v4;
-		var dp = tmp3 - tmp4;
-		if(dp != 0) return dp; else return Reflect.compare(g1[0].opts.name,g2[0].opts.name);
+		var tmp1 = v == null?0:v;
+		var v1 = g2[0].opts.priority;
+		var dp = tmp1 - (v1 == null?0:v1);
+		if(dp != 0) {
+			return dp;
+		} else {
+			return Reflect.compare(g1[0].opts.name,g2[0].opts.name);
+		}
 	});
 	var gid = 0;
-	var _g4 = 0;
-	while(_g4 < allGrounds.length) {
-		var g4 = allGrounds[_g4];
-		++_g4;
-		var p;
-		var v5 = g4[0].opts.priority;
-		if(v5 == null) p = 0; else p = v5;
-		if(p > 0) ++gid;
+	var _g3 = 0;
+	while(_g3 < allGrounds.length) {
+		var g3 = allGrounds[_g3];
+		++_g3;
+		var v2 = g3[0].opts.priority;
+		if((v2 == null?0:v2) > 0) {
+			++gid;
+		}
 		var fill = [];
-		var _g15 = 0;
-		while(_g15 < g4.length) {
-			var s5 = g4[_g15];
-			++_g15;
-			var _g3 = 0;
-			var _g25 = s5.w;
-			while(_g3 < _g25) {
-				var dx = _g3++;
+		var _g12 = 0;
+		while(_g12 < g3.length) {
+			var s1 = g3[_g12];
+			++_g12;
+			var _g31 = 0;
+			var _g21 = s1.w;
+			while(_g31 < _g21) {
+				var dx = _g31++;
 				var _g5 = 0;
-				var _g45 = s5.h;
-				while(_g5 < _g45) {
-					var dy = _g5++;
-					var tid = s5.x + dx + (s5.y + dy) * stride;
+				var _g4 = s1.h;
+				while(_g5 < _g4) {
+					var tid = s1.x + dx + (s1.y + _g5++) * stride;
 					fill.push(tid);
 					this.groundMap[tid + 1] = gid;
 				}
 			}
 		}
 		var _this = this.groundIds;
-		var key5 = g4[0].opts.name;
+		var key2 = g3[0].opts.name;
 		var value = { id : gid, fill : fill};
-		if(__map_reserved[key5] != null) _this.setReserved(key5,value); else _this.h[key5] = value;
+		if(__map_reserved[key2] != null) {
+			_this.setReserved(key2,value);
+		} else {
+			_this.h[key2] = value;
+		}
 	}
 	var maxGid = gid + 1;
 	var allBorders = [];
 	var _g6 = 0;
-	var _g16 = t.sets;
-	while(_g6 < _g16.length) {
-		var s6 = _g16[_g6];
+	var _g13 = t.sets;
+	while(_g6 < _g13.length) {
+		var s2 = _g13[_g6];
 		++_g6;
-		if(s6.t == "border") allBorders.push(s6);
+		if(s2.t == "border") {
+			allBorders.push(s2);
+		}
 	}
 	allBorders.sort(function(b1,b2) {
 		var k = 0;
-		if(b1.opts.borderIn != null) ++k;
-		if(b1.opts.borderOut != null) k += 2;
-		if(b1.opts.borderMode != null) k += 4;
-		if(b1.opts.borderIn != null && b1.opts.borderOut != null && b1.opts.borderIn != "lower" && b1.opts.borderOut != "upper") k += 8;
-		var tmp6 = k;
-		var k6 = 0;
-		if(b2.opts.borderIn != null) ++k6;
-		if(b2.opts.borderOut != null) k6 += 2;
-		if(b2.opts.borderMode != null) k6 += 4;
-		if(b2.opts.borderIn != null && b2.opts.borderOut != null && b2.opts.borderIn != "lower" && b2.opts.borderOut != "upper") k6 += 8;
-		return tmp6 - k6;
+		if(b1.opts.borderIn != null) {
+			k = 1;
+		}
+		if(b1.opts.borderOut != null) {
+			k += 2;
+		}
+		if(b1.opts.borderMode != null) {
+			k += 4;
+		}
+		if(b1.opts.borderIn != null && b1.opts.borderOut != null && b1.opts.borderIn != "lower" && b1.opts.borderOut != "upper") {
+			k += 8;
+		}
+		var tmp2 = k;
+		var k1 = 0;
+		if(b2.opts.borderIn != null) {
+			k1 = 1;
+		}
+		if(b2.opts.borderOut != null) {
+			k1 += 2;
+		}
+		if(b2.opts.borderMode != null) {
+			k1 += 4;
+		}
+		if(b2.opts.borderIn != null && b2.opts.borderOut != null && b2.opts.borderIn != "lower" && b2.opts.borderOut != "upper") {
+			k1 += 8;
+		}
+		return tmp2 - k1;
 	});
 	var _g7 = 0;
 	while(_g7 < allBorders.length) {
 		var b = allBorders[_g7];
 		++_g7;
-		var tmp7;
-		var _this7 = this.groundIds;
-		var key7 = b.opts.borderIn;
-		if(__map_reserved[key7] != null) tmp7 = _this7.getReserved(key7); else tmp7 = _this7.h[key7];
-		var gid7 = tmp7;
-		var tmp8;
-		var _this8 = this.groundIds;
-		var key8 = b.opts.borderOut;
-		if(__map_reserved[key8] != null) tmp8 = _this8.getReserved(key8); else tmp8 = _this8.h[key8];
-		var tid8 = tmp8;
-		if(gid7 == null && tid8 == null) continue;
+		var _this1 = this.groundIds;
+		var key3 = b.opts.borderIn;
+		var gid1 = __map_reserved[key3] != null?_this1.getReserved(key3):_this1.h[key3];
+		var _this2 = this.groundIds;
+		var key4 = b.opts.borderOut;
+		var tid1 = __map_reserved[key4] != null?_this2.getReserved(key4):_this2.h[key4];
+		if(gid1 == null && tid1 == null) {
+			continue;
+		}
 		var gids;
 		var tids;
-		if(gid7 != null) gids = [gid7.id]; else {
-			var _g18 = b.opts.borderIn;
-			if(_g18 == null) {
-				var _g28 = [];
-				var _g48 = tid8.id + 1;
-				var _g38 = maxGid;
-				while(_g48 < _g38) {
-					var g8 = _g48++;
-					_g28.push(g8);
-				}
-				gids = _g28;
-			} else switch(_g18) {
-			case "lower":
-				var _g29 = [];
-				var _g49 = 0;
-				var _g39 = tid8.id;
-				while(_g49 < _g39) {
-					var g9 = _g49++;
-					_g29.push(g9);
-				}
-				gids = _g29;
-				break;
-			default:
+		if(gid1 != null) {
+			gids = [gid1.id];
+		} else {
+			var _g14 = b.opts.borderIn;
+			if(_g14 == null) {
+				var _g15 = [];
+				var _g32 = tid1.id + 1;
+				while(_g32 < maxGid) _g15.push(_g32++);
+				gids = _g15;
+			} else if(_g14 == "lower") {
+				var _g16 = [];
+				var _g33 = 0;
+				var _g22 = tid1.id;
+				while(_g33 < _g22) _g16.push(_g33++);
+				gids = _g16;
+			} else {
 				continue;
 			}
 		}
-		if(tid8 != null) tids = [tid8.id]; else {
-			var _g19 = b.opts.borderOut;
-			if(_g19 == null) {
-				var _g210 = [];
-				var _g410 = 0;
-				var _g310 = gid7.id;
-				while(_g410 < _g310) {
-					var g10 = _g410++;
-					_g210.push(g10);
-				}
-				tids = _g210;
-			} else switch(_g19) {
-			case "upper":
-				var _g211 = [];
-				var _g411 = gid7.id + 1;
-				var _g311 = maxGid;
-				while(_g411 < _g311) {
-					var g11 = _g411++;
-					_g211.push(g11);
-				}
-				tids = _g211;
-				break;
-			default:
+		if(tid1 != null) {
+			tids = [tid1.id];
+		} else {
+			var _g17 = b.opts.borderOut;
+			if(_g17 == null) {
+				var _g18 = [];
+				var _g34 = 0;
+				var _g23 = gid1.id;
+				while(_g34 < _g23) _g18.push(_g34++);
+				tids = _g18;
+			} else if(_g17 == "upper") {
+				var _g19 = [];
+				var _g35 = gid1.id + 1;
+				while(_g35 < maxGid) _g19.push(_g35++);
+				tids = _g19;
+			} else {
 				continue;
 			}
 		}
-		var clear = gid7 != null && tid8 != null && b.opts.borderMode == null;
-		var _g111 = b.opts.borderMode;
-		if(_g111 != null) switch(_g111) {
-		case "corner":
-			var tmp11 = gids;
-			gids = tids;
-			tids = tmp11;
-			break;
-		default:
+		var clear = gid1 != null && tid1 != null && b.opts.borderMode == null;
+		var _g110 = b.opts.borderMode;
+		if(_g110 != null) {
+			if(_g110 == "corner") {
+				var tmp3 = gids;
+				gids = tids;
+				tids = tmp3;
+			}
 		}
-		var _g112 = 0;
-		while(_g112 < gids.length) {
-			var g12 = gids[_g112];
-			++_g112;
-			var _g212 = 0;
-			while(_g212 < tids.length) {
-				var t12 = tids[_g212];
-				++_g212;
-				var bt = this.borders[g12 + t12 * 256];
+		var _g24 = 0;
+		while(_g24 < gids.length) {
+			var g4 = gids[_g24];
+			++_g24;
+			var _g36 = 0;
+			while(_g36 < tids.length) {
+				var t1 = tids[_g36];
+				++_g36;
+				var bt = this.borders[g4 + t1 * 256];
 				if(bt == null || clear) {
-					var _g312 = [];
-					var _g412 = 0;
-					while(_g412 < 20) {
-						var i12 = _g412++;
-						_g312.push([]);
+					var _g41 = [];
+					var _g51 = 0;
+					while(_g51 < 20) {
+						++_g51;
+						_g41.push([]);
 					}
-					bt = _g312;
-					if(gid7 != null) bt[8] = gid7.fill;
-					this.borders[g12 + t12 * 256] = bt;
+					bt = _g41;
+					if(gid1 != null) {
+						_g41[8] = gid1.fill;
+					}
+					this.borders[g4 + t1 * 256] = _g41;
 				}
-				var _g413 = 0;
-				var _g313 = b.w;
-				while(_g413 < _g313) {
-					var dx13 = _g413++;
-					var _g613 = 0;
-					var _g513 = b.h;
-					while(_g613 < _g513) {
-						var dy13 = _g613++;
-						var k13;
-						var _g713 = b.opts.borderMode;
-						if(_g713 == null) {
-							if(dy13 == 0) {
-								if(dx13 == 0) k13 = 0; else if(dx13 == b.w - 1) k13 = 2; else k13 = 1;
-							} else if(dy13 == b.h - 1) {
-								if(dx13 == 0) k13 = 5; else if(dx13 == b.w - 1) k13 = 7; else k13 = 6;
-							} else if(dx13 == 0) k13 = 3; else if(dx13 == b.w - 1) k13 = 4; else continue;
-						} else switch(_g713) {
-						case "corner":
-							if(dx13 == 0 && dy13 == 0) k13 = 9; else if(dx13 == b.w - 1 && dy13 == 0) k13 = 10; else if(dx13 == 0 && dy13 == b.h - 1) k13 = 11; else if(dx13 == b.w - 1 && dy13 == b.h - 1) k13 = 12; else continue;
-							break;
-						case "u":
-							if(dx13 == 1 && dy13 == 0) k13 = 13; else if(dx13 == 0 && dy13 == 1) k13 = 14; else if(dx13 == 2 && dy13 == 1) k13 = 15; else if(dx13 == 1 && dy13 == 2) k13 = 16; else continue;
-							break;
-						case "bottom":
-							if(dx13 == 0) k13 = 17; else if(dx13 == b.w - 1) k13 = 19; else k13 = 18;
-							break;
-						default:
-							continue;
+				var _g52 = 0;
+				var _g42 = b.w;
+				while(_g52 < _g42) {
+					var dx1 = _g52++;
+					var _g71 = 0;
+					var _g61 = b.h;
+					while(_g71 < _g61) {
+						var dy = _g71++;
+						var k2;
+						var _g8 = b.opts.borderMode;
+						if(_g8 == null) {
+							if(dy == 0) {
+								if(dx1 == 0) {
+									k2 = 0;
+								} else if(dx1 == b.w - 1) {
+									k2 = 2;
+								} else {
+									k2 = 1;
+								}
+							} else if(dy == b.h - 1) {
+								if(dx1 == 0) {
+									k2 = 5;
+								} else if(dx1 == b.w - 1) {
+									k2 = 7;
+								} else {
+									k2 = 6;
+								}
+							} else if(dx1 == 0) {
+								k2 = 3;
+							} else if(dx1 == b.w - 1) {
+								k2 = 4;
+							} else {
+								continue;
+							}
+						} else {
+							switch(_g8) {
+							case "bottom":
+								if(dx1 == 0) {
+									k2 = 17;
+								} else if(dx1 == b.w - 1) {
+									k2 = 19;
+								} else {
+									k2 = 18;
+								}
+								break;
+							case "corner":
+								if(dx1 == 0 && dy == 0) {
+									k2 = 9;
+								} else if(dx1 == b.w - 1 && dy == 0) {
+									k2 = 10;
+								} else if(dx1 == 0 && dy == b.h - 1) {
+									k2 = 11;
+								} else if(dx1 == b.w - 1 && dy == b.h - 1) {
+									k2 = 12;
+								} else {
+									continue;
+								}
+								break;
+							case "u":
+								if(dx1 == 1 && dy == 0) {
+									k2 = 13;
+								} else if(dx1 == 0 && dy == 1) {
+									k2 = 14;
+								} else if(dx1 == 2 && dy == 1) {
+									k2 = 15;
+								} else if(dx1 == 1 && dy == 2) {
+									k2 = 16;
+								} else {
+									continue;
+								}
+								break;
+							default:
+								continue;
+							}
 						}
-						bt[k13].push(b.x + dx13 + (b.y + dy13) * stride);
+						bt[k2].push(b.x + dx1 + (b.y + dy) * stride);
 					}
 				}
 			}
@@ -10325,7 +11238,7 @@ cdb_TileBuilder.prototype = {
 		n = n << 15 | n >>> 17;
 		n *= 461845907;
 		var h = 5381;
-		h ^= n;
+		h = 5381 ^ n;
 		h = h << 13 | h >>> 19;
 		h = h * 5 + -430675100;
 		h ^= h >> 16;
@@ -10336,20 +11249,17 @@ cdb_TileBuilder.prototype = {
 		return h;
 	}
 	,buildGrounds: function(input,width) {
-		var _g6 = this;
+		var _gthis = this;
 		var height = input.length / width | 0;
 		var p = -1;
 		var out = [];
 		var _g1 = 0;
-		var _g = height;
-		while(_g1 < _g) {
+		while(_g1 < height) {
 			var y = _g1++;
 			var _g3 = 0;
-			var _g2 = width;
-			while(_g3 < _g2) {
+			while(_g3 < width) {
 				var x = _g3++;
-				var v = input[++p];
-				var g = this.groundMap[v];
+				var g = this.groundMap[input[++p]];
 				var gl = x == 0?g:this.groundMap[input[p - 1]];
 				var gr = x == width - 1?g:this.groundMap[input[p + 1]];
 				var gt = y == 0?g:this.groundMap[input[p - width]];
@@ -10358,241 +11268,233 @@ cdb_TileBuilder.prototype = {
 				var gtr = x == width - 1 || y == 0?g:this.groundMap[input[p + 1 - width]];
 				var gbl = x == 0 || y == height - 1?g:this.groundMap[input[p - 1 + width]];
 				var gbr = x == width - 1 || y == height - 1?g:this.groundMap[input[p + 1 + width]];
-				var max;
-				var a;
-				var a1 = gr > gl?gr:gl;
+				var a = gr > gl?gr:gl;
 				var b = gt > gb?gt:gb;
-				if(a1 > b) a = a1; else a = b;
-				var b1;
+				var a1 = a > b?a:b;
 				var a2 = gtr > gtl?gtr:gtl;
-				var b2 = gbr > gbl?gbr:gbl;
-				if(a2 > b2) b1 = a2; else b1 = b2;
-				if(a > b1) max = a; else max = b1;
-				var min;
-				var a3;
-				var a4 = gr > gl?gl:gr;
-				var b4 = gt > gb?gb:gt;
-				if(a4 > b4) a3 = b4; else a3 = a4;
-				var b5;
+				var b1 = gbr > gbl?gbr:gbl;
+				var b2 = a2 > b1?a2:b1;
+				var max = a1 > b2?a1:b2;
+				var a3 = gr > gl?gl:gr;
+				var b3 = gt > gb?gb:gt;
+				var a4 = a3 > b3?b3:a3;
 				var a5 = gtr > gtl?gtl:gtr;
-				var b6 = gbr > gbl?gbl:gbr;
-				if(a5 > b6) b5 = b6; else b5 = a5;
-				if(a3 > b5) min = b5; else min = a3;
-				var _g5 = min;
+				var b4 = gbr > gbl?gbl:gbr;
+				var b5 = a5 > b4?b4:a5;
+				var _g5 = a4 > b5?b5:a4;
 				var _g4 = max + 1;
 				while(_g5 < _g4) {
 					var t = _g5++;
 					var bb = this.borders[t + g * 256];
-					if(bb == null) continue;
+					if(bb == null) {
+						continue;
+					}
 					var bits = 0;
-					if(t == gtl) bits |= 1;
-					if(t == gt) bits |= 2;
-					if(t == gtr) bits |= 4;
-					if(t == gl) bits |= 8;
-					if(t == gr) bits |= 16;
-					if(t == gbl) bits |= 32;
-					if(t == gb) bits |= 64;
-					if(t == gbr) bits |= 128;
-					var f8 = false;
+					if(t == gtl) {
+						bits = 1;
+					}
+					if(t == gt) {
+						bits |= 2;
+					}
+					if(t == gtr) {
+						bits |= 4;
+					}
+					if(t == gl) {
+						bits |= 8;
+					}
+					if(t == gr) {
+						bits |= 16;
+					}
+					if(t == gbl) {
+						bits |= 32;
+					}
+					if(t == gb) {
+						bits |= 64;
+					}
+					if(t == gbr) {
+						bits |= 128;
+					}
 					if((bits & 26) == 26) {
-						var a8 = bb[13];
-						if(a8.length != 0) {
+						var a6 = bb[13];
+						if(a6.length != 0) {
 							bits &= -32;
 							out.push(x);
 							out.push(y);
-							out.push(a8.length == 1?a8[0]:a8[_g6.random(x + y * width) % a8.length]);
-							f8 = true;
+							out.push(a6.length == 1?a6[0]:a6[_gthis.random(x + y * width) % a6.length]);
 						}
 					}
-					var f9 = false;
 					if((bits & 74) == 74) {
-						var a9 = bb[14];
-						if(a9.length != 0) {
+						var a7 = bb[14];
+						if(a7.length != 0) {
 							bits &= -108;
 							out.push(x);
 							out.push(y);
-							out.push(a9.length == 1?a9[0]:a9[_g6.random(x + y * width) % a9.length]);
-							f9 = true;
+							out.push(a7.length == 1?a7[0]:a7[_gthis.random(x + y * width) % a7.length]);
 						}
 					}
-					var f10 = false;
 					if((bits & 82) == 82) {
-						var a10 = bb[15];
-						if(a10.length != 0) {
+						var a8 = bb[15];
+						if(a8.length != 0) {
 							bits &= -215;
 							out.push(x);
 							out.push(y);
-							out.push(a10.length == 1?a10[0]:a10[_g6.random(x + y * width) % a10.length]);
-							f10 = true;
+							out.push(a8.length == 1?a8[0]:a8[_gthis.random(x + y * width) % a8.length]);
 						}
 					}
-					var f11 = false;
 					if((bits & 88) == 88) {
-						var a11 = bb[16];
-						if(a11.length != 0) {
+						var a9 = bb[16];
+						if(a9.length != 0) {
 							bits &= -249;
 							out.push(x);
 							out.push(y);
-							out.push(a11.length == 1?a11[0]:a11[_g6.random(x + y * width) % a11.length]);
-							f11 = true;
+							out.push(a9.length == 1?a9[0]:a9[_gthis.random(x + y * width) % a9.length]);
 						}
 					}
-					var f12 = false;
 					if((bits & 10) == 10) {
-						var a12 = bb[9];
-						if(a12.length != 0) {
+						var a10 = bb[9];
+						if(a10.length != 0) {
 							bits &= -48;
 							out.push(x);
 							out.push(y);
-							out.push(a12.length == 1?a12[0]:a12[_g6.random(x + y * width) % a12.length]);
-							f12 = true;
+							out.push(a10.length == 1?a10[0]:a10[_gthis.random(x + y * width) % a10.length]);
 						}
 					}
-					var f13 = false;
 					if((bits & 18) == 18) {
-						var a13 = bb[10];
-						if(a13.length != 0) {
+						var a11 = bb[10];
+						if(a11.length != 0) {
 							bits &= -152;
 							out.push(x);
 							out.push(y);
-							out.push(a13.length == 1?a13[0]:a13[_g6.random(x + y * width) % a13.length]);
-							f13 = true;
+							out.push(a11.length == 1?a11[0]:a11[_gthis.random(x + y * width) % a11.length]);
 						}
 					}
-					var f14 = false;
 					if((bits & 72) == 72) {
-						var a14 = bb[11];
-						if(a14.length != 0) {
+						var a12 = bb[11];
+						if(a12.length != 0) {
 							bits &= -234;
 							out.push(x);
 							out.push(y);
-							out.push(a14.length == 1?a14[0]:a14[_g6.random(x + y * width) % a14.length]);
-							f14 = true;
+							out.push(a12.length == 1?a12[0]:a12[_gthis.random(x + y * width) % a12.length]);
 						}
 					}
-					var f15 = false;
 					if((bits & 80) == 80) {
-						var a15 = bb[12];
-						if(a15.length != 0) {
+						var a13 = bb[12];
+						if(a13.length != 0) {
 							bits &= -245;
 							out.push(x);
 							out.push(y);
-							out.push(a15.length == 1?a15[0]:a15[_g6.random(x + y * width) % a15.length]);
-							f15 = true;
+							out.push(a13.length == 1?a13[0]:a13[_gthis.random(x + y * width) % a13.length]);
 						}
 					}
 					var f = false;
 					if((bits & 2) == 2) {
-						var a16 = bb[6];
-						if(a16.length != 0) {
+						var a14 = bb[6];
+						if(a14.length != 0) {
 							bits &= -8;
 							out.push(x);
 							out.push(y);
-							out.push(a16.length == 1?a16[0]:a16[_g6.random(x + y * width) % a16.length]);
+							out.push(a14.length == 1?a14[0]:a14[_gthis.random(x + y * width) % a14.length]);
 							f = true;
 						}
 					}
 					if(f) {
-						var a17 = bb[18];
-						if(a17.length != 0) {
+						var a15 = bb[18];
+						if(a15.length != 0) {
 							out.push(x);
 							out.push(y + 1);
-							if(x > 0 && y > 0 && this.groundMap[input[p - 1 - width]] != t) out.push(a17[0]); else if(x < width - 1 && y > 0 && this.groundMap[input[p + 1 - width]] != t) out.push(a17[a17.length - 1]); else if(a17.length == 1) out.push(a17[0]); else out.push(a17[1 + this.random(x + y * width) % (a17.length - 2)]);
+							if(x > 0 && y > 0 && this.groundMap[input[p - 1 - width]] != t) {
+								out.push(a15[0]);
+							} else if(x < width - 1 && y > 0 && this.groundMap[input[p + 1 - width]] != t) {
+								out.push(a15[a15.length - 1]);
+							} else if(a15.length == 1) {
+								out.push(a15[0]);
+							} else {
+								out.push(a15[1 + this.random(x + y * width) % (a15.length - 2)]);
+							}
 						}
 					}
-					var f17 = false;
 					if((bits & 8) == 8) {
-						var a18 = bb[4];
-						if(a18.length != 0) {
+						var a16 = bb[4];
+						if(a16.length != 0) {
 							bits &= -42;
 							out.push(x);
 							out.push(y);
-							out.push(a18.length == 1?a18[0]:a18[_g6.random(x + y * width) % a18.length]);
-							f17 = true;
+							out.push(a16.length == 1?a16[0]:a16[_gthis.random(x + y * width) % a16.length]);
 						}
 					}
-					var f18 = false;
 					if((bits & 16) == 16) {
-						var a19 = bb[3];
-						if(a19.length != 0) {
+						var a17 = bb[3];
+						if(a17.length != 0) {
 							bits &= -149;
 							out.push(x);
 							out.push(y);
-							out.push(a19.length == 1?a19[0]:a19[_g6.random(x + y * width) % a19.length]);
-							f18 = true;
+							out.push(a17.length == 1?a17[0]:a17[_gthis.random(x + y * width) % a17.length]);
 						}
 					}
-					var f19 = false;
 					if((bits & 64) == 64) {
-						var a20 = bb[1];
-						if(a20.length != 0) {
+						var a18 = bb[1];
+						if(a18.length != 0) {
 							bits &= -225;
 							out.push(x);
 							out.push(y);
-							out.push(a20.length == 1?a20[0]:a20[_g6.random(x + y * width) % a20.length]);
-							f19 = true;
+							out.push(a18.length == 1?a18[0]:a18[_gthis.random(x + y * width) % a18.length]);
 						}
 					}
-					var f6 = false;
+					var f1 = false;
 					if((bits & 1) == 1) {
-						var a21 = bb[7];
-						if(a21.length != 0) {
+						var a19 = bb[7];
+						if(a19.length != 0) {
 							bits &= -2;
 							out.push(x);
 							out.push(y);
-							out.push(a21.length == 1?a21[0]:a21[_g6.random(x + y * width) % a21.length]);
-							f6 = true;
+							out.push(a19.length == 1?a19[0]:a19[_gthis.random(x + y * width) % a19.length]);
+							f1 = true;
 						}
 					}
-					if(f6) {
-						var a22 = bb[19];
-						if(a22.length != 0) {
-							var y22 = y + 1;
+					if(f1) {
+						var a20 = bb[19];
+						if(a20.length != 0) {
+							var y1 = y + 1;
 							out.push(x);
-							out.push(y22);
-							out.push(a22.length == 1?a22[0]:a22[_g6.random(x + y22 * width) % a22.length]);
+							out.push(y1);
+							out.push(a20.length == 1?a20[0]:a20[_gthis.random(x + y1 * width) % a20.length]);
 						}
 					}
-					var f7 = false;
+					var f2 = false;
 					if((bits & 4) == 4) {
-						var a23 = bb[5];
-						if(a23.length != 0) {
+						var a21 = bb[5];
+						if(a21.length != 0) {
 							bits &= -5;
 							out.push(x);
 							out.push(y);
-							out.push(a23.length == 1?a23[0]:a23[_g6.random(x + y * width) % a23.length]);
-							f7 = true;
+							out.push(a21.length == 1?a21[0]:a21[_gthis.random(x + y * width) % a21.length]);
+							f2 = true;
 						}
 					}
-					if(f7) {
-						var a24 = bb[17];
-						if(a24.length != 0) {
-							var y24 = y + 1;
+					if(f2) {
+						var a22 = bb[17];
+						if(a22.length != 0) {
+							var y2 = y + 1;
 							out.push(x);
-							out.push(y24);
-							out.push(a24.length == 1?a24[0]:a24[_g6.random(x + y24 * width) % a24.length]);
+							out.push(y2);
+							out.push(a22.length == 1?a22[0]:a22[_gthis.random(x + y2 * width) % a22.length]);
 						}
 					}
-					var f24 = false;
 					if((bits & 32) == 32) {
-						var a25 = bb[2];
-						if(a25.length != 0) {
+						var a23 = bb[2];
+						if(a23.length != 0) {
 							bits &= -33;
 							out.push(x);
 							out.push(y);
-							out.push(a25.length == 1?a25[0]:a25[_g6.random(x + y * width) % a25.length]);
-							f24 = true;
+							out.push(a23.length == 1?a23[0]:a23[_gthis.random(x + y * width) % a23.length]);
 						}
 					}
-					var f25 = false;
 					if((bits & 128) == 128) {
-						var a26 = bb[0];
-						if(a26.length != 0) {
-							bits &= -129;
+						var a24 = bb[0];
+						if(a24.length != 0) {
 							out.push(x);
 							out.push(y);
-							out.push(a26.length == 1?a26[0]:a26[_g6.random(x + y * width) % a26.length]);
-							f25 = true;
+							out.push(a24.length == 1?a24[0]:a24[_gthis.random(x + y * width) % a24.length]);
 						}
 					}
 				}
@@ -10637,8 +11539,7 @@ var cdb__$Types_ArrayRead_$Impl_$ = {};
 $hxClasses["cdb._Types.ArrayRead_Impl_"] = cdb__$Types_ArrayRead_$Impl_$;
 cdb__$Types_ArrayRead_$Impl_$.__name__ = ["cdb","_Types","ArrayRead_Impl_"];
 cdb__$Types_ArrayRead_$Impl_$._new = function(a) {
-	var this1 = a;
-	return this1;
+	return a;
 };
 cdb__$Types_ArrayRead_$Impl_$.get_length = function(this1) {
 	return this1.length;
@@ -10659,8 +11560,7 @@ var cdb__$Types_Flags_$Impl_$ = {};
 $hxClasses["cdb._Types.Flags_Impl_"] = cdb__$Types_Flags_$Impl_$;
 cdb__$Types_Flags_$Impl_$.__name__ = ["cdb","_Types","Flags_Impl_"];
 cdb__$Types_Flags_$Impl_$._new = function(x) {
-	var this1 = x;
-	return this1;
+	return x;
 };
 cdb__$Types_Flags_$Impl_$.has = function(this1,t) {
 	return (this1 & 1 << t) != 0;
@@ -10672,8 +11572,7 @@ cdb__$Types_Flags_$Impl_$.unset = function(this1,t) {
 	this1 &= ~(1 << t);
 };
 cdb__$Types_Flags_$Impl_$.iterator = function(this1) {
-	var this2 = this1;
-	return new cdb__$Types_FlagsIterator(this2);
+	return new cdb__$Types_FlagsIterator(this1);
 };
 cdb__$Types_Flags_$Impl_$.toInt = function(this1) {
 	return this1;
@@ -10682,18 +11581,14 @@ var cdb__$Types_Layer_$Impl_$ = {};
 $hxClasses["cdb._Types.Layer_Impl_"] = cdb__$Types_Layer_$Impl_$;
 cdb__$Types_Layer_$Impl_$.__name__ = ["cdb","_Types","Layer_Impl_"];
 cdb__$Types_Layer_$Impl_$._new = function(x) {
-	var this1 = x;
-	return this1;
+	return x;
 };
 cdb__$Types_Layer_$Impl_$.decode = function(this1,all) {
 	var k = cdb_Lz4Reader.decodeString(this1);
 	var _g = [];
 	var _g2 = 0;
 	var _g1 = k.length;
-	while(_g2 < _g1) {
-		var i = _g2++;
-		_g.push(all[k.b[i]]);
-	}
+	while(_g2 < _g1) _g.push(all[k.b[_g2++]]);
 	return _g;
 };
 cdb__$Types_Layer_$Impl_$.encode = function(a,compress) {
@@ -10704,15 +11599,13 @@ cdb__$Types_Layer_$Impl_$.encode = function(a,compress) {
 		var i = _g1++;
 		b.b[i] = a[i] & 255;
 	}
-	var this1 = cdb_Lz4Reader.encodeBytes(b,compress);
-	return this1;
+	return cdb_Lz4Reader.encodeBytes(b,compress);
 };
 var cdb__$Types_TileLayerData_$Impl_$ = {};
 $hxClasses["cdb._Types.TileLayerData_Impl_"] = cdb__$Types_TileLayerData_$Impl_$;
 cdb__$Types_TileLayerData_$Impl_$.__name__ = ["cdb","_Types","TileLayerData_Impl_"];
 cdb__$Types_TileLayerData_$Impl_$._new = function(v) {
-	var this1 = v;
-	return this1;
+	return v;
 };
 cdb__$Types_TileLayerData_$Impl_$.decode = function(this1) {
 	var k = cdb_Lz4Reader.decodeString(this1);
@@ -10747,13 +11640,17 @@ cdb__$Types_LevelPropsAccess_$Impl_$.getTileset = function(this1,i,name) {
 	return Reflect.field(i.sheet.props.level.tileSets,name);
 };
 cdb__$Types_LevelPropsAccess_$Impl_$.getLayer = function(this1,name) {
-	if(this1 == null || this1.layers == null) return null;
+	if(this1 == null || this1.layers == null) {
+		return null;
+	}
 	var _g = 0;
 	var _g1 = this1.layers;
 	while(_g < _g1.length) {
 		var l = _g1[_g];
 		++_g;
-		if(l.l == name) return l.p;
+		if(l.l == name) {
+			return l.p;
+		}
 	}
 	return null;
 };
@@ -10770,7 +11667,9 @@ var cdb_Index = function(data,name) {
 			break;
 		}
 	}
-	if(this.sheet == null) throw new js__$Boot_HaxeError("'" + name + "' not found in CDB data");
+	if(this.sheet == null) {
+		throw new js__$Boot_HaxeError("'" + name + "' not found in CDB data");
+	}
 };
 $hxClasses["cdb.Index"] = cdb_Index;
 cdb_Index.__name__ = ["cdb","Index"];
@@ -10783,56 +11682,56 @@ var cdb_IndexId = function(data,name) {
 	this.byIndex = [];
 	var _g = 0;
 	var _g1 = this.sheet.columns;
-	try {
-		while(_g < _g1.length) {
-			var c = _g1[_g];
-			++_g;
-			var _g2 = c.type;
-			switch(_g2[1]) {
-			case 0:
-				var cname = c.name;
-				var _g3 = 0;
-				var _g4 = this.sheet.lines;
-				while(_g3 < _g4.length) {
-					var a = _g4[_g3];
-					++_g3;
-					var id = Reflect.field(a,cname);
-					if(id != null && id != "") {
-						var _this = this.byId;
-						var value = a;
-						if(__map_reserved[id] != null) _this.setReserved(id,value); else _this.h[id] = value;
-						this.byIndex.push(a);
+	while(_g < _g1.length) {
+		var c = _g1[_g];
+		++_g;
+		if(c.type[1] == 0) {
+			var cname = c.name;
+			var _g2 = 0;
+			var _g3 = this.sheet.lines;
+			while(_g2 < _g3.length) {
+				var a = _g3[_g2];
+				++_g2;
+				var id = Reflect.field(a,cname);
+				if(id != null && id != "") {
+					var _this = this.byId;
+					var value = a;
+					if(__map_reserved[id] != null) {
+						_this.setReserved(id,value);
+					} else {
+						_this.h[id] = value;
 					}
+					this.byIndex.push(a);
 				}
-				throw "__break__";
-				break;
-			default:
 			}
+			break;
 		}
-	} catch( e ) { if( e != "__break__" ) throw e; }
+	}
 };
 $hxClasses["cdb.IndexId"] = cdb_IndexId;
 cdb_IndexId.__name__ = ["cdb","IndexId"];
 cdb_IndexId.__super__ = cdb_Index;
 cdb_IndexId.prototype = $extend(cdb_Index.prototype,{
 	get: function(k) {
-		var tmp;
 		var _this = this.byId;
 		var key = k;
-		if(__map_reserved[key] != null) tmp = _this.getReserved(key); else tmp = _this.h[key];
-		return tmp;
+		return __map_reserved[key] != null?_this.getReserved(key):_this.h[key];
 	}
 	,resolve: function(id,opt) {
-		if(id == null) return null;
-		var tmp;
+		if(id == null) {
+			return null;
+		}
 		var _this = this.byId;
-		if(__map_reserved[id] != null) tmp = _this.getReserved(id); else tmp = _this.h[id];
-		var v = tmp;
-		if(v == null && !opt) throw new js__$Boot_HaxeError("Missing " + this.name + "." + id); else return v;
+		var v = __map_reserved[id] != null?_this.getReserved(id):_this.h[id];
+		if(v == null && !opt) {
+			throw new js__$Boot_HaxeError("Missing " + this.name + "." + id);
+		} else {
+			return v;
+		}
 	}
 	,__class__: cdb_IndexId
 });
-var cdb_jq_Message = $hxClasses["cdb.jq.Message"] = { __ename__ : ["cdb","jq","Message"], __constructs__ : ["Create","AddClass","RemoveClass","Append","InsertAt","CreateText","Reset","Dock","Remove","Event","SetAttr","SetStyle","Trigger","Special","Anim","Dispose","Unbind"] };
+var cdb_jq_Message = $hxClasses["cdb.jq.Message"] = { __ename__ : ["cdb","jq","Message"], __constructs__ : ["Create","AddClass","RemoveClass","Append","InsertAt","CreateText","Reset","Remove","Event","SetAttr","SetStyle","Trigger","Special","Anim","Dispose","Unbind"] };
 cdb_jq_Message.Create = function(id,name,attr) { var $x = ["Create",0,id,name,attr]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
 cdb_jq_Message.AddClass = function(id,name) { var $x = ["AddClass",1,id,name]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
 cdb_jq_Message.RemoveClass = function(id,name) { var $x = ["RemoveClass",2,id,name]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
@@ -10840,36 +11739,19 @@ cdb_jq_Message.Append = function(id,to) { var $x = ["Append",3,id,to]; $x.__enum
 cdb_jq_Message.InsertAt = function(id,to,pos) { var $x = ["InsertAt",4,id,to,pos]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
 cdb_jq_Message.CreateText = function(id,text,pid) { var $x = ["CreateText",5,id,text,pid]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
 cdb_jq_Message.Reset = function(id) { var $x = ["Reset",6,id]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
-cdb_jq_Message.Dock = function(pid,id,dir,size) { var $x = ["Dock",7,pid,id,dir,size]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
-cdb_jq_Message.Remove = function(id) { var $x = ["Remove",8,id]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
-cdb_jq_Message.Event = function(id,name,eid) { var $x = ["Event",9,id,name,eid]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
-cdb_jq_Message.SetAttr = function(id,att,val) { var $x = ["SetAttr",10,id,att,val]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
-cdb_jq_Message.SetStyle = function(id,st,val) { var $x = ["SetStyle",11,id,st,val]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
-cdb_jq_Message.Trigger = function(id,name) { var $x = ["Trigger",12,id,name]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
-cdb_jq_Message.Special = function(id,name,args,eid) { var $x = ["Special",13,id,name,args,eid]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
-cdb_jq_Message.Anim = function(id,name,dur) { var $x = ["Anim",14,id,name,dur]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
-cdb_jq_Message.Dispose = function(id,events) { var $x = ["Dispose",15,id,events]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
-cdb_jq_Message.Unbind = function(events) { var $x = ["Unbind",16,events]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
+cdb_jq_Message.Remove = function(id) { var $x = ["Remove",7,id]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
+cdb_jq_Message.Event = function(id,name,eid) { var $x = ["Event",8,id,name,eid]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
+cdb_jq_Message.SetAttr = function(id,att,val) { var $x = ["SetAttr",9,id,att,val]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
+cdb_jq_Message.SetStyle = function(id,st,val) { var $x = ["SetStyle",10,id,st,val]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
+cdb_jq_Message.Trigger = function(id,name) { var $x = ["Trigger",11,id,name]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
+cdb_jq_Message.Special = function(id,name,args,eid) { var $x = ["Special",12,id,name,args,eid]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
+cdb_jq_Message.Anim = function(id,name,dur) { var $x = ["Anim",13,id,name,dur]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
+cdb_jq_Message.Dispose = function(id,events) { var $x = ["Dispose",14,id,events]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
+cdb_jq_Message.Unbind = function(events) { var $x = ["Unbind",15,events]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
 var cdb_jq_Answer = $hxClasses["cdb.jq.Answer"] = { __ename__ : ["cdb","jq","Answer"], __constructs__ : ["Event","SetValue","Done"] };
 cdb_jq_Answer.Event = function(eid,props) { var $x = ["Event",0,eid,props]; $x.__enum__ = cdb_jq_Answer; $x.toString = $estr; return $x; };
 cdb_jq_Answer.SetValue = function(id,value) { var $x = ["SetValue",1,id,value]; $x.__enum__ = cdb_jq_Answer; $x.toString = $estr; return $x; };
 cdb_jq_Answer.Done = function(eid) { var $x = ["Done",2,eid]; $x.__enum__ = cdb_jq_Answer; $x.toString = $estr; return $x; };
-var cdb_jq_DockDirection = $hxClasses["cdb.jq.DockDirection"] = { __ename__ : ["cdb","jq","DockDirection"], __constructs__ : ["Left","Right","Up","Down","Fill"] };
-cdb_jq_DockDirection.Left = ["Left",0];
-cdb_jq_DockDirection.Left.toString = $estr;
-cdb_jq_DockDirection.Left.__enum__ = cdb_jq_DockDirection;
-cdb_jq_DockDirection.Right = ["Right",1];
-cdb_jq_DockDirection.Right.toString = $estr;
-cdb_jq_DockDirection.Right.__enum__ = cdb_jq_DockDirection;
-cdb_jq_DockDirection.Up = ["Up",2];
-cdb_jq_DockDirection.Up.toString = $estr;
-cdb_jq_DockDirection.Up.__enum__ = cdb_jq_DockDirection;
-cdb_jq_DockDirection.Down = ["Down",3];
-cdb_jq_DockDirection.Down.toString = $estr;
-cdb_jq_DockDirection.Down.__enum__ = cdb_jq_DockDirection;
-cdb_jq_DockDirection.Fill = ["Fill",4];
-cdb_jq_DockDirection.Fill.toString = $estr;
-cdb_jq_DockDirection.Fill.__enum__ = cdb_jq_DockDirection;
 var haxe_IMap = function() { };
 $hxClasses["haxe.IMap"] = haxe_IMap;
 haxe_IMap.__name__ = ["haxe","IMap"];
@@ -10906,13 +11788,28 @@ haxe_Timer.stamp = function() {
 };
 haxe_Timer.prototype = {
 	stop: function() {
-		if(this.id == null) return;
+		if(this.id == null) {
+			return;
+		}
 		clearInterval(this.id);
 		this.id = null;
 	}
 	,run: function() {
 	}
 	,__class__: haxe_Timer
+};
+var haxe__$Unserializer_DefaultResolver = function() {
+};
+$hxClasses["haxe._Unserializer.DefaultResolver"] = haxe__$Unserializer_DefaultResolver;
+haxe__$Unserializer_DefaultResolver.__name__ = ["haxe","_Unserializer","DefaultResolver"];
+haxe__$Unserializer_DefaultResolver.prototype = {
+	resolveClass: function(name) {
+		return Type.resolveClass(name);
+	}
+	,resolveEnum: function(name) {
+		return Type.resolveEnum(name);
+	}
+	,__class__: haxe__$Unserializer_DefaultResolver
 };
 var haxe_Unserializer = function(buf) {
 	this.buf = buf;
@@ -10922,10 +11819,10 @@ var haxe_Unserializer = function(buf) {
 	this.cache = [];
 	var r = haxe_Unserializer.DEFAULT_RESOLVER;
 	if(r == null) {
-		r = Type;
+		r = new haxe__$Unserializer_DefaultResolver();
 		haxe_Unserializer.DEFAULT_RESOLVER = r;
 	}
-	this.setResolver(r);
+	this.resolver = r;
 };
 $hxClasses["haxe.Unserializer"] = haxe_Unserializer;
 haxe_Unserializer.__name__ = ["haxe","Unserializer"];
@@ -10943,92 +11840,119 @@ haxe_Unserializer.run = function(v) {
 	return new haxe_Unserializer(v).unserialize();
 };
 haxe_Unserializer.prototype = {
-	setResolver: function(r) {
-		if(r == null) this.resolver = { resolveClass : function(_) {
-			return null;
-		}, resolveEnum : function(_1) {
-			return null;
-		}}; else this.resolver = r;
-	}
-	,readDigits: function() {
+	readDigits: function() {
 		var k = 0;
 		var s = false;
 		var fpos = this.pos;
 		while(true) {
 			var c = this.buf.charCodeAt(this.pos);
-			if(c != c) break;
+			if(c != c) {
+				break;
+			}
 			if(c == 45) {
-				if(this.pos != fpos) break;
+				if(this.pos != fpos) {
+					break;
+				}
 				s = true;
 				this.pos++;
 				continue;
 			}
-			if(c < 48 || c > 57) break;
+			if(c < 48 || c > 57) {
+				break;
+			}
 			k = k * 10 + (c - 48);
 			this.pos++;
 		}
-		if(s) k *= -1;
+		if(s) {
+			k *= -1;
+		}
 		return k;
 	}
 	,readFloat: function() {
 		var p1 = this.pos;
 		while(true) {
 			var c = this.buf.charCodeAt(this.pos);
-			if(c >= 43 && c < 58 || c == 101 || c == 69) this.pos++; else break;
+			if(c >= 43 && c < 58 || c == 101 || c == 69) {
+				this.pos++;
+			} else {
+				break;
+			}
 		}
 		var x = HxOverrides.substr(this.buf,p1,this.pos - p1);
 		return parseFloat(x);
 	}
 	,unserializeObject: function(o) {
 		while(true) {
-			if(this.pos >= this.length) throw new js__$Boot_HaxeError("Invalid object");
-			if(this.buf.charCodeAt(this.pos) == 103) break;
+			if(this.pos >= this.length) {
+				throw new js__$Boot_HaxeError("Invalid object");
+			}
+			if(this.buf.charCodeAt(this.pos) == 103) {
+				break;
+			}
 			var k = this.unserialize();
-			if(typeof(k) != "string") throw new js__$Boot_HaxeError("Invalid object key");
-			var v = this.unserialize();
-			o[k] = v;
+			if(typeof(k) != "string") {
+				throw new js__$Boot_HaxeError("Invalid object key");
+			}
+			o[k] = this.unserialize();
 		}
 		this.pos++;
 	}
 	,unserializeEnum: function(edecl,tag) {
-		if(this.buf.charCodeAt(this.pos++) != 58) throw new js__$Boot_HaxeError("Invalid enum format");
+		if(this.buf.charCodeAt(this.pos++) != 58) {
+			throw new js__$Boot_HaxeError("Invalid enum format");
+		}
 		var nargs = this.readDigits();
-		if(nargs == 0) return Type.createEnum(edecl,tag);
+		if(nargs == 0) {
+			return Type.createEnum(edecl,tag);
+		}
 		var args = [];
 		while(nargs-- > 0) args.push(this.unserialize());
 		return Type.createEnum(edecl,tag,args);
 	}
 	,unserialize: function() {
-		var _g = this.buf.charCodeAt(this.pos++);
-		switch(_g) {
-		case 110:
-			return null;
-		case 116:
-			return true;
-		case 102:
-			return false;
-		case 122:
-			return 0;
-		case 105:
-			return this.readDigits();
-		case 100:
-			return this.readFloat();
-		case 121:
-			var len = this.readDigits();
-			if(this.buf.charCodeAt(this.pos++) != 58 || this.length - this.pos < len) throw new js__$Boot_HaxeError("Invalid string length");
-			var s = HxOverrides.substr(this.buf,this.pos,len);
-			this.pos += len;
-			s = decodeURIComponent(s.split("+").join(" "));
-			this.scache.push(s);
-			return s;
-		case 107:
-			return NaN;
-		case 109:
-			return -Infinity;
-		case 112:
-			return Infinity;
-		case 97:
+		switch(this.buf.charCodeAt(this.pos++)) {
+		case 65:
+			var name = this.unserialize();
+			var cl = this.resolver.resolveClass(name);
+			if(cl == null) {
+				throw new js__$Boot_HaxeError("Class not found " + name);
+			}
+			return cl;
+		case 66:
+			var name1 = this.unserialize();
+			var e = this.resolver.resolveEnum(name1);
+			if(e == null) {
+				throw new js__$Boot_HaxeError("Enum not found " + name1);
+			}
+			return e;
+		case 67:
+			var name2 = this.unserialize();
+			var cl1 = this.resolver.resolveClass(name2);
+			if(cl1 == null) {
+				throw new js__$Boot_HaxeError("Class not found " + name2);
+			}
+			var o = Type.createEmptyInstance(cl1);
+			this.cache.push(o);
+			o.hxUnserialize(this);
+			if(this.buf.charCodeAt(this.pos++) != 103) {
+				throw new js__$Boot_HaxeError("Invalid custom data");
+			}
+			return o;
+		case 77:
+			var h = new haxe_ds_ObjectMap();
+			this.cache.push(h);
 			var buf = this.buf;
+			while(this.buf.charCodeAt(this.pos) != 104) h.set(this.unserialize(),this.unserialize());
+			this.pos++;
+			return h;
+		case 82:
+			var n = this.readDigits();
+			if(n < 0 || n >= this.scache.length) {
+				throw new js__$Boot_HaxeError("Invalid string reference");
+			}
+			return this.scache[n];
+		case 97:
+			var buf1 = this.buf;
 			var a = [];
 			this.cache.push(a);
 			while(true) {
@@ -11039,53 +11963,61 @@ haxe_Unserializer.prototype = {
 				}
 				if(c == 117) {
 					this.pos++;
-					var n = this.readDigits();
-					a[a.length + n - 1] = null;
-				} else a.push(this.unserialize());
+					var n1 = this.readDigits();
+					a[a.length + n1 - 1] = null;
+				} else {
+					a.push(this.unserialize());
+				}
 			}
 			return a;
-		case 111:
-			var o = { };
-			this.cache.push(o);
-			this.unserializeObject(o);
-			return o;
-		case 114:
-			var n1 = this.readDigits();
-			if(n1 < 0 || n1 >= this.cache.length) throw new js__$Boot_HaxeError("Invalid reference");
-			return this.cache[n1];
-		case 82:
-			var n2 = this.readDigits();
-			if(n2 < 0 || n2 >= this.scache.length) throw new js__$Boot_HaxeError("Invalid string reference");
-			return this.scache[n2];
-		case 120:
-			throw js__$Boot_HaxeError.wrap(this.unserialize());
-			break;
+		case 98:
+			var h1 = new haxe_ds_StringMap();
+			this.cache.push(h1);
+			var buf2 = this.buf;
+			while(this.buf.charCodeAt(this.pos) != 104) {
+				var s = this.unserialize();
+				var value = this.unserialize();
+				if(__map_reserved[s] != null) {
+					h1.setReserved(s,value);
+				} else {
+					h1.h[s] = value;
+				}
+			}
+			this.pos++;
+			return h1;
 		case 99:
-			var name = this.unserialize();
-			var cl = this.resolver.resolveClass(name);
-			if(cl == null) throw new js__$Boot_HaxeError("Class not found " + name);
-			var o2 = Type.createEmptyInstance(cl);
-			this.cache.push(o2);
-			this.unserializeObject(o2);
-			return o2;
-		case 119:
-			var name2 = this.unserialize();
-			var edecl = this.resolver.resolveEnum(name2);
-			if(edecl == null) throw new js__$Boot_HaxeError("Enum not found " + name2);
-			var e = this.unserializeEnum(edecl,this.unserialize());
-			this.cache.push(e);
-			return e;
-		case 106:
 			var name3 = this.unserialize();
-			var edecl3 = this.resolver.resolveEnum(name3);
-			if(edecl3 == null) throw new js__$Boot_HaxeError("Enum not found " + name3);
+			var cl2 = this.resolver.resolveClass(name3);
+			if(cl2 == null) {
+				throw new js__$Boot_HaxeError("Class not found " + name3);
+			}
+			var o1 = Type.createEmptyInstance(cl2);
+			this.cache.push(o1);
+			this.unserializeObject(o1);
+			return o1;
+		case 100:
+			return this.readFloat();
+		case 102:
+			return false;
+		case 105:
+			return this.readDigits();
+		case 106:
+			var name4 = this.unserialize();
+			var edecl = this.resolver.resolveEnum(name4);
+			if(edecl == null) {
+				throw new js__$Boot_HaxeError("Enum not found " + name4);
+			}
 			this.pos++;
 			var index = this.readDigits();
-			var tag = edecl3.__constructs__.slice()[index];
-			if(tag == null) throw new js__$Boot_HaxeError("Unknown enum index " + name3 + "@" + index);
-			var e3 = this.unserializeEnum(edecl3,tag);
-			this.cache.push(e3);
-			return e3;
+			var tag = edecl.__constructs__.slice()[index];
+			if(tag == null) {
+				throw new js__$Boot_HaxeError("Unknown enum index " + name4 + "@" + index);
+			}
+			var e1 = this.unserializeEnum(edecl,tag);
+			this.cache.push(e1);
+			return e1;
+		case 107:
+			return NaN;
 		case 108:
 			var l = new List();
 			this.cache.push(l);
@@ -11093,40 +12025,78 @@ haxe_Unserializer.prototype = {
 			while(this.buf.charCodeAt(this.pos) != 104) l.add(this.unserialize());
 			this.pos++;
 			return l;
-		case 98:
-			var h = new haxe_ds_StringMap();
-			this.cache.push(h);
-			var buf4 = this.buf;
-			while(this.buf.charCodeAt(this.pos) != 104) {
-				var s4 = this.unserialize();
-				var value = this.unserialize();
-				if(__map_reserved[s4] != null) h.setReserved(s4,value); else h.h[s4] = value;
-			}
-			this.pos++;
-			return h;
+		case 109:
+			return -Infinity;
+		case 110:
+			return null;
+		case 111:
+			var o2 = { };
+			this.cache.push(o2);
+			this.unserializeObject(o2);
+			return o2;
+		case 112:
+			return Infinity;
 		case 113:
-			var h4 = new haxe_ds_IntMap();
-			this.cache.push(h4);
-			var buf5 = this.buf;
-			var c5 = this.buf.charCodeAt(this.pos++);
-			while(c5 == 58) {
+			var h2 = new haxe_ds_IntMap();
+			this.cache.push(h2);
+			var buf4 = this.buf;
+			var c1 = this.buf.charCodeAt(this.pos++);
+			while(c1 == 58) {
 				var i = this.readDigits();
-				var value5 = this.unserialize();
-				h4.h[i] = value5;
-				c5 = this.buf.charCodeAt(this.pos++);
+				var value1 = this.unserialize();
+				h2.h[i] = value1;
+				c1 = this.buf.charCodeAt(this.pos++);
 			}
-			if(c5 != 104) throw new js__$Boot_HaxeError("Invalid IntMap format");
-			return h4;
-		case 77:
-			var h5 = new haxe_ds_ObjectMap();
-			this.cache.push(h5);
-			var buf6 = this.buf;
-			while(this.buf.charCodeAt(this.pos) != 104) {
-				var s6 = this.unserialize();
-				h5.set(s6,this.unserialize());
+			if(c1 != 104) {
+				throw new js__$Boot_HaxeError("Invalid IntMap format");
 			}
-			this.pos++;
-			return h5;
+			return h2;
+		case 114:
+			var n2 = this.readDigits();
+			if(n2 < 0 || n2 >= this.cache.length) {
+				throw new js__$Boot_HaxeError("Invalid reference");
+			}
+			return this.cache[n2];
+		case 115:
+			var len = this.readDigits();
+			var buf5 = this.buf;
+			if(this.buf.charCodeAt(this.pos++) != 58 || this.length - this.pos < len) {
+				throw new js__$Boot_HaxeError("Invalid bytes length");
+			}
+			var codes = haxe_Unserializer.CODES;
+			if(codes == null) {
+				codes = haxe_Unserializer.initCodes();
+				haxe_Unserializer.CODES = codes;
+			}
+			var i1 = this.pos;
+			var rest = len & 3;
+			var size = (len >> 2) * 3 + (rest >= 2?rest - 1:0);
+			var max = i1 + (len - rest);
+			var bytes = new haxe_io_Bytes(new ArrayBuffer(size));
+			var bpos = 0;
+			while(i1 < max) {
+				var c11 = codes[buf5.charCodeAt(i1++)];
+				var c2 = codes[buf5.charCodeAt(i1++)];
+				bytes.b[bpos++] = (c11 << 2 | c2 >> 4) & 255;
+				var c3 = codes[buf5.charCodeAt(i1++)];
+				bytes.b[bpos++] = (c2 << 4 | c3 >> 2) & 255;
+				var c4 = codes[buf5.charCodeAt(i1++)];
+				bytes.b[bpos++] = (c3 << 6 | c4) & 255;
+			}
+			if(rest >= 2) {
+				var c12 = codes[buf5.charCodeAt(i1++)];
+				var c21 = codes[buf5.charCodeAt(i1++)];
+				bytes.b[bpos++] = (c12 << 2 | c21 >> 4) & 255;
+				if(rest == 3) {
+					var c31 = codes[buf5.charCodeAt(i1++)];
+					bytes.b[bpos++] = (c21 << 4 | c31 >> 2) & 255;
+				}
+			}
+			this.pos += len;
+			this.cache.push(bytes);
+			return bytes;
+		case 116:
+			return true;
 		case 118:
 			var d;
 			if(this.buf.charCodeAt(this.pos) >= 48 && this.buf.charCodeAt(this.pos) <= 57 && this.buf.charCodeAt(this.pos + 1) >= 48 && this.buf.charCodeAt(this.pos + 1) <= 57 && this.buf.charCodeAt(this.pos + 2) >= 48 && this.buf.charCodeAt(this.pos + 2) <= 57 && this.buf.charCodeAt(this.pos + 3) >= 48 && this.buf.charCodeAt(this.pos + 3) <= 57 && this.buf.charCodeAt(this.pos + 4) == 45) {
@@ -11138,61 +12108,30 @@ haxe_Unserializer.prototype = {
 			}
 			this.cache.push(d);
 			return d;
-		case 115:
-			var len6 = this.readDigits();
-			var buf7 = this.buf;
-			if(this.buf.charCodeAt(this.pos++) != 58 || this.length - this.pos < len6) throw new js__$Boot_HaxeError("Invalid bytes length");
-			var codes = haxe_Unserializer.CODES;
-			if(codes == null) {
-				codes = haxe_Unserializer.initCodes();
-				haxe_Unserializer.CODES = codes;
+		case 119:
+			var name5 = this.unserialize();
+			var edecl1 = this.resolver.resolveEnum(name5);
+			if(edecl1 == null) {
+				throw new js__$Boot_HaxeError("Enum not found " + name5);
 			}
-			var i7 = this.pos;
-			var rest = len6 & 3;
-			var size = (len6 >> 2) * 3 + (rest >= 2?rest - 1:0);
-			var max = i7 + (len6 - rest);
-			var bytes = new haxe_io_Bytes(new ArrayBuffer(size));
-			var bpos = 0;
-			while(i7 < max) {
-				var c1 = codes[buf7.charCodeAt(i7++)];
-				var c2 = codes[buf7.charCodeAt(i7++)];
-				bytes.b[bpos++] = (c1 << 2 | c2 >> 4) & 255;
-				var c3 = codes[buf7.charCodeAt(i7++)];
-				bytes.b[bpos++] = (c2 << 4 | c3 >> 2) & 255;
-				var c4 = codes[buf7.charCodeAt(i7++)];
-				bytes.b[bpos++] = (c3 << 6 | c4) & 255;
+			var e2 = this.unserializeEnum(edecl1,this.unserialize());
+			this.cache.push(e2);
+			return e2;
+		case 120:
+			throw js__$Boot_HaxeError.wrap(this.unserialize());
+			break;
+		case 121:
+			var len1 = this.readDigits();
+			if(this.buf.charCodeAt(this.pos++) != 58 || this.length - this.pos < len1) {
+				throw new js__$Boot_HaxeError("Invalid string length");
 			}
-			if(rest >= 2) {
-				var c17 = codes[buf7.charCodeAt(i7++)];
-				var c27 = codes[buf7.charCodeAt(i7++)];
-				bytes.b[bpos++] = (c17 << 2 | c27 >> 4) & 255;
-				if(rest == 3) {
-					var c37 = codes[buf7.charCodeAt(i7++)];
-					bytes.b[bpos++] = (c27 << 4 | c37 >> 2) & 255;
-				}
-			}
-			this.pos += len6;
-			this.cache.push(bytes);
-			return bytes;
-		case 67:
-			var name7 = this.unserialize();
-			var cl7 = this.resolver.resolveClass(name7);
-			if(cl7 == null) throw new js__$Boot_HaxeError("Class not found " + name7);
-			var o7 = Type.createEmptyInstance(cl7);
-			this.cache.push(o7);
-			o7.hxUnserialize(this);
-			if(this.buf.charCodeAt(this.pos++) != 103) throw new js__$Boot_HaxeError("Invalid custom data");
-			return o7;
-		case 65:
-			var name8 = this.unserialize();
-			var cl8 = this.resolver.resolveClass(name8);
-			if(cl8 == null) throw new js__$Boot_HaxeError("Class not found " + name8);
-			return cl8;
-		case 66:
-			var name9 = this.unserialize();
-			var e9 = this.resolver.resolveEnum(name9);
-			if(e9 == null) throw new js__$Boot_HaxeError("Enum not found " + name9);
-			return e9;
+			var s1 = HxOverrides.substr(this.buf,this.pos,len1);
+			this.pos += len1;
+			s1 = decodeURIComponent(s1.split("+").join(" "));
+			this.scache.push(s1);
+			return s1;
+		case 122:
+			return 0;
 		default:
 		}
 		this.pos--;
@@ -11214,8 +12153,12 @@ haxe_io_Bytes.ofString = function(s) {
 	var i = 0;
 	while(i < s.length) {
 		var c = s.charCodeAt(i++);
-		if(55296 <= c && c <= 56319) c = c - 55232 << 10 | s.charCodeAt(i++) & 1023;
-		if(c <= 127) a.push(c); else if(c <= 2047) {
+		if(55296 <= c && c <= 56319) {
+			c = c - 55232 << 10 | s.charCodeAt(i++) & 1023;
+		}
+		if(c <= 127) {
+			a.push(c);
+		} else if(c <= 2047) {
 			a.push(192 | c >> 6);
 			a.push(128 | c & 63);
 		} else if(c <= 65535) {
@@ -11233,24 +12176,38 @@ haxe_io_Bytes.ofString = function(s) {
 };
 haxe_io_Bytes.ofData = function(b) {
 	var hb = b.hxBytes;
-	if(hb != null) return hb;
+	if(hb != null) {
+		return hb;
+	}
 	return new haxe_io_Bytes(b);
 };
 haxe_io_Bytes.prototype = {
 	blit: function(pos,src,srcpos,len) {
-		if(pos < 0 || srcpos < 0 || len < 0 || pos + len > this.length || srcpos + len > src.length) throw new js__$Boot_HaxeError(haxe_io_Error.OutsideBounds);
-		if(srcpos == 0 && len == src.length) this.b.set(src.b,pos); else this.b.set(src.b.subarray(srcpos,srcpos + len),pos);
+		if(pos < 0 || srcpos < 0 || len < 0 || pos + len > this.length || srcpos + len > src.length) {
+			throw new js__$Boot_HaxeError(haxe_io_Error.OutsideBounds);
+		}
+		if(srcpos == 0 && len == src.length) {
+			this.b.set(src.b,pos);
+		} else {
+			this.b.set(src.b.subarray(srcpos,srcpos + len),pos);
+		}
 	}
 	,sub: function(pos,len) {
-		if(pos < 0 || len < 0 || pos + len > this.length) throw new js__$Boot_HaxeError(haxe_io_Error.OutsideBounds);
+		if(pos < 0 || len < 0 || pos + len > this.length) {
+			throw new js__$Boot_HaxeError(haxe_io_Error.OutsideBounds);
+		}
 		return new haxe_io_Bytes(this.b.buffer.slice(pos + this.b.byteOffset,pos + this.b.byteOffset + len));
 	}
 	,getDouble: function(pos) {
-		if(this.data == null) this.data = new DataView(this.b.buffer,this.b.byteOffset,this.b.byteLength);
+		if(this.data == null) {
+			this.data = new DataView(this.b.buffer,this.b.byteOffset,this.b.byteLength);
+		}
 		return this.data.getFloat64(pos,true);
 	}
 	,getString: function(pos,len) {
-		if(pos < 0 || len < 0 || pos + len > this.length) throw new js__$Boot_HaxeError(haxe_io_Error.OutsideBounds);
+		if(pos < 0 || len < 0 || pos + len > this.length) {
+			throw new js__$Boot_HaxeError(haxe_io_Error.OutsideBounds);
+		}
 		var s = "";
 		var b = this.b;
 		var fcc = String.fromCharCode;
@@ -11259,15 +12216,16 @@ haxe_io_Bytes.prototype = {
 		while(i < max) {
 			var c = b[i++];
 			if(c < 128) {
-				if(c == 0) break;
+				if(c == 0) {
+					break;
+				}
 				s += fcc(c);
-			} else if(c < 224) s += fcc((c & 63) << 6 | b[i++] & 127); else if(c < 240) {
-				var c2 = b[i++];
-				s += fcc((c & 31) << 12 | (c2 & 127) << 6 | b[i++] & 127);
+			} else if(c < 224) {
+				s += fcc((c & 63) << 6 | b[i++] & 127);
+			} else if(c < 240) {
+				s += fcc((c & 31) << 12 | (b[i++] & 127) << 6 | b[i++] & 127);
 			} else {
-				var c21 = b[i++];
-				var c3 = b[i++];
-				var u = (c & 15) << 18 | (c21 & 127) << 12 | (c3 & 127) << 6 | b[i++] & 127;
+				var u = (c & 15) << 18 | (b[i++] & 127) << 12 | (b[i++] & 127) << 6 | b[i++] & 127;
 				s += fcc((u >> 10) + 55232);
 				s += fcc(u & 1023 | 56320);
 			}
@@ -11280,18 +12238,13 @@ haxe_io_Bytes.prototype = {
 	,toHex: function() {
 		var s_b = "";
 		var chars = [];
-		var str = "0123456789abcdef";
 		var _g1 = 0;
-		var _g = str.length;
-		while(_g1 < _g) {
-			var i = _g1++;
-			chars.push(HxOverrides.cca(str,i));
-		}
+		var _g = "0123456789abcdef".length;
+		while(_g1 < _g) chars.push(HxOverrides.cca("0123456789abcdef",_g1++));
 		var _g11 = 0;
 		var _g2 = this.length;
 		while(_g11 < _g2) {
-			var i2 = _g11++;
-			var c = this.b[i2];
+			var c = this.b[_g11++];
 			s_b += String.fromCharCode(chars[c >> 4]);
 			s_b += String.fromCharCode(chars[c & 15]);
 		}
@@ -11303,11 +12256,12 @@ var haxe_crypto_Base64 = function() { };
 $hxClasses["haxe.crypto.Base64"] = haxe_crypto_Base64;
 haxe_crypto_Base64.__name__ = ["haxe","crypto","Base64"];
 haxe_crypto_Base64.encode = function(bytes,complement) {
-	if(complement == null) complement = true;
+	if(complement == null) {
+		complement = true;
+	}
 	var str = new haxe_crypto_BaseCode(haxe_crypto_Base64.BYTES).encodeBytes(bytes).toString();
 	if(complement) {
-		var _g = bytes.length % 3;
-		switch(_g) {
+		switch(bytes.length % 3) {
 		case 1:
 			str += "==";
 			break;
@@ -11320,15 +12274,21 @@ haxe_crypto_Base64.encode = function(bytes,complement) {
 	return str;
 };
 haxe_crypto_Base64.decode = function(str,complement) {
-	if(complement == null) complement = true;
-	if(complement) while(HxOverrides.cca(str,str.length - 1) == 61) str = HxOverrides.substr(str,0,-1);
+	if(complement == null) {
+		complement = true;
+	}
+	if(complement) {
+		while(HxOverrides.cca(str,str.length - 1) == 61) str = HxOverrides.substr(str,0,-1);
+	}
 	return new haxe_crypto_BaseCode(haxe_crypto_Base64.BYTES).decodeBytes(haxe_io_Bytes.ofString(str));
 };
 var haxe_crypto_BaseCode = function(base) {
 	var len = base.length;
 	var nbits = 1;
 	while(len > 1 << nbits) ++nbits;
-	if(nbits > 8 || len != 1 << nbits) throw new js__$Boot_HaxeError("BaseCode : base length must be a power of two.");
+	if(nbits > 8 || len != 1 << nbits) {
+		throw new js__$Boot_HaxeError("BaseCode : base length must be a power of two.");
+	}
 	this.base = base;
 	this.nbits = nbits;
 };
@@ -11354,28 +12314,28 @@ haxe_crypto_BaseCode.prototype = {
 			curbits -= nbits;
 			out.b[pout++] = base.b[buf >> curbits & mask] & 255;
 		}
-		if(curbits > 0) out.b[pout++] = base.b[buf << nbits - curbits & mask] & 255;
+		if(curbits > 0) {
+			out.b[pout++] = base.b[buf << nbits - curbits & mask] & 255;
+		}
 		return out;
 	}
 	,initTable: function() {
 		var tbl = [];
 		var _g = 0;
-		while(_g < 256) {
-			var i = _g++;
-			tbl[i] = -1;
-		}
+		while(_g < 256) tbl[_g++] = -1;
 		var _g1 = 0;
 		var _g2 = this.base.length;
 		while(_g1 < _g2) {
-			var i2 = _g1++;
-			tbl[this.base.b[i2]] = i2;
+			var i = _g1++;
+			tbl[this.base.b[i]] = i;
 		}
 		this.tbl = tbl;
 	}
 	,decodeBytes: function(b) {
 		var nbits = this.nbits;
-		var base = this.base;
-		if(this.tbl == null) this.initTable();
+		if(this.tbl == null) {
+			this.initTable();
+		}
 		var tbl = this.tbl;
 		var size = b.length * nbits >> 3;
 		var out = new haxe_io_Bytes(new ArrayBuffer(size));
@@ -11388,7 +12348,9 @@ haxe_crypto_BaseCode.prototype = {
 				curbits += nbits;
 				buf <<= nbits;
 				var i = tbl[b.b[pin++]];
-				if(i == -1) throw new js__$Boot_HaxeError("BaseCode : invalid encoded char");
+				if(i == -1) {
+					throw new js__$Boot_HaxeError("BaseCode : invalid encoded char");
+				}
 				buf |= i;
 			}
 			curbits -= 8;
@@ -11421,11 +12383,7 @@ haxe_crypto_Md5.bytes2blks = function(b) {
 	var blks = [];
 	var blksSize = nblk * 16;
 	var _g1 = 0;
-	var _g = blksSize;
-	while(_g1 < _g) {
-		var i1 = _g1++;
-		blks[i1] = 0;
-	}
+	while(_g1 < blksSize) blks[_g1++] = 0;
 	var i = 0;
 	while(i < b.length) {
 		blks[i >> 2] |= b.b[i] << (((b.length << 3) + i & 3) << 3);
@@ -11442,24 +12400,17 @@ haxe_crypto_Md5.bytes2blks = function(b) {
 };
 haxe_crypto_Md5.prototype = {
 	bitOR: function(a,b) {
-		var lsb = a & 1 | b & 1;
-		var msb31 = a >>> 1 | b >>> 1;
-		return msb31 << 1 | lsb;
+		return (a >>> 1 | b >>> 1) << 1 | (a & 1 | b & 1);
 	}
 	,bitXOR: function(a,b) {
-		var lsb = a & 1 ^ b & 1;
-		var msb31 = a >>> 1 ^ b >>> 1;
-		return msb31 << 1 | lsb;
+		return (a >>> 1 ^ b >>> 1) << 1 | a & 1 ^ b & 1;
 	}
 	,bitAND: function(a,b) {
-		var lsb = a & 1 & (b & 1);
-		var msb31 = a >>> 1 & b >>> 1;
-		return msb31 << 1 | lsb;
+		return (a >>> 1 & b >>> 1) << 1 | a & 1 & (b & 1);
 	}
 	,addme: function(x,y) {
 		var lsw = (x & 65535) + (y & 65535);
-		var msw = (x >> 16) + (y >> 16) + (lsw >> 16);
-		return msw << 16 | lsw & 65535;
+		return (x >> 16) + (y >> 16) + (lsw >> 16) << 16 | lsw & 65535;
 	}
 	,rol: function(num,cnt) {
 		return num << cnt | num >>> 32 - cnt;
@@ -11484,14 +12435,12 @@ haxe_crypto_Md5.prototype = {
 		var b = -271733879;
 		var c = -1732584194;
 		var d = 271733878;
-		var step;
 		var i = 0;
 		while(i < x.length) {
 			var olda = a;
 			var oldb = b;
 			var oldc = c;
 			var oldd = d;
-			step = 0;
 			a = this.ff(a,b,c,d,x[i],7,-680876936);
 			d = this.ff(d,a,b,c,x[i + 1],12,-389564586);
 			c = this.ff(c,d,a,b,x[i + 2],17,606105819);
@@ -11578,8 +12527,14 @@ haxe_ds_BalancedTree.prototype = {
 		var node = this.root;
 		while(node != null) {
 			var c = this.compare(key,node.key);
-			if(c == 0) return node.value;
-			if(c < 0) node = node.left; else node = node.right;
+			if(c == 0) {
+				return node.value;
+			}
+			if(c < 0) {
+				node = node.left;
+			} else {
+				node = node.right;
+			}
 		}
 		return null;
 	}
@@ -11589,14 +12544,16 @@ haxe_ds_BalancedTree.prototype = {
 		return HxOverrides.iter(ret);
 	}
 	,setLoop: function(k,v,node) {
-		if(node == null) return new haxe_ds_TreeNode(null,k,v,null);
+		if(node == null) {
+			return new haxe_ds_TreeNode(null,k,v,null);
+		}
 		var c = this.compare(k,node.key);
-		if(c == 0) return new haxe_ds_TreeNode(node.left,k,v,node.right,node == null?0:node._height); else if(c < 0) {
-			var nl = this.setLoop(k,v,node.left);
-			return this.balance(nl,node.key,node.value,node.right);
+		if(c == 0) {
+			return new haxe_ds_TreeNode(node.left,k,v,node.right,node == null?0:node._height);
+		} else if(c < 0) {
+			return this.balance(this.setLoop(k,v,node.left),node.key,node.value,node.right);
 		} else {
-			var nr = this.setLoop(k,v,node.right);
-			return this.balance(node.left,node.key,node.value,nr);
+			return this.balance(node.left,node.key,node.value,this.setLoop(k,v,node.right));
 		}
 	}
 	,keysLoop: function(node,acc) {
@@ -11610,22 +12567,26 @@ haxe_ds_BalancedTree.prototype = {
 		var hl = l == null?0:l._height;
 		var hr = r == null?0:r._height;
 		if(hl > hr + 2) {
-			var tmp;
 			var _this = l.left;
-			if(_this == null) tmp = 0; else tmp = _this._height;
-			var tmp1;
+			var tmp = _this == null?0:_this._height;
 			var _this1 = l.right;
-			if(_this1 == null) tmp1 = 0; else tmp1 = _this1._height;
-			if(tmp >= tmp1) return new haxe_ds_TreeNode(l.left,l.key,l.value,new haxe_ds_TreeNode(l.right,k,v,r)); else return new haxe_ds_TreeNode(new haxe_ds_TreeNode(l.left,l.key,l.value,l.right.left),l.right.key,l.right.value,new haxe_ds_TreeNode(l.right.right,k,v,r));
+			if(tmp >= (_this1 == null?0:_this1._height)) {
+				return new haxe_ds_TreeNode(l.left,l.key,l.value,new haxe_ds_TreeNode(l.right,k,v,r));
+			} else {
+				return new haxe_ds_TreeNode(new haxe_ds_TreeNode(l.left,l.key,l.value,l.right.left),l.right.key,l.right.value,new haxe_ds_TreeNode(l.right.right,k,v,r));
+			}
 		} else if(hr > hl + 2) {
-			var tmp2;
 			var _this2 = r.right;
-			if(_this2 == null) tmp2 = 0; else tmp2 = _this2._height;
-			var tmp3;
+			var tmp1 = _this2 == null?0:_this2._height;
 			var _this3 = r.left;
-			if(_this3 == null) tmp3 = 0; else tmp3 = _this3._height;
-			if(tmp2 > tmp3) return new haxe_ds_TreeNode(new haxe_ds_TreeNode(l,k,v,r.left),r.key,r.value,r.right); else return new haxe_ds_TreeNode(new haxe_ds_TreeNode(l,k,v,r.left.left),r.left.key,r.left.value,new haxe_ds_TreeNode(r.left.right,r.key,r.value,r.right));
-		} else return new haxe_ds_TreeNode(l,k,v,r,(hl > hr?hl:hr) + 1);
+			if(tmp1 > (_this3 == null?0:_this3._height)) {
+				return new haxe_ds_TreeNode(new haxe_ds_TreeNode(l,k,v,r.left),r.key,r.value,r.right);
+			} else {
+				return new haxe_ds_TreeNode(new haxe_ds_TreeNode(l,k,v,r.left.left),r.left.key,r.left.value,new haxe_ds_TreeNode(r.left.right,r.key,r.value,r.right));
+			}
+		} else {
+			return new haxe_ds_TreeNode(l,k,v,r,(hl > hr?hl:hr) + 1);
+		}
 	}
 	,compare: function(k1,k2) {
 		return Reflect.compare(k1,k2);
@@ -11633,28 +12594,37 @@ haxe_ds_BalancedTree.prototype = {
 	,__class__: haxe_ds_BalancedTree
 };
 var haxe_ds_TreeNode = function(l,k,v,r,h) {
-	if(h == null) h = -1;
+	if(h == null) {
+		h = -1;
+	}
 	this.left = l;
 	this.key = k;
 	this.value = v;
 	this.right = r;
 	if(h == -1) {
 		var tmp;
-		var tmp1;
 		var _this = this.left;
-		if(_this == null) tmp1 = 0; else tmp1 = _this._height;
-		var tmp2;
-		var _this2 = this.right;
-		if(_this2 == null) tmp2 = 0; else tmp2 = _this2._height;
-		if(tmp1 > tmp2) {
-			var _this3 = this.left;
-			if(_this3 == null) tmp = 0; else tmp = _this3._height;
+		var tmp1 = _this == null?0:_this._height;
+		var _this1 = this.right;
+		if(tmp1 > (_this1 == null?0:_this1._height)) {
+			var _this2 = this.left;
+			if(_this2 == null) {
+				tmp = 0;
+			} else {
+				tmp = _this2._height;
+			}
 		} else {
-			var _this4 = this.right;
-			if(_this4 == null) tmp = 0; else tmp = _this4._height;
+			var _this3 = this.right;
+			if(_this3 == null) {
+				tmp = 0;
+			} else {
+				tmp = _this3._height;
+			}
 		}
 		this._height = tmp + 1;
-	} else this._height = h;
+	} else {
+		this._height = h;
+	}
 };
 $hxClasses["haxe.ds.TreeNode"] = haxe_ds_TreeNode;
 haxe_ds_TreeNode.__name__ = ["haxe","ds","TreeNode"];
@@ -11671,26 +12641,40 @@ haxe_ds_EnumValueMap.__super__ = haxe_ds_BalancedTree;
 haxe_ds_EnumValueMap.prototype = $extend(haxe_ds_BalancedTree.prototype,{
 	compare: function(k1,k2) {
 		var d = k1[1] - k2[1];
-		if(d != 0) return d;
+		if(d != 0) {
+			return d;
+		}
 		var p1 = k1.slice(2);
 		var p2 = k2.slice(2);
-		if(p1.length == 0 && p2.length == 0) return 0;
+		if(p1.length == 0 && p2.length == 0) {
+			return 0;
+		}
 		return this.compareArgs(p1,p2);
 	}
 	,compareArgs: function(a1,a2) {
 		var ld = a1.length - a2.length;
-		if(ld != 0) return ld;
+		if(ld != 0) {
+			return ld;
+		}
 		var _g1 = 0;
 		var _g = a1.length;
 		while(_g1 < _g) {
 			var i = _g1++;
 			var d = this.compareArg(a1[i],a2[i]);
-			if(d != 0) return d;
+			if(d != 0) {
+				return d;
+			}
 		}
 		return 0;
 	}
 	,compareArg: function(v1,v2) {
-		if(Reflect.isEnumValue(v1) && Reflect.isEnumValue(v2)) return this.compare(v1,v2); else if((v1 instanceof Array) && v1.__enum__ == null && ((v2 instanceof Array) && v2.__enum__ == null)) return this.compareArgs(v1,v2); else return Reflect.compare(v1,v2);
+		if(Reflect.isEnumValue(v1) && Reflect.isEnumValue(v2)) {
+			return this.compare(v1,v2);
+		} else if((v1 instanceof Array) && v1.__enum__ == null && ((v2 instanceof Array) && v2.__enum__ == null)) {
+			return this.compareArgs(v1,v2);
+		} else {
+			return Reflect.compare(v1,v2);
+		}
 	}
 	,__class__: haxe_ds_EnumValueMap
 });
@@ -11705,13 +12689,17 @@ haxe_ds_IntMap.prototype = {
 		return this.h[key];
 	}
 	,remove: function(key) {
-		if(!this.h.hasOwnProperty(key)) return false;
+		if(!this.h.hasOwnProperty(key)) {
+			return false;
+		}
 		delete(this.h[key]);
 		return true;
 	}
 	,keys: function() {
 		var a = [];
-		for( var key in this.h ) if(this.h.hasOwnProperty(key)) a.push(key | 0);
+		for( var key in this.h ) if(this.h.hasOwnProperty(key)) {
+			a.push(key | 0);
+		}
 		return HxOverrides.iter(a);
 	}
 	,iterator: function() {
@@ -11739,10 +12727,21 @@ haxe_ds_ObjectMap.prototype = {
 	,get: function(key) {
 		return this.h[key.__id__];
 	}
+	,remove: function(key) {
+		var id = key.__id__;
+		if(this.h.__keys__[id] == null) {
+			return false;
+		}
+		delete(this.h[id]);
+		delete(this.h.__keys__[id]);
+		return true;
+	}
 	,keys: function() {
 		var a = [];
 		for( var key in this.h.__keys__ ) {
-		if(this.h.hasOwnProperty(key)) a.push(this.h.__keys__[key]);
+		if(this.h.hasOwnProperty(key)) {
+			a.push(this.h.__keys__[key]);
+		}
 		}
 		return HxOverrides.iter(a);
 	}
@@ -11763,7 +12762,11 @@ haxe_ds__$StringMap_StringMapIterator.prototype = {
 	,next: function() {
 		var _this = this.map;
 		var key = this.keys[this.index++];
-		if(__map_reserved[key] != null) return _this.getReserved(key); else return _this.h[key];
+		if(__map_reserved[key] != null) {
+			return _this.getReserved(key);
+		} else {
+			return _this.h[key];
+		}
 	}
 	,__class__: haxe_ds__$StringMap_StringMapIterator
 };
@@ -11775,28 +12778,42 @@ haxe_ds_StringMap.__name__ = ["haxe","ds","StringMap"];
 haxe_ds_StringMap.__interfaces__ = [haxe_IMap];
 haxe_ds_StringMap.prototype = {
 	get: function(key) {
-		if(__map_reserved[key] != null) return this.getReserved(key);
+		if(__map_reserved[key] != null) {
+			return this.getReserved(key);
+		}
 		return this.h[key];
 	}
 	,setReserved: function(key,value) {
-		if(this.rh == null) this.rh = { };
+		if(this.rh == null) {
+			this.rh = { };
+		}
 		this.rh["$" + key] = value;
 	}
 	,getReserved: function(key) {
-		if(this.rh == null) return null; else return this.rh["$" + key];
+		if(this.rh == null) {
+			return null;
+		} else {
+			return this.rh["$" + key];
+		}
 	}
 	,existsReserved: function(key) {
-		if(this.rh == null) return false;
+		if(this.rh == null) {
+			return false;
+		}
 		return this.rh.hasOwnProperty("$" + key);
 	}
 	,remove: function(key) {
 		if(__map_reserved[key] != null) {
 			key = "$" + key;
-			if(this.rh == null || !this.rh.hasOwnProperty(key)) return false;
+			if(this.rh == null || !this.rh.hasOwnProperty(key)) {
+				return false;
+			}
 			delete(this.rh[key]);
 			return true;
 		} else {
-			if(!this.h.hasOwnProperty(key)) return false;
+			if(!this.h.hasOwnProperty(key)) {
+				return false;
+			}
 			delete(this.h[key]);
 			return true;
 		}
@@ -11807,11 +12824,15 @@ haxe_ds_StringMap.prototype = {
 	,arrayKeys: function() {
 		var out = [];
 		for( var key in this.h ) {
-		if(this.h.hasOwnProperty(key)) out.push(key);
+		if(this.h.hasOwnProperty(key)) {
+			out.push(key);
+		}
 		}
 		if(this.rh != null) {
 			for( var key in this.rh ) {
-			if(key.charCodeAt(0) == 36) out.push(key.substr(1));
+			if(key.charCodeAt(0) == 36) {
+				out.push(key.substr(1));
+			}
 			}
 		}
 		return out;
@@ -11852,7 +12873,9 @@ haxe_io_Output.prototype = {
 		throw new js__$Boot_HaxeError("Not implemented");
 	}
 	,writeUInt16: function(x) {
-		if(x < 0 || x >= 65536) throw new js__$Boot_HaxeError(haxe_io_Error.Overflow);
+		if(x < 0 || x >= 65536) {
+			throw new js__$Boot_HaxeError(haxe_io_Error.Overflow);
+		}
 		if(this.bigEndian) {
 			this.writeByte(x >> 8);
 			this.writeByte(x & 255);
@@ -11910,10 +12933,8 @@ haxe_io_FPHelper.doubleToI64 = function(v) {
 		var av = v < 0?-v:v;
 		var exp = Math.floor(Math.log(av) / 0.6931471805599453);
 		var sig = Math.round((av / Math.pow(2,exp) - 1) * 4503599627370496.);
-		var sig_l = sig | 0;
-		var sig_h = sig / 4294967296.0 | 0;
-		i64.low = sig_l;
-		i64.high = (v < 0?-2147483648:0) | exp + 1023 << 20 | sig_h;
+		i64.low = sig | 0;
+		i64.high = (v < 0?-2147483648:0) | exp + 1023 << 20 | (sig / 4294967296.0 | 0);
 	}
 	return i64;
 };
@@ -11933,7 +12954,9 @@ var haxe_io_Path = function(path) {
 	} else if(c2 < c1) {
 		this.dir = HxOverrides.substr(path,0,c1);
 		path = HxOverrides.substr(path,c1 + 1,null);
-	} else this.dir = null;
+	} else {
+		this.dir = null;
+	}
 	var cp = path.lastIndexOf(".");
 	if(cp != -1) {
 		this.ext = HxOverrides.substr(path,cp + 1,null);
@@ -11953,7 +12976,11 @@ $hxClasses["haxe.rtti.Meta"] = haxe_rtti_Meta;
 haxe_rtti_Meta.__name__ = ["haxe","rtti","Meta"];
 haxe_rtti_Meta.getType = function(t) {
 	var meta = haxe_rtti_Meta.getMeta(t);
-	if(meta == null || meta.obj == null) return { }; else return meta.obj;
+	if(meta == null || meta.obj == null) {
+		return { };
+	} else {
+		return meta.obj;
+	}
 };
 haxe_rtti_Meta.getMeta = function(t) {
 	return t.__meta__;
@@ -11962,12 +12989,18 @@ var js__$Boot_HaxeError = function(val) {
 	Error.call(this);
 	this.val = val;
 	this.message = String(val);
-	if(Error.captureStackTrace) Error.captureStackTrace(this,js__$Boot_HaxeError);
+	if(Error.captureStackTrace) {
+		Error.captureStackTrace(this,js__$Boot_HaxeError);
+	}
 };
 $hxClasses["js._Boot.HaxeError"] = js__$Boot_HaxeError;
 js__$Boot_HaxeError.__name__ = ["js","_Boot","HaxeError"];
 js__$Boot_HaxeError.wrap = function(val) {
-	return (val instanceof Error)?val:new js__$Boot_HaxeError(val);
+	if((val instanceof Error)) {
+		return val;
+	} else {
+		return new js__$Boot_HaxeError(val);
+	}
 };
 js__$Boot_HaxeError.__super__ = Error;
 js__$Boot_HaxeError.prototype = $extend(Error.prototype,{
@@ -11977,43 +13010,63 @@ var js_Boot = function() { };
 $hxClasses["js.Boot"] = js_Boot;
 js_Boot.__name__ = ["js","Boot"];
 js_Boot.getClass = function(o) {
-	if((o instanceof Array) && o.__enum__ == null) return Array; else {
+	if((o instanceof Array) && o.__enum__ == null) {
+		return Array;
+	} else {
 		var cl = o.__class__;
-		if(cl != null) return cl;
+		if(cl != null) {
+			return cl;
+		}
 		var name = js_Boot.__nativeClassName(o);
-		if(name != null) return js_Boot.__resolveNativeClass(name);
+		if(name != null) {
+			return js_Boot.__resolveNativeClass(name);
+		}
 		return null;
 	}
 };
 js_Boot.__string_rec = function(o,s) {
-	if(o == null) return "null";
-	if(s.length >= 5) return "<...>";
+	if(o == null) {
+		return "null";
+	}
+	if(s.length >= 5) {
+		return "<...>";
+	}
 	var t = typeof(o);
-	if(t == "function" && (o.__name__ || o.__ename__)) t = "object";
+	if(t == "function" && (o.__name__ || o.__ename__)) {
+		t = "object";
+	}
 	switch(t) {
+	case "function":
+		return "<function>";
 	case "object":
 		if(o instanceof Array) {
 			if(o.__enum__) {
-				if(o.length == 2) return o[0];
-				var str2 = o[0] + "(";
+				if(o.length == 2) {
+					return o[0];
+				}
+				var str = o[0] + "(";
 				s += "\t";
 				var _g1 = 2;
 				var _g = o.length;
 				while(_g1 < _g) {
-					var i2 = _g1++;
-					if(i2 != 2) str2 += "," + js_Boot.__string_rec(o[i2],s); else str2 += js_Boot.__string_rec(o[i2],s);
+					var i = _g1++;
+					if(i != 2) {
+						str += "," + js_Boot.__string_rec(o[i],s);
+					} else {
+						str += js_Boot.__string_rec(o[i],s);
+					}
 				}
-				return str2 + ")";
+				return str + ")";
 			}
 			var l = o.length;
-			var i;
+			var i1;
 			var str1 = "[";
 			s += "\t";
-			var _g12 = 0;
+			var _g11 = 0;
 			var _g2 = l;
-			while(_g12 < _g2) {
-				var i3 = _g12++;
-				str1 += (i3 > 0?",":"") + js_Boot.__string_rec(o[i3],s);
+			while(_g11 < _g2) {
+				var i2 = _g11++;
+				str1 += (i2 > 0?",":"") + js_Boot.__string_rec(o[i2],s);
 			}
 			str1 += "]";
 			return str1;
@@ -12026,10 +13079,12 @@ js_Boot.__string_rec = function(o,s) {
 		}
 		if(tostr != null && tostr != Object.toString && typeof(tostr) == "function") {
 			var s2 = o.toString();
-			if(s2 != "[object Object]") return s2;
+			if(s2 != "[object Object]") {
+				return s2;
+			}
 		}
 		var k = null;
-		var str = "{\n";
+		var str2 = "{\n";
 		s += "\t";
 		var hasp = o.hasOwnProperty != null;
 		for( var k in o ) {
@@ -12039,14 +13094,14 @@ js_Boot.__string_rec = function(o,s) {
 		if(k == "prototype" || k == "__class__" || k == "__super__" || k == "__interfaces__" || k == "__properties__") {
 			continue;
 		}
-		if(str.length != 2) str += ", \n";
-		str += s + k + " : " + js_Boot.__string_rec(o[k],s);
+		if(str2.length != 2) {
+			str2 += ", \n";
+		}
+		str2 += s + k + " : " + js_Boot.__string_rec(o[k],s);
 		}
 		s = s.substring(1);
-		str += "\n" + s + "}";
-		return str;
-	case "function":
-		return "<function>";
+		str2 += "\n" + s + "}";
+		return str2;
 	case "string":
 		return o;
 	default:
@@ -12054,55 +13109,85 @@ js_Boot.__string_rec = function(o,s) {
 	}
 };
 js_Boot.__interfLoop = function(cc,cl) {
-	if(cc == null) return false;
-	if(cc == cl) return true;
+	if(cc == null) {
+		return false;
+	}
+	if(cc == cl) {
+		return true;
+	}
 	var intf = cc.__interfaces__;
 	if(intf != null) {
 		var _g1 = 0;
 		var _g = intf.length;
 		while(_g1 < _g) {
-			var i = _g1++;
-			var i1 = intf[i];
-			if(i1 == cl || js_Boot.__interfLoop(i1,cl)) return true;
+			var i = intf[_g1++];
+			if(i == cl || js_Boot.__interfLoop(i,cl)) {
+				return true;
+			}
 		}
 	}
 	return js_Boot.__interfLoop(cc.__super__,cl);
 };
 js_Boot.__instanceof = function(o,cl) {
-	if(cl == null) return false;
+	if(cl == null) {
+		return false;
+	}
 	switch(cl) {
-	case Int:
-		return (o|0) === o;
-	case Float:
-		return typeof(o) == "number";
+	case Array:
+		if((o instanceof Array)) {
+			return o.__enum__ == null;
+		} else {
+			return false;
+		}
+		break;
 	case Bool:
 		return typeof(o) == "boolean";
-	case String:
-		return typeof(o) == "string";
-	case Array:
-		return (o instanceof Array) && o.__enum__ == null;
 	case Dynamic:
 		return true;
+	case Float:
+		return typeof(o) == "number";
+	case Int:
+		return (o|0) === o;
+	case String:
+		return typeof(o) == "string";
 	default:
 		if(o != null) {
 			if(typeof(cl) == "function") {
-				if(o instanceof cl) return true;
-				if(js_Boot.__interfLoop(js_Boot.getClass(o),cl)) return true;
+				if(o instanceof cl) {
+					return true;
+				}
+				if(js_Boot.__interfLoop(js_Boot.getClass(o),cl)) {
+					return true;
+				}
 			} else if(typeof(cl) == "object" && js_Boot.__isNativeObj(cl)) {
-				if(o instanceof cl) return true;
+				if(o instanceof cl) {
+					return true;
+				}
 			}
-		} else return false;
-		if(cl == Class && o.__name__ != null) return true;
-		if(cl == Enum && o.__ename__ != null) return true;
+		} else {
+			return false;
+		}
+		if(cl == Class && o.__name__ != null) {
+			return true;
+		}
+		if(cl == Enum && o.__ename__ != null) {
+			return true;
+		}
 		return o.__enum__ == cl;
 	}
 };
 js_Boot.__cast = function(o,t) {
-	if(js_Boot.__instanceof(o,t)) return o; else throw new js__$Boot_HaxeError("Cannot cast " + Std.string(o) + " to " + Std.string(t));
+	if(js_Boot.__instanceof(o,t)) {
+		return o;
+	} else {
+		throw new js__$Boot_HaxeError("Cannot cast " + Std.string(o) + " to " + Std.string(t));
+	}
 };
 js_Boot.__nativeClassName = function(o) {
 	var name = js_Boot.__toStr.call(o).slice(8,-1);
-	if(name == "Object" || name == "Function" || name == "Math" || name == "JSON") return null;
+	if(name == "Object" || name == "Function" || name == "Math" || name == "JSON") {
+		return null;
+	}
 	return name;
 };
 js_Boot.__isNativeObj = function(o) {
@@ -12165,7 +13250,9 @@ js_html__$CanvasElement_CanvasUtil.getContextWebGL = function(canvas,attribs) {
 		var name = _g1[_g];
 		++_g;
 		var ctx = canvas.getContext(name,attribs);
-		if(ctx != null) return ctx;
+		if(ctx != null) {
+			return ctx;
+		}
 	}
 	return null;
 };
@@ -12195,10 +13282,8 @@ lvl_Image.clearCache = function(url) {
 	lvl_Image.cache.remove(url);
 };
 lvl_Image.load = function(url,callb,onError,forceReload) {
-	var tmp;
 	var _this = lvl_Image.cache;
-	if(__map_reserved[url] != null) tmp = _this.getReserved(url); else tmp = _this.h[url];
-	var i = tmp;
+	var i = __map_reserved[url] != null?_this.getReserved(url):_this.h[url];
 	if(i != null && !forceReload) {
 		var im = new lvl_Image(i.width,i.height);
 		im.ctx.drawImage(i,0,0);
@@ -12208,27 +13293,31 @@ lvl_Image.load = function(url,callb,onError,forceReload) {
 	}
 	i = window.document.createElement("img");
 	i.onload = function(_) {
-		var tmp1;
 		var _this1 = lvl_Image.cache;
-		if(__map_reserved[url] != null) tmp1 = _this1.getReserved(url); else tmp1 = _this1.h[url];
-		var i2 = tmp1;
+		var i2 = __map_reserved[url] != null?_this1.getReserved(url):_this1.h[url];
 		if(i2 == null || forceReload) {
 			var _this2 = lvl_Image.cache;
-			if(__map_reserved[url] != null) _this2.setReserved(url,i); else _this2.h[url] = i;
-		} else i = i2;
+			if(__map_reserved[url] != null) {
+				_this2.setReserved(url,i);
+			} else {
+				_this2.h[url] = i;
+			}
+		} else {
+			i = i2;
+		}
 		var im1 = new lvl_Image(i.width,i.height);
 		im1.ctx.drawImage(i,0,0);
 		im1.origin = i;
 		callb(im1);
 	};
-	i.onerror = function(_2) {
+	i.onerror = function(_1) {
 		if(onError != null) {
 			onError();
 			return;
 		}
-		var i3 = new lvl_Image(16,16);
-		i3.fill(-65281);
-		callb(i3);
+		var i1 = new lvl_Image(16,16);
+		i1.fill(-65281);
+		callb(i1);
 	};
 	i.src = url;
 };
@@ -12258,7 +13347,11 @@ lvl_Image.prototype = {
 		this.ctx.imageSmoothingEnabled = false;
 	}
 	,getColor: function(color) {
-		if(color >>> 24 == 255) return "#" + StringTools.hex(color & 16777215,6); else return "rgba(" + (color >> 16 & 255) + "," + (color >> 8 & 255) + "," + (color & 255) + "," + (color >>> 24) / 255 + ")";
+		if(color >>> 24 == 255) {
+			return "#" + StringTools.hex(color & 16777215,6);
+		} else {
+			return "rgba(" + (color >> 16 & 255) + "," + (color >> 8 & 255) + "," + (color & 255) + "," + (color >>> 24) / 255 + ")";
+		}
 	}
 	,getCanvas: function() {
 		return this.canvas;
@@ -12268,7 +13361,9 @@ lvl_Image.prototype = {
 		this.invalidate();
 	}
 	,invalidate: function() {
-		if(this.origin == this.canvas) return;
+		if(this.origin == this.canvas) {
+			return;
+		}
 		this.origin = this.canvas;
 		this.originX = this.originY = 0;
 		this.origin.texture = null;
@@ -12292,7 +13387,9 @@ lvl_Image.prototype = {
 		return i;
 	}
 	,text: function(text,x,y,color) {
-		if(color == null) color = -1;
+		if(color == null) {
+			color = -1;
+		}
 		this.ctx.fillStyle = this.getColor(color);
 		this.ctx.fillText(text,x,y);
 		this.invalidate();
@@ -12311,10 +13408,18 @@ lvl_Image.prototype = {
 		this.invalidate();
 	}
 	,drawSub: function(i,srcX,srcY,srcW,srcH,x,y,dstW,dstH) {
-		if(dstH == null) dstH = -1;
-		if(dstW == null) dstW = -1;
-		if(dstW < 0) dstW = srcW;
-		if(dstH < 0) dstH = srcH;
+		if(dstH == null) {
+			dstH = -1;
+		}
+		if(dstW == null) {
+			dstW = -1;
+		}
+		if(dstW < 0) {
+			dstW = srcW;
+		}
+		if(dstH < 0) {
+			dstH = srcH;
+		}
 		this.ctx.drawImage(i.origin,srcX + i.originX,srcY + i.originY,srcW,srcH,x,y,dstW,dstH);
 		this.invalidate();
 	}
@@ -12328,9 +13433,8 @@ lvl_Image.prototype = {
 		var i = this.ctx.getImageData(0,0,this.width,this.height);
 		var _g1 = 0;
 		var _g = this.width * this.height * 4;
-		while(_g1 < _g) {
-			var k = _g1++;
-			if(i.data[k] != 0) return false;
+		while(_g1 < _g) if(i.data[_g1++] != 0) {
+			return false;
 		}
 		return true;
 	}
@@ -12339,7 +13443,9 @@ lvl_Image.prototype = {
 		return i.data[3] << 24 | i.data[0] << 16 | i.data[1] << 8 | i.data[2];
 	}
 	,setSize: function(width,height) {
-		if(width == this.width && height == this.height) return;
+		if(width == this.width && height == this.height) {
+			return;
+		}
 		this.canvas.width = width;
 		this.canvas.height = height;
 		this.canvas.setAttribute("width",width + "px");
@@ -12350,7 +13456,9 @@ lvl_Image.prototype = {
 		this.invalidate();
 	}
 	,resize: function(width,height) {
-		if(width == this.width && height == this.height) return;
+		if(width == this.width && height == this.height) {
+			return;
+		}
 		var c = window.document.createElement("canvas");
 		c.width = width;
 		c.height = height;
@@ -12386,7 +13494,9 @@ var lvl_Image3D = function(w,h) {
 $hxClasses["lvl.Image3D"] = lvl_Image3D;
 lvl_Image3D.__name__ = ["lvl","Image3D"];
 lvl_Image3D.getInstance = function() {
-	if(lvl_Image3D.inst == null) lvl_Image3D.inst = new lvl_Image3D(0,0);
+	if(lvl_Image3D.inst == null) {
+		lvl_Image3D.inst = new lvl_Image3D(0,0);
+	}
 	return lvl_Image3D.inst;
 };
 lvl_Image3D.fromCanvas = function(c) {
@@ -12407,23 +13517,31 @@ lvl_Image3D.prototype = $extend(lvl_Image.prototype,{
 			return;
 		}
 		this.gl = js_html__$CanvasElement_CanvasUtil.getContextWebGL(this.canvas,{ alpha : false, antialias : false});
-		if(this.gl == null) js_Browser.alert("Cannot initialize WebGL context ! (windows user : install DirectX redist)");
+		if(this.gl == null) {
+			js_Browser.alert("Cannot initialize WebGL context ! (windows user : install DirectX redist)");
+		}
 		this.canvas.gl = this.gl;
 		this.gl.disable(2884);
 		this.gl.disable(2929);
 		var vertex = this.gl.createShader(35633);
 		this.gl.shaderSource(vertex,"\n\t\t\tvarying vec2 tuv;\n\t\t\tattribute vec2 pos;\n\t\t\tattribute vec2 uv;\n\t\t\tuniform vec2 scroll;\n\t\t\tvoid main() {\n\t\t\t\ttuv = uv;\n\t\t\t\tgl_Position = vec4(pos + vec2(-1.,1.) + scroll, 0, 1);\n\t\t\t}\n\t\t");
 		this.gl.compileShader(vertex);
-		if(this.gl.getShaderParameter(vertex,35713) != 1) throw new js__$Boot_HaxeError(this.gl.getShaderInfoLog(vertex));
+		if(this.gl.getShaderParameter(vertex,35713) != 1) {
+			throw new js__$Boot_HaxeError(this.gl.getShaderInfoLog(vertex));
+		}
 		var frag = this.gl.createShader(35632);
 		this.gl.shaderSource(frag,"\n\t\t\tvarying mediump vec2 tuv;\n\t\t\tuniform sampler2D texture;\n\t\t\tuniform lowp float alpha;\n\t\t\tvoid main() {\n\t\t\t\tlowp vec4 color = texture2D(texture, tuv);\n\t\t\t\tcolor.a *= alpha;\n\t\t\t\tgl_FragColor = color;\n\t\t\t}\n\t\t");
 		this.gl.compileShader(frag);
-		if(this.gl.getShaderParameter(frag,35713) != 1) throw new js__$Boot_HaxeError(this.gl.getShaderInfoLog(frag));
+		if(this.gl.getShaderParameter(frag,35713) != 1) {
+			throw new js__$Boot_HaxeError(this.gl.getShaderInfoLog(frag));
+		}
 		var p = this.gl.createProgram();
 		this.gl.attachShader(p,vertex);
 		this.gl.attachShader(p,frag);
 		this.gl.linkProgram(p);
-		if(this.gl.getProgramParameter(p,35714) != 1) throw new js__$Boot_HaxeError(this.gl.getProgramInfoLog(p));
+		if(this.gl.getProgramParameter(p,35714) != 1) {
+			throw new js__$Boot_HaxeError(this.gl.getProgramInfoLog(p));
+		}
 		this.gl.useProgram(p);
 		this.gl.enableVertexAttribArray(0);
 		this.gl.enableVertexAttribArray(1);
@@ -12450,9 +13568,9 @@ lvl_Image3D.prototype = $extend(lvl_Image.prototype,{
 		this.texturesObjects = [];
 		if(this.allocatedBuffers != null) {
 			var _g2 = 0;
-			var _g12 = this.allocatedBuffers;
-			while(_g2 < _g12.length) {
-				var b = _g12[_g2];
+			var _g11 = this.allocatedBuffers;
+			while(_g2 < _g11.length) {
+				var b = _g11[_g2];
 				++_g2;
 				this.gl.deleteBuffer(b);
 			}
@@ -12463,7 +13581,9 @@ lvl_Image3D.prototype = $extend(lvl_Image.prototype,{
 		return this.alphaValue;
 	}
 	,set_alpha: function(v) {
-		if(this.alphaValue == v) return v;
+		if(this.alphaValue == v) {
+			return v;
+		}
 		this.endDraw();
 		return this.alphaValue = v;
 	}
@@ -12477,7 +13597,9 @@ lvl_Image3D.prototype = $extend(lvl_Image.prototype,{
 	}
 	,getColorImage: function(color) {
 		var i = this.colorCache.h[color];
-		if(i != null) return i;
+		if(i != null) {
+			return i;
+		}
 		i = new lvl_Image(1,1);
 		i.fill(color);
 		this.colorCache.h[color] = i;
@@ -12485,7 +13607,9 @@ lvl_Image3D.prototype = $extend(lvl_Image.prototype,{
 	}
 	,getTexture: function(i) {
 		var t = i.origin.texture;
-		if(t != null) return t;
+		if(t != null) {
+			return t;
+		}
 		t = this.gl.createTexture();
 		i.origin.texture = t;
 		t.origin = i.origin;
@@ -12502,150 +13626,92 @@ lvl_Image3D.prototype = $extend(lvl_Image.prototype,{
 		return t;
 	}
 	,drawMat: function(i,m) {
-		var _g = this;
+		var _gthis = this;
 		this.beginDraw(this.getTexture(i));
 		var w = i.width;
 		var h = i.height;
 		var pos = this.drawPos >> 2;
-		this.curDraw[this.drawPos++] = (0 * m.a + 0 * m.c + m.x) * _g.scaleX;
-		this.curDraw[this.drawPos++] = (0 * m.b + 0 * m.d + m.y) * _g.scaleY;
-		this.curDraw[this.drawPos++] = (function($this) {
-			var $r;
-			var v = i.originX;
-			$r = (v + 0.001) / _g.curTexture.width;
-			return $r;
-		}(this));
-		this.curDraw[this.drawPos++] = (function($this) {
-			var $r;
-			var v1 = i.originY;
-			$r = v1 / _g.curTexture.height;
-			return $r;
-		}(this));
-		this.curDraw[this.drawPos++] = (w * m.a + 0 * m.c + m.x) * _g.scaleX;
-		this.curDraw[this.drawPos++] = (w * m.b + 0 * m.d + m.y) * _g.scaleY;
-		this.curDraw[this.drawPos++] = (function($this) {
-			var $r;
-			var v2 = i.originX + i.width;
-			$r = v2 / _g.curTexture.width;
-			return $r;
-		}(this));
-		this.curDraw[this.drawPos++] = (function($this) {
-			var $r;
-			var v3 = i.originY;
-			$r = v3 / _g.curTexture.height;
-			return $r;
-		}(this));
-		this.curDraw[this.drawPos++] = (0 * m.a + h * m.c + m.x) * _g.scaleX;
-		this.curDraw[this.drawPos++] = (0 * m.b + h * m.d + m.y) * _g.scaleY;
-		this.curDraw[this.drawPos++] = (function($this) {
-			var $r;
-			var v4 = i.originX;
-			$r = (v4 + 0.001) / _g.curTexture.width;
-			return $r;
-		}(this));
-		this.curDraw[this.drawPos++] = (function($this) {
-			var $r;
-			var v5 = i.originY + i.height;
-			$r = (v5 + -0.01) / _g.curTexture.height;
-			return $r;
-		}(this));
-		this.curDraw[this.drawPos++] = (w * m.a + h * m.c + m.x) * _g.scaleX;
-		this.curDraw[this.drawPos++] = (w * m.b + h * m.d + m.y) * _g.scaleY;
-		this.curDraw[this.drawPos++] = (function($this) {
-			var $r;
-			var v6 = i.originX + i.width;
-			$r = v6 / _g.curTexture.width;
-			return $r;
-		}(this));
-		this.curDraw[this.drawPos++] = (function($this) {
-			var $r;
-			var v7 = i.originY + i.height;
-			$r = (v7 + -0.01) / _g.curTexture.height;
-			return $r;
-		}(this));
+		this.curDraw[this.drawPos++] = (0 * m.a + 0 * m.c + m.x) * _gthis.scaleX;
+		this.curDraw[this.drawPos++] = (0 * m.b + 0 * m.d + m.y) * _gthis.scaleY;
+		var tmp = (i.originX + 0.001) / _gthis.curTexture.width;
+		this.curDraw[this.drawPos++] = tmp;
+		var tmp1 = i.originY / _gthis.curTexture.height;
+		this.curDraw[this.drawPos++] = tmp1;
+		this.curDraw[this.drawPos++] = (w * m.a + 0 * m.c + m.x) * _gthis.scaleX;
+		this.curDraw[this.drawPos++] = (w * m.b + 0 * m.d + m.y) * _gthis.scaleY;
+		var tmp2 = (i.originX + i.width) / _gthis.curTexture.width;
+		this.curDraw[this.drawPos++] = tmp2;
+		var tmp3 = i.originY / _gthis.curTexture.height;
+		this.curDraw[this.drawPos++] = tmp3;
+		this.curDraw[this.drawPos++] = (0 * m.a + h * m.c + m.x) * _gthis.scaleX;
+		this.curDraw[this.drawPos++] = (0 * m.b + h * m.d + m.y) * _gthis.scaleY;
+		var tmp4 = (i.originX + 0.001) / _gthis.curTexture.width;
+		this.curDraw[this.drawPos++] = tmp4;
+		var tmp5 = (i.originY + i.height + -0.01) / _gthis.curTexture.height;
+		this.curDraw[this.drawPos++] = tmp5;
+		this.curDraw[this.drawPos++] = (w * m.a + h * m.c + m.x) * _gthis.scaleX;
+		this.curDraw[this.drawPos++] = (w * m.b + h * m.d + m.y) * _gthis.scaleY;
+		var tmp6 = (i.originX + i.width) / _gthis.curTexture.width;
+		this.curDraw[this.drawPos++] = tmp6;
+		var tmp7 = (i.originY + i.height + -0.01) / _gthis.curTexture.height;
+		this.curDraw[this.drawPos++] = tmp7;
 		this.curIndex[this.indexPos++] = pos;
 		this.curIndex[this.indexPos++] = pos + 1;
 		this.curIndex[this.indexPos++] = pos + 2;
 		this.curIndex[this.indexPos++] = pos + 1;
 		this.curIndex[this.indexPos++] = pos + 3;
 		this.curIndex[this.indexPos++] = pos + 2;
-		if(this.indexPos > 65500) this.endDraw();
+		if(this.indexPos > 65500) {
+			this.endDraw();
+		}
 	}
 	,draw: function(i,x,y) {
-		var _g = this;
+		var _gthis = this;
 		this.beginDraw(this.getTexture(i));
 		var x1 = x;
 		var y1 = y;
 		var w = i.width;
 		var h = i.height;
 		var pos = this.drawPos >> 2;
-		this.curDraw[this.drawPos++] = x1 * _g.scaleX;
-		this.curDraw[this.drawPos++] = y1 * _g.scaleY;
-		this.curDraw[this.drawPos++] = (function($this) {
-			var $r;
-			var v = i.originX;
-			$r = (v + 0.001) / _g.curTexture.width;
-			return $r;
-		}(this));
-		this.curDraw[this.drawPos++] = (function($this) {
-			var $r;
-			var v1 = i.originY;
-			$r = v1 / _g.curTexture.height;
-			return $r;
-		}(this));
-		this.curDraw[this.drawPos++] = (x1 + w) * _g.scaleX;
-		this.curDraw[this.drawPos++] = y1 * _g.scaleY;
-		this.curDraw[this.drawPos++] = (function($this) {
-			var $r;
-			var v2 = i.originX + i.width;
-			$r = v2 / _g.curTexture.width;
-			return $r;
-		}(this));
-		this.curDraw[this.drawPos++] = (function($this) {
-			var $r;
-			var v3 = i.originY;
-			$r = v3 / _g.curTexture.height;
-			return $r;
-		}(this));
-		this.curDraw[this.drawPos++] = x1 * _g.scaleX;
-		this.curDraw[this.drawPos++] = (y1 + h) * _g.scaleY;
-		this.curDraw[this.drawPos++] = (function($this) {
-			var $r;
-			var v4 = i.originX;
-			$r = (v4 + 0.001) / _g.curTexture.width;
-			return $r;
-		}(this));
-		this.curDraw[this.drawPos++] = (function($this) {
-			var $r;
-			var v5 = i.originY + i.height;
-			$r = (v5 + -0.01) / _g.curTexture.height;
-			return $r;
-		}(this));
-		this.curDraw[this.drawPos++] = (x1 + w) * _g.scaleX;
-		this.curDraw[this.drawPos++] = (y1 + h) * _g.scaleY;
-		this.curDraw[this.drawPos++] = (function($this) {
-			var $r;
-			var v6 = i.originX + i.width;
-			$r = v6 / _g.curTexture.width;
-			return $r;
-		}(this));
-		this.curDraw[this.drawPos++] = (function($this) {
-			var $r;
-			var v7 = i.originY + i.height;
-			$r = (v7 + -0.01) / _g.curTexture.height;
-			return $r;
-		}(this));
+		this.curDraw[this.drawPos++] = x1 * _gthis.scaleX;
+		this.curDraw[this.drawPos++] = y1 * _gthis.scaleY;
+		var tmp = (i.originX + 0.001) / _gthis.curTexture.width;
+		this.curDraw[this.drawPos++] = tmp;
+		var tmp1 = i.originY / _gthis.curTexture.height;
+		this.curDraw[this.drawPos++] = tmp1;
+		this.curDraw[this.drawPos++] = (x1 + w) * _gthis.scaleX;
+		this.curDraw[this.drawPos++] = y1 * _gthis.scaleY;
+		var tmp2 = (i.originX + i.width) / _gthis.curTexture.width;
+		this.curDraw[this.drawPos++] = tmp2;
+		var tmp3 = i.originY / _gthis.curTexture.height;
+		this.curDraw[this.drawPos++] = tmp3;
+		this.curDraw[this.drawPos++] = x1 * _gthis.scaleX;
+		this.curDraw[this.drawPos++] = (y1 + h) * _gthis.scaleY;
+		var tmp4 = (i.originX + 0.001) / _gthis.curTexture.width;
+		this.curDraw[this.drawPos++] = tmp4;
+		var tmp5 = (i.originY + i.height + -0.01) / _gthis.curTexture.height;
+		this.curDraw[this.drawPos++] = tmp5;
+		this.curDraw[this.drawPos++] = (x1 + w) * _gthis.scaleX;
+		this.curDraw[this.drawPos++] = (y1 + h) * _gthis.scaleY;
+		var tmp6 = (i.originX + i.width) / _gthis.curTexture.width;
+		this.curDraw[this.drawPos++] = tmp6;
+		var tmp7 = (i.originY + i.height + -0.01) / _gthis.curTexture.height;
+		this.curDraw[this.drawPos++] = tmp7;
 		this.curIndex[this.indexPos++] = pos;
 		this.curIndex[this.indexPos++] = pos + 1;
 		this.curIndex[this.indexPos++] = pos + 2;
 		this.curIndex[this.indexPos++] = pos + 1;
 		this.curIndex[this.indexPos++] = pos + 3;
 		this.curIndex[this.indexPos++] = pos + 2;
-		if(this.indexPos > 65500) this.endDraw();
+		if(this.indexPos > 65500) {
+			this.endDraw();
+		}
 	}
 	,endDraw: function() {
-		var _g = this;
-		if(this.curTexture == null || this.indexPos == 0) return;
+		var _gthis = this;
+		if(this.curTexture == null || this.indexPos == 0) {
+			return;
+		}
 		var index = this.gl.createBuffer();
 		var vertex = this.gl.createBuffer();
 		this.gl.bindBuffer(34962,vertex);
@@ -12656,15 +13722,15 @@ lvl_Image3D.prototype = $extend(lvl_Image.prototype,{
 		var curTexture = this.curTexture;
 		var indexPos = this.indexPos;
 		this.drawCommands.push(function() {
-			_g.gl.bindBuffer(34962,vertex);
-			_g.gl.bindBuffer(34963,index);
-			_g.gl.vertexAttribPointer(_g.attribPos,2,5126,false,16,0);
-			_g.gl.vertexAttribPointer(_g.attribUV,2,5126,false,16,8);
-			_g.gl.activeTexture(33984);
-			_g.gl.uniform1i(_g.uniTex,0);
-			_g.gl.uniform1f(_g.uniAlpha,alpha);
-			_g.gl.bindTexture(3553,curTexture);
-			_g.gl.drawElements(4,indexPos,5123,0);
+			_gthis.gl.bindBuffer(34962,vertex);
+			_gthis.gl.bindBuffer(34963,index);
+			_gthis.gl.vertexAttribPointer(_gthis.attribPos,2,5126,false,16,0);
+			_gthis.gl.vertexAttribPointer(_gthis.attribUV,2,5126,false,16,8);
+			_gthis.gl.activeTexture(33984);
+			_gthis.gl.uniform1i(_gthis.uniTex,0);
+			_gthis.gl.uniform1f(_gthis.uniAlpha,alpha);
+			_gthis.gl.bindTexture(3553,curTexture);
+			_gthis.gl.drawElements(4,indexPos,5123,0);
 		});
 		this.allocatedBuffers.push(index);
 		this.allocatedBuffers.push(vertex);
@@ -12682,20 +13748,20 @@ lvl_Image3D.prototype = $extend(lvl_Image.prototype,{
 		this.scaleY = this.zoom / 2048 * -2;
 	}
 	,fill: function(color) {
-		var _g = this;
+		var _gthis = this;
 		this.gl.clearColor((color >> 16 & 255) / 255,(color >> 8 & 255) / 255,(color & 255) / 255,(color >>> 24) / 255);
 		if(this.allocatedBuffers != null) {
-			var _g1 = 0;
-			var _g11 = this.allocatedBuffers;
-			while(_g1 < _g11.length) {
-				var b = _g11[_g1];
-				++_g1;
+			var _g = 0;
+			var _g1 = this.allocatedBuffers;
+			while(_g < _g1.length) {
+				var b = _g1[_g];
+				++_g;
 				this.gl.deleteBuffer(b);
 			}
 		}
 		this.allocatedBuffers = [];
 		this.drawCommands = [function() {
-			_g.gl.clear(16384);
+			_gthis.gl.clear(16384);
 		}];
 	}
 	,fillRect: function(x,y,w,h,color) {
@@ -12705,19 +13771,23 @@ lvl_Image3D.prototype = $extend(lvl_Image.prototype,{
 		this.draw(i,x,y);
 	}
 	,flush: function() {
-		var _g = this;
+		var _gthis = this;
 		this.endDraw();
 		this.drawCommands.push(function() {
-			_g.gl.bindBuffer(34962,null);
-			_g.gl.bindBuffer(34963,null);
-			_g.gl.bindTexture(3553,null);
-			_g.gl.finish();
+			_gthis.gl.bindBuffer(34962,null);
+			_gthis.gl.bindBuffer(34963,null);
+			_gthis.gl.bindTexture(3553,null);
+			_gthis.gl.finish();
 		});
 		this.redraw();
 	}
 	,setScrollPos: function(x,y) {
-		if(y == null) y = 0;
-		if(x == null) x = 0;
+		if(y == null) {
+			y = 0;
+		}
+		if(x == null) {
+			x = 0;
+		}
 		this.scrollX = x;
 		this.scrollY = y;
 		this.redraw();
@@ -12758,7 +13828,7 @@ $hxClasses["lvl.LayerGfx"] = lvl_LayerGfx;
 lvl_LayerGfx.__name__ = ["lvl","LayerGfx"];
 lvl_LayerGfx.prototype = {
 	fromSheet: function(sheet,defColor) {
-		var _g5 = this;
+		var _gthis = this;
 		this.blanks = [];
 		if(sheet == null) {
 			this.colors = [defColor];
@@ -12772,30 +13842,22 @@ lvl_LayerGfx.prototype = {
 		while(_g < _g1.length) {
 			var c = _g1[_g];
 			++_g;
-			var _g2 = c.type;
-			switch(_g2[1]) {
-			case 11:
-				var _g3 = [];
-				var _g4 = 0;
-				var _g51 = sheet.lines;
-				while(_g4 < _g51.length) {
-					var o = _g51[_g4];
-					++_g4;
-					var tmp;
-					var c1 = Reflect.field(o,c.name);
-					if(c1 == null) tmp = 0; else tmp = c1;
-					_g3.push(tmp);
-				}
-				this.colors = _g3;
+			switch(c.type[1]) {
+			case 0:
+				idCol = c;
 				break;
 			case 7:
-				if(this.images == null) this.images = [];
+				if(this.images == null) {
+					this.images = [];
+				}
 				var size = [this.level.tileSize];
-				var _g41 = 0;
-				var _g31 = sheet.lines.length;
-				while(_g41 < _g31) {
-					var idx = [_g41++];
-					if(imageTags[idx[0]]) continue;
+				var _g3 = 0;
+				var _g2 = sheet.lines.length;
+				while(_g3 < _g2) {
+					var idx = [_g3++];
+					if(imageTags[idx[0]]) {
+						continue;
+					}
 					var key = Reflect.field(sheet.lines[idx[0]],c.name);
 					var idat = this.level.model.getImageData(key);
 					if(idat == null) {
@@ -12809,22 +13871,40 @@ lvl_LayerGfx.prototype = {
 					lvl_Image.load(idat,(function(idx1,size1) {
 						return function(i1) {
 							i1.resize(size1[0],size1[0]);
-							_g5.images[idx1[0]] = i1;
-							_g5.level.waitDone();
+							_gthis.images[idx1[0]] = i1;
+							_gthis.level.waitDone();
 						};
 					})(idx,size));
 				}
 				break;
+			case 11:
+				var _g21 = [];
+				var _g31 = 0;
+				var _g4 = sheet.lines;
+				while(_g31 < _g4.length) {
+					var o = _g4[_g31];
+					++_g31;
+					var c1 = Reflect.field(o,c.name);
+					_g21.push(c1 == null?0:c1);
+				}
+				this.colors = _g21;
+				break;
 			case 14:
-				if(this.images == null) this.images = [];
+				if(this.images == null) {
+					this.images = [];
+				}
 				var size2 = this.level.tileSize;
-				var _g42 = 0;
-				var _g32 = sheet.lines.length;
-				while(_g42 < _g32) {
-					var idx2 = [_g42++];
-					if(imageTags[idx2[0]]) continue;
+				var _g32 = 0;
+				var _g22 = sheet.lines.length;
+				while(_g32 < _g22) {
+					var idx2 = [_g32++];
+					if(imageTags[idx2[0]]) {
+						continue;
+					}
 					var data = [Reflect.field(sheet.lines[idx2[0]],c.name)];
-					if(data[0] == null && this.images[idx2[0]] != null) continue;
+					if(data[0] == null && this.images[idx2[0]] != null) {
+						continue;
+					}
 					if(data[0] == null) {
 						var i2 = new lvl_Image(size2,size2);
 						i2.text("#" + idx2[0],0,12);
@@ -12833,24 +13913,21 @@ lvl_LayerGfx.prototype = {
 					}
 					this.level.wait();
 					imageTags[idx2[0]] = true;
-					lvl_Image.load(this.level.model.getAbsPath(data[0].file),(function(data2,idx3) {
+					lvl_Image.load(this.level.model.getAbsPath(data[0].file),(function(data1,idx3) {
 						return function(i3) {
-							var i23 = i3.sub(data2[0].x * data2[0].size,data2[0].y * data2[0].size,data2[0].size * (data2[0].width == null?1:data2[0].width),data2[0].size * (data2[0].height == null?1:data2[0].height));
-							_g5.images[idx3[0]] = i23;
-							_g5.blanks[idx3[0]] = i23.isBlank();
-							_g5.level.waitDone();
+							var i21 = i3.sub(data1[0].x * data1[0].size,data1[0].y * data1[0].size,data1[0].size * (data1[0].width == null?1:data1[0].width),data1[0].size * (data1[0].height == null?1:data1[0].height));
+							_gthis.images[idx3[0]] = i21;
+							_gthis.blanks[idx3[0]] = i21.isBlank();
+							_gthis.level.waitDone();
 						};
 					})(data,idx2));
-					this.level.watch(data[0].file,(function(data3) {
+					this.level.watch(data[0].file,(function(data2) {
 						return function() {
-							lvl_Image.clearCache(_g5.level.model.getAbsPath(data3[0].file));
-							_g5.level.reload();
+							lvl_Image.clearCache(_gthis.level.model.getAbsPath(data2[0].file));
+							_gthis.level.reload();
 						};
 					})(data));
 				}
-				break;
-			case 0:
-				idCol = c;
 				break;
 			default:
 			}
@@ -12860,19 +13937,27 @@ lvl_LayerGfx.prototype = {
 		this.height = Math.ceil(sheet.lines.length / this.stride);
 		this.idToIndex = new haxe_ds_StringMap();
 		this.indexToId = [];
-		var _g13 = 0;
-		var _g6 = sheet.lines.length;
-		while(_g13 < _g6) {
-			var index = _g13++;
-			var o6 = sheet.lines[index];
-			var n = sheet.props.displayColumn != null?Reflect.field(o6,sheet.props.displayColumn):null;
-			if((n == null || n == "") && idCol != null) n = Reflect.field(o6,idCol.name);
-			if(n == null || n == "") n = "#" + index;
+		var _g11 = 0;
+		var _g5 = sheet.lines.length;
+		while(_g11 < _g5) {
+			var index = _g11++;
+			var o1 = sheet.lines[index];
+			var n = sheet.props.displayColumn != null?Reflect.field(o1,sheet.props.displayColumn):null;
+			if((n == null || n == "") && idCol != null) {
+				n = Reflect.field(o1,idCol.name);
+			}
+			if(n == null || n == "") {
+				n = "#" + index;
+			}
 			if(idCol != null) {
-				var id = Reflect.field(o6,idCol.name);
+				var id = Reflect.field(o1,idCol.name);
 				if(id != null && id != "") {
 					var _this = this.idToIndex;
-					if(__map_reserved[id] != null) _this.setReserved(id,index); else _this.h[id] = index;
+					if(__map_reserved[id] != null) {
+						_this.setReserved(id,index);
+					} else {
+						_this.h[id] = index;
+					}
 				}
 				this.indexToId[index] = id;
 			}
@@ -12905,7 +13990,9 @@ lvl_LayerData.prototype = $extend(lvl_LayerGfx.prototype,{
 				var o = _g1[_g];
 				++_g;
 				var props = o.props;
-				if(props == null) continue;
+				if(props == null) {
+					continue;
+				}
 				var _g2 = 0;
 				var _g3 = props.layers;
 				while(_g2 < _g3.length) {
@@ -12917,7 +14004,9 @@ lvl_LayerData.prototype = $extend(lvl_LayerGfx.prototype,{
 						break;
 					}
 				}
-				if(props == null) break;
+				if(props == null) {
+					break;
+				}
 			}
 		}
 		this.sheet = sheet;
@@ -12925,7 +14014,11 @@ lvl_LayerData.prototype = $extend(lvl_LayerGfx.prototype,{
 		this.loadState();
 	}
 	,enabled: function() {
-		if(this.visible) return !this.lock; else return false;
+		if(this.visible) {
+			return !this.lock;
+		} else {
+			return false;
+		}
 	}
 	,loadState: function() {
 		var state;
@@ -12954,49 +14047,60 @@ lvl_LayerData.prototype = $extend(lvl_LayerGfx.prototype,{
 			var _g2 = 0;
 			var _g1 = this.level.width * this.level.height;
 			while(_g2 < _g1) {
-				var x = _g2++;
+				++_g2;
 				_g.push(0);
 			}
 			this.data = lvl_LayerInnerData.Layer(_g);
 		} else {
 			var a = cdb_Lz4Reader.decodeString(val);
-			if(a.length != this.level.width * this.level.height) throw new js__$Boot_HaxeError("Invalid layer data");
+			if(a.length != this.level.width * this.level.height) {
+				throw new js__$Boot_HaxeError("Invalid layer data");
+			}
 			var _g11 = [];
 			var _g3 = 0;
 			var _g21 = this.level.width * this.level.height;
-			while(_g3 < _g21) {
-				var i = _g3++;
-				_g11.push(a.b[i]);
-			}
+			while(_g3 < _g21) _g11.push(a.b[_g3++]);
 			this.data = lvl_LayerInnerData.Layer(_g11);
 		}
-		if(this.sheet.lines.length > 256) throw new js__$Boot_HaxeError("Too many lines");
+		if(this.sheet.lines.length > 256) {
+			throw new js__$Boot_HaxeError("Too many lines");
+		}
 	}
 	,getTileProp: function(mode) {
-		if(this.tileProps == null) return null;
+		if(this.tileProps == null) {
+			return null;
+		}
 		var _g = 0;
 		var _g1 = this.tileProps.sets;
 		while(_g < _g1.length) {
 			var s = _g1[_g];
 			++_g;
-			if(s.x + s.y * this.stride == this.current && s.t == mode) return s;
+			if(s.x + s.y * this.stride == this.current && s.t == mode) {
+				return s;
+			}
 		}
 		return null;
 	}
 	,getTileObjects: function() {
 		var objs = new haxe_ds_IntMap();
-		if(this.tileProps == null) return objs;
+		if(this.tileProps == null) {
+			return objs;
+		}
 		var _g = 0;
 		var _g1 = this.tileProps.sets;
 		while(_g < _g1.length) {
 			var o = _g1[_g];
 			++_g;
-			if(o.t == "object") objs.h[o.x + o.y * this.stride] = o;
+			if(o.t == "object") {
+				objs.h[o.x + o.y * this.stride] = o;
+			}
 		}
 		return objs;
 	}
 	,getSelObjects: function() {
-		if(this.tileProps == null) return [];
+		if(this.tileProps == null) {
+			return [];
+		}
 		var x = this.current % this.stride;
 		var y = this.current / this.stride | 0;
 		var out = [];
@@ -13005,7 +14109,9 @@ lvl_LayerData.prototype = $extend(lvl_LayerGfx.prototype,{
 		while(_g < _g1.length) {
 			var o = _g1[_g];
 			++_g;
-			if(o.t == "object" && !(o.x >= x + this.currentWidth || o.y >= y + this.currentHeight || o.x + o.w <= x || o.y + o.h <= y)) out.push(o);
+			if(o.t == "object" && !(o.x >= x + this.currentWidth || o.y >= y + this.currentHeight || o.x + o.w <= x || o.y + o.h <= y)) {
+				out.push(o);
+			}
 		}
 		return out;
 	}
@@ -13013,112 +14119,132 @@ lvl_LayerData.prototype = $extend(lvl_LayerGfx.prototype,{
 		this.data = lvl_LayerInnerData.Objects(id,val);
 	}
 	,setTilesData: function(val) {
-		var _g1 = this;
+		var _gthis = this;
 		var file = val == null?null:val.file;
 		var size = val == null?16:val.size;
 		var data;
 		if(val == null) {
 			var _g = [];
 			var _g2 = 0;
-			var _g11 = this.level.width * this.level.height;
-			while(_g2 < _g11) {
-				var i = _g2++;
+			var _g1 = this.level.width * this.level.height;
+			while(_g2 < _g1) {
+				++_g2;
 				_g.push(0);
 			}
 			data = _g;
-		} else data = cdb__$Types_TileLayerData_$Impl_$.decode(val.data);
+		} else {
+			data = cdb__$Types_TileLayerData_$Impl_$.decode(val.data);
+		}
 		var stride = val == null?0:val.stride;
 		var d = { file : file, size : size, stride : stride};
 		this.images = [];
 		this.data = lvl_LayerInnerData.Tiles(d,data);
 		if(file == null) {
-			if(this.props.mode != "tiles" && this.props.mode != null) Reflect.deleteField(this.props,"mode");
-			var i1 = new lvl_Image(16,16);
-			i1.fill(-65281);
-			this.images.push(i1);
+			if(this.props.mode != "tiles" && this.props.mode != null) {
+				Reflect.deleteField(this.props,"mode");
+			}
+			var i = new lvl_Image(16,16);
+			i.fill(-65281);
+			this.images.push(i);
 			this.loadState();
 			return;
 		}
 		this.level.wait();
 		this.level.loadAndSplit(file,size,function(w,h,images,blanks) {
-			_g1.images = images;
-			_g1.blanks = blanks;
-			if(data[0] == 65535) _g1.props.mode = "objects";
-			var _g21 = _g1.props.mode;
-			if(_g21 == null) {
-				var max = w * h;
-				var _g4 = 0;
-				var _g3 = data.length;
-				while(_g4 < _g3) {
-					var i2 = _g4++;
-					var v = data[i2] - 1;
-					if(v < 0) continue;
+			_gthis.images = images;
+			_gthis.blanks = blanks;
+			if(data[0] == 65535) {
+				_gthis.props.mode = "objects";
+			}
+			var _g11 = _gthis.props.mode;
+			if(_g11 == null) {
+				var _g21 = 0;
+				var _g12 = data.length;
+				while(_g21 < _g12) {
+					var i1 = _g21++;
+					var v = data[i1] - 1;
+					if(v < 0) {
+						continue;
+					}
 					var vx = v % stride;
 					var vy = v / stride | 0;
 					var v2 = vx + vy * w;
-					if(vx >= w || vy >= h || blanks[v2]) v2 = -1;
+					if(vx >= w || vy >= h || blanks[v2]) {
+						v2 = -1;
+					}
 					if(v != v2) {
-						data[i2] = v2 + 1;
-						_g1.dirty = true;
+						data[i1] = v2 + 1;
+						_gthis.dirty = true;
 					}
 				}
-			} else switch(_g21) {
-			case "tiles":case "ground":
-				var max2 = w * h;
-				var _g42 = 0;
-				var _g32 = data.length;
-				while(_g42 < _g32) {
-					var i3 = _g42++;
-					var v3 = data[i3] - 1;
-					if(v3 < 0) continue;
-					var vx3 = v3 % stride;
-					var vy3 = v3 / stride | 0;
-					var v23 = vx3 + vy3 * w;
-					if(vx3 >= w || vy3 >= h || blanks[v23]) v23 = -1;
-					if(v3 != v23) {
-						data[i3] = v23 + 1;
-						_g1.dirty = true;
+			} else {
+				switch(_g11) {
+				case "ground":case "tiles":
+					var _g22 = 0;
+					var _g13 = data.length;
+					while(_g22 < _g13) {
+						var i2 = _g22++;
+						var v1 = data[i2] - 1;
+						if(v1 < 0) {
+							continue;
+						}
+						var vx1 = v1 % stride;
+						var vy1 = v1 / stride | 0;
+						var v21 = vx1 + vy1 * w;
+						if(vx1 >= w || vy1 >= h || blanks[v21]) {
+							v21 = -1;
+						}
+						if(v1 != v21) {
+							data[i2] = v21 + 1;
+							_gthis.dirty = true;
+						}
 					}
-				}
-				break;
-			case "objects":
-				var insts = [];
-				var p = 1;
-				if(data[0] != 65535) throw new js__$Boot_HaxeError("assert");
-				while(p < data.length) {
-					var x = data[p++];
-					var y = data[p++];
-					var v4 = data[p++];
-					var flip = (v4 & 32768) != 0;
-					var rot = x >> 15 | y >> 15 << 1;
-					v4 &= 32767;
-					var x4 = (x & 32767) / _g1.level.tileSize;
-					var y4 = (y & 32767) / _g1.level.tileSize;
-					var vx4 = v4 % stride;
-					var vy4 = v4 / stride | 0;
-					var v24 = vx4 + vy4 * w;
-					if(vx4 >= w || vy4 >= h || x4 >= _g1.level.width || y4 >= _g1.level.height) {
-						_g1.dirty = true;
-						continue;
+					break;
+				case "objects":
+					var insts = [];
+					var p = 1;
+					if(data[0] != 65535) {
+						throw new js__$Boot_HaxeError("assert");
 					}
-					if(v4 != v24) _g1.dirty = true;
-					insts.push({ x : x4, y : y4, o : v24, flip : flip, rot : rot});
+					while(p < data.length) {
+						var x = data[p++];
+						var y = data[p++];
+						var v3 = data[p++];
+						var flip = (v3 & 32768) != 0;
+						var rot = x >> 15 | y >> 15 << 1;
+						v3 &= 32767;
+						var x1 = (x & 32767) / _gthis.level.tileSize;
+						var y1 = (y & 32767) / _gthis.level.tileSize;
+						var vx2 = v3 % stride;
+						var vy2 = v3 / stride | 0;
+						var v22 = vx2 + vy2 * w;
+						if(vx2 >= w || vy2 >= h || x1 >= _gthis.level.width || y1 >= _gthis.level.height) {
+							_gthis.dirty = true;
+							continue;
+						}
+						if(v3 != v22) {
+							_gthis.dirty = true;
+						}
+						insts.push({ x : x1, y : y1, o : v22, flip : flip, rot : rot});
+					}
+					_gthis.data = lvl_LayerInnerData.TileInstances(d,insts);
+					_gthis.hasRotFlip = true;
+					_gthis.hasFloatCoord = _gthis.floatCoord = true;
+					break;
 				}
-				_g1.data = lvl_LayerInnerData.TileInstances(d,insts);
-				_g1.hasRotFlip = true;
-				_g1.hasFloatCoord = _g1.floatCoord = true;
-				break;
 			}
-			_g1.stride = d.stride = w;
-			_g1.height = h;
-			_g1.tileProps = _g1.level.palette.getTileProps(file,w,w * h);
-			_g1.loadState();
-			_g1.level.waitDone();
+			_gthis.stride = d.stride = w;
+			_gthis.height = h;
+			_gthis.tileProps = _gthis.level.palette.getTileProps(file,w,w * h);
+			_gthis.loadState();
+			_gthis.level.waitDone();
 		});
 	}
 	,set_visible: function(v) {
 		this.visible = v;
-		if(this.comp != null) this.comp.toggleClass("hidden",!this.visible);
+		if(this.comp != null) {
+			this.comp.toggleClass("hidden",!this.visible);
+		}
 		return v;
 	}
 	,set_current: function(v) {
@@ -13129,35 +14255,43 @@ lvl_LayerData.prototype = $extend(lvl_LayerGfx.prototype,{
 		return v;
 	}
 	,setCurrent: function(id,w,h) {
-		if(this.current == id && this.currentWidth == w && this.currentHeight == h) return;
+		if(this.current == id && this.currentWidth == w && this.currentHeight == h) {
+			return;
+		}
 		this.current = id;
 		this.currentWidth = w;
 		this.currentHeight = h;
 		this.saveState(false);
 	}
 	,saveState: function(sync) {
-		if(sync == null) sync = true;
-		if(!this.stateLoaded) return;
+		if(sync == null) {
+			sync = true;
+		}
+		if(!this.stateLoaded) {
+			return;
+		}
 		if(sync && this.data != null) {
 			var _g = this.data;
 			switch(_g[1]) {
 			case 2:
 				var t = _g[2];
 				var _g1 = 0;
-				var _g2 = this.level.layers;
-				while(_g1 < _g2.length) {
-					var l = _g2[_g1];
+				var _g11 = this.level.layers;
+				while(_g1 < _g11.length) {
+					var l = _g11[_g1];
 					++_g1;
 					if(l != this) {
-						var _g3 = l.data;
-						switch(_g3[1]) {
+						var _g2 = l.data;
+						switch(_g2[1]) {
 						case 2:
-							var t2 = _g3[2];
-							if(t2.file == t.file) l.setCurrent(this.current,this.currentWidth,this.currentHeight);
+							if(_g2[2].file == t.file) {
+								l.setCurrent(this.current,this.currentWidth,this.currentHeight);
+							}
 							break;
 						case 3:
-							var t21 = _g3[2];
-							if(t21.file == t.file) l.setCurrent(this.current,this.currentWidth,this.currentHeight);
+							if(_g2[2].file == t.file) {
+								l.setCurrent(this.current,this.currentWidth,this.currentHeight);
+							}
 							break;
 						default:
 						}
@@ -13166,21 +14300,23 @@ lvl_LayerData.prototype = $extend(lvl_LayerGfx.prototype,{
 				break;
 			case 3:
 				var t1 = _g[2];
-				var _g11 = 0;
-				var _g21 = this.level.layers;
-				while(_g11 < _g21.length) {
-					var l1 = _g21[_g11];
-					++_g11;
+				var _g3 = 0;
+				var _g12 = this.level.layers;
+				while(_g3 < _g12.length) {
+					var l1 = _g12[_g3];
+					++_g3;
 					if(l1 != this) {
-						var _g31 = l1.data;
-						switch(_g31[1]) {
+						var _g21 = l1.data;
+						switch(_g21[1]) {
 						case 2:
-							var t22 = _g31[2];
-							if(t22.file == t1.file) l1.setCurrent(this.current,this.currentWidth,this.currentHeight);
+							if(_g21[2].file == t1.file) {
+								l1.setCurrent(this.current,this.currentWidth,this.currentHeight);
+							}
 							break;
 						case 3:
-							var t23 = _g31[2];
-							if(t23.file == t1.file) l1.setCurrent(this.current,this.currentWidth,this.currentHeight);
+							if(_g21[2].file == t1.file) {
+								l1.setCurrent(this.current,this.currentWidth,this.currentHeight);
+							}
 							break;
 						default:
 						}
@@ -13194,7 +14330,9 @@ lvl_LayerData.prototype = $extend(lvl_LayerGfx.prototype,{
 		js_Browser.getLocalStorage().setItem(this.level.sheetPath + ":" + this.name,haxe_Serializer.run(s));
 	}
 	,save: function() {
-		if(!this.dirty) return;
+		if(!this.dirty) {
+			return;
+		}
 		this.dirty = false;
 		this.targetObj.o[this.targetObj.f] = this.getData();
 	}
@@ -13205,48 +14343,52 @@ lvl_LayerData.prototype = $extend(lvl_LayerGfx.prototype,{
 			var data = _g[2];
 			var b = new haxe_io_Bytes(new ArrayBuffer(this.level.width * this.level.height));
 			var p = 0;
-			var _g2 = 0;
-			var _g1 = this.level.height;
-			while(_g2 < _g1) {
-				var y = _g2++;
-				var _g4 = 0;
-				var _g3 = this.level.width;
-				while(_g4 < _g3) {
-					var x = _g4++;
+			var _g1 = 0;
+			var _g2 = this.level.height;
+			while(_g1 < _g2) {
+				++_g1;
+				var _g3 = 0;
+				var _g21 = this.level.width;
+				while(_g3 < _g21) {
+					++_g3;
 					b.b[p] = data[p] & 255;
 					++p;
 				}
 			}
 			return cdb_Lz4Reader.encodeBytes(b,this.level.model.compressionEnabled());
 		case 1:
-			var objs = _g[3];
-			return objs;
+			return _g[3];
 		case 2:
 			var data1 = _g[3];
 			var t = _g[2];
 			var b1 = new haxe_io_BytesOutput();
-			var _g21 = 0;
-			var _g11 = data1.length;
-			while(_g21 < _g11) {
-				var r = _g21++;
-				b1.writeUInt16(data1[r]);
+			var _g11 = 0;
+			var _g4 = data1.length;
+			while(_g11 < _g4) b1.writeUInt16(data1[_g11++]);
+			if(t.file == null) {
+				return null;
+			} else {
+				return { file : t.file, size : t.size, stride : t.stride, data : cdb_Lz4Reader.encodeBytes(b1.getBytes(),this.level.model.compressionEnabled())};
 			}
-			if(t.file == null) return null; else return { file : t.file, size : t.size, stride : t.stride, data : cdb_Lz4Reader.encodeBytes(b1.getBytes(),this.level.model.compressionEnabled())};
 			break;
 		case 3:
 			var insts = _g[3];
 			var t1 = _g[2];
 			var b2 = new haxe_io_BytesOutput();
 			b2.writeUInt16(65535);
-			var _g12 = 0;
-			while(_g12 < insts.length) {
-				var i = insts[_g12];
-				++_g12;
+			var _g5 = 0;
+			while(_g5 < insts.length) {
+				var i = insts[_g5];
+				++_g5;
 				b2.writeUInt16(i.x * this.level.tileSize | 0 | (i.rot & 1) << 15);
 				b2.writeUInt16(i.y * this.level.tileSize | 0 | i.rot >> 1 << 15);
 				b2.writeUInt16(i.o | (i.flip?1:0) << 15);
 			}
-			if(t1.file == null) return null; else return { file : t1.file, size : t1.size, stride : t1.stride, data : cdb_Lz4Reader.encodeBytes(b2.getBytes(),this.level.model.compressionEnabled())};
+			if(t1.file == null) {
+				return null;
+			} else {
+				return { file : t1.file, size : t1.size, stride : t1.stride, data : cdb_Lz4Reader.encodeBytes(b2.getBytes(),this.level.model.compressionEnabled())};
+			}
 			break;
 		}
 	}
@@ -13255,78 +14397,74 @@ lvl_LayerData.prototype = $extend(lvl_LayerGfx.prototype,{
 		var height = this.level.height;
 		var _g = this.data;
 		switch(_g[1]) {
-		case 2:
-			var data = _g[3];
-			var ndata = [];
-			var _g2 = 0;
-			var _g1 = height;
-			while(_g2 < _g1) {
-				var y = _g2++;
-				var _g4 = 0;
-				var _g3 = width;
-				while(_g4 < _g3) {
-					var x = _g4++;
-					var tx = x / s | 0;
-					var ty = y / s | 0;
-					var k = tx >= width || ty >= height?0:data[tx + ty * width];
-					ndata.push(k);
-				}
-			}
-			var _g21 = 0;
-			var _g11 = width * height;
-			while(_g21 < _g11) {
-				var i = _g21++;
-				data[i] = ndata[i];
-			}
-			break;
 		case 0:
-			var data1 = _g[2];
-			var ndata1 = [];
-			var _g22 = 0;
-			var _g12 = height;
-			while(_g22 < _g12) {
-				var y2 = _g22++;
-				var _g42 = 0;
-				var _g32 = width;
-				while(_g42 < _g32) {
-					var x2 = _g42++;
-					var tx2 = x2 / s | 0;
-					var ty2 = y2 / s | 0;
-					var k2 = tx2 >= width || ty2 >= height?0:data1[tx2 + ty2 * width];
-					ndata1.push(k2);
+			var data = _g[2];
+			var ndata = [];
+			var _g1 = 0;
+			while(_g1 < height) {
+				var y = _g1++;
+				var _g3 = 0;
+				while(_g3 < width) {
+					var tx = _g3++ / s | 0;
+					var ty = y / s | 0;
+					ndata.push(tx >= width || ty >= height?0:data[tx + ty * width]);
 				}
 			}
-			var _g23 = 0;
-			var _g13 = width * height;
-			while(_g23 < _g13) {
-				var i3 = _g23++;
-				data1[i3] = ndata1[i3];
+			var _g11 = 0;
+			var _g2 = width * height;
+			while(_g11 < _g2) {
+				var i = _g11++;
+				data[i] = ndata[i];
 			}
 			break;
 		case 1:
 			var objs = _g[3];
 			var m = this.floatCoord?this.level.tileSize:1;
-			var _g14 = 0;
-			var _g24 = objs.slice();
-			while(_g14 < _g24.length) {
-				var o = _g24[_g14];
-				++_g14;
+			var _g4 = 0;
+			var _g12 = objs.slice();
+			while(_g4 < _g12.length) {
+				var o = _g12[_g4];
+				++_g4;
 				o.x = (o.x * s * m | 0) / m;
 				o.y = (o.y * s * m | 0) / m;
-				if(o.x < 0 || o.y < 0 || o.x >= width || o.y >= height) HxOverrides.remove(objs,o);
+				if(o.x < 0 || o.y < 0 || o.x >= width || o.y >= height) {
+					HxOverrides.remove(objs,o);
+				}
+			}
+			break;
+		case 2:
+			var data1 = _g[3];
+			var ndata1 = [];
+			var _g13 = 0;
+			while(_g13 < height) {
+				var y1 = _g13++;
+				var _g31 = 0;
+				while(_g31 < width) {
+					var tx1 = _g31++ / s | 0;
+					var ty1 = y1 / s | 0;
+					ndata1.push(tx1 >= width || ty1 >= height?0:data1[tx1 + ty1 * width]);
+				}
+			}
+			var _g14 = 0;
+			var _g5 = width * height;
+			while(_g14 < _g5) {
+				var i1 = _g14++;
+				data1[i1] = ndata1[i1];
 			}
 			break;
 		case 3:
 			var insts = _g[3];
-			var m4 = this.floatCoord?this.level.tileSize:1;
-			var _g15 = 0;
-			var _g25 = insts.slice();
-			while(_g15 < _g25.length) {
-				var i5 = _g25[_g15];
-				++_g15;
-				i5.x = (i5.x * s * m4 | 0) / m4;
-				i5.y = (i5.y * s * m4 | 0) / m4;
-				if(i5.x < 0 || i5.y < 0 || i5.x >= width || i5.y >= height) HxOverrides.remove(insts,i5);
+			var m1 = this.floatCoord?this.level.tileSize:1;
+			var _g6 = 0;
+			var _g15 = insts.slice();
+			while(_g6 < _g15.length) {
+				var i2 = _g15[_g6];
+				++_g6;
+				i2.x = (i2.x * s * m1 | 0) / m1;
+				i2.y = (i2.y * s * m1 | 0) / m1;
+				if(i2.x < 0 || i2.y < 0 || i2.x >= width || i2.y >= height) {
+					HxOverrides.remove(insts,i2);
+				}
 			}
 			break;
 		}
@@ -13336,149 +14474,157 @@ lvl_LayerData.prototype = $extend(lvl_LayerGfx.prototype,{
 		var height = this.level.height;
 		var _g = this.data;
 		switch(_g[1]) {
-		case 2:
-			var data = _g[3];
-			var ndata = [];
-			var _g2 = 0;
-			var _g1 = height;
-			while(_g2 < _g1) {
-				var y = _g2++;
-				var _g4 = 0;
-				var _g3 = width;
-				while(_g4 < _g3) {
-					var x = _g4++;
-					var tx = x - dx;
-					var ty = y - dy;
-					var k = tx < 0 || ty < 0 || tx >= width || ty >= height?0:data[tx + ty * width];
-					ndata.push(k);
-				}
-			}
-			var _g21 = 0;
-			var _g11 = width * height;
-			while(_g21 < _g11) {
-				var i = _g21++;
-				data[i] = ndata[i];
-			}
-			break;
 		case 0:
-			var data1 = _g[2];
-			var ndata1 = [];
-			var _g22 = 0;
-			var _g12 = height;
-			while(_g22 < _g12) {
-				var y2 = _g22++;
-				var _g42 = 0;
-				var _g32 = width;
-				while(_g42 < _g32) {
-					var x2 = _g42++;
-					var tx2 = x2 - dx;
-					var ty2 = y2 - dy;
-					var k2 = tx2 < 0 || ty2 < 0 || tx2 >= width || ty2 >= height?0:data1[tx2 + ty2 * width];
-					ndata1.push(k2);
+			var data = _g[2];
+			var ndata = [];
+			var _g1 = 0;
+			while(_g1 < height) {
+				var y = _g1++;
+				var _g3 = 0;
+				while(_g3 < width) {
+					var tx = _g3++ - dx;
+					var ty = y - dy;
+					ndata.push(tx < 0 || ty < 0 || tx >= width || ty >= height?0:data[tx + ty * width]);
 				}
 			}
-			var _g23 = 0;
-			var _g13 = width * height;
-			while(_g23 < _g13) {
-				var i3 = _g23++;
-				data1[i3] = ndata1[i3];
+			var _g11 = 0;
+			var _g2 = width * height;
+			while(_g11 < _g2) {
+				var i = _g11++;
+				data[i] = ndata[i];
 			}
 			break;
 		case 1:
 			var objs = _g[3];
-			var _g14 = 0;
-			var _g24 = objs.slice();
-			while(_g14 < _g24.length) {
-				var o = _g24[_g14];
-				++_g14;
+			var _g4 = 0;
+			var _g12 = objs.slice();
+			while(_g4 < _g12.length) {
+				var o = _g12[_g4];
+				++_g4;
 				o.x += dx;
 				o.y += dy;
-				if(o.x < 0 || o.y < 0 || o.x >= width || o.y >= height) HxOverrides.remove(objs,o);
+				if(o.x < 0 || o.y < 0 || o.x >= width || o.y >= height) {
+					HxOverrides.remove(objs,o);
+				}
+			}
+			break;
+		case 2:
+			var data1 = _g[3];
+			var ndata1 = [];
+			var _g13 = 0;
+			while(_g13 < height) {
+				var y1 = _g13++;
+				var _g31 = 0;
+				while(_g31 < width) {
+					var tx1 = _g31++ - dx;
+					var ty1 = y1 - dy;
+					ndata1.push(tx1 < 0 || ty1 < 0 || tx1 >= width || ty1 >= height?0:data1[tx1 + ty1 * width]);
+				}
+			}
+			var _g14 = 0;
+			var _g5 = width * height;
+			while(_g14 < _g5) {
+				var i1 = _g14++;
+				data1[i1] = ndata1[i1];
 			}
 			break;
 		case 3:
 			var insts = _g[3];
-			var _g15 = 0;
-			var _g25 = insts.slice();
-			while(_g15 < _g25.length) {
-				var i5 = _g25[_g15];
-				++_g15;
-				i5.x += dx;
-				i5.y += dy;
-				if(i5.x < 0 || i5.y < 0 || i5.x >= width || i5.y >= height) HxOverrides.remove(insts,i5);
+			var _g6 = 0;
+			var _g15 = insts.slice();
+			while(_g6 < _g15.length) {
+				var i2 = _g15[_g6];
+				++_g6;
+				i2.x += dx;
+				i2.y += dy;
+				if(i2.x < 0 || i2.y < 0 || i2.x >= width || i2.y >= height) {
+					HxOverrides.remove(insts,i2);
+				}
 			}
 			break;
 		}
 	}
 	,setMode: function(mode) {
 		var old = this.props.mode;
-		if(old == null) old = "tiles";
+		if(old == null) {
+			old = "tiles";
+		}
 		var width = this.level.width;
 		var height = this.level.height;
 		switch(old) {
 		case "ground":case "tiles":
 			switch(mode) {
-			case "tiles":case "ground":
+			case "ground":case "tiles":
 				break;
 			case "objects":
 				var _g = this.data;
-				switch(_g[1]) {
-				case 2:
+				if(_g[1] == 2) {
 					var data = _g[3];
-					var td = _g[2];
 					var oids = new haxe_ds_IntMap();
-					var _g11 = 0;
-					var _g2 = this.tileProps.sets;
-					while(_g11 < _g2.length) {
-						var p1 = _g2[_g11];
-						++_g11;
-						if(p1.t == "object") oids.h[p1.x + p1.y * this.stride] = p1;
+					var _g1 = 0;
+					var _g11 = this.tileProps.sets;
+					while(_g1 < _g11.length) {
+						var p = _g11[_g1];
+						++_g1;
+						if(p.t == "object") {
+							oids.h[p.x + p.y * this.stride] = p;
+						}
 					}
 					var objs = [];
-					var p = -1;
-					var _g21 = 0;
-					var _g12 = height;
-					while(_g21 < _g12) {
-						var y = _g21++;
-						var _g4 = 0;
-						var _g3 = width;
-						while(_g4 < _g3) {
-							var x = _g4++;
-							var d = data[++p] - 1;
-							if(d < 0) continue;
+					var p1 = -1;
+					var _g12 = 0;
+					while(_g12 < height) {
+						var y = _g12++;
+						var _g3 = 0;
+						while(_g3 < width) {
+							var x = _g3++;
+							var d = data[++p1] - 1;
+							if(d < 0) {
+								continue;
+							}
 							var o = oids.h[d];
 							if(o != null) {
-								var _g6 = 0;
-								var _g5 = o.h;
-								while(_g6 < _g5) {
-									var dy = _g6++;
-									var _g8 = 0;
-									var _g7 = o.w;
-									while(_g8 < _g7) {
-										var dx = _g8++;
-										var tp = p + dx + dy * width;
-										if(x + dx >= width || y + dy >= height) continue;
+								var _g5 = 0;
+								var _g4 = o.h;
+								while(_g5 < _g4) {
+									var dy = _g5++;
+									var _g7 = 0;
+									var _g6 = o.w;
+									while(_g7 < _g6) {
+										var dx = _g7++;
+										var tp = p1 + dx + dy * width;
+										if(x + dx >= width || y + dy >= height) {
+											continue;
+										}
 										var id = d + dx + dy * this.stride;
 										if(data[tp] != id + 1) {
-											if(data[tp] == 0 && this.blanks[id]) continue;
+											if(data[tp] == 0 && this.blanks[id]) {
+												continue;
+											}
 											o = null;
 											break;
 										}
 									}
-									if(o == null) break;
+									if(o == null) {
+										break;
+									}
 								}
 							}
-							if(o == null) objs.push({ x : x, y : y, b : y, id : d}); else {
-								var _g62 = 0;
-								var _g52 = o.h;
-								while(_g62 < _g52) {
-									var dy2 = _g62++;
-									var _g82 = 0;
-									var _g72 = o.w;
-									while(_g82 < _g72) {
-										var dx2 = _g82++;
-										if(x + dx2 >= width || y + dy2 >= height) continue;
-										data[p + dx2 + dy2 * width] = 0;
+							if(o == null) {
+								objs.push({ x : x, y : y, b : y, id : d});
+							} else {
+								var _g51 = 0;
+								var _g41 = o.h;
+								while(_g51 < _g41) {
+									var dy1 = _g51++;
+									var _g71 = 0;
+									var _g61 = o.w;
+									while(_g71 < _g61) {
+										var dx1 = _g71++;
+										if(x + dx1 >= width || y + dy1 >= height) {
+											continue;
+										}
+										data[p1 + dx1 + dy1 * width] = 0;
 									}
 								}
 								objs.push({ x : x, y : y, b : y + o.w - 1, id : d});
@@ -13488,17 +14634,16 @@ lvl_LayerData.prototype = $extend(lvl_LayerGfx.prototype,{
 					objs.sort(function(o1,o2) {
 						return o1.b - o2.b;
 					});
-					var _g1 = [];
-					var _g22 = 0;
-					while(_g22 < objs.length) {
-						var o3 = objs[_g22];
-						++_g22;
-						_g1.push({ x : o3.x, y : o3.y, o : o3.id, flip : false, rot : 0});
+					var _g2 = [];
+					var _g13 = 0;
+					while(_g13 < objs.length) {
+						var o3 = objs[_g13];
+						++_g13;
+						_g2.push({ x : o3.x, y : o3.y, o : o3.id, flip : false, rot : 0});
 					}
-					this.data = lvl_LayerInnerData.TileInstances(td,_g1);
+					this.data = lvl_LayerInnerData.TileInstances(_g[2],_g2);
 					this.dirty = true;
-					break;
-				default:
+				} else {
 					throw new js__$Boot_HaxeError("assert0");
 				}
 				break;
@@ -13506,58 +14651,60 @@ lvl_LayerData.prototype = $extend(lvl_LayerGfx.prototype,{
 			break;
 		case "objects":
 			switch(mode) {
-			case "objects":
-				break;
 			case "ground":case "tiles":
-				var _g9 = this.data;
-				switch(_g9[1]) {
-				case 3:
-					var insts = _g9[3];
-					var td9 = _g9[2];
-					var objs9 = this.getTileObjects();
-					var _g19 = [];
-					var _g39 = 0;
-					var _g29 = width * height;
-					while(_g39 < _g29) {
-						var i = _g39++;
-						_g19.push(0);
+				var _g8 = this.data;
+				if(_g8[1] == 3) {
+					var insts = _g8[3];
+					var objs1 = this.getTileObjects();
+					var _g9 = [];
+					var _g21 = 0;
+					var _g14 = width * height;
+					while(_g21 < _g14) {
+						++_g21;
+						_g9.push(0);
 					}
-					var data9 = _g19;
-					var _g210 = 0;
-					while(_g210 < insts.length) {
-						var i10 = insts[_g210];
-						++_g210;
-						var x10 = i10.x | 0;
-						var y10 = i10.y | 0;
-						var obj = objs9.h[i10.o];
-						if(obj == null) data9[x10 + y10 * width] = i10.o + 1; else {
-							var _g410 = 0;
-							var _g310 = obj.h;
-							while(_g410 < _g310) {
-								var dy10 = _g410++;
-								var _g610 = 0;
-								var _g510 = obj.w;
-								while(_g610 < _g510) {
-									var dx10 = _g610++;
-									var x11 = x10 + dx10;
-									var y11 = y10 + dy10;
-									if(x11 < width && y11 < height) data9[x11 + y11 * width] = i10.o + dx10 + dy10 * this.stride + 1;
+					var _g15 = 0;
+					while(_g15 < insts.length) {
+						var i = insts[_g15];
+						++_g15;
+						var x1 = i.x | 0;
+						var y1 = i.y | 0;
+						var obj = objs1.h[i.o];
+						if(obj == null) {
+							_g9[x1 + y1 * width] = i.o + 1;
+						} else {
+							var _g31 = 0;
+							var _g22 = obj.h;
+							while(_g31 < _g22) {
+								var dy2 = _g31++;
+								var _g52 = 0;
+								var _g42 = obj.w;
+								while(_g52 < _g42) {
+									var dx2 = _g52++;
+									var x2 = x1 + dx2;
+									var y2 = y1 + dy2;
+									if(x2 < width && y2 < height) {
+										_g9[x2 + y2 * width] = i.o + dx2 + dy2 * this.stride + 1;
+									}
 								}
 							}
 						}
 					}
-					this.data = lvl_LayerInnerData.Tiles(td9,data9);
+					this.data = lvl_LayerInnerData.Tiles(_g8[2],_g9);
 					this.dirty = true;
-					break;
-				default:
+				} else {
 					throw new js__$Boot_HaxeError("assert1");
 				}
+				break;
+			case "objects":
 				break;
 			}
 			break;
 		}
 		this.props.mode = mode;
-		if(mode == "tiles") Reflect.deleteField(this.props,"mode");
+		if(mode == "tiles") {
+			Reflect.deleteField(this.props,"mode");
+		}
 	}
 	,initMatrix: function(m,w,h,rot,flip) {
 		m.a = 1;
@@ -13597,16 +14744,16 @@ lvl_LayerData.prototype = $extend(lvl_LayerGfx.prototype,{
 		case 0:
 			var data = _g[2];
 			var first = this.level.layers[0] == this;
-			var _g2 = 0;
-			var _g1 = height;
-			while(_g2 < _g1) {
-				var y = _g2++;
-				var _g4 = 0;
-				var _g3 = width;
-				while(_g4 < _g3) {
-					var x = _g4++;
+			var _g1 = 0;
+			while(_g1 < height) {
+				var y = _g1++;
+				var _g3 = 0;
+				while(_g3 < width) {
+					var x = _g3++;
 					var k = data[x + y * width];
-					if(k == 0 && !first) continue;
+					if(k == 0 && !first) {
+						continue;
+					}
 					if(this.images != null) {
 						var i = this.images[k];
 						view.draw(i,x * size - (i.width - size >> 1),y * size - (i.height - size));
@@ -13616,62 +14763,103 @@ lvl_LayerData.prototype = $extend(lvl_LayerGfx.prototype,{
 				}
 			}
 			break;
+		case 1:
+			var objs = _g[3];
+			var idCol = _g[2];
+			if(idCol == null) {
+				var col = this.props.color | -1610612736;
+				var _g2 = 0;
+				while(_g2 < objs.length) {
+					var o = objs[_g2];
+					++_g2;
+					view.fillRect(o.x * size | 0,o.y * size | 0,(this.hasSize?o.width * size:size) | 0,(this.hasSize?o.height * size:size) | 0,col);
+				}
+				var col1 = this.props.color | -16777216;
+				var _g4 = 0;
+				while(_g4 < objs.length) {
+					var o1 = objs[_g4];
+					++_g4;
+					var w = this.hasSize?o1.width * size | 0:size;
+					var h = this.hasSize?o1.height * size | 0:size;
+					var px = o1.x * size | 0;
+					var py = o1.y * size | 0;
+					view.fillRect(px,py,w,1,col1);
+					view.fillRect(px,py + h - 1,w,1,col1);
+					view.fillRect(px,py + 1,1,h - 2,col1);
+					view.fillRect(px + w - 1,py + 1,1,h - 2,col1);
+				}
+			} else {
+				var _g5 = 0;
+				while(_g5 < objs.length) {
+					var o2 = objs[_g5];
+					++_g5;
+					var id = Reflect.field(o2,idCol);
+					var _this = this.idToIndex;
+					var k1 = __map_reserved[id] != null?_this.getReserved(id):_this.h[id];
+					if(k1 == null) {
+						view.fillRect(o2.x * size | 0,o2.y * size | 0,(this.hasSize?o2.width * size:size) | 0,(this.hasSize?o2.height * size:size) | 0,-65281);
+						continue;
+					}
+					if(this.images != null) {
+						var i1 = this.images[k1];
+						view.draw(i1,(o2.x * size | 0) - (i1.width - size >> 1),(o2.y * size | 0) - (i1.height - size));
+						continue;
+					}
+					view.fillRect(o2.x * size | 0,o2.y * size | 0,(this.hasSize?o2.width * size:size) | 0,(this.hasSize?o2.height * size:size) | 0,this.colors[k1] | -16777216);
+				}
+			}
+			break;
 		case 2:
 			var data1 = _g[3];
-			var t = _g[2];
-			var _g21 = 0;
-			var _g11 = height;
-			while(_g21 < _g11) {
-				var y1 = _g21++;
-				var _g41 = 0;
-				var _g31 = width;
-				while(_g41 < _g31) {
-					var x1 = _g41++;
-					var k1 = data1[x1 + y1 * width] - 1;
-					if(k1 < 0) continue;
-					view.draw(this.images[k1],x1 * size,y1 * size);
+			var _g11 = 0;
+			while(_g11 < height) {
+				var y1 = _g11++;
+				var _g31 = 0;
+				while(_g31 < width) {
+					var x1 = _g31++;
+					var k2 = data1[x1 + y1 * width] - 1;
+					if(k2 < 0) {
+						continue;
+					}
+					view.draw(this.images[k2],x1 * size,y1 * size);
 				}
 			}
 			if(this.props.mode == "ground") {
-				var b = new cdb_TileBuilder(this.tileProps,this.stride,this.images.length);
-				var a = b.buildGrounds(data1,width);
+				var a = new cdb_TileBuilder(this.tileProps,this.stride,this.images.length).buildGrounds(data1,width);
 				var p = 0;
 				var max = a.length;
 				while(p < max) {
 					var x2 = a[p++];
 					var y2 = a[p++];
-					var id = a[p++];
-					view.draw(this.images[id],x2 * size,y2 * size);
+					view.draw(this.images[a[p++]],x2 * size,y2 * size);
 				}
 			}
 			break;
 		case 3:
 			var insts = _g[3];
-			var objs = this.getTileObjects();
+			var objs1 = this.getTileObjects();
 			var mat = { a : 1., b : 0., c : 0., d : 1., x : 0., y : 0.};
-			var _g12 = 0;
-			while(_g12 < insts.length) {
-				var i2 = insts[_g12];
-				++_g12;
+			var _g6 = 0;
+			while(_g6 < insts.length) {
+				var i2 = insts[_g6];
+				++_g6;
 				var x3 = i2.x * size | 0;
 				var y3 = i2.y * size | 0;
-				var obj = objs.h[i2.o];
-				var w = obj == null?1:obj.w;
-				var h = obj == null?1:obj.h;
-				var w3 = w * size;
-				var h3 = h * size;
+				var obj = objs1.h[i2.o];
+				var w1 = (obj == null?1:obj.w) * size;
+				var h1 = (obj == null?1:obj.h) * size;
 				var rot = i2.rot;
 				var flip = i2.flip;
 				mat.a = 1;
 				mat.b = 0;
 				mat.c = 0;
 				mat.d = 1;
-				mat.x = -w3 * 0.5;
-				mat.y = -h3 * 0.5;
+				mat.x = -w1 * 0.5;
+				mat.y = -h1 * 0.5;
 				if(rot != 0) {
-					var a3 = Math.PI * rot / 2;
-					var c = Math.cos(a3);
-					var s = Math.sin(a3);
+					var a1 = Math.PI * rot / 2;
+					var c = Math.cos(a1);
+					var s = Math.sin(a1);
 					var x4 = mat.x;
 					var y4 = mat.y;
 					mat.a = c;
@@ -13686,83 +14874,29 @@ lvl_LayerData.prototype = $extend(lvl_LayerGfx.prototype,{
 					mat.c = -mat.c;
 					mat.x = -mat.x;
 				}
-				mat.x += Math.abs(mat.a * w3 * 0.5 + mat.c * h3 * 0.5);
-				mat.y += Math.abs(mat.b * w3 * 0.5 + mat.d * h3 * 0.5);
+				mat.x += Math.abs(mat.a * w1 * 0.5 + mat.c * h1 * 0.5);
+				mat.y += Math.abs(mat.b * w1 * 0.5 + mat.d * h1 * 0.5);
 				mat.x += x3;
 				mat.y += y3;
 				if(obj == null) {
 					view.drawMat(this.images[i2.o],mat);
 					view.fillRect(x3,y3,size,size,-2130771968);
 				} else {
-					var px = mat.x;
-					var py = mat.y;
-					var _g34 = 0;
-					var _g24 = obj.h;
-					while(_g34 < _g24) {
-						var dy = _g34++;
-						var _g5 = 0;
-						var _g44 = obj.w;
-						while(_g5 < _g44) {
-							var dx = _g5++;
-							mat.x = px + dx * size * mat.a + dy * size * mat.c;
-							mat.y = py + dx * size * mat.b + dy * size * mat.d;
+					var px1 = mat.x;
+					var py1 = mat.y;
+					var _g21 = 0;
+					var _g12 = obj.h;
+					while(_g21 < _g12) {
+						var dy = _g21++;
+						var _g41 = 0;
+						var _g32 = obj.w;
+						while(_g41 < _g32) {
+							var dx = _g41++;
+							mat.x = px1 + dx * size * mat.a + dy * size * mat.c;
+							mat.y = py1 + dx * size * mat.b + dy * size * mat.d;
 							view.drawMat(this.images[i2.o + dx + dy * this.stride],mat);
 						}
 					}
-				}
-			}
-			break;
-		case 1:
-			var objs4 = _g[3];
-			var idCol = _g[2];
-			if(idCol == null) {
-				var col = this.props.color | -1610612736;
-				var _g14 = 0;
-				while(_g14 < objs4.length) {
-					var o = objs4[_g14];
-					++_g14;
-					var w4 = this.hasSize?o.width * size:size;
-					var h4 = this.hasSize?o.height * size:size;
-					view.fillRect(o.x * size | 0,o.y * size | 0,w4 | 0,h4 | 0,col);
-				}
-				var col4 = this.props.color | -16777216;
-				var _g15 = 0;
-				while(_g15 < objs4.length) {
-					var o5 = objs4[_g15];
-					++_g15;
-					var w5 = this.hasSize?o5.width * size | 0:size;
-					var h5 = this.hasSize?o5.height * size | 0:size;
-					var px5 = o5.x * size | 0;
-					var py5 = o5.y * size | 0;
-					view.fillRect(px5,py5,w5,1,col4);
-					view.fillRect(px5,py5 + h5 - 1,w5,1,col4);
-					view.fillRect(px5,py5 + 1,1,h5 - 2,col4);
-					view.fillRect(px5 + w5 - 1,py5 + 1,1,h5 - 2,col4);
-				}
-			} else {
-				var _g16 = 0;
-				while(_g16 < objs4.length) {
-					var o6 = objs4[_g16];
-					++_g16;
-					var id6 = Reflect.field(o6,idCol);
-					var tmp;
-					var _this = this.idToIndex;
-					if(__map_reserved[id6] != null) tmp = _this.getReserved(id6); else tmp = _this.h[id6];
-					var k6 = tmp;
-					if(k6 == null) {
-						var w7 = this.hasSize?o6.width * size:size;
-						var h7 = this.hasSize?o6.height * size:size;
-						view.fillRect(o6.x * size | 0,o6.y * size | 0,w7 | 0,h7 | 0,-65281);
-						continue;
-					}
-					if(this.images != null) {
-						var i7 = this.images[k6];
-						view.draw(i7,(o6.x * size | 0) - (i7.width - size >> 1),(o6.y * size | 0) - (i7.height - size));
-						continue;
-					}
-					var w6 = this.hasSize?o6.width * size:size;
-					var h6 = this.hasSize?o6.height * size:size;
-					view.fillRect(o6.x * size | 0,o6.y * size | 0,w6 | 0,h6 | 0,this.colors[k6] | -16777216);
 				}
 			}
 			break;
@@ -13789,33 +14923,30 @@ lvl_Palette.prototype = {
 			var c = _g1[_g];
 			++_g;
 			if(c.name == "tileProps" && (c.type == cdb_ColumnType.TList || c.type == cdb_ColumnType.TProperties)) {
-				var tmp;
 				var _this = SheetData.model.smap;
 				var key = this.level.sheet.name + "@" + c.name;
-				if(__map_reserved[key] != null) tmp = _this.getReserved(key); else tmp = _this.h[key];
-				this.perTileProps = tmp.s.columns;
+				this.perTileProps = (__map_reserved[key] != null?_this.getReserved(key):_this.h[key]).s.columns;
 			}
 		}
 		this.perTileGfx = new haxe_ds_StringMap();
 		var _g2 = 0;
-		var _g12 = this.perTileProps;
-		while(_g2 < _g12.length) {
-			var c2 = _g12[_g2];
+		var _g11 = this.perTileProps;
+		while(_g2 < _g11.length) {
+			var c1 = _g11[_g2];
 			++_g2;
-			var _g22 = c2.type;
-			switch(_g22[1]) {
-			case 6:
-				var s = _g22[2];
+			var _g21 = c1.type;
+			if(_g21[1] == 6) {
+				var s = _g21[2];
 				var g = new lvl_LayerGfx(this.level);
-				var tmp2;
-				var _this2 = this.level.model.smap;
-				if(__map_reserved[s] != null) tmp2 = _this2.getReserved(s); else tmp2 = _this2.h[s];
-				g.fromSheet(tmp2.s,16711680);
-				var _this3 = this.perTileGfx;
-				var key3 = c2.name;
-				if(__map_reserved[key3] != null) _this3.setReserved(key3,g); else _this3.h[key3] = g;
-				break;
-			default:
+				var _this1 = this.level.model.smap;
+				g.fromSheet((__map_reserved[s] != null?_this1.getReserved(s):_this1.h[s]).s,16711680);
+				var _this2 = this.perTileGfx;
+				var key1 = c1.name;
+				if(__map_reserved[key1] != null) {
+					_this2.setReserved(key1,g);
+				} else {
+					_this2.h[key1] = g;
+				}
 			}
 		}
 	}
@@ -13823,12 +14954,15 @@ lvl_Palette.prototype = {
 		return this.level.model.getDefault(c);
 	}
 	,getTileProp: function(x,y,create) {
-		if(create == null) create = true;
-		var l = this.currentLayer;
-		var a = x + y * l.stride;
+		if(create == null) {
+			create = true;
+		}
+		var a = x + y * this.currentLayer.stride;
 		var p = this.currentLayer.tileProps.props[a];
 		if(p == null) {
-			if(!create) return null;
+			if(!create) {
+				return null;
+			}
 			p = { };
 			var _g = 0;
 			var _g1 = this.perTileProps;
@@ -13836,7 +14970,9 @@ lvl_Palette.prototype = {
 				var c = _g1[_g];
 				++_g;
 				var v = this.getDefault(c);
-				if(v != null) p[c.name] = v;
+				if(v != null) {
+					p[c.name] = v;
+				}
 			}
 			this.currentLayer.tileProps.props[a] = p;
 		}
@@ -13848,10 +14984,16 @@ lvl_Palette.prototype = {
 			p = { stride : stride, sets : [], props : []};
 			this.level.sheet.props.level.tileSets[file] = p;
 		} else {
-			if(p.sets == null) p.sets = [];
-			if(p.props == null) p.props = [];
+			if(p.sets == null) {
+				p.sets = [];
+			}
+			if(p.props == null) {
+				p.props = [];
+			}
 			Reflect.deleteField(p,"tags");
-			if(p.stride == null) p.stride = stride; else if(p.stride != stride) {
+			if(p.stride == null) {
+				p.stride = stride;
+			} else if(p.stride != stride) {
 				var out = [];
 				var _g1 = 0;
 				var _g = Math.ceil(p.props.length / p.stride);
@@ -13868,13 +15010,17 @@ lvl_Palette.prototype = {
 				p.props = out;
 				p.stride = stride;
 			}
-			if(p.props.length > max) p.props.splice(max,p.props.length - max);
+			if(p.props.length > max) {
+				p.props.splice(max,p.props.length - max);
+			}
 			var _g4 = 0;
-			var _g14 = p.sets.slice();
-			while(_g4 < _g14.length) {
-				var s = _g14[_g4];
+			var _g11 = p.sets.slice();
+			while(_g4 < _g11.length) {
+				var s = _g11[_g4];
 				++_g4;
-				if(s.x + s.w > stride || (s.y + s.h) * stride > max) HxOverrides.remove(p.sets,s);
+				if(s.x + s.w > stride || (s.y + s.h) * stride > max) {
+					HxOverrides.remove(p.sets,s);
+				}
 			}
 		}
 		return p;
@@ -13886,7 +15032,9 @@ lvl_Palette.prototype = {
 		while(_g1 < _g) {
 			var i = _g1++;
 			var p = pr[i];
-			if(p == null) continue;
+			if(p == null) {
+				continue;
+			}
 			var def = true;
 			var _g2 = 0;
 			var _g3 = this.perTileProps;
@@ -13899,7 +15047,9 @@ lvl_Palette.prototype = {
 					break;
 				}
 			}
-			if(def) pr[i] = null;
+			if(def) {
+				pr[i] = null;
+			}
 		}
 		while(pr.length > 0 && pr[pr.length - 1] == null) pr.pop();
 		this.level.save();
@@ -13912,7 +15062,7 @@ lvl_Palette.prototype = {
 		}
 	}
 	,layerChanged: function(l) {
-		var _g = this;
+		var _gthis = this;
 		this.currentLayer = l;
 		this.p = $($("#paletteContent").html()).appendTo(this.level.content);
 		this.p.toggleClass("small",this.small);
@@ -13924,21 +15074,33 @@ lvl_Palette.prototype = {
 		var scaleDown = 0;
 		i.setSize(l.stride * (tsize + 1),l.height * (tsize + 1));
 		var _g1 = 0;
-		var _g2 = l.images.length;
-		while(_g1 < _g2) {
+		var _g = l.images.length;
+		while(_g1 < _g) {
 			var n = _g1++;
 			var x = n % l.stride * (tsize + 1);
 			var y = (n / l.stride | 0) * (tsize + 1);
 			var li = l.images[n];
-			if(li.width == tsize && li.height == tsize) i.draw(li,x,y); else {
+			if(li.width == tsize && li.height == tsize) {
+				i.draw(li,x,y);
+			} else {
 				var sw = tsize / li.width;
 				var sh = tsize / li.height;
-				if(sw > 1) ++scaleUp; else if(sw < 1) ++scaleDown;
-				if(sh > 1) ++scaleUp; else if(sh < 1) ++scaleDown;
+				if(sw > 1) {
+					++scaleUp;
+				} else if(sw < 1) {
+					++scaleDown;
+				}
+				if(sh > 1) {
+					++scaleUp;
+				} else if(sh < 1) {
+					++scaleDown;
+				}
 				i.drawScaled(li,x,y,tsize,tsize);
 			}
 		}
-		if(scaleUp > scaleDown && scaleUp != 0) $(i.getCanvas()).css("image-rendering","pixelated");
+		if(scaleUp > scaleDown && scaleUp != 0) {
+			$(i.getCanvas()).css("image-rendering","pixelated");
+		}
 		var jsel = this.p.find("canvas.select");
 		var jpreview = this.p.find(".preview").hide();
 		var ipreview = lvl_Image.fromCanvas(jpreview.find("canvas")[0]);
@@ -13950,105 +15112,111 @@ lvl_Palette.prototype = {
 		this.p.mousedown(function(e) {
 			e.stopPropagation();
 		});
-		this.p.mouseup(function(e2) {
-			e2.stopPropagation();
+		this.p.mouseup(function(e1) {
+			e1.stopPropagation();
 		});
 		var curPreview = -1;
 		var start_x = l.current % l.stride;
 		var start_y = l.current / l.stride | 0;
 		var start_down = false;
-		jsel.mousedown(function(e3) {
-			_g.p.find("input[type=text]:focus").blur();
+		jsel.mousedown(function(e2) {
+			_gthis.p.find("input[type=text]:focus").blur();
 			var o = jsel.offset();
-			var x3 = (e3.pageX - o.left) / (_g.level.tileSize * _g.zoom + 1) | 0;
-			var y3 = (e3.pageY - o.top) / (_g.level.tileSize * _g.zoom + 1) | 0;
-			if(x3 + y3 * l.stride >= l.images.length) return;
-			if(e3.shiftKey) {
-				var x0 = x3 < start_x?x3:start_x;
-				var y0 = y3 < start_y?y3:start_y;
-				var x1 = x3 < start_x?start_x:x3;
-				var y1 = y3 < start_y?start_y:y3;
+			var x1 = (e2.pageX - o.left) / (_gthis.level.tileSize * _gthis.zoom + 1) | 0;
+			var y1 = (e2.pageY - o.top) / (_gthis.level.tileSize * _gthis.zoom + 1) | 0;
+			if(x1 + y1 * l.stride >= l.images.length) {
+				return;
+			}
+			if(e2.shiftKey) {
+				var x0 = x1 < start_x?x1:start_x;
+				var y0 = y1 < start_y?y1:start_y;
+				var x11 = x1 < start_x?start_x:x1;
+				var y11 = y1 < start_y?start_y:y1;
 				l.set_current(x0 + y0 * l.stride);
-				l.currentWidth = x1 - x0 + 1;
-				l.currentHeight = y1 - y0 + 1;
+				l.currentWidth = x11 - x0 + 1;
+				l.currentHeight = y11 - y0 + 1;
 				l.saveState();
-				_g.level.setCursor();
+				_gthis.level.setCursor();
 			} else {
-				start_x = x3;
-				start_y = y3;
-				if(l.tileProps != null && (_g.mode == null || _g.mode == "t_objects")) {
-					var _g13 = 0;
-					var _g23 = l.tileProps.sets;
-					while(_g13 < _g23.length) {
-						var p = _g23[_g13];
-						++_g13;
-						if(x3 >= p.x && y3 >= p.y && x3 < p.x + p.w && y3 < p.y + p.h && p.t == "object") {
+				start_x = x1;
+				start_y = y1;
+				if(l.tileProps != null && (_gthis.mode == null || _gthis.mode == "t_objects")) {
+					var _g2 = 0;
+					var _g11 = l.tileProps.sets;
+					while(_g2 < _g11.length) {
+						var p = _g11[_g2];
+						++_g2;
+						if(x1 >= p.x && y1 >= p.y && x1 < p.x + p.w && y1 < p.y + p.h && p.t == "object") {
 							l.set_current(p.x + p.y * l.stride);
 							l.currentWidth = p.w;
 							l.currentHeight = p.h;
 							l.saveState();
-							_g.level.setCursor();
+							_gthis.level.setCursor();
 							return;
 						}
 					}
 				}
 				start_down = true;
-				_g.level.mouseCapture = jsel;
-				l.set_current(x3 + y3 * l.stride);
-				_g.level.setCursor();
+				_gthis.level.set_mouseCapture(jsel);
+				l.set_current(x1 + y1 * l.stride);
+				_gthis.level.setCursor();
 			}
-			var prop = _g.getProp();
+			var prop = _gthis.getProp();
 			if(prop != null) {
-				var pick = e3.which == 3;
-				var _g14 = prop.type;
-				switch(_g14[1]) {
+				var pick = e2.which == 3;
+				switch(prop.type[1]) {
 				case 2:
 					if(!pick) {
-						var v = _g.getTileProp(x3,y3);
+						var v = _gthis.getTileProp(x1,y1);
 						v[prop.name] = !Reflect.field(v,prop.name);
-						_g.saveTileProps();
+						_gthis.saveTileProps();
 					}
-					break;
-				case 6:
-					var tmp;
-					var _this = _g.perTileGfx;
-					var key = prop.name;
-					if(__map_reserved[key] != null) tmp = _this.getReserved(key); else tmp = _this.h[key];
-					var c = tmp;
-					if(pick) {
-						var idx;
-						var key4 = Reflect.field(_g.getTileProp(x3,y3),prop.name);
-						var _this4 = c.idToIndex;
-						if(__map_reserved[key4] != null) idx = _this4.getReserved(key4); else idx = _this4.h[key4];
-						_g.modeCursor = idx == null?-1:idx;
-						_g.level.setCursor();
-						return;
-					}
-					var v4 = _g.modeCursor < 0?_g.getDefault(prop):c.indexToId[_g.modeCursor];
-					if(v4 == null) Reflect.deleteField(_g.getTileProp(x3,y3),prop.name); else _g.getTileProp(x3,y3)[prop.name] = v4;
-					_g.saveTileProps();
 					break;
 				case 5:
 					if(pick) {
-						var idx5 = Reflect.field(_g.getTileProp(x3,y3),prop.name);
-						_g.modeCursor = idx5 == null?-1:idx5;
-						_g.level.setCursor();
+						var idx = Reflect.field(_gthis.getTileProp(x1,y1),prop.name);
+						_gthis.modeCursor = idx == null?-1:idx;
+						_gthis.level.setCursor();
 						return;
 					}
-					var v5 = _g.modeCursor < 0?_g.getDefault(prop):_g.modeCursor;
-					if(v5 == null) Reflect.deleteField(_g.getTileProp(x3,y3),prop.name); else _g.getTileProp(x3,y3)[prop.name] = v5;
-					_g.saveTileProps();
+					var v1 = _gthis.modeCursor < 0?_gthis.getDefault(prop):_gthis.modeCursor;
+					if(v1 == null) {
+						Reflect.deleteField(_gthis.getTileProp(x1,y1),prop.name);
+					} else {
+						_gthis.getTileProp(x1,y1)[prop.name] = v1;
+					}
+					_gthis.saveTileProps();
+					break;
+				case 6:
+					var _this = _gthis.perTileGfx;
+					var key = prop.name;
+					var c = __map_reserved[key] != null?_this.getReserved(key):_this.h[key];
+					if(pick) {
+						var key1 = Reflect.field(_gthis.getTileProp(x1,y1),prop.name);
+						var _this1 = c.idToIndex;
+						var idx1 = __map_reserved[key1] != null?_this1.getReserved(key1):_this1.h[key1];
+						_gthis.modeCursor = idx1 == null?-1:idx1;
+						_gthis.level.setCursor();
+						return;
+					}
+					var v2 = _gthis.modeCursor < 0?_gthis.getDefault(prop):c.indexToId[_gthis.modeCursor];
+					if(v2 == null) {
+						Reflect.deleteField(_gthis.getTileProp(x1,y1),prop.name);
+					} else {
+						_gthis.getTileProp(x1,y1)[prop.name] = v2;
+					}
+					_gthis.saveTileProps();
 					break;
 				default:
 				}
 			}
 		});
-		jsel.mousemove(function(e5) {
-			var o5 = jsel.offset();
-			var x5 = (e5.pageX - o5.left) / (_g.level.tileSize * _g.zoom + 1) | 0;
-			var y5 = (e5.pageY - o5.top) / (_g.level.tileSize * _g.zoom + 1) | 0;
-			var infos = x5 + "," + y5;
-			var id = x5 + y5 * l.stride;
+		jsel.mousemove(function(e3) {
+			var o1 = jsel.offset();
+			var x2 = (e3.pageX - o1.left) / (_gthis.level.tileSize * _gthis.zoom + 1) | 0;
+			var y2 = (e3.pageY - o1.top) / (_gthis.level.tileSize * _gthis.zoom + 1) | 0;
+			var infos = x2 + "," + y2;
+			var id = x2 + y2 * l.stride;
 			if(id >= l.images.length || l.blanks[id]) {
 				curPreview = -1;
 				jpreview.hide();
@@ -14059,228 +15227,261 @@ lvl_Palette.prototype = {
 					ipreview.fill(-12582848);
 					ipreview.copyFrom(l.images[id]);
 				}
-				if(l.names != null) infos += " " + l.names[id];
+				if(l.names != null) {
+					infos += " " + l.names[id];
+				}
 			}
-			if(l.tileProps != null) _g.level.content.find(".cursorPosition").text(infos); else _g.p.find(".infos").text(infos);
-			if(!start_down) return;
-			var x05 = x5 < start_x?x5:start_x;
-			var y05 = y5 < start_y?y5:start_y;
-			var x15 = x5 < start_x?start_x:x5;
-			var y15 = y5 < start_y?start_y:y5;
-			l.set_current(x05 + y05 * l.stride);
-			l.currentWidth = x15 - x05 + 1;
-			l.currentHeight = y15 - y05 + 1;
+			if(l.tileProps != null) {
+				_gthis.level.content.find(".cursorPosition").text(infos);
+			} else {
+				_gthis.p.find(".infos").text(infos);
+			}
+			if(!start_down) {
+				return;
+			}
+			var x01 = x2 < start_x?x2:start_x;
+			var y01 = y2 < start_y?y2:start_y;
+			var x12 = x2 < start_x?start_x:x2;
+			var y12 = y2 < start_y?start_y:y2;
+			l.set_current(x01 + y01 * l.stride);
+			l.currentWidth = x12 - x01 + 1;
+			l.currentHeight = y12 - y01 + 1;
 			l.saveState();
-			_g.level.setCursor();
+			_gthis.level.setCursor();
 		});
-		jsel.mouseleave(function(e6) {
-			if(l.tileProps != null) _g.level.content.find(".cursorPosition").text(""); else _g.p.find(".infos").text("");
+		jsel.mouseleave(function(e4) {
+			if(l.tileProps != null) {
+				_gthis.level.content.find(".cursorPosition").text("");
+			} else {
+				_gthis.p.find(".infos").text("");
+			}
 			curPreview = -1;
 			jpreview.hide();
 		});
 		this.p.mouseleave(function(_) {
 			start_down = false;
 		});
-		this.p.mousemove(function(e7) {
-			_g.level.mousePos.x = e7.pageX | 0;
-			_g.level.mousePos.y = e7.pageY | 0;
-			_g.level.updateCursorPos();
-			if(_g.level.selection == null) _g.level.cursor.hide();
+		this.p.mousemove(function(e5) {
+			_gthis.level.mousePos.x = e5.pageX | 0;
+			_gthis.level.mousePos.y = e5.pageY | 0;
+			_gthis.level.updateCursorPos();
+			if(_gthis.level.selection == null) {
+				_gthis.level.cursor.hide();
+			}
 		});
-		this.p.mouseup(function(_7) {
+		this.p.mouseup(function(_1) {
 			start_down = false;
-			_g.level.content.mouseup();
+			_gthis.level.content.mouseup();
 		});
 	}
 	,updateSelect: function() {
-		var _g3 = this;
-		if(this.select == null) return;
+		var _gthis = this;
+		if(this.select == null) {
+			return;
+		}
 		var l = this.currentLayer;
 		this.select.clear();
 		var used = [];
 		var _g = l.data;
 		switch(_g[1]) {
-		case 2:
-			var data = _g[3];
+		case 0:
+			var data = _g[2];
 			var _g1 = 0;
 			while(_g1 < data.length) {
 				var k = data[_g1];
 				++_g1;
-				if(k == 0) continue;
-				used[k - 1] = true;
-			}
-			break;
-		case 0:
-			var data1 = _g[2];
-			var _g11 = 0;
-			while(_g11 < data1.length) {
-				var k1 = data1[_g11];
-				++_g11;
-				used[k1] = true;
+				used[k] = true;
 			}
 			break;
 		case 1:
 			var objs = _g[3];
 			var id = _g[2];
-			var _g12 = 0;
-			while(_g12 < objs.length) {
-				var o = objs[_g12];
-				++_g12;
-				var id2;
+			var _g2 = 0;
+			while(_g2 < objs.length) {
+				var o = objs[_g2];
+				++_g2;
 				var key = Reflect.field(o,id);
 				var _this = l.idToIndex;
-				if(__map_reserved[key] != null) id2 = _this.getReserved(key); else id2 = _this.h[key];
-				if(id2 != null) used[id2] = true;
+				var id1 = __map_reserved[key] != null?_this.getReserved(key):_this.h[key];
+				if(id1 != null) {
+					used[id1] = true;
+				}
+			}
+			break;
+		case 2:
+			var data1 = _g[3];
+			var _g3 = 0;
+			while(_g3 < data1.length) {
+				var k1 = data1[_g3];
+				++_g3;
+				if(k1 == 0) {
+					continue;
+				}
+				used[k1 - 1] = true;
 			}
 			break;
 		case 3:
 			var insts = _g[3];
-			var objs2 = l.getTileObjects();
-			var _g13 = 0;
-			while(_g13 < insts.length) {
-				var i = insts[_g13];
-				++_g13;
-				var t = objs2.h[i.o];
+			var objs1 = l.getTileObjects();
+			var _g4 = 0;
+			while(_g4 < insts.length) {
+				var i = insts[_g4];
+				++_g4;
+				var t = objs1.h[i.o];
 				if(t == null) {
 					used[i.o] = true;
 					continue;
 				}
-				var _g33 = 0;
-				var _g2 = t.h;
-				while(_g33 < _g2) {
-					var dy = _g33++;
-					var _g5 = 0;
-					var _g4 = t.w;
-					while(_g5 < _g4) {
-						var dx = _g5++;
-						used[i.o + dx + dy * l.stride] = true;
-					}
+				var _g21 = 0;
+				var _g11 = t.h;
+				while(_g21 < _g11) {
+					var dy = _g21++;
+					var _g41 = 0;
+					var _g31 = t.w;
+					while(_g41 < _g31) used[i.o + _g41++ + dy * l.stride] = true;
 				}
 			}
 			break;
 		}
 		var tsize = this.level.tileSize * this.zoom;
-		var _g14 = 0;
-		var _g6 = l.images.length;
-		while(_g14 < _g6) {
-			var i6 = _g14++;
-			if(used[i6]) continue;
-			this.select.fillRect(i6 % l.stride * (tsize + 1),(i6 / l.stride | 0) * (tsize + 1),tsize,tsize,805306368);
+		var _g22 = 0;
+		var _g12 = l.images.length;
+		while(_g22 < _g12) {
+			var i1 = _g22++;
+			if(used[i1]) {
+				continue;
+			}
+			this.select.fillRect(i1 % l.stride * (tsize + 1),(i1 / l.stride | 0) * (tsize + 1),tsize,tsize,805306368);
 		}
 		var prop = this.getProp();
 		var tmp;
-		if(!(prop == null)) {
-			var tmp6;
-			var _g7 = prop.type;
-			switch(_g7[1]) {
-			case 2:case 6:case 5:
-				tmp6 = true;
+		if(prop != null) {
+			var _g13 = prop.type;
+			var tmp1;
+			switch(_g13[1]) {
+			case 2:case 5:case 6:
+				tmp1 = true;
 				break;
 			default:
-				tmp6 = false;
+				tmp1 = false;
 			}
-			tmp = !tmp6;
-		} else tmp = true;
+			tmp = !tmp1;
+		} else {
+			tmp = true;
+		}
 		if(tmp) {
-			var objs7 = this.mode == null?l.getSelObjects():[];
-			if(objs7.length > 1) {
-				var _g8 = 0;
-				while(_g8 < objs7.length) {
-					var o8 = objs7[_g8];
-					++_g8;
-					this.select.fillRect(o8.x * (tsize + 1),o8.y * (tsize + 1),(tsize + 1) * o8.w - 1,(tsize + 1) * o8.h - 1,-2141478405);
+			var objs2 = this.mode == null?l.getSelObjects():[];
+			if(objs2.length > 1) {
+				var _g23 = 0;
+				while(_g23 < objs2.length) {
+					var o1 = objs2[_g23];
+					++_g23;
+					this.select.fillRect(o1.x * (tsize + 1),o1.y * (tsize + 1),(tsize + 1) * o1.w - 1,(tsize + 1) * o1.h - 1,-2141478405);
 				}
-			} else this.select.fillRect(l.current % l.stride * (tsize + 1),(l.current / l.stride | 0) * (tsize + 1),(tsize + 1) * l.currentWidth - 1,(tsize + 1) * l.currentHeight - 1,-2141478405);
+			} else {
+				this.select.fillRect(l.current % l.stride * (tsize + 1),(l.current / l.stride | 0) * (tsize + 1),(tsize + 1) * l.currentWidth - 1,(tsize + 1) * l.currentHeight - 1,-2141478405);
+			}
 		}
 		if(prop != null) {
 			var def = this.getDefault(prop);
-			var _g9 = prop.type;
-			switch(_g9[1]) {
+			switch(prop.type[1]) {
 			case 2:
-				var k9 = 0;
-				var _g29 = 0;
-				var _g19 = l.height;
-				while(_g29 < _g19) {
-					var y = _g29++;
-					var _g49 = 0;
-					var _g39 = l.stride;
-					while(_g49 < _g39) {
-						var x = _g49++;
-						var p = l.tileProps.props[k9++];
-						if(p == null) continue;
+				var k2 = 0;
+				var _g32 = 0;
+				var _g24 = l.height;
+				while(_g32 < _g24) {
+					var y = _g32++;
+					var _g5 = 0;
+					var _g42 = l.stride;
+					while(_g5 < _g42) {
+						var x = _g5++;
+						var p = l.tileProps.props[k2++];
+						if(p == null) {
+							continue;
+						}
 						var v = Reflect.field(p,prop.name);
-						if(v == def) continue;
+						if(v == def) {
+							continue;
+						}
 						this.select.fillRect(x * (tsize + 1),y * (tsize + 1),tsize,tsize,v?-2131010655:-2141455455);
 					}
 				}
 				break;
+			case 1:case 3:case 4:case 11:case 13:case 16:
+				var k3 = 0;
+				var _g33 = 0;
+				var _g25 = l.height;
+				while(_g33 < _g25) {
+					var y1 = _g33++;
+					var _g51 = 0;
+					var _g43 = l.stride;
+					while(_g51 < _g43) {
+						var x1 = _g51++;
+						var p1 = l.tileProps.props[k3++];
+						if(p1 == null) {
+							continue;
+						}
+						var v1 = Reflect.field(p1,prop.name);
+						if(v1 == null || v1 == def) {
+							continue;
+						}
+						this.select.fillRect(x1 * (tsize + 1),y1 * (tsize + 1),tsize,1,-1);
+						this.select.fillRect(x1 * (tsize + 1),y1 * (tsize + 1),1,tsize,-1);
+						this.select.fillRect(x1 * (tsize + 1),(y1 + 1) * (tsize + 1) - 1,tsize,1,-1);
+						this.select.fillRect((x1 + 1) * (tsize + 1) - 1,y1 * (tsize + 1),1,tsize,-1);
+					}
+				}
+				break;
+			case 5:
+				var k4 = 0;
+				var _g34 = 0;
+				var _g26 = l.height;
+				while(_g34 < _g26) {
+					var y2 = _g34++;
+					var _g52 = 0;
+					var _g44 = l.stride;
+					while(_g52 < _g44) {
+						var x2 = _g52++;
+						var p2 = l.tileProps.props[k4++];
+						if(p2 == null) {
+							continue;
+						}
+						var v2 = Reflect.field(p2,prop.name);
+						if(v2 == null || v2 == def) {
+							continue;
+						}
+						this.select.fillRect(x2 * (tsize + 1),y2 * (tsize + 1),tsize,tsize,lvl_Palette.colorPalette[v2] | -2147483648);
+					}
+				}
+				break;
 			case 6:
-				var tmp9;
-				var _this9 = this.perTileGfx;
-				var key9 = prop.name;
-				if(__map_reserved[key9] != null) tmp9 = _this9.getReserved(key9); else tmp9 = _this9.h[key9];
-				var gfx = tmp9;
-				var k10 = 0;
+				var _this1 = this.perTileGfx;
+				var key1 = prop.name;
+				var gfx = __map_reserved[key1] != null?_this1.getReserved(key1):_this1.h[key1];
+				var k5 = 0;
 				this.select.set_alpha(0.5);
-				var _g210 = 0;
-				var _g110 = l.height;
-				while(_g210 < _g110) {
-					var y10 = _g210++;
-					var _g410 = 0;
-					var _g310 = l.stride;
-					while(_g410 < _g310) {
-						var x10 = _g410++;
-						var p10 = l.tileProps.props[k10++];
-						if(p10 == null) continue;
-						var r = Reflect.field(p10,prop.name);
-						var tmp10;
-						var _this10 = gfx.idToIndex;
-						if(__map_reserved[r] != null) tmp10 = _this10.getReserved(r); else tmp10 = _this10.h[r];
-						var v10 = tmp10;
-						if(v10 == null || r == def) continue;
-						this.select.drawScaled(gfx.images[v10],x10 * (tsize + 1),y10 * (tsize + 1),tsize,tsize);
+				var _g35 = 0;
+				var _g27 = l.height;
+				while(_g35 < _g27) {
+					var y3 = _g35++;
+					var _g53 = 0;
+					var _g45 = l.stride;
+					while(_g53 < _g45) {
+						var x3 = _g53++;
+						var p3 = l.tileProps.props[k5++];
+						if(p3 == null) {
+							continue;
+						}
+						var r = Reflect.field(p3,prop.name);
+						var _this2 = gfx.idToIndex;
+						var v3 = __map_reserved[r] != null?_this2.getReserved(r):_this2.h[r];
+						if(v3 == null || r == def) {
+							continue;
+						}
+						this.select.drawScaled(gfx.images[v3],x3 * (tsize + 1),y3 * (tsize + 1),tsize,tsize);
 					}
 				}
 				this.select.set_alpha(1);
-				break;
-			case 5:
-				var k11 = 0;
-				var _g211 = 0;
-				var _g111 = l.height;
-				while(_g211 < _g111) {
-					var y11 = _g211++;
-					var _g411 = 0;
-					var _g311 = l.stride;
-					while(_g411 < _g311) {
-						var x11 = _g411++;
-						var p11 = l.tileProps.props[k11++];
-						if(p11 == null) continue;
-						var v11 = Reflect.field(p11,prop.name);
-						if(v11 == null || v11 == def) continue;
-						this.select.fillRect(x11 * (tsize + 1),y11 * (tsize + 1),tsize,tsize,lvl_Palette.colorPalette[v11] | -2147483648);
-					}
-				}
-				break;
-			case 3:case 4:case 1:case 11:case 13:case 16:
-				var k12 = 0;
-				var _g212 = 0;
-				var _g112 = l.height;
-				while(_g212 < _g112) {
-					var y12 = _g212++;
-					var _g412 = 0;
-					var _g312 = l.stride;
-					while(_g412 < _g312) {
-						var x12 = _g412++;
-						var p12 = l.tileProps.props[k12++];
-						if(p12 == null) continue;
-						var v12 = Reflect.field(p12,prop.name);
-						if(v12 == null || v12 == def) continue;
-						this.select.fillRect(x12 * (tsize + 1),y12 * (tsize + 1),tsize,1,-1);
-						this.select.fillRect(x12 * (tsize + 1),y12 * (tsize + 1),1,tsize,-1);
-						this.select.fillRect(x12 * (tsize + 1),(y12 + 1) * (tsize + 1) - 1,tsize,1,-1);
-						this.select.fillRect((x12 + 1) * (tsize + 1) - 1,y12 * (tsize + 1),1,tsize,-1);
-					}
-				}
 				break;
 			default:
 			}
@@ -14293,143 +15494,175 @@ lvl_Palette.prototype = {
 		} else {
 			sel.hide();
 			var grounds = [];
-			var _g16 = 0;
-			var _g116 = l.tileProps.sets;
-			while(_g16 < _g116.length) {
-				var s = _g116[_g16];
-				++_g16;
+			var _g28 = 0;
+			var _g36 = l.tileProps.sets;
+			while(_g28 < _g36.length) {
+				var s = _g36[_g28];
+				++_g28;
 				var color;
-				var _g216 = s.t;
-				switch(_g216) {
-				case "tile":
-					continue;
+				switch(s.t) {
+				case "border":
+					if(this.mode != "t_border") {
+						continue;
+					}
+					color = 65535;
 					break;
 				case "ground":
 					if(s.opts.name != null && s.opts.name != "") {
 						HxOverrides.remove(grounds,s.opts.name);
 						grounds.push(s.opts.name);
 					}
-					if(this.mode != null && this.mode != "t_ground") continue;
-					if(this.mode == null) color = 40960; else color = 65280;
-					break;
-				case "border":
-					if(this.mode != "t_border") continue;
-					color = 65535;
-					break;
-				case "object":
-					if(this.mode != null && this.mode != "t_object") continue;
-					if(this.mode == null) color = 8388608; else color = 16711680;
+					if(this.mode != null && this.mode != "t_ground") {
+						continue;
+					}
+					if(this.mode == null) {
+						color = 40960;
+					} else {
+						color = 65280;
+					}
 					break;
 				case "group":
-					if(this.mode != "t_group") continue;
+					if(this.mode != "t_group") {
+						continue;
+					}
 					color = 16777215;
+					break;
+				case "object":
+					if(this.mode != null && this.mode != "t_object") {
+						continue;
+					}
+					if(this.mode == null) {
+						color = 8388608;
+					} else {
+						color = 16711680;
+					}
+					break;
+				case "tile":
+					continue;
 					break;
 				}
 				color |= -16777216;
-				var tsize16 = this.level.tileSize * this.zoom;
-				var px = s.x * (tsize16 + 1);
-				var py = s.y * (tsize16 + 1);
-				var w = s.w * (tsize16 + 1) - 1;
-				var h = s.h * (tsize16 + 1) - 1;
+				var tsize1 = this.level.tileSize * this.zoom;
+				var px = s.x * (tsize1 + 1);
+				var py = s.y * (tsize1 + 1);
+				var w = s.w * (tsize1 + 1) - 1;
+				var h = s.h * (tsize1 + 1) - 1;
 				this.select.fillRect(px,py,w,1,color);
 				this.select.fillRect(px,py + h - 1,w,1,color);
 				this.select.fillRect(px,py,1,h,color);
 				this.select.fillRect(px + w - 1,py,1,h,color);
 			}
-			var tmode = cdb__$Data_TileMode_$Impl_$.ofString(this.mode == null?"":HxOverrides.substr(this.mode,2,null));
-			var tobj = l.getTileProp(tmode);
-			if(tobj == null) tobj = { x : 0, y : 0, w : 0, h : 0, t : "tile", opts : { }};
-			var _g15 = [];
-			var _g117 = 0;
-			var _g217 = ["tile","object","ground","border","group"];
-			while(_g117 < _g217.length) {
-				var m17 = _g217[_g117];
-				++_g117;
-				_g15.push("<option value=\"t_" + m17 + "\">" + (HxOverrides.substr(m17,0,1).toUpperCase() + HxOverrides.substr(m17,1,null)) + "</option>");
+			var tobj = l.getTileProp(cdb__$Data_TileMode_$Impl_$.ofString(this.mode == null?"":HxOverrides.substr(this.mode,2,null)));
+			if(tobj == null) {
+				tobj = { x : 0, y : 0, w : 0, h : 0, t : "tile", opts : { }};
 			}
-			var baseModes = _g15.join("\n");
-			var _g115 = [];
-			var _g218 = 0;
-			var _g318 = this.perTileProps;
-			while(_g218 < _g318.length) {
-				var t18 = _g318[_g218];
-				++_g218;
-				_g115.push("<option value=\"" + t18.name + "\">" + t18.name + "</option>");
+			var _g29 = [];
+			var _g37 = 0;
+			var _g46 = ["tile","object","ground","border","group"];
+			while(_g37 < _g46.length) {
+				var m1 = _g46[_g37];
+				++_g37;
+				_g29.push("<option value=\"t_" + m1 + "\">" + (HxOverrides.substr(m1,0,1).toUpperCase() + HxOverrides.substr(m1,1,null)) + "</option>");
 			}
-			var props = _g115.join("\n");
+			var baseModes = _g29.join("\n");
+			var _g38 = [];
+			var _g47 = 0;
+			var _g54 = this.perTileProps;
+			while(_g47 < _g54.length) {
+				var t1 = _g54[_g47];
+				++_g47;
+				_g38.push("<option value=\"" + t1.name + "\">" + t1.name + "</option>");
+			}
+			var props = _g38.join("\n");
 			m.find("[name=mode]").html(baseModes + props).val(this.mode == null?"t_tile":this.mode);
 			m.attr("class","").addClass("mode");
 			if(prop != null) {
-				var _g219 = prop.type;
-				switch(_g219[1]) {
-				case 6:
-					var tmp19;
-					var _this19 = this.perTileGfx;
-					var key19 = prop.name;
-					if(__map_reserved[key19] != null) tmp19 = _this19.getReserved(key19); else tmp19 = _this19.h[key19];
-					var gfx19 = tmp19;
+				var _g48 = prop.type;
+				switch(_g48[1]) {
+				case 5:
+					var values = _g48[2];
 					m.addClass("m_ref");
 					var refList = m.find(".opt.refList");
 					refList.html("");
-					if(prop.opt) $("<div>").addClass("icon").addClass("delete").appendTo(refList).toggleClass("active",this.modeCursor < 0).click(function(_) {
-						_g3.modeCursor = -1;
-						_g3.level.setCursor();
-					});
-					var _g419 = 0;
-					var _g319 = gfx19.images.length;
-					while(_g419 < _g319) {
-						var i19 = [_g419++];
-						var d = $("<div>").addClass("icon").css({ background : "url('" + gfx19.images[i19[0]].getCanvas().toDataURL() + "')"});
+					if(prop.opt) {
+						$("<div>").addClass("icon").addClass("delete").appendTo(refList).toggleClass("active",this.modeCursor < 0).click(function(_) {
+							_gthis.modeCursor = -1;
+							_gthis.level.setCursor();
+						});
+					}
+					var _g55 = 0;
+					var _g49 = values.length;
+					while(_g55 < _g49) {
+						var i2 = [_g55++];
+						var d = $("<div>").addClass("icon").css({ background : this.level.toColor(lvl_Palette.colorPalette[i2[0]]), width : "auto"}).text(values[i2[0]]);
 						d.appendTo(refList);
-						d.toggleClass("active",this.modeCursor == i19[0]);
-						d.attr("title",gfx19.names[i19[0]]);
-						d.click((function(i20) {
-							return function(_20) {
-								_g3.modeCursor = i20[0];
-								_g3.level.setCursor();
+						d.toggleClass("active",this.modeCursor == i2[0]);
+						d.click((function(i3) {
+							return function(_1) {
+								_gthis.modeCursor = i3[0];
+								_gthis.level.setCursor();
 							};
-						})(i19));
+						})(i2));
 					}
 					break;
-				case 5:
-					var values = _g219[2];
+				case 6:
+					var _this3 = this.perTileGfx;
+					var key2 = prop.name;
+					var gfx1 = __map_reserved[key2] != null?_this3.getReserved(key2):_this3.h[key2];
 					m.addClass("m_ref");
-					var refList20 = m.find(".opt.refList");
-					refList20.html("");
-					if(prop.opt) $("<div>").addClass("icon").addClass("delete").appendTo(refList20).toggleClass("active",this.modeCursor < 0).click(function(_21) {
-						_g3.modeCursor = -1;
-						_g3.level.setCursor();
-					});
-					var _g421 = 0;
-					var _g321 = values.length;
-					while(_g421 < _g321) {
-						var i21 = [_g421++];
-						var d21 = $("<div>").addClass("icon").css({ background : this.level.toColor(lvl_Palette.colorPalette[i21[0]]), width : "auto"}).text(values[i21[0]]);
-						d21.appendTo(refList20);
-						d21.toggleClass("active",this.modeCursor == i21[0]);
-						d21.click((function(i22) {
-							return function(_22) {
-								_g3.modeCursor = i22[0];
-								_g3.level.setCursor();
+					var refList1 = m.find(".opt.refList");
+					refList1.html("");
+					if(prop.opt) {
+						$("<div>").addClass("icon").addClass("delete").appendTo(refList1).toggleClass("active",this.modeCursor < 0).click(function(_2) {
+							_gthis.modeCursor = -1;
+							_gthis.level.setCursor();
+						});
+					}
+					var _g56 = 0;
+					var _g410 = gfx1.images.length;
+					while(_g56 < _g410) {
+						var i4 = [_g56++];
+						var d1 = $("<div>").addClass("icon").css({ background : "url('" + gfx1.images[i4[0]].getCanvas().toDataURL() + "')"});
+						d1.appendTo(refList1);
+						d1.toggleClass("active",this.modeCursor == i4[0]);
+						d1.attr("title",gfx1.names[i4[0]]);
+						d1.click((function(i5) {
+							return function(_3) {
+								_gthis.modeCursor = i5[0];
+								_gthis.level.setCursor();
 							};
-						})(i21));
+						})(i4));
 					}
 					break;
-				case 3:case 4:case 1:case 16:
+				case 1:case 3:case 4:case 16:
 					m.addClass("m_value");
-					var p22 = this.getTileProp(l.current % l.stride,l.current / l.stride | 0,false);
-					var v22 = p22 == null?null:Reflect.field(p22,prop.name);
-					m.find("[name=value]").val(prop.type == cdb_ColumnType.TDynamic?JSON.stringify(v22):v22 == null?"":"" + v22);
+					var p4 = this.getTileProp(l.current % l.stride,l.current / l.stride | 0,false);
+					var v4 = p4 == null?null:Reflect.field(p4,prop.name);
+					m.find("[name=value]").val(prop.type == cdb_ColumnType.TDynamic?JSON.stringify(v4):v4 == null?"":"" + v4);
 					break;
 				default:
 				}
 			} else if("t_" + cdb__$Data_TileMode_$Impl_$.toString(tobj.t) != this.mode) {
-				if(this.mode == null) m.addClass("m_tile"); else m.addClass("m_create").addClass("c_" + HxOverrides.substr(this.mode,2,null));
+				if(this.mode == null) {
+					m.addClass("m_tile");
+				} else {
+					m.addClass("m_create").addClass("c_" + HxOverrides.substr(this.mode,2,null));
+				}
 			} else {
 				m.addClass("m_" + HxOverrides.substr(this.mode,2,null)).addClass("m_exists");
-				var _g222 = tobj.t;
-				switch(_g222) {
-				case "tile":case "object":
+				switch(tobj.t) {
+				case "border":
+					var _g411 = [];
+					var _g57 = 0;
+					while(_g57 < grounds.length) {
+						var g = grounds[_g57];
+						++_g57;
+						_g411.push("<option value=\"" + g + "\">" + g + "</option>");
+					}
+					var opts = _g411.join("");
+					m.find("[name=border_in]").html("<option value='null'>upper</option><option value='lower'>lower</option>" + opts).val(Std.string(tobj.opts.borderIn));
+					m.find("[name=border_out]").html("<option value='null'>lower</option><option value='upper'>upper</option>" + opts).val(Std.string(tobj.opts.borderOut));
+					m.find("[name=border_mode]").val(Std.string(tobj.opts.borderMode));
 					break;
 				case "ground":
 					m.find("[name=name]").val(tobj.opts.name == null?"":tobj.opts.name);
@@ -14439,18 +15672,7 @@ lvl_Palette.prototype = {
 					m.find("[name=name]").val(tobj.opts.name == null?"":tobj.opts.name);
 					m.find("[name=value]").val(tobj.opts.value == null?"":JSON.stringify(tobj.opts.value)).width(80).width(m.parent().width() - 300);
 					break;
-				case "border":
-					var _g322 = [];
-					var _g422 = 0;
-					while(_g422 < grounds.length) {
-						var g = grounds[_g422];
-						++_g422;
-						_g322.push("<option value=\"" + g + "\">" + g + "</option>");
-					}
-					var opts = _g322.join("");
-					m.find("[name=border_in]").html("<option value='null'>upper</option><option value='lower'>lower</option>" + opts).val(Std.string(tobj.opts.borderIn));
-					m.find("[name=border_out]").html("<option value='null'>lower</option><option value='upper'>upper</option>" + opts).val(Std.string(tobj.opts.borderOut));
-					m.find("[name=border_mode]").val(Std.string(tobj.opts.borderMode));
+				case "object":case "tile":
 					break;
 				}
 			}
@@ -14458,86 +15680,125 @@ lvl_Palette.prototype = {
 		}
 	}
 	,getProp: function() {
-		if(this.mode == null || HxOverrides.substr(this.mode,0,2) == "t_" || this.currentLayer.tileProps == null) return null;
+		if(this.mode == null || HxOverrides.substr(this.mode,0,2) == "t_" || this.currentLayer.tileProps == null) {
+			return null;
+		}
 		var _g = 0;
 		var _g1 = this.perTileProps;
 		while(_g < _g1.length) {
 			var c = _g1[_g];
 			++_g;
-			if(c.name == this.mode) return c;
+			if(c.name == this.mode) {
+				return c;
+			}
 		}
 		return null;
 	}
 	,option: function(name,val) {
-		if(this.p == null) return false;
+		if(this.p == null) {
+			return false;
+		}
 		var m = cdb__$Data_TileMode_$Impl_$.ofString(this.mode == null?"":HxOverrides.substr(this.mode,2,null));
 		var l = this.currentLayer;
-		if(val != null) val = StringTools.trim(val);
+		if(val != null) {
+			val = StringTools.trim(val);
+		}
 		switch(name) {
-		case "random":
-			this.randomMode = !this.randomMode;
-			var tmp;
-			var _g = l.data;
-			switch(_g[1]) {
-			case 3:
-				tmp = true;
-				break;
-			default:
-				tmp = false;
+		case "border_in":
+			var s = l.getTileProp(m);
+			if(s != null) {
+				if(val == "null") {
+					Reflect.deleteField(s.opts,"borderIn");
+				} else {
+					s.opts.borderIn = val;
+				}
 			}
-			if(tmp) this.randomMode = false;
-			this.p.find(".icon.random").toggleClass("active",this.randomMode);
-			this.level.savePrefs();
-			this.level.setCursor();
-			return false;
-		case "paint":
-			this.paintMode = !this.paintMode;
-			var tmp1;
-			var _g1 = l.data;
-			switch(_g1[1]) {
-			case 3:
-				tmp1 = true;
-				break;
-			default:
-				tmp1 = false;
+			break;
+		case "border_mode":
+			var s1 = l.getTileProp(m);
+			if(s1 != null) {
+				if(val == "null") {
+					Reflect.deleteField(s1.opts,"borderMode");
+				} else {
+					s1.opts.borderMode = val;
+				}
 			}
-			if(tmp1) this.paintMode = false;
-			this.level.savePrefs();
-			this.p.find(".icon.paint").toggleClass("active",this.paintMode);
-			return false;
+			break;
+		case "border_out":
+			var s2 = l.getTileProp(m);
+			if(s2 != null) {
+				if(val == "null") {
+					Reflect.deleteField(s2.opts,"borderOut");
+				} else {
+					s2.opts.borderOut = val;
+				}
+			}
+			break;
 		case "mode":
 			this.mode = val == "t_tile"?null:val;
 			this.modeCursor = 0;
 			this.level.savePrefs();
 			this.level.setCursor();
 			break;
-		case "toggleMode":
-			var s = l.getTileProp(m);
-			if(s == null) {
-				s = { x : l.current % l.stride, y : l.current / l.stride | 0, w : l.currentWidth, h : l.currentHeight, t : m, opts : { }};
-				l.tileProps.sets.push(s);
-			} else HxOverrides.remove(l.tileProps.sets,s);
-			this.level.setCursor();
-			break;
 		case "name":
-			var s1 = l.getTileProp(m);
-			if(s1 != null) s1.opts.name = val;
+			var s3 = l.getTileProp(m);
+			if(s3 != null) {
+				s3.opts.name = val;
+			}
+			break;
+		case "paint":
+			this.paintMode = !this.paintMode;
+			if(l.data[1] == 3) {
+				this.paintMode = false;
+			}
+			this.level.savePrefs();
+			this.p.find(".icon.paint").toggleClass("active",this.paintMode);
+			return false;
+		case "priority":
+			var s4 = l.getTileProp(m);
+			if(s4 != null) {
+				s4.opts.priority = Std.parseInt(val);
+			}
+			break;
+		case "random":
+			this.randomMode = !this.randomMode;
+			if(l.data[1] == 3) {
+				this.randomMode = false;
+			}
+			this.p.find(".icon.random").toggleClass("active",this.randomMode);
+			this.level.savePrefs();
+			this.level.setCursor();
+			return false;
+		case "small":
+			this.small = !this.small;
+			this.level.savePrefs();
+			this.p.toggleClass("small",this.small);
+			this.p.find(".icon.small").toggleClass("active",this.small);
+			return false;
+		case "toggleMode":
+			var s5 = l.getTileProp(m);
+			if(s5 == null) {
+				s5 = { x : l.current % l.stride, y : l.current / l.stride | 0, w : l.currentWidth, h : l.currentHeight, t : m, opts : { }};
+				l.tileProps.sets.push(s5);
+			} else {
+				HxOverrides.remove(l.tileProps.sets,s5);
+			}
+			this.level.setCursor();
 			break;
 		case "value":
 			var p = this.getProp();
 			if(p != null) {
 				var t = this.getTileProp(l.current % l.stride,l.current / l.stride | 0);
 				var v;
-				var _g2 = p.type;
-				switch(_g2[1]) {
+				switch(p.type[1]) {
+				case 1:
+					v = val;
+					break;
 				case 3:
 					v = Std.parseInt(val);
 					break;
 				case 4:
 					v = parseFloat(val);
-					break;
-				case 1:
-					v = val;
 					break;
 				case 16:
 					try {
@@ -14549,50 +15810,34 @@ lvl_Palette.prototype = {
 				default:
 					throw new js__$Boot_HaxeError("assert");
 				}
-				if(v == null) Reflect.deleteField(t,p.name); else t[p.name] = v;
+				if(v == null) {
+					Reflect.deleteField(t,p.name);
+				} else {
+					t[p.name] = v;
+				}
 				this.saveTileProps();
 				return false;
 			}
-			var s2 = l.getTileProp(m);
-			if(s2 != null) {
-				var v2;
-				if(val == null) v2 = s2.opts.value; else try {
-					v2 = this.level.model.parseDynamic(val);
-				} catch( e2 ) {
-					v2 = null;
-				}
-				if(v2 == null) Reflect.deleteField(s2.opts,"value"); else s2.opts.value = v2;
-				this.p.find("[name=value]").val(v2 == null?"":JSON.stringify(v2));
-			}
-			break;
-		case "priority":
-			var s3 = l.getTileProp(m);
-			if(s3 != null) s3.opts.priority = Std.parseInt(val);
-			break;
-		case "border_in":
-			var s4 = l.getTileProp(m);
-			if(s4 != null) {
-				if(val == "null") Reflect.deleteField(s4.opts,"borderIn"); else s4.opts.borderIn = val;
-			}
-			break;
-		case "border_out":
-			var s5 = l.getTileProp(m);
-			if(s5 != null) {
-				if(val == "null") Reflect.deleteField(s5.opts,"borderOut"); else s5.opts.borderOut = val;
-			}
-			break;
-		case "border_mode":
 			var s6 = l.getTileProp(m);
 			if(s6 != null) {
-				if(val == "null") Reflect.deleteField(s6.opts,"borderMode"); else s6.opts.borderMode = val;
+				var v1;
+				if(val == null) {
+					v1 = s6.opts.value;
+				} else {
+					try {
+						v1 = this.level.model.parseDynamic(val);
+					} catch( e1 ) {
+						v1 = null;
+					}
+				}
+				if(v1 == null) {
+					Reflect.deleteField(s6.opts,"value");
+				} else {
+					s6.opts.value = v1;
+				}
+				this.p.find("[name=value]").val(v1 == null?"":JSON.stringify(v1));
 			}
 			break;
-		case "small":
-			this.small = !this.small;
-			this.level.savePrefs();
-			this.p.toggleClass("small",this.small);
-			this.p.find(".icon.small").toggleClass("active",this.small);
-			return false;
 		}
 		return true;
 	}
@@ -14612,9 +15857,11 @@ sys_FileSystem.exists = function(path) {
 function $iterator(o) { if( o instanceof Array ) return function() { return HxOverrides.iter(o); }; return typeof(o.iterator) == 'function' ? $bind(o,o.iterator) : o.iterator; }
 var $_, $fid = 0;
 function $bind(o,m) { if( m == null ) return null; if( m.__id__ == null ) m.__id__ = $fid++; var f; if( o.hx__closures__ == null ) o.hx__closures__ = {}; else f = o.hx__closures__[m.__id__]; if( f == null ) { f = function(){ return f.method.apply(f.scope, arguments); }; f.scope = o; f.method = m; o.hx__closures__[m.__id__] = f; } return f; }
-if(Array.prototype.indexOf) HxOverrides.indexOf = function(a,o,i) {
-	return Array.prototype.indexOf.call(a,o,i);
-};
+if(Array.prototype.indexOf) {
+	HxOverrides.indexOf = function(a,o,i) {
+		return Array.prototype.indexOf.call(a,o,i);
+	};
+}
 $hxClasses.Math = Math;
 String.prototype.__class__ = $hxClasses.String = String;
 String.__name__ = ["String"];
@@ -14630,17 +15877,21 @@ var Bool = $hxClasses.Bool = Boolean;
 Bool.__ename__ = ["Bool"];
 var Class = $hxClasses.Class = { __name__ : ["Class"]};
 var Enum = { };
-if(Array.prototype.filter == null) Array.prototype.filter = function(f1) {
-	var a1 = [];
-	var _g11 = 0;
-	var _g2 = this.length;
-	while(_g11 < _g2) {
-		var i2 = _g11++;
-		var e = this[i2];
-		if(f1(e)) a1.push(e);
-	}
-	return a1;
-};
+if(Array.prototype.filter == null) {
+	Array.prototype.filter = function(f1) {
+		var a1 = [];
+		var _g11 = 0;
+		var _g2 = this.length;
+		while(_g11 < _g2) {
+			var i1 = _g11++;
+			var e = this[i1];
+			if(f1(e)) {
+				a1.push(e);
+			}
+		}
+		return a1;
+	};
+}
 var __map_reserved = {}
 Level.UID = 0;
 Level.loadedTilesCache = new haxe_ds_StringMap();
@@ -14664,7 +15915,7 @@ Main.UID = 0;
 haxe_Serializer.USE_CACHE = false;
 haxe_Serializer.USE_ENUM_INDEX = false;
 haxe_Serializer.BASE64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789%:";
-cdb_BinSerializer.__meta__ = { obj : { s_1522840838 : ["cy25:cdb._BinSerializer.Schemay4:hashi-923295011y4:kindwy29:cdb._BinSerializer.SchemaKindy5:SEnum:1aawy24:cdb._BinSerializer.SDatay4:DInt:0wR5y7:DString:0wR5y5:DNull:1wR5y6:DArray:1wR5y5:DAnon:1aoy1:dwR5R7:0y1:ny4:namegoR11wR5R7:0R12y5:valueghhawR5R6:0wR5R7:0hawR5R6:0wR5R7:0hawR5R6:0wR5R6:0hawR5R6:0wR5R6:0wR5R6:0hawR5R6:0wR5R7:0wR5R8:1wR5R6:0hawR5R6:0hawR5R6:0wR5R6:0wR5y7:DSchema:1i223952291wR5R8:1wR5y6:DFloat:0hawR5R6:0hawR5R6:0wR5R7:0wR5R6:0hawR5R6:0wR5R7:0wR5R8:1wR5R7:0hawR5R6:0wR5R7:0wR5R8:1wR5R7:0hawR5R6:0wR5R7:0hawR5R6:0wR5R7:0wR5R9:1wR5y8:DDynamic:0wR5R8:1wR5R6:0hawR5R6:0wR5R7:0wR5R8:1wR5R16:0hawR5R6:0wR5R8:1wR5R9:1wR5R6:0hawR5R9:1wR5R6:0hhR13y14:cdb.jq.Messagey2:idi1522840838g"], s_223952291 : ["cy25:cdb._BinSerializer.Schemay4:hashi471112403y4:kindwy29:cdb._BinSerializer.SchemaKindy5:SEnum:1au5hy4:namey20:cdb.jq.DockDirectiony2:idi223952291g"], s_560507292 : ["cy25:cdb._BinSerializer.Schemay4:hashi842410256y4:kindwy29:cdb._BinSerializer.SchemaKindy5:SEnum:1aawy24:cdb._BinSerializer.SDatay4:DInt:0wR5y5:DNull:1wR5y7:DSchema:1i1835035702hawR5R6:0wR5y7:DString:0hawR5R6:0hhy4:namey13:cdb.jq.Answery2:idi560507292g"], s_1835035702 : ["cy25:cdb._BinSerializer.Schemay4:hashi1439494620y4:kindwy29:cdb._BinSerializer.SchemaKindy5:SAnon:1aoy1:dwy24:cdb._BinSerializer.SDatay5:DNull:1wR6y5:DBool:0y1:ny7:ctrlKeygoR5wR6R7:1wR6y4:DInt:0R9y7:keyCodegoR5wR6R7:1wR6R8:0R9y8:shiftKeygoR5wR6R7:1wR6y8:DDynamic:0R9y5:valuegoR5wR6R7:1wR6R11:0R9y5:whichghy4:namey17:cdb.jq.EventPropsy2:idi1835035702g"]}};
+cdb_BinSerializer.__meta__ = { obj : { s_1522840838 : ["cy25:cdb._BinSerializer.Schemay4:hashi1544061529y4:kindwy29:cdb._BinSerializer.SchemaKindy5:SEnum:1aawy24:cdb._BinSerializer.SDatay4:DInt:0wR5y7:DString:0wR5y5:DNull:1wR5y6:DArray:1wR5y5:DAnon:1aoy1:dwR5R7:0y1:ny4:namegoR11wR5R7:0R12y5:valueghhawR5R6:0wR5R7:0hawR5R6:0wR5R7:0hawR5R6:0wR5R6:0hawR5R6:0wR5R6:0wR5R6:0hawR5R6:0wR5R7:0wR5R8:1wR5R6:0hawR5R6:0hawR5R6:0hawR5R6:0wR5R7:0wR5R6:0hawR5R6:0wR5R7:0wR5R8:1wR5R7:0hawR5R6:0wR5R7:0wR5R8:1wR5R7:0hawR5R6:0wR5R7:0hawR5R6:0wR5R7:0wR5R9:1wR5y8:DDynamic:0wR5R8:1wR5R6:0hawR5R6:0wR5R7:0wR5R8:1wR5y6:DFloat:0hawR5R6:0wR5R8:1wR5R9:1wR5R6:0hawR5R9:1wR5R6:0hhR13y14:cdb.jq.Messagey2:idi1522840838g"], s_560507292 : ["cy25:cdb._BinSerializer.Schemay4:hashi842410256y4:kindwy29:cdb._BinSerializer.SchemaKindy5:SEnum:1aawy24:cdb._BinSerializer.SDatay4:DInt:0wR5y5:DNull:1wR5y7:DSchema:1i1835035702hawR5R6:0wR5y7:DString:0hawR5R6:0hhy4:namey13:cdb.jq.Answery2:idi560507292g"], s_1835035702 : ["cy25:cdb._BinSerializer.Schemay4:hashi-1015430469y4:kindwy29:cdb._BinSerializer.SchemaKindy5:SAnon:1aoy1:dwy24:cdb._BinSerializer.SDatay5:DNull:1wR6y5:DBool:0y1:ny7:ctrlKeygoR5wR6R7:1wR6y4:DInt:0R9y7:keyCodegoR5wR6R7:1wR6R8:0R9y8:shiftKeygoR5wR6R7:1wR6R11:0R9y6:targetgoR5wR6R7:1wR6y8:DDynamic:0R9y5:valuegoR5wR6R7:1wR6R11:0R9y5:whichghy4:namey17:cdb.jq.EventPropsy2:idi1835035702g"]}};
 cdb_BinSerializer.VERSION_CHECK = false;
 cdb_BinSerializer.TAG = 0;
 cdb_BinSerializer.gadtTip = -1;
@@ -14673,20 +15924,13 @@ cdb__$Data_TileMode_$Impl_$.Ground = "ground";
 cdb__$Data_TileMode_$Impl_$.Border = "border";
 cdb__$Data_TileMode_$Impl_$.Object = "object";
 cdb__$Data_TileMode_$Impl_$.Group = "group";
-haxe_Unserializer.DEFAULT_RESOLVER = Type;
+haxe_Unserializer.DEFAULT_RESOLVER = new haxe__$Unserializer_DefaultResolver();
 haxe_Unserializer.BASE64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789%:";
 haxe_crypto_Base64.CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 haxe_crypto_Base64.BYTES = haxe_io_Bytes.ofString(haxe_crypto_Base64.CHARS);
 haxe_ds_ObjectMap.count = 0;
-haxe_io_FPHelper.i64tmp = (function($this) {
-	var $r;
-	var x = new haxe__$Int64__$_$_$Int64(0,0);
-	var this1;
-	this1 = x;
-	$r = this1;
-	return $r;
-}(this));
-js_Boot.__toStr = {}.toString;
+haxe_io_FPHelper.i64tmp = new haxe__$Int64__$_$_$Int64(0,0);
+js_Boot.__toStr = { }.toString;
 lvl_Image.cache = new haxe_ds_StringMap();
 lvl_Image3D.CANVAS_SIZE = 2048;
 lvl_Palette.colorPalette = [16711680,65280,16711935,65535,16776960,16777215,33023,65408,8388863,8453888,16711808,16744448];

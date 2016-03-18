@@ -17,6 +17,7 @@ package cdb.jq;
 
 @:keep class Event {
 
+	public var target : Dom;
 	public var value : Dynamic;
 	public var keyCode : Int;
 	public var which : Int;

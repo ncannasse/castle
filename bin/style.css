@@ -226,152 +226,152 @@ div#menu ul.sheets li.active {
 	color : #252596;
 	background-color : #E0E0FF;
 }
-.castle .tedit {
+.castle .tedit, .dialog-floating .tedit {
 	height : 100%;
 }
-.castle .tedit textarea {
+.castle .tedit textarea, .dialog-floating .tedit textarea {
 	padding : 5px;
 	width : 100%;
 	height : 90%;
 }
-.castle table {
+.castle table, .dialog-floating table {
 	width : 100%;
 	table-layout : fixed;
 	background-color : white;
 	border-collapse : collapse;
 	border-spacing : 0;
 }
-.castle table.props {
+.castle table.props, .dialog-floating table.props {
 	width : auto;
 	min-width : 400px;
 	margin-top : 1px;
 }
-.castle table.props th {
+.castle table.props th, .dialog-floating table.props th {
 	width : 200px;
 }
-.castle table.props th {
+.castle table.props th, .dialog-floating table.props th {
 	border-bottom : none;
 }
-.castle .tableBottom {
+.castle .tableBottom, .dialog-floating .tableBottom {
 	margin-top : 300px;
 }
-.castle td {
+.castle td, .dialog-floating td {
 	padding : 2px 4px;
 	overflow : hidden;
 }
-.castle td.cursor {
+.castle td.cursor, .dialog-floating td.cursor {
 	outline : 1px solid #555;
 }
-.castle td.t_image {
+.castle td.t_image, .dialog-floating td.t_image {
 	cursor : pointer;
 }
-.castle td.t_image img {
+.castle td.t_image img, .dialog-floating td.t_image img {
 	max-height : 64px;
 }
-.castle img.selected {
+.castle img.selected, .dialog-floating img.selected {
 	opacity : 0.5;
 	filter : alpha(opacity=50);
 	zoom : 1;
 }
-.castle td.start {
+.castle td.start, .dialog-floating td.start {
 	min-width : 20px;
 	width : 20px;
 	text-align : center;
 	cursor : pointer;
 }
-.castle tr.head td.start {
+.castle tr.head td.start, .dialog-floating tr.head td.start {
 	cursor : nw-resize;
 }
-.castle tr.separator {
+.castle tr.separator, .dialog-floating tr.separator {
 	background-color : #CCC;
 	height : 10px;
 }
-.castle tr.separator td {
+.castle tr.separator td, .dialog-floating tr.separator td {
 	color : #444;
 	font-weight : bold;
 	padding-left : 20px;
 }
-.castle tr.filtered {
+.castle tr.filtered, .dialog-floating tr.filtered {
 	display : none;
 }
-.castle tr.list {
+.castle tr.list, .dialog-floating tr.list {
 	background-color : #CCC;
 	border-bottom : 0px;
 }
-.castle tr.list tr.head {
+.castle tr.list tr.head, .dialog-floating tr.list tr.head {
 	color : #fff;
 	background-color : #777;
 	font-weight : normal;
 	height : 8px;
 }
-.castle tr.list tr {
+.castle tr.list tr, .dialog-floating tr.list tr {
 	background-color : #EEE;
 	border-color : #E0E0E0;
 }
-.castle tr.list input, .castle tr.list select {
+.castle tr.list input, .castle tr.list select, .dialog-floating tr.list input, .dialog-floating tr.list select {
 	background-color : #EEE;
 }
-.castle tr.list tr.selected, .castle tr.list td.selected {
+.castle tr.list tr.selected, .castle tr.list td.selected, .dialog-floating tr.list tr.selected, .dialog-floating tr.list td.selected {
 	background-color : #DDD;
 }
-.castle tr.list>td {
+.castle tr.list>td, .dialog-floating tr.list>td {
 	padding : 0;
 	padding-bottom : 5px;
 }
-.castle tr.clickable {
+.castle tr.clickable, .dialog-floating tr.clickable {
 	cursor : pointer;
 }
-.castle tr.clickable:hover {
+.castle tr.clickable:hover, .dialog-floating tr.clickable:hover {
 	background-color : #f8f8f8;
 }
-.castle tr.head, .castle th {
+.castle tr.head, .castle th, .dialog-floating tr.head, .dialog-floating th {
 	font-weight : bold;
 	text-align : center;
 	border-bottom : 1px solid #888;
 	background-color : #333;
 	color : #EEE;
 }
-.castle tr.head td.display, .castle th td.display {
+.castle tr.head td.display, .castle th td.display, .dialog-floating tr.head td.display, .dialog-floating th td.display {
 	font-style : italic;
 }
-.castle tr.selected, .castle td.selected {
+.castle tr.selected, .castle td.selected, .dialog-floating tr.selected, .dialog-floating td.selected {
 	background-color : #EEE;
 }
-.castle td {
+.castle td, .dialog-floating td {
 	user-select : none;
 	-moz-user-select : none;
 	-webkit-user-select : none;
 	border-left : 1px solid #CCC;
 }
-.castle td.t_bool {
+.castle td.t_bool, .dialog-floating td.t_bool {
 	text-align : center;
 }
-.castle td.t_int, .castle td.t_float {
+.castle td.t_int, .castle td.t_float, .dialog-floating td.t_int, .dialog-floating td.t_float {
 	text-align : right;
 }
-.castle td.t_int input, .castle td.t_float input {
+.castle td.t_int input, .castle td.t_float input, .dialog-floating td.t_int input, .dialog-floating td.t_float input {
 	text-align : right;
 }
-.castle td.t_list, .castle td.t_properties {
+.castle td.t_list, .castle td.t_properties, .dialog-floating td.t_list, .dialog-floating td.t_properties {
 	white-space : nowrap;
 	cursor : pointer;
 }
-.castle td.t_list img, .castle td.t_properties img {
+.castle td.t_list img, .castle td.t_properties img, .dialog-floating td.t_list img, .dialog-floating td.t_properties img {
 	max-height : 32px;
 	max-width : 32px;
 }
-.castle td.t_enum {
+.castle td.t_enum, .dialog-floating td.t_enum {
 	padding-left : 5px;
 }
-.castle td.t_color {
+.castle td.t_color, .dialog-floating td.t_color {
 	text-align : center;
 }
-.castle td.t_color .modal {
+.castle td.t_color .modal, .dialog-floating td.t_color .modal {
 	opacity : 0;
 	filter : alpha(opacity=0);
 	zoom : 1;
 }
-.castle td.t_color .color {
+.castle td.t_color .color, .dialog-floating td.t_color .color {
 	display : inline-block;
 	zoom : 1;
 	*display : inline;
@@ -380,61 +380,61 @@ div#menu ul.sheets li.active {
 	border : 2px solid white;
 	outline : 1px solid black;
 }
-.castle .flagValues {
+.castle .flagValues, .dialog-floating .flagValues {
 	position : absolute;
 	background-color : white;
 	width : 150px;
 	padding : 5px;
 	border : 1px solid #333;
 }
-.castle .flagValues label {
+.castle .flagValues label, .dialog-floating .flagValues label {
 	display : block;
 	clear : both;
 	padding : 1px;
 }
-.castle .flagValues label input {
+.castle .flagValues label input, .dialog-floating .flagValues label input {
 	float : right;
 }
-.castle .flagValues label:hover {
+.castle .flagValues label:hover, .dialog-floating .flagValues label:hover {
 	background-color : #eee;
 }
-.castle tr {
+.castle tr, .dialog-floating tr {
 	border-bottom : 1px solid #F0F0F0;
 }
-.castle td.edit {
+.castle td.edit, .dialog-floating td.edit {
 	padding : 0px;
 }
-.castle td.edit input {
+.castle td.edit input, .dialog-floating td.edit input {
 	padding : 1px 4px;
 	width : 100%;
 	height : 20px;
 	border : none;
 }
-.castle td.edit input.error {
+.castle td.edit input.error, .dialog-floating td.edit input.error {
 	color : #A00;
 }
-.castle td.edit select {
+.castle td.edit select, .dialog-floating td.edit select {
 	padding-left : 0px;
 	height : 20px;
 	width : 100%;
 }
-.castle span.error {
+.castle span.error, .dialog-floating span.error {
 	color : #A00;
 }
-.castle .preview .previewContent {
+.castle .preview .previewContent, .dialog-floating .preview .previewContent {
 	display : none;
 	position : absolute;
 	background-color : #EEE;
 	border : 1px solid black;
 	padding : 5px;
 }
-.castle .preview .previewContent .label {
+.castle .preview .previewContent .label, .dialog-floating .preview .previewContent .label {
 	text-align : center;
 	margin-bottom : 5px;
 	background-color : white;
 	font-family : monospace;
 }
-.castle .preview:hover .previewContent {
+.castle .preview:hover .previewContent, .dialog-floating .preview:hover .previewContent {
 	display : block;
 }
 #content .level {

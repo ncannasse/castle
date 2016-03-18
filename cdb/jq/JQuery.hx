@@ -178,6 +178,19 @@ class JQuery {
 		}
 	}
 
+	public function unbind( event : String ) {
+		var eids = [];
+		for( s in sel ) {
+			for( e in s.events.copy() )
+				if( e.name == event ) {
+					s.events.remove(e);
+					eids.push(e.id);
+				}
+		}
+		if( eids.length > 0 ) send(Unbind(eids));
+		return this;
+	}
+
 	function htmlRec( d : Dom, x : Xml ) {
 		switch( x.nodeType ) {
 		case Document:
@@ -266,10 +279,21 @@ class JQuery {
 		client.send(msg);
 	}
 
-	public function attr( a : String, ?val : String ) {
+	public function attr( a : String, val : String ) {
+		if( val == null )
+			throw "Use removeAttr()";
 		for( s in sel ) {
-			s.setAttr(a, val);
 			send(SetAttr(s.id, a, val));
+			s.setAttr(a, val);
+		}
+		return this;
+	}
+
+	public function removeAttr( a : String ) {
+		for( s in sel ) {
+			if( s.getAttr(a) == null ) continue;
+			send(SetAttr(s.id, a, null));
+			s.setAttr(a, null);
 		}
 		return this;
 	}
@@ -291,15 +315,6 @@ class JQuery {
 			send(SetStyle(d.id, s, val));
 		}
 		return val;
-	}
-
-	public function dock( parent : Dom, dir : DockDirection, ?size : Float ) {
-		if( parent.id < 0 )
-			throw "Can't dock to disposed node";
-		for( s in sel ) {
-			s.dock = { parent : parent, dir : dir, size : size };
-			s.send(Dock(parent.id, s.id, dir, size));
-		}
 	}
 
 	public function dispose() {

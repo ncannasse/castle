@@ -23,7 +23,6 @@ enum Message {
 	InsertAt( id : Int, to : Int, pos : Int );
 	CreateText( id : Int, text : String, ?pid : Int );
 	Reset( id : Int );
-	Dock( pid : Int, id : Int, dir : DockDirection, size : Null<Float> );
 	Remove( id : Int );
 	Event( id : Int, name : String, eid : Int );
 	SetAttr( id : Int, att : String, ?val : String );
@@ -35,18 +34,10 @@ enum Message {
 	Unbind( events : Array<Int> );
 }
 
-typedef EventProps = { ?keyCode : Int, ?value : Dynamic, ?which : Int, ?ctrlKey : Bool, ?shiftKey : Bool };
+typedef EventProps = { ?keyCode : Int, ?value : Dynamic, ?which : Int, ?ctrlKey : Bool, ?shiftKey : Bool, ?target : Int };
 
 enum Answer {
 	Event( eid : Int, ?props : EventProps );
 	SetValue( id : Int, value : String );
 	Done( eid : Int );
-}
-
-enum DockDirection {
-	Left;
-	Right;
-	Up;
-	Down;
-	Fill;
 }

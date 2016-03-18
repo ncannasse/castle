@@ -33,7 +33,6 @@ class Dom {
 	var childs : Array<Dom>;
 	var events : Array<{ id : Int, name : String, callb : Event -> Void }>;
 	var style : Array<{ name : String, value : String }>;
-	var dock : { parent : Dom, dir : Message.DockDirection, size : Null<Float> };
 	var clientID(default, set) : String;
 
 	public function new(c : Client) {
@@ -169,7 +168,7 @@ class Dom {
 			attributes.push( { name : "class", value : classAttr } );
 	}
 
-	public function setStyle( name : String, value : String ) {
+	function setStyle( name : String, value : String ) {
 		for( s in style )
 			if( s.name == name ) {
 				if( value == null )
@@ -210,7 +209,8 @@ class Dom {
 		return false;
 	}
 
-	public function setAttr( name : String, value : String)  {
+	// should only be called by JQuery ! (don't send messsage)
+	function setAttr( name : String, value : String)  {
 
 		switch( name ) {
 		case "class":
@@ -226,6 +226,8 @@ class Dom {
 		case "id":
 			if( onStage() )
 				clientID = value;
+		case "dock":
+			send(Special(id, "dock", []));
 		default:
 		}
 

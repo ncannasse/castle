@@ -31,10 +31,6 @@ class Server {
 		throw "Not implemented";
 	}
 
-	function dock( parent : js.html.Element, e : js.html.Element, dir : Message.DockDirection, size : Null<Float> ) {
-		throw "Not implemented";
-	}
-
 	function handleSpecial( e : js.html.Element, name : String, args : Array<Dynamic>, result : Dynamic -> Void ) {
 	}
 
@@ -85,15 +81,16 @@ class Server {
 			var n = nodes[id];
 			while( n.firstChild != null )
 				n.removeChild(n.firstChild);
-		case Dock(p, e, dir, size):
-			dock(nodes[p], nodes[e], dir, size);
 		case Remove(id):
 			nodes[id].remove();
 		case Event(id, name, eid):
 			var n = nodes[id];
 			bindEvent(n, id, name, eid);
 		case SetAttr(id, att, val):
-			nodes[id].setAttribute(att, val);
+			if( val == null )
+				nodes[id].removeAttribute(att);
+			else
+				nodes[id].setAttribute(att, val);
 		case SetStyle(id, s, val):
 			Reflect.setField(nodes[id].style, s, val);
 		case Trigger(id, s):

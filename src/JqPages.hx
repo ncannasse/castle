@@ -16,6 +16,7 @@
 import js.jquery.Helper.*;
 
 extern class DockNode {
+	var elementPanel : js.html.HtmlElement;
 }
 
 @:native("dockspawn.DockManager") extern class DockManager {
@@ -32,7 +33,6 @@ extern class DockNode {
 	function dockDown( node : DockNode, p : Panel, v : Float ) : DockNode;
 	function dockUp( node : DockNode, p : Panel, v : Float ) : DockNode;
 	function dockFill( node : DockNode, p : Panel ) : DockNode;
-	function requestUndock( p : Panel ) : Void;
 }
 
 @:native("dockspawn.EventListener") extern class EventListener {
@@ -43,8 +43,8 @@ extern class DockNode {
 
 @:native("dockspawn.PanelContainer") extern class Panel {
 	function new( e : js.html.Element, m : DockManager ) : Void;
-	var closeButtonClickedHandler : EventListener;
-	function onCloseButtonClicked() : Void; // call to properly destroy
+	dynamic function __onDestroy() : Void;
+	function onCloseButtonClicked() : Void; // force close
 }
 
 class JqPage extends cdb.jq.Server {
@@ -88,38 +88,13 @@ class JqPage extends cdb.jq.Server {
 		sock.write(buf);
 	}
 
-	override function dock( parent : js.html.Element, e : js.html.Element, dir : cdb.jq.Message.DockDirection, size : Null<Float> ) {
-		var p = panels.get(e);
-		if( p == null ) {
-			p = new Panel(e, dockManager);
-			panels.set(e, p);
-		}
-		var n = dnodes.get(parent);
-		if( n == null )
-			return;
-		var n = switch( dir ) {
-		case Left:
-			dockManager.dockLeft(n, p, size);
-		case Right:
-			dockManager.dockRight(n, p, size);
-		case Up:
-			dockManager.dockUp(n, p, size);
-		case Down:
-			dockManager.dockDown(n, p, size);
-		case Fill:
-			dockManager.dockFill(n, p);
-		}
-		dnodes.set(e, n);
-	}
-
 	override function bindEvent( n : js.html.Element, id : Int, name : String, eid : Int ) {
 		switch( name ) {
-		case "panelclose":
+		case "paneldock":
 			var p = panels.get(n);
-			if( p != null ) {
-				p.closeButtonClickedHandler.cancel();
-				super.bindEvent(p.closeButtonClickedHandler.source, id, "click", eid);
-			}
+			if( p == null )
+				return;
+			p.__onDestroy = function() send(Event(eid, {}));
 		default:
 			super.bindEvent(n, id, name, eid);
 		}
@@ -221,6 +196,51 @@ class JqPage extends cdb.jq.Server {
 
 			document.addEventListener("pointerlockchange",onChange,false);
 			e.requestPointerLock();
+
+		case "dock":
+			var dir = e.getAttribute("dock");
+
+			if( dir == null ) {
+				var p = panels.get(e);
+				if( p == null )
+					return;
+				panels.remove(e);
+				dnodes.remove(e);
+				try p.onCloseButtonClicked() catch( e : Dynamic ) {};
+				return;
+			}
+
+			var parent = e.parentElement;
+			var n = dnodes.get(parent);
+			if( n == null ) {
+				trace("Could not dock:");
+				trace(e);
+				trace("to:");
+				trace(parent);
+				return;
+			}
+			var p = panels.get(e);
+			if( p == null ) {
+				e.remove();
+				p = new Panel(e, dockManager);
+				panels.set(e, p);
+			}
+
+			var size = e.getAttribute("docksize");
+			var size = size == null ? null : Std.parseFloat(size);
+			var n = switch( dir.toLowerCase() ) {
+			case "left":
+				dockManager.dockLeft(n, p, size);
+			case "right":
+				dockManager.dockRight(n, p, size);
+			case "up":
+				dockManager.dockUp(n, p, size);
+			case "down":
+				dockManager.dockDown(n, p, size);
+			default:
+				dockManager.dockFill(n, p);
+			}
+			dnodes.set(e, n);
 
 		default:
 			throw "Don't know how to handle " + name+"(" + args.join(",") + ")";

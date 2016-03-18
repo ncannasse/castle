@@ -81,12 +81,10 @@ class Client {
 		send(Create(d.id, d.nodeName, d.attributes.length == 0 ? null : d.attributes));
 		if( d.parent != null )
 			send(Append(d.id, d.parent.id));
+		if( d.getAttr("dock") != null )
+			send(Special(d.id,"dock",[]));
 		for( c in d.childs )
 			syncDomRec(c);
-		if( d.dock != null ) {
-			syncDomRec(d.dock.parent);
-			send(Dock(d.dock.parent.id, d.id, d.dock.dir, d.dock.size));
-		}
 		for( e in d.events )
 			send(Event(d.id, e.name, e.id));
 	}
@@ -97,7 +95,12 @@ class Client {
 			var e = new Event();
 			if( props != null )
 				for( f in Reflect.fields(props) )
-					Reflect.setField(e, f, Reflect.field(props, f));
+					switch( f ) {
+					case "target":
+						e.target = doms.get(props.target);
+					default:
+						Reflect.setField(e, f, Reflect.field(props, f));
+					}
 			if( id < 0 )
 				onKey(e);
 			else {
