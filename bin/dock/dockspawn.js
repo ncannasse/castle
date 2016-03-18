@@ -86,6 +86,7 @@ dockspawn.TabHandle.prototype.onCloseButtonClicked = function()
         this.undockInitiator.enabled = false;
         var panel = this.parent.container;
         panel.performUndock();
+		panel.destroy();
     }
 };
 
@@ -379,7 +380,7 @@ dockspawn.Dialog.prototype.destroy = function()
     removeNode(this.elementDialog);
     this.draggable.removeDecorator();
     removeNode(this.panel.elementPanel);
-    delete this.panel.floatingDialog;
+    delete this.panel._floatingDialog;
 };
 
 dockspawn.Dialog.prototype.resize = function(width, height)
@@ -2315,7 +2316,7 @@ dockspawn.PanelContainer.prototype._initialize = function()
     this._updateTitle();
 
     this.undockInitiator = new dockspawn.UndockInitiator(this.elementTitle, this.performUndockToDialog.bind(this));
-    delete this.floatingDialog;
+    //delete this.floatingDialog;
 };
 
 dockspawn.PanelContainer.prototype.destroy = function()
@@ -2326,6 +2327,7 @@ dockspawn.PanelContainer.prototype.destroy = function()
         this.closeButtonClickedHandler.cancel();
         delete this.closeButtonClickedHandler;
     }
+	if( this.__onDestroy ) this.__onDestroy();
 };
 
 /**
@@ -2435,10 +2437,8 @@ dockspawn.PanelContainer.prototype.onCloseButtonClicked = function(e)
     if (this.floatingDialog)
         this.floatingDialog.destroy();
     else
-    {
         this.performUndock();
-        this.destroy();
-    }
+    this.destroy();
 };
 
 dockspawn.VerticalDockContainer = function(dockManager, childContainers)
