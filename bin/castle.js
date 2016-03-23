@@ -414,14 +414,23 @@ JqPage.prototype = $extend(cdb_jq_Server.prototype,{
 			}
 			this.dnodes.set(e,n1);
 			break;
-		case "fileSelect":
+		case "fileSave":case "fileSelect":
 			var path = args[0];
 			var ext = args[1] == null?[]:args[1].split(",");
+			var data = args[2];
+			var saveAs = name == "fileSave";
 			var fs = $("#fileSelect");
 			if(path != null && StringTools.startsWith(window.navigator.platform,"Win")) {
 				path = path.split("/").join("\\");
 			}
-			fs.attr("nwworkingdir",path == null?"":new haxe_io_Path(path).dir);
+			var fpath = new haxe_io_Path(path == null?"":path);
+			fs.attr("nwworkingdir",fpath.dir);
+			if(saveAs) {
+				fpath.dir = "";
+				fs.attr("nwsaveas",fpath.toString());
+			} else {
+				fs.removeAttr("nwsaveas");
+			}
 			fs.change(function(_) {
 				fs.unbind("change");
 				var path1 = fs.val().split("\\").join("/");
@@ -429,6 +438,18 @@ JqPage.prototype = $extend(cdb_jq_Server.prototype,{
 				if(path1 == "") {
 					result(null);
 					return;
+				}
+				if(saveAs) {
+					if(js_Boot.__instanceof(data,haxe_io_Bytes)) {
+						var data1 = data;
+						var _g4 = [];
+						var _g6 = 0;
+						var _g5 = data1.length;
+						while(_g6 < _g5) _g4.push(data1.b[_g6++]);
+						js_node_Fs.writeFileSync(path1,new js_node_buffer_Buffer(_g4));
+					} else {
+						js_node_Fs.writeFileSync(path1,data);
+					}
 				}
 				fs.attr("nwworkingdir","");
 				result(path1);
@@ -7574,9 +7595,9 @@ Main.prototype = $extend(Model.prototype,{
 	}
 	,deleteColumn: function(sheet,cname) {
 		if(cname == null) {
+			var name = this.colProps.sheet;
 			var _this = this.smap;
-			var key = this.colProps.sheet;
-			sheet = (__map_reserved[key] != null?_this.getReserved(key):_this.h[key]).s;
+			sheet = (__map_reserved[name] != null?_this.getReserved(name):_this.h[name]).s;
 			cname = this.colProps.ref.name;
 		}
 		if(!SheetData.deleteColumn(sheet,cname)) {
@@ -7896,9 +7917,9 @@ Main.prototype = $extend(Model.prototype,{
 		if(this.colProps.sheet == null) {
 			sheet = this.viewSheet;
 		} else {
+			var name = this.colProps.sheet;
 			var _this = this.smap;
-			var key = this.colProps.sheet;
-			sheet = (__map_reserved[key] != null?_this.getReserved(key):_this.h[key]).s;
+			sheet = (__map_reserved[name] != null?_this.getReserved(name):_this.h[name]).s;
 		}
 		var refColumn = this.colProps.ref;
 		var t;
@@ -7911,8 +7932,8 @@ Main.prototype = $extend(Model.prototype,{
 			break;
 		case "custom":
 			var _this1 = this.tmap;
-			var key1 = v.ctype;
-			var t1 = __map_reserved[key1] != null?_this1.getReserved(key1):_this1.h[key1];
+			var key = v.ctype;
+			var t1 = __map_reserved[key] != null?_this1.getReserved(key):_this1.h[key];
 			if(t1 == null) {
 				this.error("Type not found");
 				return;
@@ -8165,9 +8186,9 @@ Main.prototype = $extend(Model.prototype,{
 			if(!(__map_reserved[key] != null?_this1.existsReserved(key):_this1.h.hasOwnProperty(key))) {
 				continue;
 			}
+			var name1 = level.sheetPath;
 			var _this2 = this.smap;
-			var key1 = level.sheetPath;
-			var s8 = (__map_reserved[key1] != null?_this2.getReserved(key1):_this2.h[key1]).s;
+			var s8 = (__map_reserved[name1] != null?_this2.getReserved(name1):_this2.h[name1]).s;
 			if(s8.lines.length < level.index) {
 				continue;
 			}
@@ -8177,11 +8198,11 @@ Main.prototype = $extend(Model.prototype,{
 			}
 			this.levels.push(l[0]);
 			var li5 = $("<li>");
-			var name1 = level.getName();
-			if(name1 == "") {
-				name1 = "???";
+			var name2 = level.getName();
+			if(name2 == "") {
+				name2 = "???";
 			}
-			li5.text(name1).attr("id","level_" + l[0].sheetPath.split(".").join("_") + "_" + l[0].index).appendTo(sheets).click((function(l1) {
+			li5.text(name2).attr("id","level_" + l[0].sheetPath.split(".").join("_") + "_" + l[0].index).appendTo(sheets).click((function(l1) {
 				return function(_3) {
 					_gthis.selectLevel(l1[0]);
 				};
@@ -12148,6 +12169,9 @@ var haxe_io_Bytes = function(data) {
 };
 $hxClasses["haxe.io.Bytes"] = haxe_io_Bytes;
 haxe_io_Bytes.__name__ = ["haxe","io","Bytes"];
+haxe_io_Bytes.alloc = function(length) {
+	return new haxe_io_Bytes(new ArrayBuffer(length));
+};
 haxe_io_Bytes.ofString = function(s) {
 	var a = [];
 	var i = 0;
@@ -12180,6 +12204,9 @@ haxe_io_Bytes.ofData = function(b) {
 		return hb;
 	}
 	return new haxe_io_Bytes(b);
+};
+haxe_io_Bytes.fastGet = function(b,pos) {
+	return b.bytes[pos];
 };
 haxe_io_Bytes.prototype = {
 	blit: function(pos,src,srcpos,len) {
@@ -12969,7 +12996,10 @@ var haxe_io_Path = function(path) {
 $hxClasses["haxe.io.Path"] = haxe_io_Path;
 haxe_io_Path.__name__ = ["haxe","io","Path"];
 haxe_io_Path.prototype = {
-	__class__: haxe_io_Path
+	toString: function() {
+		return (this.dir == null?"":this.dir + (this.backslash?"\\":"/")) + this.file + (this.ext == null?"":"." + this.ext);
+	}
+	,__class__: haxe_io_Path
 };
 var haxe_rtti_Meta = function() { };
 $hxClasses["haxe.rtti.Meta"] = haxe_rtti_Meta;

@@ -127,14 +127,21 @@ class JqPage extends cdb.jq.Server {
 					result({ color : getColor(vcol), done : true });
 				},
 			}).spectrum("show");
-		case "fileSelect":
+		case "fileSelect", "fileSave":
 			var path : String = args[0];
 			var ext = args[1] == null ? [] : args[1].split(",");
-
+			var data : Dynamic = args[2];
+			var saveAs = name == "fileSave";
 			var fs = J("#fileSelect");
 			if( path != null && StringTools.startsWith(js.Browser.navigator.platform, "Win") )
 				path = path.split("/").join("\\"); // required for nwworkingdir
-			fs.attr("nwworkingdir", path == null ? "" : new haxe.io.Path(path).dir);
+			var fpath = new haxe.io.Path(path == null ? "" : path);
+			fs.attr("nwworkingdir", fpath.dir);
+			if( saveAs ) {
+				fpath.dir = "";
+				fs.attr("nwsaveas", fpath.toString());
+			} else
+				fs.removeAttr("nwsaveas");
 			fs.change(function(_) {
 				fs.unbind("change");
 				var path = fs.val().split("\\").join("/");
@@ -142,6 +149,15 @@ class JqPage extends cdb.jq.Server {
 				if( path == "" ) {
 					result(null);
 					return;
+				}
+				if( saveAs ) {
+					if( Std.is(data, haxe.io.Bytes) ) {
+						// NWJS is not Node 4.0+ compatible yet
+						var data : haxe.io.Bytes = data;
+						var buf = new js.node.Buffer([for( i in 0...data.length ) data.get(i)]);
+						js.node.Fs.writeFileSync(path, buf);
+					} else
+						sys.io.File.saveContent(path, data);
 				}
 				fs.attr("nwworkingdir", "");
 				result(path);
