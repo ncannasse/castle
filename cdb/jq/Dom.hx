@@ -123,6 +123,7 @@ class Dom {
 	}
 
 	public function remove() {
+		if( id < 0 ) return;
 		send(Remove(id));
 		if( parent != null ) {
 			parent.childs.remove(this);
