@@ -39,7 +39,7 @@ class Server {
 			var sendValue = false;
 			var props : Message.EventProps = null;
 			switch( name ) {
-			case "change": sendValue = true;
+			case "change", "input": sendValue = true;
 			case "blur" if( n.tagName == "INPUT" ): sendValue = true;
 			case "keydown":
 				props = { keyCode : e.keyCode, shiftKey : e.shiftKey, ctrlKey : e.ctrlKey };
@@ -86,6 +86,8 @@ class Server {
 		case Event(id, name, eid):
 			var n = nodes[id];
 			bindEvent(n, id, name, eid);
+		case SetVal(id, val):
+			try (nodes[id] : Dynamic).value = val catch( e : Dynamic ) {};
 		case SetAttr(id, att, val):
 			if( val == null )
 				nodes[id].removeAttribute(att);

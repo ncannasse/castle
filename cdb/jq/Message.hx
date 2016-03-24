@@ -33,6 +33,7 @@ enum Message {
 	Dispose( id : Int, ?events : Array<Int> );
 	Unbind( events : Array<Int> );
 	Group( msg : Array<Message> );
+	SetVal( id : Int, value : Dynamic );
 }
 
 typedef EventProps = { ?keyCode : Int, ?value : Dynamic, ?which : Int, ?ctrlKey : Bool, ?shiftKey : Bool, ?target : Int };

@@ -149,6 +149,15 @@ class JQuery {
 			send(Trigger(s.id, event));
 	}
 
+	public function val( value : Dynamic ) {
+		var vstr = value == null ? null : "" + value;
+		for( s in sel ) {
+			send(SetVal(s.id, value));
+			s.setAttr("value", vstr);
+		}
+		return this;
+	}
+
 	public function getValue() {
 		if( sel.length == 0 )
 			return null;
