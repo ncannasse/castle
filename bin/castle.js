@@ -289,6 +289,15 @@ cdb_jq_Server.prototype = {
 				}
 			}
 			break;
+		case 16:
+			var msgs = msg[2];
+			var _g2 = 0;
+			while(_g2 < msgs.length) {
+				var m1 = msgs[_g2];
+				++_g2;
+				this.onMessage(m1);
+			}
+			break;
 		}
 	}
 	,__class__: cdb_jq_Server
@@ -325,6 +334,16 @@ JqPage.prototype = $extend(cdb_jq_Server.prototype,{
 			buf[i + 2] = bytes.b[i];
 		}
 		this.sock.write(buf);
+	}
+	,onMessage: function(msg) {
+		cdb_jq_Server.prototype.onMessage.call(this,msg);
+		if(msg[1] == 9) {
+			if(msg[2] == 0) {
+				if(msg[3] == "title") {
+					this.tab.text(msg[4]);
+				}
+			}
+		}
 	}
 	,bindEvent: function(n,id,name,eid) {
 		var _gthis = this;
@@ -614,13 +633,6 @@ JqPages.prototype = {
 				if(curPos == curBuffer.length) {
 					var msg = cdb_BinSerializer.doUnserialize(curBuffer,1522840838);
 					p.onMessage(msg);
-					if(msg[1] == 9) {
-						if(msg[2] == 0) {
-							if(msg[3] == "title") {
-								p.tab.text(msg[4]);
-							}
-						}
-					}
 					curBuffer = null;
 					sizeCount = 0;
 					size = 0;
@@ -672,84 +684,6 @@ Lambda.find = function(it,f) {
 		}
 	}
 	return null;
-};
-var haxe_IMap = function() { };
-$hxClasses["haxe.IMap"] = haxe_IMap;
-haxe_IMap.__name__ = ["haxe","IMap"];
-haxe_IMap.prototype = {
-	__class__: haxe_IMap
-};
-var haxe_ds_StringMap = function() {
-	this.h = { };
-};
-$hxClasses["haxe.ds.StringMap"] = haxe_ds_StringMap;
-haxe_ds_StringMap.__name__ = ["haxe","ds","StringMap"];
-haxe_ds_StringMap.__interfaces__ = [haxe_IMap];
-haxe_ds_StringMap.prototype = {
-	get: function(key) {
-		if(__map_reserved[key] != null) {
-			return this.getReserved(key);
-		}
-		return this.h[key];
-	}
-	,setReserved: function(key,value) {
-		if(this.rh == null) {
-			this.rh = { };
-		}
-		this.rh["$" + key] = value;
-	}
-	,getReserved: function(key) {
-		if(this.rh == null) {
-			return null;
-		} else {
-			return this.rh["$" + key];
-		}
-	}
-	,existsReserved: function(key) {
-		if(this.rh == null) {
-			return false;
-		}
-		return this.rh.hasOwnProperty("$" + key);
-	}
-	,remove: function(key) {
-		if(__map_reserved[key] != null) {
-			key = "$" + key;
-			if(this.rh == null || !this.rh.hasOwnProperty(key)) {
-				return false;
-			}
-			delete(this.rh[key]);
-			return true;
-		} else {
-			if(!this.h.hasOwnProperty(key)) {
-				return false;
-			}
-			delete(this.h[key]);
-			return true;
-		}
-	}
-	,keys: function() {
-		return HxOverrides.iter(this.arrayKeys());
-	}
-	,arrayKeys: function() {
-		var out = [];
-		for( var key in this.h ) {
-		if(this.h.hasOwnProperty(key)) {
-			out.push(key);
-		}
-		}
-		if(this.rh != null) {
-			for( var key in this.rh ) {
-			if(key.charCodeAt(0) == 36) {
-				out.push(key.substr(1));
-			}
-			}
-		}
-		return out;
-	}
-	,iterator: function() {
-		return new haxe_ds__$StringMap_StringMapIterator(this,this.arrayKeys());
-	}
-	,__class__: haxe_ds_StringMap
 };
 var Level = function(model,sheet,index) {
 	this.reloading = false;
@@ -7683,9 +7617,9 @@ Main.prototype = $extend(Model.prototype,{
 	}
 	,deleteColumn: function(sheet,cname) {
 		if(cname == null) {
-			var name = this.colProps.sheet;
 			var _this = this.smap;
-			sheet = (__map_reserved[name] != null?_this.getReserved(name):_this.h[name]).s;
+			var key = this.colProps.sheet;
+			sheet = (__map_reserved[key] != null?_this.getReserved(key):_this.h[key]).s;
 			cname = this.colProps.ref.name;
 		}
 		if(!SheetData.deleteColumn(sheet,cname)) {
@@ -8005,9 +7939,9 @@ Main.prototype = $extend(Model.prototype,{
 		if(this.colProps.sheet == null) {
 			sheet = this.viewSheet;
 		} else {
-			var name = this.colProps.sheet;
 			var _this = this.smap;
-			sheet = (__map_reserved[name] != null?_this.getReserved(name):_this.h[name]).s;
+			var key = this.colProps.sheet;
+			sheet = (__map_reserved[key] != null?_this.getReserved(key):_this.h[key]).s;
 		}
 		var refColumn = this.colProps.ref;
 		var t;
@@ -8020,8 +7954,8 @@ Main.prototype = $extend(Model.prototype,{
 			break;
 		case "custom":
 			var _this1 = this.tmap;
-			var key = v.ctype;
-			var t1 = __map_reserved[key] != null?_this1.getReserved(key):_this1.h[key];
+			var key1 = v.ctype;
+			var t1 = __map_reserved[key1] != null?_this1.getReserved(key1):_this1.h[key1];
 			if(t1 == null) {
 				this.error("Type not found");
 				return;
@@ -8274,9 +8208,9 @@ Main.prototype = $extend(Model.prototype,{
 			if(!(__map_reserved[key] != null?_this1.existsReserved(key):_this1.h.hasOwnProperty(key))) {
 				continue;
 			}
-			var name1 = level.sheetPath;
 			var _this2 = this.smap;
-			var s8 = (__map_reserved[name1] != null?_this2.getReserved(name1):_this2.h[name1]).s;
+			var key1 = level.sheetPath;
+			var s8 = (__map_reserved[key1] != null?_this2.getReserved(key1):_this2.h[key1]).s;
 			if(s8.lines.length < level.index) {
 				continue;
 			}
@@ -8286,11 +8220,11 @@ Main.prototype = $extend(Model.prototype,{
 			}
 			this.levels.push(l[0]);
 			var li5 = $("<li>");
-			var name2 = level.getName();
-			if(name2 == "") {
-				name2 = "???";
+			var name1 = level.getName();
+			if(name1 == "") {
+				name1 = "???";
 			}
-			li5.text(name2).attr("id","level_" + l[0].sheetPath.split(".").join("_") + "_" + l[0].index).appendTo(sheets).click((function(l1) {
+			li5.text(name1).attr("id","level_" + l[0].sheetPath.split(".").join("_") + "_" + l[0].index).appendTo(sheets).click((function(l1) {
 				return function(_3) {
 					_gthis.selectLevel(l1[0]);
 				};
@@ -11840,7 +11774,7 @@ cdb_IndexId.prototype = $extend(cdb_Index.prototype,{
 	}
 	,__class__: cdb_IndexId
 });
-var cdb_jq_Message = $hxClasses["cdb.jq.Message"] = { __ename__ : ["cdb","jq","Message"], __constructs__ : ["Create","AddClass","RemoveClass","Append","InsertAt","CreateText","Reset","Remove","Event","SetAttr","SetStyle","Trigger","Special","Anim","Dispose","Unbind"] };
+var cdb_jq_Message = $hxClasses["cdb.jq.Message"] = { __ename__ : ["cdb","jq","Message"], __constructs__ : ["Create","AddClass","RemoveClass","Append","InsertAt","CreateText","Reset","Remove","Event","SetAttr","SetStyle","Trigger","Special","Anim","Dispose","Unbind","Group"] };
 cdb_jq_Message.Create = function(id,name,attr) { var $x = ["Create",0,id,name,attr]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
 cdb_jq_Message.AddClass = function(id,name) { var $x = ["AddClass",1,id,name]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
 cdb_jq_Message.RemoveClass = function(id,name) { var $x = ["RemoveClass",2,id,name]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
@@ -11857,10 +11791,17 @@ cdb_jq_Message.Special = function(id,name,args,eid) { var $x = ["Special",12,id,
 cdb_jq_Message.Anim = function(id,name,dur) { var $x = ["Anim",13,id,name,dur]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
 cdb_jq_Message.Dispose = function(id,events) { var $x = ["Dispose",14,id,events]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
 cdb_jq_Message.Unbind = function(events) { var $x = ["Unbind",15,events]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
+cdb_jq_Message.Group = function(msg) { var $x = ["Group",16,msg]; $x.__enum__ = cdb_jq_Message; $x.toString = $estr; return $x; };
 var cdb_jq_Answer = $hxClasses["cdb.jq.Answer"] = { __ename__ : ["cdb","jq","Answer"], __constructs__ : ["Event","SetValue","Done"] };
 cdb_jq_Answer.Event = function(eid,props) { var $x = ["Event",0,eid,props]; $x.__enum__ = cdb_jq_Answer; $x.toString = $estr; return $x; };
 cdb_jq_Answer.SetValue = function(id,value) { var $x = ["SetValue",1,id,value]; $x.__enum__ = cdb_jq_Answer; $x.toString = $estr; return $x; };
 cdb_jq_Answer.Done = function(eid) { var $x = ["Done",2,eid]; $x.__enum__ = cdb_jq_Answer; $x.toString = $estr; return $x; };
+var haxe_IMap = function() { };
+$hxClasses["haxe.IMap"] = haxe_IMap;
+haxe_IMap.__name__ = ["haxe","IMap"];
+haxe_IMap.prototype = {
+	__class__: haxe_IMap
+};
 var haxe__$Int64__$_$_$Int64 = function(high,low) {
 	this.high = high;
 	this.low = low;
@@ -12878,6 +12819,78 @@ haxe_ds__$StringMap_StringMapIterator.prototype = {
 		}
 	}
 	,__class__: haxe_ds__$StringMap_StringMapIterator
+};
+var haxe_ds_StringMap = function() {
+	this.h = { };
+};
+$hxClasses["haxe.ds.StringMap"] = haxe_ds_StringMap;
+haxe_ds_StringMap.__name__ = ["haxe","ds","StringMap"];
+haxe_ds_StringMap.__interfaces__ = [haxe_IMap];
+haxe_ds_StringMap.prototype = {
+	get: function(key) {
+		if(__map_reserved[key] != null) {
+			return this.getReserved(key);
+		}
+		return this.h[key];
+	}
+	,setReserved: function(key,value) {
+		if(this.rh == null) {
+			this.rh = { };
+		}
+		this.rh["$" + key] = value;
+	}
+	,getReserved: function(key) {
+		if(this.rh == null) {
+			return null;
+		} else {
+			return this.rh["$" + key];
+		}
+	}
+	,existsReserved: function(key) {
+		if(this.rh == null) {
+			return false;
+		}
+		return this.rh.hasOwnProperty("$" + key);
+	}
+	,remove: function(key) {
+		if(__map_reserved[key] != null) {
+			key = "$" + key;
+			if(this.rh == null || !this.rh.hasOwnProperty(key)) {
+				return false;
+			}
+			delete(this.rh[key]);
+			return true;
+		} else {
+			if(!this.h.hasOwnProperty(key)) {
+				return false;
+			}
+			delete(this.h[key]);
+			return true;
+		}
+	}
+	,keys: function() {
+		return HxOverrides.iter(this.arrayKeys());
+	}
+	,arrayKeys: function() {
+		var out = [];
+		for( var key in this.h ) {
+		if(this.h.hasOwnProperty(key)) {
+			out.push(key);
+		}
+		}
+		if(this.rh != null) {
+			for( var key in this.rh ) {
+			if(key.charCodeAt(0) == 36) {
+				out.push(key.substr(1));
+			}
+			}
+		}
+		return out;
+	}
+	,iterator: function() {
+		return new haxe_ds__$StringMap_StringMapIterator(this,this.arrayKeys());
+	}
+	,__class__: haxe_ds_StringMap
 };
 var haxe_io_BytesBuffer = function() {
 	this.b = [];
@@ -15902,7 +15915,6 @@ if(Array.prototype.indexOf) {
 		return Array.prototype.indexOf.call(a,o,i);
 	};
 }
-var __map_reserved = {}
 $hxClasses.Math = Math;
 String.prototype.__class__ = $hxClasses.String = String;
 String.__name__ = ["String"];
@@ -15933,6 +15945,7 @@ if(Array.prototype.filter == null) {
 		return a1;
 	};
 }
+var __map_reserved = {}
 Level.UID = 0;
 Level.loadedTilesCache = new haxe_ds_StringMap();
 K.INSERT = 45;
@@ -15955,7 +15968,7 @@ Main.UID = 0;
 haxe_Serializer.USE_CACHE = false;
 haxe_Serializer.USE_ENUM_INDEX = false;
 haxe_Serializer.BASE64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789%:";
-cdb_BinSerializer.__meta__ = { obj : { s_1522840838 : ["cy25:cdb._BinSerializer.Schemay4:hashi1544061529y4:kindwy29:cdb._BinSerializer.SchemaKindy5:SEnum:1aawy24:cdb._BinSerializer.SDatay4:DInt:0wR5y7:DString:0wR5y5:DNull:1wR5y6:DArray:1wR5y5:DAnon:1aoy1:dwR5R7:0y1:ny4:namegoR11wR5R7:0R12y5:valueghhawR5R6:0wR5R7:0hawR5R6:0wR5R7:0hawR5R6:0wR5R6:0hawR5R6:0wR5R6:0wR5R6:0hawR5R6:0wR5R7:0wR5R8:1wR5R6:0hawR5R6:0hawR5R6:0hawR5R6:0wR5R7:0wR5R6:0hawR5R6:0wR5R7:0wR5R8:1wR5R7:0hawR5R6:0wR5R7:0wR5R8:1wR5R7:0hawR5R6:0wR5R7:0hawR5R6:0wR5R7:0wR5R9:1wR5y8:DDynamic:0wR5R8:1wR5R6:0hawR5R6:0wR5R7:0wR5R8:1wR5y6:DFloat:0hawR5R6:0wR5R8:1wR5R9:1wR5R6:0hawR5R9:1wR5R6:0hhR13y14:cdb.jq.Messagey2:idi1522840838g"], s_560507292 : ["cy25:cdb._BinSerializer.Schemay4:hashi842410256y4:kindwy29:cdb._BinSerializer.SchemaKindy5:SEnum:1aawy24:cdb._BinSerializer.SDatay4:DInt:0wR5y5:DNull:1wR5y7:DSchema:1i1835035702hawR5R6:0wR5y7:DString:0hawR5R6:0hhy4:namey13:cdb.jq.Answery2:idi560507292g"], s_1835035702 : ["cy25:cdb._BinSerializer.Schemay4:hashi-1015430469y4:kindwy29:cdb._BinSerializer.SchemaKindy5:SAnon:1aoy1:dwy24:cdb._BinSerializer.SDatay5:DNull:1wR6y5:DBool:0y1:ny7:ctrlKeygoR5wR6R7:1wR6y4:DInt:0R9y7:keyCodegoR5wR6R7:1wR6R8:0R9y8:shiftKeygoR5wR6R7:1wR6R11:0R9y6:targetgoR5wR6R7:1wR6y8:DDynamic:0R9y5:valuegoR5wR6R7:1wR6R11:0R9y5:whichghy4:namey17:cdb.jq.EventPropsy2:idi1835035702g"]}};
+cdb_BinSerializer.__meta__ = { obj : { s_1522840838 : ["cy25:cdb._BinSerializer.Schemay4:hashi1986938177y4:kindwy29:cdb._BinSerializer.SchemaKindy5:SEnum:1aawy24:cdb._BinSerializer.SDatay4:DInt:0wR5y7:DString:0wR5y5:DNull:1wR5y6:DArray:1wR5y5:DAnon:1aoy1:dwR5R7:0y1:ny4:namegoR11wR5R7:0R12y5:valueghhawR5R6:0wR5R7:0hawR5R6:0wR5R7:0hawR5R6:0wR5R6:0hawR5R6:0wR5R6:0wR5R6:0hawR5R6:0wR5R7:0wR5R8:1wR5R6:0hawR5R6:0hawR5R6:0hawR5R6:0wR5R7:0wR5R6:0hawR5R6:0wR5R7:0wR5R8:1wR5R7:0hawR5R6:0wR5R7:0wR5R8:1wR5R7:0hawR5R6:0wR5R7:0hawR5R6:0wR5R7:0wR5R9:1wR5y8:DDynamic:0wR5R8:1wR5R6:0hawR5R6:0wR5R7:0wR5R8:1wR5y6:DFloat:0hawR5R6:0wR5R8:1wR5R9:1wR5R6:0hawR5R9:1wR5R6:0hawR5R9:1wR5y7:DSchema:1i1522840838hhR13y14:cdb.jq.Messagey2:idi1522840838g"], s_560507292 : ["cy25:cdb._BinSerializer.Schemay4:hashi842410256y4:kindwy29:cdb._BinSerializer.SchemaKindy5:SEnum:1aawy24:cdb._BinSerializer.SDatay4:DInt:0wR5y5:DNull:1wR5y7:DSchema:1i1835035702hawR5R6:0wR5y7:DString:0hawR5R6:0hhy4:namey13:cdb.jq.Answery2:idi560507292g"], s_1835035702 : ["cy25:cdb._BinSerializer.Schemay4:hashi-1015430469y4:kindwy29:cdb._BinSerializer.SchemaKindy5:SAnon:1aoy1:dwy24:cdb._BinSerializer.SDatay5:DNull:1wR6y5:DBool:0y1:ny7:ctrlKeygoR5wR6R7:1wR6y4:DInt:0R9y7:keyCodegoR5wR6R7:1wR6R8:0R9y8:shiftKeygoR5wR6R7:1wR6R11:0R9y6:targetgoR5wR6R7:1wR6y8:DDynamic:0R9y5:valuegoR5wR6R7:1wR6R11:0R9y5:whichghy4:namey17:cdb.jq.EventPropsy2:idi1835035702g"]}};
 cdb_BinSerializer.VERSION_CHECK = false;
 cdb_BinSerializer.TAG = 0;
 cdb_BinSerializer.gadtTip = -1;

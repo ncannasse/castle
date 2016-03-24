@@ -89,6 +89,15 @@ class JqPage extends cdb.jq.Server {
 		sock.write(buf);
 	}
 
+	override function onMessage(msg) {
+		super.onMessage(msg);
+		switch( msg ) {
+		case SetAttr(0, "title", val):
+			tab.text(val);
+		default:
+		}
+	}
+
 	override function bindEvent( n : js.html.Element, id : Int, name : String, eid : Int ) {
 		switch( name ) {
 		case "paneldock":
@@ -362,11 +371,6 @@ class JqPages {
 					if( curPos == curBuffer.length ) {
 						var msg : cdb.jq.Message = cdb.BinSerializer.unserialize(curBuffer);
 						p.onMessage(msg);
-						switch( msg ) {
-						case SetAttr(0,"title",name):
-							p.tab.text(name);
-						default:
-						}
 						curBuffer = null;
 						sizeCount = 0;
 						size = 0;

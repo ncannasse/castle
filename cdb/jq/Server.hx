@@ -120,6 +120,9 @@ class Server {
 			nodes[id].remove();
 			nodes[id] = null;
 			if( eids != null ) onMessage(Unbind(eids));
+		case Group(msgs):
+			for( m in msgs )
+				onMessage(m);
 		}
 	}
 

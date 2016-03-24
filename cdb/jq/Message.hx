@@ -32,6 +32,7 @@ enum Message {
 	Anim( id : Int, name : String, ?dur : Float );
 	Dispose( id : Int, ?events : Array<Int> );
 	Unbind( events : Array<Int> );
+	Group( msg : Array<Message> );
 }
 
 typedef EventProps = { ?keyCode : Int, ?value : Dynamic, ?which : Int, ?ctrlKey : Bool, ?shiftKey : Bool, ?target : Int };
