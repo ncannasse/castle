@@ -57,6 +57,7 @@ class JqPage extends cdb.jq.Server {
 	var dockManager : DockManager;
 	var panels : Map<js.html.Element, Panel>;
 	var dnodes : Map<js.html.Element, DockNode>;
+	var prevSelectEvent : String -> Void;
 
 	public function new(sock) {
 		super(js.Browser.document.createElement("div"));
@@ -128,6 +129,7 @@ class JqPage extends cdb.jq.Server {
 				},
 			}).spectrum("show");
 		case "fileSelect", "fileSave":
+
 			var path : String = args[0];
 			var ext = args[1] == null ? [] : args[1].split(",");
 			var data : Dynamic = args[2];
@@ -142,7 +144,15 @@ class JqPage extends cdb.jq.Server {
 				fs.attr("nwsaveas", fpath.toString());
 			} else
 				fs.removeAttr("nwsaveas");
+			// Chrome will not consider the value changed if we cancel.
+			// there is no known way to detect cancel... (;_;)
+			if( prevSelectEvent != null )
+				prevSelectEvent(null);
+			prevSelectEvent = result;
+			fs.val("");
+			fs.unbind("change");
 			fs.change(function(_) {
+				prevSelectEvent = null;
 				fs.unbind("change");
 				var path = fs.val().split("\\").join("/");
 				fs.val("");

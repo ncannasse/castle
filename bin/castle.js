@@ -341,6 +341,7 @@ JqPage.prototype = $extend(cdb_jq_Server.prototype,{
 		}
 	}
 	,handleSpecial: function(e,name,args,result) {
+		var _gthis = this;
 		switch(name) {
 		case "animate":
 			var j = $(e);
@@ -431,7 +432,14 @@ JqPage.prototype = $extend(cdb_jq_Server.prototype,{
 			} else {
 				fs.removeAttr("nwsaveas");
 			}
+			if(this.prevSelectEvent != null) {
+				this.prevSelectEvent(null);
+			}
+			this.prevSelectEvent = result;
+			fs.val("");
+			fs.unbind("change");
 			fs.change(function(_) {
+				_gthis.prevSelectEvent = null;
 				fs.unbind("change");
 				var path1 = fs.val().split("\\").join("/");
 				fs.val("");
@@ -664,6 +672,84 @@ Lambda.find = function(it,f) {
 		}
 	}
 	return null;
+};
+var haxe_IMap = function() { };
+$hxClasses["haxe.IMap"] = haxe_IMap;
+haxe_IMap.__name__ = ["haxe","IMap"];
+haxe_IMap.prototype = {
+	__class__: haxe_IMap
+};
+var haxe_ds_StringMap = function() {
+	this.h = { };
+};
+$hxClasses["haxe.ds.StringMap"] = haxe_ds_StringMap;
+haxe_ds_StringMap.__name__ = ["haxe","ds","StringMap"];
+haxe_ds_StringMap.__interfaces__ = [haxe_IMap];
+haxe_ds_StringMap.prototype = {
+	get: function(key) {
+		if(__map_reserved[key] != null) {
+			return this.getReserved(key);
+		}
+		return this.h[key];
+	}
+	,setReserved: function(key,value) {
+		if(this.rh == null) {
+			this.rh = { };
+		}
+		this.rh["$" + key] = value;
+	}
+	,getReserved: function(key) {
+		if(this.rh == null) {
+			return null;
+		} else {
+			return this.rh["$" + key];
+		}
+	}
+	,existsReserved: function(key) {
+		if(this.rh == null) {
+			return false;
+		}
+		return this.rh.hasOwnProperty("$" + key);
+	}
+	,remove: function(key) {
+		if(__map_reserved[key] != null) {
+			key = "$" + key;
+			if(this.rh == null || !this.rh.hasOwnProperty(key)) {
+				return false;
+			}
+			delete(this.rh[key]);
+			return true;
+		} else {
+			if(!this.h.hasOwnProperty(key)) {
+				return false;
+			}
+			delete(this.h[key]);
+			return true;
+		}
+	}
+	,keys: function() {
+		return HxOverrides.iter(this.arrayKeys());
+	}
+	,arrayKeys: function() {
+		var out = [];
+		for( var key in this.h ) {
+		if(this.h.hasOwnProperty(key)) {
+			out.push(key);
+		}
+		}
+		if(this.rh != null) {
+			for( var key in this.rh ) {
+			if(key.charCodeAt(0) == 36) {
+				out.push(key.substr(1));
+			}
+			}
+		}
+		return out;
+	}
+	,iterator: function() {
+		return new haxe_ds__$StringMap_StringMapIterator(this,this.arrayKeys());
+	}
+	,__class__: haxe_ds_StringMap
 };
 var Level = function(model,sheet,index) {
 	this.reloading = false;
@@ -6781,6 +6867,8 @@ Main.prototype = $extend(Model.prototype,{
 		if(fs.attr("nwworkingdir") == null) {
 			fs.attr("nwworkingdir",new haxe_io_Path(this.prefs.curFile).dir);
 		}
+		fs.unbind("change");
+		fs.val("");
 		fs.change(function(_) {
 			fs.unbind("change");
 			var path = fs.val().split("\\").join("/");
@@ -11773,12 +11861,6 @@ var cdb_jq_Answer = $hxClasses["cdb.jq.Answer"] = { __ename__ : ["cdb","jq","Ans
 cdb_jq_Answer.Event = function(eid,props) { var $x = ["Event",0,eid,props]; $x.__enum__ = cdb_jq_Answer; $x.toString = $estr; return $x; };
 cdb_jq_Answer.SetValue = function(id,value) { var $x = ["SetValue",1,id,value]; $x.__enum__ = cdb_jq_Answer; $x.toString = $estr; return $x; };
 cdb_jq_Answer.Done = function(eid) { var $x = ["Done",2,eid]; $x.__enum__ = cdb_jq_Answer; $x.toString = $estr; return $x; };
-var haxe_IMap = function() { };
-$hxClasses["haxe.IMap"] = haxe_IMap;
-haxe_IMap.__name__ = ["haxe","IMap"];
-haxe_IMap.prototype = {
-	__class__: haxe_IMap
-};
 var haxe__$Int64__$_$_$Int64 = function(high,low) {
 	this.high = high;
 	this.low = low;
@@ -12796,78 +12878,6 @@ haxe_ds__$StringMap_StringMapIterator.prototype = {
 		}
 	}
 	,__class__: haxe_ds__$StringMap_StringMapIterator
-};
-var haxe_ds_StringMap = function() {
-	this.h = { };
-};
-$hxClasses["haxe.ds.StringMap"] = haxe_ds_StringMap;
-haxe_ds_StringMap.__name__ = ["haxe","ds","StringMap"];
-haxe_ds_StringMap.__interfaces__ = [haxe_IMap];
-haxe_ds_StringMap.prototype = {
-	get: function(key) {
-		if(__map_reserved[key] != null) {
-			return this.getReserved(key);
-		}
-		return this.h[key];
-	}
-	,setReserved: function(key,value) {
-		if(this.rh == null) {
-			this.rh = { };
-		}
-		this.rh["$" + key] = value;
-	}
-	,getReserved: function(key) {
-		if(this.rh == null) {
-			return null;
-		} else {
-			return this.rh["$" + key];
-		}
-	}
-	,existsReserved: function(key) {
-		if(this.rh == null) {
-			return false;
-		}
-		return this.rh.hasOwnProperty("$" + key);
-	}
-	,remove: function(key) {
-		if(__map_reserved[key] != null) {
-			key = "$" + key;
-			if(this.rh == null || !this.rh.hasOwnProperty(key)) {
-				return false;
-			}
-			delete(this.rh[key]);
-			return true;
-		} else {
-			if(!this.h.hasOwnProperty(key)) {
-				return false;
-			}
-			delete(this.h[key]);
-			return true;
-		}
-	}
-	,keys: function() {
-		return HxOverrides.iter(this.arrayKeys());
-	}
-	,arrayKeys: function() {
-		var out = [];
-		for( var key in this.h ) {
-		if(this.h.hasOwnProperty(key)) {
-			out.push(key);
-		}
-		}
-		if(this.rh != null) {
-			for( var key in this.rh ) {
-			if(key.charCodeAt(0) == 36) {
-				out.push(key.substr(1));
-			}
-			}
-		}
-		return out;
-	}
-	,iterator: function() {
-		return new haxe_ds__$StringMap_StringMapIterator(this,this.arrayKeys());
-	}
-	,__class__: haxe_ds_StringMap
 };
 var haxe_io_BytesBuffer = function() {
 	this.b = [];
@@ -15892,6 +15902,7 @@ if(Array.prototype.indexOf) {
 		return Array.prototype.indexOf.call(a,o,i);
 	};
 }
+var __map_reserved = {}
 $hxClasses.Math = Math;
 String.prototype.__class__ = $hxClasses.String = String;
 String.__name__ = ["String"];
@@ -15922,7 +15933,6 @@ if(Array.prototype.filter == null) {
 		return a1;
 	};
 }
-var __map_reserved = {}
 Level.UID = 0;
 Level.loadedTilesCache = new haxe_ds_StringMap();
 K.INSERT = 45;

@@ -1309,6 +1309,8 @@ class Main extends Model {
 		var fs = J("#fileSelect");
 		if( fs.attr("nwworkingdir") == null )
 			fs.attr("nwworkingdir", new haxe.io.Path(prefs.curFile).dir);
+		fs.unbind("change");
+		fs.val("");
 		fs.change(function(_) {
 			fs.unbind("change");
 			var path = fs.val().split("\\").join("/");
