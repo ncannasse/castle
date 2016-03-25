@@ -302,11 +302,16 @@ div#menu {
 		opacity : 0.5;
 	}
 
+	th.start {
+		width : 30px;
+	}
 	td.start {
-		min-width : 20px;
-		width : 20px;
 		text-align : center;
 		cursor : pointer;
+		background-color: #EFF1F8;
+	}
+	tr.cursorLine td.start {
+		background-color: #D6DBED;
 	}
 
 	tr.head td.start {
@@ -315,10 +320,12 @@ div#menu {
 
 
 	tr.separator {
-		background-color : #CCC;
+		background-color : #BFC8E3;
 		height : 10px;
 		td {
-			color : #444;
+			border-top: 1px solid #99A6D2;
+			padding-top: 6px;
+			color : #2B3762;
 			font-weight : bold;
 			padding-left : 20px;
 		}
@@ -366,11 +373,25 @@ div#menu {
 		font-weight: bold;
 		text-align: center;
 		border-bottom : 1px solid #888;
+		border-left: 1px solid #888;
 		background-color : #333;
 		color : #EEE;
-		td.display {
-			font-style : italic;
-		}
+		width: auto;
+		white-space: nowrap;
+		overflow: hidden;
+	}
+	th.t_tilepos {
+		width: 64px;
+	}
+	th.t_bool,
+	th.t_int {
+		width: 6%;
+	}
+	//th.t_int {
+		//width: 80px;
+	//}
+	tr.head .display {
+		font-style : italic;
 	}
 
 	tr.selected, td.selected {
@@ -382,6 +403,14 @@ div#menu {
 		border-left : 1px solid #CCC;
 	}
 
+	td.t_tilepos {
+		text-align : center;
+	}
+	.tile {
+		display: inline-block;
+		vertical-align: middle;
+		image-rendering: CSS("pixelated");
+	}
 	td.t_bool {
 		text-align : center;
 	}
@@ -394,10 +423,14 @@ div#menu {
 	}
 
 	td.t_int, td.t_float {
-		text-align : right;
+		text-align : center;
 		input {
-			text-align : right;
+			text-align : center;
 		}
+	}
+
+	td.t_int.zero, td.t_float.zero {
+		color: #888;
 	}
 
 	td.t_list, td.t_properties {

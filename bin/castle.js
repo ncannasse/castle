@@ -5679,8 +5679,8 @@ Main.prototype = $extend(Model.prototype,{
 		var width = v.size * (v.width == null?1:v.width);
 		var height = v.size * (v.height == null?1:v.height);
 		var max = width > height?width:height;
-		var zoom = max < 64?2:128 / max;
-		var html = "<div id=\"_c" + id + "\" style=\"width : " + (width * zoom | 0) + "px; height : " + (height * zoom | 0) + "px; background : url('" + path + "') -" + (v.size * v.x * zoom | 0) + "px -" + (v.size * v.y * zoom | 0) + "px; " + (isInline?"display:inline-block;":"border : 1px solid #888;") + "\"></div>";
+		var zoom = max <= 32?2:64 / max;
+		var html = "<div class=\"tile\" id=\"_c" + id + "\" style=\"width : " + (width * zoom | 0) + "px; height : " + (height * zoom | 0) + "px; background : url('" + path + "') -" + (v.size * v.x * zoom | 0) + "px -" + (v.size * v.y * zoom | 0) + "px; \"></div>";
 		html += "<img src=\"" + path + "\" style=\"display:none\" onload=\"$('#_c" + id + "').css({backgroundSize : ((this.width*" + zoom + ")|0)+'px ' + ((this.height*" + zoom + ")|0)+'px' " + (zoom > 1?", imageRendering : 'pixelated'":"") + "}); if( this.parentNode != null ) this.parentNode.removeChild(this)\"/>";
 		return html;
 	}
@@ -5786,7 +5786,7 @@ Main.prototype = $extend(Model.prototype,{
 					}
 				}
 				var v2 = vals.length == 1?vals[0]:"" + Std.string(vals);
-				if(size > 100) {
+				if(size > 200) {
 					out.push("...");
 					break;
 				}
@@ -6513,6 +6513,7 @@ Main.prototype = $extend(Model.prototype,{
 				val = !val;
 				obj[c.name] = val;
 			}
+			this.updateClasses(v,c,val);
 			v.html(_gthis.valueHtml(c,val,sheet,obj));
 			_gthis.changed(sheet,c,index,old);
 			break;
@@ -6714,6 +6715,7 @@ Main.prototype = $extend(Model.prototype,{
 	,updateCursor: function() {
 		$(".selected").removeClass("selected");
 		$(".cursor").removeClass("cursor");
+		$(".cursorLine").removeClass("cursorLine");
 		if(this.cursor.s == null) {
 			return;
 		}
@@ -6745,7 +6747,7 @@ Main.prototype = $extend(Model.prototype,{
 				}
 			}
 		} else {
-			l.find("td.c").eq(this.cursor.x).addClass("cursor");
+			l.find("td.c").eq(this.cursor.x).addClass("cursor").closest("tr").addClass("cursorLine");
 			if(this.cursor.select != null) {
 				var s = this.getSelection();
 				var _g1 = s.y1;
@@ -6911,6 +6913,20 @@ Main.prototype = $extend(Model.prototype,{
 			}
 		});
 	}
+	,updateClasses: function(v,c,val) {
+		switch(c.type[1]) {
+		case 2:
+			v.removeClass("true, false").addClass(val == true?"true":"false");
+			break;
+		case 3:case 4:
+			v.removeClass("zero");
+			if(val == 0) {
+				v.addClass("zero");
+			}
+			break;
+		default:
+		}
+	}
 	,fillTable: function(content,sheet) {
 		var _gthis = this;
 		if(sheet.columns.length == 0) {
@@ -6929,7 +6945,7 @@ Main.prototype = $extend(Model.prototype,{
 			_g.push(HxOverrides.substr(t,1,null).toLowerCase());
 		}
 		var types = _g;
-		$("<td>").addClass("start").appendTo(cols).click(function(_) {
+		$("<th>").addClass("start").appendTo(cols).click(function(_) {
 			if(sheet.props.hide) {
 				content.change();
 			} else {
@@ -6988,9 +7004,9 @@ Main.prototype = $extend(Model.prototype,{
 		while(_g31 < _g22) {
 			var cindex = [_g31++];
 			var c = [sheet.columns[cindex[0]]];
-			var col = $("<td>");
+			var col = $("<th>");
 			col.text(c[0].name);
-			col.css("width",(100 / colCount | 0) + "%");
+			col.addClass("t_" + HxOverrides.substr(c[0].type[0],1,null).toLowerCase());
 			if(sheet.props.displayColumn == c[0].name) {
 				col.addClass("display");
 			}
@@ -7026,6 +7042,7 @@ Main.prototype = $extend(Model.prototype,{
 				var v = [$("<td>").addClass(ctype).addClass("c")];
 				var l1 = [lines[index[0]]];
 				v[0].appendTo(l1[0]);
+				this.updateClasses(v[0],c[0],val[0]);
 				var html = [this.valueHtml(c[0],val[0],sheet,obj[0])];
 				if(html[0] == "&nbsp;") {
 					v[0].text(" ");
