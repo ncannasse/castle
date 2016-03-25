@@ -287,6 +287,10 @@ div#menu {
 		outline : 1px solid #555;
 	}
 
+	tr.cursorLine {
+		background-color: #EFF1F8;
+	}
+
 	td.t_image {
 		cursor : pointer;
 		img {
@@ -380,6 +384,13 @@ div#menu {
 
 	td.t_bool {
 		text-align : center;
+	}
+	td.t_bool.true {
+		color: #76AA09;
+		font-weight: bold;
+	}
+	td.t_bool.false {
+		color: red;
 	}
 
 	td.t_int, td.t_float {

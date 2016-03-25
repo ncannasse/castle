@@ -262,6 +262,9 @@ div#menu ul.sheets li.active {
 .castle td.cursor {
 	outline : 1px solid #555;
 }
+.castle tr.cursorLine {
+	background-color : #EFF1F8;
+}
 .castle td.t_image {
 	cursor : pointer;
 }
@@ -345,6 +348,13 @@ div#menu ul.sheets li.active {
 }
 .castle td.t_bool {
 	text-align : center;
+}
+.castle td.t_bool.true {
+	color : #76AA09;
+	font-weight : bold;
+}
+.castle td.t_bool.false {
+	color : red;
 }
 .castle td.t_int, .castle td.t_float {
 	text-align : right;
