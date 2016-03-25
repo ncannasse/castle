@@ -1177,6 +1177,7 @@ class Main extends Model {
 				val = !val;
 				Reflect.setField(obj, c.name, val);
 			}
+			updateClasses(v, c, val);
 			v.html(getValue());
 			changed();
 		case TImage:
@@ -1248,6 +1249,7 @@ class Main extends Model {
 	function updateCursor() {
 		J(".selected").removeClass("selected");
 		J(".cursor").removeClass("cursor");
+		J(".cursorLine").removeClass("cursorLine");
 		if( cursor.s == null )
 			return;
 		if( cursor.y < 0 ) {
@@ -1274,7 +1276,7 @@ class Main extends Model {
 				}
 			}
 		} else {
-			l.find("td.c").eq(cursor.x).addClass("cursor");
+			l.find("td.c").eq(cursor.x).addClass("cursor").closest("tr").addClass("cursorLine");
 			if( cursor.select != null ) {
 				var s = getSelection();
 				for( y in s.y1...s.y2 + 1 )
@@ -1407,6 +1409,15 @@ class Main extends Model {
 		});
 	}
 
+	function updateClasses(v:JQuery, c:Column, val:Dynamic) {
+		switch( c.type ) {
+			case TBool :
+				v.removeClass("true, false").addClass( val==true ? "true" : "false" );
+
+			default :
+		}
+	}
+
 	function fillTable( content : JQuery, sheet : Sheet ) {
 		if( sheet.columns.length == 0 ) {
 			content.html('<a href="javascript:_.newColumn(\'${sheet.name}\')">Add a column</a>');
@@ -1482,6 +1493,8 @@ class Main extends Model {
 				var v = J("<td>").addClass(ctype).addClass("c");
 				var l = lines[index];
 				v.appendTo(l);
+
+				updateClasses(v, c, val);
 
 				var html = valueHtml(c, val, sheet, obj);
 				if( html == "&nbsp;" ) v.text(" ") else if( html.indexOf('<') < 0 && html.indexOf('&') < 0 ) v.text(html) else v.html(html);
