@@ -164,6 +164,10 @@ class JQuery {
 		return get().getAttr("value");
 	}
 
+	public function scrollIntoView() {
+		return special("scrollIntoView",[]);
+	}
+
 	public function special( name : String, args : Array<Dynamic>, ?result : Dynamic -> Bool ) {
 		for( s in sel ) {
 			var id : Null<Int> = null;

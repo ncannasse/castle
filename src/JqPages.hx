@@ -277,6 +277,9 @@ class JqPage extends cdb.jq.Server {
 			}
 			dnodes.set(e, n);
 
+		case "scrollIntoView":
+			e.scrollIntoView();
+
 		default:
 			throw "Don't know how to handle " + name+"(" + args.join(",") + ")";
 		}
