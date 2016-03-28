@@ -348,7 +348,7 @@ div#menu ul.sheets li.active {
 .castle th.t_tilepos, .dialog-floating th.t_tilepos {
 	width : 64px;
 }
-.castle th.t_bool, .castle th.t_int, .dialog-floating th.t_bool, .dialog-floating th.t_int {
+.castle th.t_bool, .castle th.t_int, .castle th.t_float, .dialog-floating th.t_bool, .dialog-floating th.t_int, .dialog-floating th.t_float {
 	width : 6%;
 }
 .castle tr.head .display, .dialog-floating tr.head .display {
@@ -379,9 +379,12 @@ div#menu ul.sheets li.active {
 .castle td.t_bool.true, .dialog-floating td.t_bool.true {
 	color : #76AA09;
 	font-weight : bold;
+	font-size : inherit;
 }
 .castle td.t_bool.false, .dialog-floating td.t_bool.false {
 	color : red;
+	font-weight : normal;
+	font-size : 75%;
 }
 .castle td.t_int, .castle td.t_float, .dialog-floating td.t_int, .dialog-floating td.t_float {
 	text-align : center;

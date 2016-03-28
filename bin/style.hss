@@ -384,7 +384,8 @@ div#menu {
 		width: 64px;
 	}
 	th.t_bool,
-	th.t_int {
+	th.t_int,
+	th.t_float {
 		width: 6%;
 	}
 	//th.t_int {
@@ -417,9 +418,12 @@ div#menu {
 	td.t_bool.true {
 		color: #76AA09;
 		font-weight: bold;
+		font-size: inherit;
 	}
 	td.t_bool.false {
 		color: red;
+		font-weight: normal;
+		font-size: 75%;
 	}
 
 	td.t_int, td.t_float {

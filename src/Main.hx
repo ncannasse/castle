@@ -1476,8 +1476,6 @@ class Main extends Model {
 			var c = sheet.columns[cindex];
 			var col = J("<th>");
 			col.text(c.name);
-			//col.css("width", Std.int(100 / colCount) + "%");
-			//col.css("width", "auto");
 			col.addClass( "t_"+c.type.getName().substr(1).toLowerCase() );
 			if( sheet.props.displayColumn == c.name )
 				col.addClass("display");
