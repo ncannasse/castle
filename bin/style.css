@@ -262,6 +262,9 @@ div#menu ul.sheets li.active {
 .castle td.cursor, .dialog-floating td.cursor {
 	outline : 1px solid #555;
 }
+.castle tr.cursorLine, .dialog-floating tr.cursorLine {
+	background-color : #EFF1F8;
+}
 .castle td.t_image, .dialog-floating td.t_image {
 	cursor : pointer;
 }
@@ -273,21 +276,28 @@ div#menu ul.sheets li.active {
 	filter : alpha(opacity=50);
 	zoom : 1;
 }
+.castle th.start, .dialog-floating th.start {
+	width : 30px;
+}
 .castle td.start, .dialog-floating td.start {
-	min-width : 20px;
-	width : 20px;
 	text-align : center;
 	cursor : pointer;
+	background-color : #EFF1F8;
+}
+.castle tr.cursorLine td.start, .dialog-floating tr.cursorLine td.start {
+	background-color : #D6DBED;
 }
 .castle tr.head td.start, .dialog-floating tr.head td.start {
 	cursor : nw-resize;
 }
 .castle tr.separator, .dialog-floating tr.separator {
-	background-color : #CCC;
+	background-color : #BFC8E3;
 	height : 10px;
 }
 .castle tr.separator td, .dialog-floating tr.separator td {
-	color : #444;
+	border-top : 1px solid #99A6D2;
+	padding-top : 6px;
+	color : #2B3762;
 	font-weight : bold;
 	padding-left : 20px;
 }
@@ -328,10 +338,20 @@ div#menu ul.sheets li.active {
 	font-weight : bold;
 	text-align : center;
 	border-bottom : 1px solid #888;
+	border-left : 1px solid #888;
 	background-color : #333;
 	color : #EEE;
+	width : auto;
+	white-space : nowrap;
+	overflow : hidden;
 }
-.castle tr.head td.display, .castle th td.display, .dialog-floating tr.head td.display, .dialog-floating th td.display {
+.castle th.t_tilepos, .dialog-floating th.t_tilepos {
+	width : 64px;
+}
+.castle th.t_bool, .castle th.t_int, .castle th.t_float, .dialog-floating th.t_bool, .dialog-floating th.t_int, .dialog-floating th.t_float {
+	width : 6%;
+}
+.castle tr.head .display, .dialog-floating tr.head .display {
 	font-style : italic;
 }
 .castle tr.selected, .castle td.selected, .dialog-floating tr.selected, .dialog-floating td.selected {
@@ -343,14 +363,37 @@ div#menu ul.sheets li.active {
 	-webkit-user-select : none;
 	border-left : 1px solid #CCC;
 }
+.castle td.t_tilepos, .dialog-floating td.t_tilepos {
+	text-align : center;
+}
+.castle .tile, .dialog-floating .tile {
+	display : inline-block;
+	zoom : 1;
+	*display : inline;
+	vertical-align : middle;
+	image-rendering : pixelated;
+}
 .castle td.t_bool, .dialog-floating td.t_bool {
 	text-align : center;
 }
+.castle td.t_bool.true, .dialog-floating td.t_bool.true {
+	color : #76AA09;
+	font-weight : bold;
+	font-size : inherit;
+}
+.castle td.t_bool.false, .dialog-floating td.t_bool.false {
+	color : red;
+	font-weight : normal;
+	font-size : 75%;
+}
 .castle td.t_int, .castle td.t_float, .dialog-floating td.t_int, .dialog-floating td.t_float {
-	text-align : right;
+	text-align : center;
 }
 .castle td.t_int input, .castle td.t_float input, .dialog-floating td.t_int input, .dialog-floating td.t_float input {
-	text-align : right;
+	text-align : center;
+}
+.castle td.t_int.zero, .castle td.t_float.zero, .dialog-floating td.t_int.zero, .dialog-floating td.t_float.zero {
+	color : #888;
 }
 .castle td.t_list, .castle td.t_properties, .dialog-floating td.t_list, .dialog-floating td.t_properties {
 	white-space : nowrap;

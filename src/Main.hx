@@ -522,8 +522,8 @@ class Main extends Model {
 		var width = v.size * (v.width == null?1:v.width);
 		var height = v.size * (v.height == null?1:v.height);
 		var max = width > height ? width : height;
-		var zoom = max < 64 ? 2 : 128 / max;
-		var html = '<div id="_c${id}" style="width : ${Std.int(width * zoom)}px; height : ${Std.int(height * zoom)}px; background : url(\'$path\') -${Std.int(v.size*v.x*zoom)}px -${Std.int(v.size*v.y*zoom)}px; ' + (isInline ? 'display:inline-block;' : 'border : 1px solid #888;')+'"></div>';
+		var zoom = max <= 32 ? 2 : 64 / max;
+		var html = '<div class="tile" id="_c${id}" style="width : ${Std.int(width * zoom)}px; height : ${Std.int(height * zoom)}px; background : url(\'$path\') -${Std.int(v.size*v.x*zoom)}px -${Std.int(v.size*v.y*zoom)}px; "></div>';
 		html += '<img src="$path" style="display:none" onload="$(\'#_c$id\').css({backgroundSize : ((this.width*$zoom)|0)+\'px \' + ((this.height*$zoom)|0)+\'px\' '+(zoom > 1 ? ", imageRendering : 'pixelated'" : "") +'}); if( this.parentNode != null ) this.parentNode.removeChild(this)"/>';
 		return html;
 	}
@@ -583,7 +583,7 @@ class Main extends Model {
 						vals.push(valueHtml(c, Reflect.field(v, c.name), ps, v));
 					}
 				var v = vals.length == 1 ? vals[0] : ""+vals;
-				if( size > 100 ) {
+				if( size > 200 ) {
 					out.push("...");
 					break;
 				}
@@ -1177,6 +1177,7 @@ class Main extends Model {
 				val = !val;
 				Reflect.setField(obj, c.name, val);
 			}
+			updateClasses(v, c, val);
 			v.html(getValue());
 			changed();
 		case TImage:
@@ -1248,6 +1249,7 @@ class Main extends Model {
 	function updateCursor() {
 		J(".selected").removeClass("selected");
 		J(".cursor").removeClass("cursor");
+		J(".cursorLine").removeClass("cursorLine");
 		if( cursor.s == null )
 			return;
 		if( cursor.y < 0 ) {
@@ -1274,7 +1276,7 @@ class Main extends Model {
 				}
 			}
 		} else {
-			l.find("td.c").eq(cursor.x).addClass("cursor");
+			l.find("td.c").eq(cursor.x).addClass("cursor").closest("tr").addClass("cursorLine");
 			if( cursor.select != null ) {
 				var s = getSelection();
 				for( y in s.y1...s.y2 + 1 )
@@ -1407,6 +1409,20 @@ class Main extends Model {
 		});
 	}
 
+	function updateClasses(v:JQuery, c:Column, val:Dynamic) {
+		switch( c.type ) {
+			case TBool :
+				v.removeClass("true, false").addClass( val==true ? "true" : "false" );
+
+			case TInt, TFloat :
+				v.removeClass("zero");
+				if( val==0 )
+					v.addClass("zero");
+
+			default :
+		}
+	}
+
 	function fillTable( content : JQuery, sheet : Sheet ) {
 		if( sheet.columns.length == 0 ) {
 			content.html('<a href="javascript:_.newColumn(\'${sheet.name}\')">Add a column</a>');
@@ -1418,7 +1434,7 @@ class Main extends Model {
 		var cols = J("<tr>").addClass("head");
 		var types = [for( t in Type.getEnumConstructs(ColumnType) ) t.substr(1).toLowerCase()];
 
-		J("<td>").addClass("start").appendTo(cols).click(function(_) {
+		J("<th>").addClass("start").appendTo(cols).click(function(_) {
 			if( sheet.props.hide )
 				content.change();
 			else
@@ -1458,9 +1474,9 @@ class Main extends Model {
 
 		for( cindex in 0...sheet.columns.length ) {
 			var c = sheet.columns[cindex];
-			var col = J("<td>");
+			var col = J("<th>");
 			col.text(c.name);
-			col.css("width", Std.int(100 / colCount) + "%");
+			col.addClass( "t_"+c.type.getName().substr(1).toLowerCase() );
 			if( sheet.props.displayColumn == c.name )
 				col.addClass("display");
 			col.mousedown(function(e) {
@@ -1482,6 +1498,8 @@ class Main extends Model {
 				var v = J("<td>").addClass(ctype).addClass("c");
 				var l = lines[index];
 				v.appendTo(l);
+
+				updateClasses(v, c, val);
 
 				var html = valueHtml(c, val, sheet, obj);
 				if( html == "&nbsp;" ) v.text(" ") else if( html.indexOf('<') < 0 && html.indexOf('&') < 0 ) v.text(html) else v.html(html);
