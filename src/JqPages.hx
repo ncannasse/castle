@@ -147,12 +147,11 @@ class JqPage extends cdb.jq.Server {
 			if( path != null && StringTools.startsWith(js.Browser.navigator.platform, "Win") )
 				path = path.split("/").join("\\"); // required for nwworkingdir
 			var fpath = new haxe.io.Path(path == null ? "" : path);
+			fs.removeAttr("nwworkingdir");
+			fs.removeAttr("nwsaveas");
 			fs.attr("nwworkingdir", fpath.dir);
-			if( saveAs ) {
-				fpath.dir = "";
-				fs.attr("nwsaveas", fpath.toString());
-			} else
-				fs.removeAttr("nwsaveas");
+			if( saveAs && path != null )
+				fs.attr("nwsaveas", path);
 			// Chrome will not consider the value changed if we cancel.
 			// there is no known way to detect cancel... (;_;)
 			if( prevSelectEvent != null )
