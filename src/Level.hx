@@ -784,7 +784,7 @@ class Level {
 
 		scroll.scroll(function(_) {
 			savePrefs();
-			view.setScrollPos(scroll.scrollLeft() - 20, scroll.scrollTop() - 20);
+			view.setScrollPos(Std.int(scroll.scrollLeft()) - 20, Std.int(scroll.scrollTop()) - 20);
 		});
 
 		untyped scroll[0].onmousewheel = function(e) {
@@ -1793,8 +1793,8 @@ class Level {
 		var state : LevelState = {
 			zoomView : zoomView,
 			curLayer : currentLayer == null ? null : currentLayer.name,
-			scrollX : sc.scrollLeft(),
-			scrollY : sc.scrollTop(),
+			scrollX : Std.int(sc.scrollLeft()),
+			scrollY : Std.int(sc.scrollTop()),
 			paintMode : palette.paintMode,
 			randomMode : palette.randomMode,
 			paletteMode : palette.mode,
@@ -1886,8 +1886,10 @@ class Level {
 		content.find("[name=visible]").prop("checked", l.visible);
 		content.find("[name=lock]").prop("checked", l.lock);
 		content.find("[name=lockGrid]").prop("checked", !l.floatCoord).closest(".item").css( { display : l.hasFloatCoord ? "" : "none" } );
-		content.find("[name=mode]").val(""+(l.props.mode != null ? l.props.mode : LayerMode.Tiles));
-		(untyped content.find("[name=color]")).spectrum("set", toColor(l.props.color)).closest(".item").css( { display : l.idToIndex == null && !l.data.match(Tiles(_) | TileInstances(_)) ? "" : "none" } );
+		content.find("[name=mode]").val("" + (l.props.mode != null ? l.props.mode : LayerMode.Tiles));
+		var tmp : Dynamic = content.find("[name=color]");
+		var css = { display : l.idToIndex == null && !l.data.match(Tiles(_) | TileInstances(_)) ? "" : "none" };
+		tmp.spectrum("set", toColor(l.props.color)).closest(".item").css(css);
 		switch( l.data ) {
 		case Tiles(t,_), TileInstances(t,_):
 			content.find("[name=size]").val("" + t.size).closest(".item").show();
