@@ -362,7 +362,7 @@ class BinSerializer {
 	}
 
 	inline function fastField( v : Dynamic, n : String ) : Dynamic {
-		return #if (flash || js) untyped v[n] #elseif neko untyped $objget(v,$hash(n.__s)) #else Reflect.field(v, f.n) #end;
+		return #if (flash || js) untyped v[n] #elseif neko untyped $objget(v,$hash(n.__s)) #else Reflect.field(v, n) #end;
 	}
 
 	inline function fastSetField( o : { }, n : String, v : Dynamic ) {
