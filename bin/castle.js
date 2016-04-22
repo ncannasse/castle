@@ -671,84 +671,6 @@ Lambda.find = function(it,f) {
 	}
 	return null;
 };
-var haxe_IMap = function() { };
-$hxClasses["haxe.IMap"] = haxe_IMap;
-haxe_IMap.__name__ = ["haxe","IMap"];
-haxe_IMap.prototype = {
-	__class__: haxe_IMap
-};
-var haxe_ds_StringMap = function() {
-	this.h = { };
-};
-$hxClasses["haxe.ds.StringMap"] = haxe_ds_StringMap;
-haxe_ds_StringMap.__name__ = ["haxe","ds","StringMap"];
-haxe_ds_StringMap.__interfaces__ = [haxe_IMap];
-haxe_ds_StringMap.prototype = {
-	get: function(key) {
-		if(__map_reserved[key] != null) {
-			return this.getReserved(key);
-		}
-		return this.h[key];
-	}
-	,setReserved: function(key,value) {
-		if(this.rh == null) {
-			this.rh = { };
-		}
-		this.rh["$" + key] = value;
-	}
-	,getReserved: function(key) {
-		if(this.rh == null) {
-			return null;
-		} else {
-			return this.rh["$" + key];
-		}
-	}
-	,existsReserved: function(key) {
-		if(this.rh == null) {
-			return false;
-		}
-		return this.rh.hasOwnProperty("$" + key);
-	}
-	,remove: function(key) {
-		if(__map_reserved[key] != null) {
-			key = "$" + key;
-			if(this.rh == null || !this.rh.hasOwnProperty(key)) {
-				return false;
-			}
-			delete(this.rh[key]);
-			return true;
-		} else {
-			if(!this.h.hasOwnProperty(key)) {
-				return false;
-			}
-			delete(this.h[key]);
-			return true;
-		}
-	}
-	,keys: function() {
-		return HxOverrides.iter(this.arrayKeys());
-	}
-	,arrayKeys: function() {
-		var out = [];
-		for( var key in this.h ) {
-		if(this.h.hasOwnProperty(key)) {
-			out.push(key);
-		}
-		}
-		if(this.rh != null) {
-			for( var key in this.rh ) {
-			if(key.charCodeAt(0) == 36) {
-				out.push(key.substr(1));
-			}
-			}
-		}
-		return out;
-	}
-	,iterator: function() {
-		return new haxe_ds__$StringMap_StringMapIterator(this,this.arrayKeys());
-	}
-	,__class__: haxe_ds_StringMap
-};
 var Level = function(model,sheet,index) {
 	this.reloading = false;
 	this.rotation = 0;
@@ -5753,7 +5675,7 @@ Main.prototype = $extend(Model.prototype,{
 		var height = v.size * (v.height == null?1:v.height);
 		var max = width > height?width:height;
 		var zoom = max <= 32?2:64 / max;
-		var html = "<div class=\"tile\" id=\"_c" + id + "\" style=\"width : " + (width * zoom | 0) + "px; height : " + (height * zoom | 0) + "px; background : url('" + path + "') -" + (v.size * v.x * zoom | 0) + "px -" + (v.size * v.y * zoom | 0) + "px; \"></div>";
+		var html = "<div class=\"tile\" id=\"_c" + id + "\" style=\"width : " + (width * zoom | 0) + "px; height : " + (height * zoom | 0) + "px; background : url('" + path + "') -" + (v.size * v.x * zoom | 0) + "px -" + (v.size * v.y * zoom | 0) + "px; " + (isInline?"display:inline-block;":"") + "\"></div>";
 		html += "<img src=\"" + path + "\" style=\"display:none\" onload=\"$('#_c" + id + "').css({backgroundSize : ((this.width*" + zoom + ")|0)+'px ' + ((this.height*" + zoom + ")|0)+'px' " + (zoom > 1?", imageRendering : 'pixelated'":"") + "}); if( this.parentNode != null ) this.parentNode.removeChild(this)\"/>";
 		return html;
 	}
@@ -7693,9 +7615,9 @@ Main.prototype = $extend(Model.prototype,{
 	}
 	,deleteColumn: function(sheet,cname) {
 		if(cname == null) {
-			var name = this.colProps.sheet;
 			var _this = this.smap;
-			sheet = (__map_reserved[name] != null?_this.getReserved(name):_this.h[name]).s;
+			var key = this.colProps.sheet;
+			sheet = (__map_reserved[key] != null?_this.getReserved(key):_this.h[key]).s;
 			cname = this.colProps.ref.name;
 		}
 		if(!SheetData.deleteColumn(sheet,cname)) {
@@ -8015,9 +7937,9 @@ Main.prototype = $extend(Model.prototype,{
 		if(this.colProps.sheet == null) {
 			sheet = this.viewSheet;
 		} else {
-			var name = this.colProps.sheet;
 			var _this = this.smap;
-			sheet = (__map_reserved[name] != null?_this.getReserved(name):_this.h[name]).s;
+			var key = this.colProps.sheet;
+			sheet = (__map_reserved[key] != null?_this.getReserved(key):_this.h[key]).s;
 		}
 		var refColumn = this.colProps.ref;
 		var t;
@@ -8030,8 +7952,8 @@ Main.prototype = $extend(Model.prototype,{
 			break;
 		case "custom":
 			var _this1 = this.tmap;
-			var key = v.ctype;
-			var t1 = __map_reserved[key] != null?_this1.getReserved(key):_this1.h[key];
+			var key1 = v.ctype;
+			var t1 = __map_reserved[key1] != null?_this1.getReserved(key1):_this1.h[key1];
 			if(t1 == null) {
 				this.error("Type not found");
 				return;
@@ -8284,9 +8206,9 @@ Main.prototype = $extend(Model.prototype,{
 			if(!(__map_reserved[key] != null?_this1.existsReserved(key):_this1.h.hasOwnProperty(key))) {
 				continue;
 			}
-			var name1 = level.sheetPath;
 			var _this2 = this.smap;
-			var s8 = (__map_reserved[name1] != null?_this2.getReserved(name1):_this2.h[name1]).s;
+			var key1 = level.sheetPath;
+			var s8 = (__map_reserved[key1] != null?_this2.getReserved(key1):_this2.h[key1]).s;
 			if(s8.lines.length < level.index) {
 				continue;
 			}
@@ -8296,11 +8218,11 @@ Main.prototype = $extend(Model.prototype,{
 			}
 			this.levels.push(l[0]);
 			var li5 = $("<li>");
-			var name2 = level.getName();
-			if(name2 == "") {
-				name2 = "???";
+			var name1 = level.getName();
+			if(name1 == "") {
+				name1 = "???";
 			}
-			li5.text(name2).attr("id","level_" + l[0].sheetPath.split(".").join("_") + "_" + l[0].index).appendTo(sheets).click((function(l1) {
+			li5.text(name1).attr("id","level_" + l[0].sheetPath.split(".").join("_") + "_" + l[0].index).appendTo(sheets).click((function(l1) {
 				return function(_3) {
 					_gthis.selectLevel(l1[0]);
 				};
@@ -11874,6 +11796,12 @@ var cdb_jq_Answer = $hxClasses["cdb.jq.Answer"] = { __ename__ : ["cdb","jq","Ans
 cdb_jq_Answer.Event = function(eid,props) { var $x = ["Event",0,eid,props]; $x.__enum__ = cdb_jq_Answer; $x.toString = $estr; return $x; };
 cdb_jq_Answer.SetValue = function(id,value) { var $x = ["SetValue",1,id,value]; $x.__enum__ = cdb_jq_Answer; $x.toString = $estr; return $x; };
 cdb_jq_Answer.Done = function(eid) { var $x = ["Done",2,eid]; $x.__enum__ = cdb_jq_Answer; $x.toString = $estr; return $x; };
+var haxe_IMap = function() { };
+$hxClasses["haxe.IMap"] = haxe_IMap;
+haxe_IMap.__name__ = ["haxe","IMap"];
+haxe_IMap.prototype = {
+	__class__: haxe_IMap
+};
 var haxe__$Int64__$_$_$Int64 = function(high,low) {
 	this.high = high;
 	this.low = low;
@@ -12894,6 +12822,78 @@ haxe_ds__$StringMap_StringMapIterator.prototype = {
 		}
 	}
 	,__class__: haxe_ds__$StringMap_StringMapIterator
+};
+var haxe_ds_StringMap = function() {
+	this.h = { };
+};
+$hxClasses["haxe.ds.StringMap"] = haxe_ds_StringMap;
+haxe_ds_StringMap.__name__ = ["haxe","ds","StringMap"];
+haxe_ds_StringMap.__interfaces__ = [haxe_IMap];
+haxe_ds_StringMap.prototype = {
+	get: function(key) {
+		if(__map_reserved[key] != null) {
+			return this.getReserved(key);
+		}
+		return this.h[key];
+	}
+	,setReserved: function(key,value) {
+		if(this.rh == null) {
+			this.rh = { };
+		}
+		this.rh["$" + key] = value;
+	}
+	,getReserved: function(key) {
+		if(this.rh == null) {
+			return null;
+		} else {
+			return this.rh["$" + key];
+		}
+	}
+	,existsReserved: function(key) {
+		if(this.rh == null) {
+			return false;
+		}
+		return this.rh.hasOwnProperty("$" + key);
+	}
+	,remove: function(key) {
+		if(__map_reserved[key] != null) {
+			key = "$" + key;
+			if(this.rh == null || !this.rh.hasOwnProperty(key)) {
+				return false;
+			}
+			delete(this.rh[key]);
+			return true;
+		} else {
+			if(!this.h.hasOwnProperty(key)) {
+				return false;
+			}
+			delete(this.h[key]);
+			return true;
+		}
+	}
+	,keys: function() {
+		return HxOverrides.iter(this.arrayKeys());
+	}
+	,arrayKeys: function() {
+		var out = [];
+		for( var key in this.h ) {
+		if(this.h.hasOwnProperty(key)) {
+			out.push(key);
+		}
+		}
+		if(this.rh != null) {
+			for( var key in this.rh ) {
+			if(key.charCodeAt(0) == 36) {
+				out.push(key.substr(1));
+			}
+			}
+		}
+		return out;
+	}
+	,iterator: function() {
+		return new haxe_ds__$StringMap_StringMapIterator(this,this.arrayKeys());
+	}
+	,__class__: haxe_ds_StringMap
 };
 var haxe_io_BytesBuffer = function() {
 	this.b = [];
@@ -15918,7 +15918,6 @@ sys_FileSystem.exists = function(path) {
 function $iterator(o) { if( o instanceof Array ) return function() { return HxOverrides.iter(o); }; return typeof(o.iterator) == 'function' ? $bind(o,o.iterator) : o.iterator; }
 var $_, $fid = 0;
 function $bind(o,m) { if( m == null ) return null; if( m.__id__ == null ) m.__id__ = $fid++; var f; if( o.hx__closures__ == null ) o.hx__closures__ = {}; else f = o.hx__closures__[m.__id__]; if( f == null ) { f = function(){ return f.method.apply(f.scope, arguments); }; f.scope = o; f.method = m; o.hx__closures__[m.__id__] = f; } return f; }
-var __map_reserved = {}
 $hxClasses.Math = Math;
 String.prototype.__class__ = $hxClasses.String = String;
 String.__name__ = ["String"];
@@ -15934,6 +15933,7 @@ var Bool = $hxClasses.Bool = Boolean;
 Bool.__ename__ = ["Bool"];
 var Class = $hxClasses.Class = { __name__ : ["Class"]};
 var Enum = { };
+var __map_reserved = {}
 Level.UID = 0;
 Level.loadedTilesCache = new haxe_ds_StringMap();
 K.INSERT = 45;

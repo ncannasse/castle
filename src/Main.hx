@@ -523,7 +523,8 @@ class Main extends Model {
 		var height = v.size * (v.height == null?1:v.height);
 		var max = width > height ? width : height;
 		var zoom = max <= 32 ? 2 : 64 / max;
-		var html = '<div class="tile" id="_c${id}" style="width : ${Std.int(width * zoom)}px; height : ${Std.int(height * zoom)}px; background : url(\'$path\') -${Std.int(v.size*v.x*zoom)}px -${Std.int(v.size*v.y*zoom)}px; "></div>';
+		var inl = isInline ? 'display:inline-block;' : '';
+		var html = '<div class="tile" id="_c${id}" style="width : ${Std.int(width * zoom)}px; height : ${Std.int(height * zoom)}px; background : url(\'$path\') -${Std.int(v.size*v.x*zoom)}px -${Std.int(v.size*v.y*zoom)}px; $inl"></div>';
 		html += '<img src="$path" style="display:none" onload="$(\'#_c$id\').css({backgroundSize : ((this.width*$zoom)|0)+\'px \' + ((this.height*$zoom)|0)+\'px\' '+(zoom > 1 ? ", imageRendering : 'pixelated'" : "") +'}); if( this.parentNode != null ) this.parentNode.removeChild(this)"/>';
 		return html;
 	}
