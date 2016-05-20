@@ -119,8 +119,8 @@ class TileBuilder {
 			return bweight(b1) - bweight(b2);
 		});
 		for( b in allBorders ) {
-			var gid = groundIds.get(b.opts.borderIn);
-			var tid = groundIds.get(b.opts.borderOut);
+			var gid = b.opts.borderIn == null ? null : groundIds.get(b.opts.borderIn);
+			var tid = b.opts.borderOut == null ? null : groundIds.get(b.opts.borderOut);
 			if( gid == null && tid == null ) continue;
 			var gids, tids;
 			if( gid != null )
