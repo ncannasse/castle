@@ -49,8 +49,7 @@ class Dom {
 	inline function get_numChildren() return childs.length;
 
 	inline function send(msg) {
-		if( id < 0 ) throw "Can't change disposed node";
-		client.send(msg);
+		if( id >= 0 ) client.send(msg);
 	}
 
 	@:access(cdb.jq.Client)
