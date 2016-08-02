@@ -699,7 +699,8 @@ class Level {
 				}
 			});
 			J("<span>").text(l.name).appendTo(td);
-			if( l.images != null ) {
+
+			if( l.images != null || l.colors == null ) {
 				td.find("span").css("margin-top", "10px");
 				/*var isel = J("<div class='img'>").appendTo(td);
 				if( l.images.length > 0 ) isel.append(J(l.images[l.current].getCanvas()));
@@ -1888,7 +1889,7 @@ class Level {
 		content.find("[name=lockGrid]").prop("checked", !l.floatCoord).closest(".item").css( { display : l.hasFloatCoord ? "" : "none" } );
 		content.find("[name=mode]").val("" + (l.props.mode != null ? l.props.mode : LayerMode.Tiles));
 		var tmp : Dynamic = content.find("[name=color]");
-		var css = { display : l.idToIndex == null && !l.data.match(Tiles(_) | TileInstances(_)) ? "" : "none" };
+		var css = { display : (l.idToIndex == null || ((l.images == null || l.hasSize) && l.colors == null)) && !l.data.match(Tiles(_) | TileInstances(_)) ? "" : "none" };
 		tmp.spectrum("set", toColor(l.props.color)).closest(".item").css(css);
 		switch( l.data ) {
 		case Tiles(t,_), TileInstances(t,_):
@@ -1989,8 +1990,9 @@ class Level {
 				}
 			}
 			cursorImage.fill(0x605BA1FB);
+			if (l.hasSize) cursor.css( { border : "1px solid black" } );
 		} else {
-			var c = l.colors[cur];
+			var c = l.colors == null ? l.props.color : l.colors[cur];
 			var lum = ((c & 0xFF) + ((c >> 8) & 0xFF) + ((c >> 16) & 0xFF)) / (255 * 3);
 			cursorImage.fill(c | 0xFF000000);
 			cursor.css( { border : "1px solid " + (lum < 0.25 ? "white":"black") } );
