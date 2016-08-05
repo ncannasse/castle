@@ -582,22 +582,29 @@ class LayerData extends LayerGfx {
 				}
 			} else {
 				for( o in objs ) {
+					var w   = Std.int(hasSize ? o.width  * size : size);
+					var h   = Std.int(hasSize ? o.height * size : size);
+					var px  = Std.int(o.x * size);
+					var py  = Std.int(o.y * size);
+
+					var col = props.color;
 					var id : String = Reflect.field(o, idCol);
 					var k = idToIndex.get(id);
-					if( k == null ) {
-						var w = hasSize ? o.width * size : size;
-						var h = hasSize ? o.height * size : size;
-						view.fillRect(Std.int(o.x * size), Std.int(o.y * size), Std.int(w), Std.int(h), 0xFFFF00FF);
-						continue;
+					if ( k != null && colors != null ) col = colors[k];
+
+					if( hasSize || images == null || k == null ) {
+						view.fillRect(px, py, w, h, col | 0xA0000000);
+						var col = col | 0xFF000000;
+						view.fillRect(px, py, w, 1, col);
+						view.fillRect(px, py + h - 1, w, 1, col);
+						view.fillRect(px, py + 1, 1, h - 2, col);
+						view.fillRect(px + w - 1, py + 1, 1, h - 2, col);
 					}
-					if( images != null ) {
+
+					if( images != null && k != null ) {
 						var i = images[k];
-						view.draw(i, Std.int(o.x * size) - ((i.width - size) >> 1), Std.int(o.y * size) - (i.height - size));
-						continue;
+						view.draw(i, px + Std.int((w - i.width) * 0.5), py + Std.int((h - i.height) * 0.5));
 					}
-					var w = hasSize ? o.width * size : size;
-					var h = hasSize ? o.height * size : size;
-					view.fillRect(Std.int(o.x * size), Std.int(o.y * size), Std.int(w), Std.int(h), colors[k] | 0xFF000000);
 				}
 			}
 		}
