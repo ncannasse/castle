@@ -1582,6 +1582,7 @@ class Main extends Model {
 							if( c.opt && val.length == 0 ) {
 								val = null;
 								Reflect.deleteField(obj, c.name);
+								save();
 							}
 							html = valueHtml(c, val, sheet, obj);
 							v.html(html);
@@ -1646,6 +1647,7 @@ class Main extends Model {
 							if( c.opt && Reflect.fields(val).length == 0 ) {
 								val = null;
 								Reflect.deleteField(obj, c.name);
+								save();
 							}
 							html = valueHtml(c, val, sheet, obj);
 							v.html(html);
