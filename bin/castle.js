@@ -681,6 +681,97 @@ Lambda.find = function(it,f) {
 	}
 	return null;
 };
+var haxe_IMap = function() { };
+$hxClasses["haxe.IMap"] = haxe_IMap;
+haxe_IMap.__name__ = ["haxe","IMap"];
+haxe_IMap.prototype = {
+	__class__: haxe_IMap
+};
+var haxe_ds_StringMap = function() {
+	this.h = { };
+};
+$hxClasses["haxe.ds.StringMap"] = haxe_ds_StringMap;
+haxe_ds_StringMap.__name__ = ["haxe","ds","StringMap"];
+haxe_ds_StringMap.__interfaces__ = [haxe_IMap];
+haxe_ds_StringMap.prototype = {
+	set: function(key,value) {
+		if(__map_reserved[key] != null) {
+			this.setReserved(key,value);
+		} else {
+			this.h[key] = value;
+		}
+	}
+	,get: function(key) {
+		if(__map_reserved[key] != null) {
+			return this.getReserved(key);
+		}
+		return this.h[key];
+	}
+	,exists: function(key) {
+		if(__map_reserved[key] != null) {
+			return this.existsReserved(key);
+		}
+		return this.h.hasOwnProperty(key);
+	}
+	,setReserved: function(key,value) {
+		if(this.rh == null) {
+			this.rh = { };
+		}
+		this.rh["$" + key] = value;
+	}
+	,getReserved: function(key) {
+		if(this.rh == null) {
+			return null;
+		} else {
+			return this.rh["$" + key];
+		}
+	}
+	,existsReserved: function(key) {
+		if(this.rh == null) {
+			return false;
+		}
+		return this.rh.hasOwnProperty("$" + key);
+	}
+	,remove: function(key) {
+		if(__map_reserved[key] != null) {
+			key = "$" + key;
+			if(this.rh == null || !this.rh.hasOwnProperty(key)) {
+				return false;
+			}
+			delete(this.rh[key]);
+			return true;
+		} else {
+			if(!this.h.hasOwnProperty(key)) {
+				return false;
+			}
+			delete(this.h[key]);
+			return true;
+		}
+	}
+	,keys: function() {
+		return HxOverrides.iter(this.arrayKeys());
+	}
+	,arrayKeys: function() {
+		var out = [];
+		for( var key in this.h ) {
+		if(this.h.hasOwnProperty(key)) {
+			out.push(key);
+		}
+		}
+		if(this.rh != null) {
+			for( var key in this.rh ) {
+			if(key.charCodeAt(0) == 36) {
+				out.push(key.substr(1));
+			}
+			}
+		}
+		return out;
+	}
+	,iterator: function() {
+		return new haxe_ds__$StringMap_StringMapIterator(this,this.arrayKeys());
+	}
+	,__class__: haxe_ds_StringMap
+};
 var Level = function(model,sheet,index) {
 	this.reloading = false;
 	this.rotation = 0;
@@ -3489,8 +3580,6 @@ Model.prototype = {
 		switch(_g[1]) {
 		case 2:
 			return false;
-		case 3:case 4:case 5:case 10:case 11:
-			return 0;
 		case 6:
 			var s = this.smap.get(_g[2]).s;
 			var l = s.lines[0];
@@ -3510,10 +3599,12 @@ Model.prototype = {
 			return id;
 		case 8:
 			return [];
-		case 9:case 14:case 15:case 16:
-			return null;
+		case 3:case 4:case 5:case 10:case 11:
+			return 0;
 		case 0:case 1:case 7:case 12:case 13:
 			return "";
+		case 9:case 14:case 15:case 16:
+			return null;
 		case 17:
 			return { };
 		}
@@ -4276,12 +4367,17 @@ Model.prototype = {
 				return "\"" + val1.split("\\").join("\\\\").split("\"").join("\\\"") + "\"";
 			}
 			break;
-		case 2:case 3:case 4:case 7:
-			return Std.string(val);
 		case 5:
 			return this.valToString(cdb_ColumnType.TString,t[2][val],esc);
-		case 8:case 17:
-			return "???";
+		case 0:case 6:case 12:case 13:
+			if(esc) {
+				return "\"" + Std.string(val) + "\"";
+			} else {
+				return val;
+			}
+			break;
+		case 2:case 3:case 4:case 7:
+			return Std.string(val);
 		case 9:
 			return this.typeValToString(this.tmap.get(t[2]),val,esc);
 		case 10:
@@ -4305,13 +4401,6 @@ Model.prototype = {
 				return s;
 			}
 			break;
-		case 0:case 6:case 12:case 13:
-			if(esc) {
-				return "\"" + Std.string(val) + "\"";
-			} else {
-				return val;
-			}
-			break;
 		case 14:case 15:case 16:
 			if(esc) {
 				return JSON.stringify(val);
@@ -4319,6 +4408,8 @@ Model.prototype = {
 				return Std.string(val);
 			}
 			break;
+		case 8:case 17:
+			return "???";
 		}
 	}
 	,typeValToString: function(t,val,esc) {
@@ -5646,8 +5737,9 @@ Main.prototype = $extend(Model.prototype,{
 		var height = v.size * (v.height == null?1:v.height);
 		var max = width > height?width:height;
 		var zoom = max <= 32?2:64 / max;
-		var html = "<div class=\"tile\" id=\"_c" + id + "\" style=\"width : " + (width * zoom | 0) + "px; height : " + (height * zoom | 0) + "px; background : url('" + path + "') -" + (v.size * v.x * zoom | 0) + "px -" + (v.size * v.y * zoom | 0) + "px; " + (isInline?"display:inline-block;":"") + "\"></div>";
-		html += "<img src=\"" + path + "\" style=\"display:none\" onload=\"$('#_c" + id + "').css({backgroundSize : ((this.width*" + zoom + ")|0)+'px ' + ((this.height*" + zoom + ")|0)+'px' " + (zoom > 1?", imageRendering : 'pixelated'":"") + "}); if( this.parentNode != null ) this.parentNode.removeChild(this)\"/>";
+		var url = "file://" + path;
+		var html = "<div class=\"tile\" id=\"_c" + id + "\" style=\"width : " + (width * zoom | 0) + "px; height : " + (height * zoom | 0) + "px; background : url('" + url + "') -" + (v.size * v.x * zoom | 0) + "px -" + (v.size * v.y * zoom | 0) + "px; opacity:0; " + (isInline?"display:inline-block;":"") + "\"></div>";
+		html += "<img src=\"" + url + "\" style=\"display:none\" onload=\"$('#_c" + id + "').css({opacity:1, backgroundSize : ((this.width*" + zoom + ")|0)+'px ' + ((this.height*" + zoom + ")|0)+'px' " + (zoom > 1?", imageRendering : 'pixelated'":"") + "}); if( this.parentNode != null ) this.parentNode.removeChild(this)\"/>";
 		return html;
 	}
 	,valueHtml: function(c,v,sheet,obj) {
@@ -5807,7 +5899,7 @@ Main.prototype = $extend(Model.prototype,{
 			if(v != "" && !this.quickExists(path)) {
 				html = "<span class=\"error\">" + html + "</span>";
 			} else if(ext == "png" || ext == "jpg" || ext == "jpeg" || ext == "gif") {
-				html = "<span class=\"preview\">" + html + "<div class=\"previewContent\"><div class=\"label\"></div><img src=\"" + path + "\" onload=\"$(this).parent().find('.label').text(this.width+'x'+this.height)\"/></div></span>";
+				html = "<span class=\"preview\">" + html + "<div class=\"previewContent\"><div class=\"label\"></div><img src=\"" + ("file://" + path) + "\" onload=\"$(this).parent().find('.label').text(this.width+'x'+this.height)\"/></div></span>";
 			}
 			if(v != "") {
 				html += " <input type=\"submit\" value=\"open\" onclick=\"_.openFile('" + path + "')\"/>";
@@ -7070,6 +7162,7 @@ Main.prototype = $extend(Model.prototype,{
 									if(c8[0].opt && val4[0].length == 0) {
 										val4[0] = null;
 										Reflect.deleteField(obj4[0],c8[0].name);
+										_gthis.save();
 									}
 									var tmp4 = _gthis.valueHtml(c8[0],val4[0],sheet,obj4[0]);
 									html3[0] = tmp4;
@@ -7193,7 +7286,7 @@ Main.prototype = $extend(Model.prototype,{
 							var dialog = $($(".tileSelect").parent().html()).prependTo($("body"));
 							var maxWidth = 1000000;
 							var maxHeight = 1000000;
-							dialog.find(".tileView").css({ backgroundImage : "url(\"" + _gthis.getAbsPath(file) + "\")"}).mousemove((function() {
+							dialog.find(".tileView").css({ backgroundImage : "url(\"file://" + _gthis.getAbsPath(file) + "\")"}).mousemove((function() {
 								return function(e11) {
 									var off = $(this).offset();
 									posX = (e11.pageX - off.left) / size | 0;
@@ -11806,12 +11899,6 @@ var cdb_jq_Answer = $hxClasses["cdb.jq.Answer"] = { __ename__ : ["cdb","jq","Ans
 cdb_jq_Answer.Event = function(eid,props) { var $x = ["Event",0,eid,props]; $x.__enum__ = cdb_jq_Answer; $x.toString = $estr; return $x; };
 cdb_jq_Answer.SetValue = function(id,value) { var $x = ["SetValue",1,id,value]; $x.__enum__ = cdb_jq_Answer; $x.toString = $estr; return $x; };
 cdb_jq_Answer.Done = function(eid) { var $x = ["Done",2,eid]; $x.__enum__ = cdb_jq_Answer; $x.toString = $estr; return $x; };
-var haxe_IMap = function() { };
-$hxClasses["haxe.IMap"] = haxe_IMap;
-haxe_IMap.__name__ = ["haxe","IMap"];
-haxe_IMap.prototype = {
-	__class__: haxe_IMap
-};
 var haxe__$Int64__$_$_$Int64 = function(high,low) {
 	this.high = high;
 	this.low = low;
@@ -12899,91 +12986,6 @@ haxe_ds__$StringMap_StringMapIterator.prototype = {
 	}
 	,__class__: haxe_ds__$StringMap_StringMapIterator
 };
-var haxe_ds_StringMap = function() {
-	this.h = { };
-};
-$hxClasses["haxe.ds.StringMap"] = haxe_ds_StringMap;
-haxe_ds_StringMap.__name__ = ["haxe","ds","StringMap"];
-haxe_ds_StringMap.__interfaces__ = [haxe_IMap];
-haxe_ds_StringMap.prototype = {
-	set: function(key,value) {
-		if(__map_reserved[key] != null) {
-			this.setReserved(key,value);
-		} else {
-			this.h[key] = value;
-		}
-	}
-	,get: function(key) {
-		if(__map_reserved[key] != null) {
-			return this.getReserved(key);
-		}
-		return this.h[key];
-	}
-	,exists: function(key) {
-		if(__map_reserved[key] != null) {
-			return this.existsReserved(key);
-		}
-		return this.h.hasOwnProperty(key);
-	}
-	,setReserved: function(key,value) {
-		if(this.rh == null) {
-			this.rh = { };
-		}
-		this.rh["$" + key] = value;
-	}
-	,getReserved: function(key) {
-		if(this.rh == null) {
-			return null;
-		} else {
-			return this.rh["$" + key];
-		}
-	}
-	,existsReserved: function(key) {
-		if(this.rh == null) {
-			return false;
-		}
-		return this.rh.hasOwnProperty("$" + key);
-	}
-	,remove: function(key) {
-		if(__map_reserved[key] != null) {
-			key = "$" + key;
-			if(this.rh == null || !this.rh.hasOwnProperty(key)) {
-				return false;
-			}
-			delete(this.rh[key]);
-			return true;
-		} else {
-			if(!this.h.hasOwnProperty(key)) {
-				return false;
-			}
-			delete(this.h[key]);
-			return true;
-		}
-	}
-	,keys: function() {
-		return HxOverrides.iter(this.arrayKeys());
-	}
-	,arrayKeys: function() {
-		var out = [];
-		for( var key in this.h ) {
-		if(this.h.hasOwnProperty(key)) {
-			out.push(key);
-		}
-		}
-		if(this.rh != null) {
-			for( var key in this.rh ) {
-			if(key.charCodeAt(0) == 36) {
-				out.push(key.substr(1));
-			}
-			}
-		}
-		return out;
-	}
-	,iterator: function() {
-		return new haxe_ds__$StringMap_StringMapIterator(this,this.arrayKeys());
-	}
-	,__class__: haxe_ds_StringMap
-};
 var haxe_io_BytesBuffer = function() {
 	this.b = [];
 };
@@ -13456,7 +13458,7 @@ lvl_Image.load = function(url,callb,onError,forceReload) {
 		i1.fill(-65281);
 		callb(i1);
 	};
-	i.src = url;
+	i.src = "file://" + url;
 };
 lvl_Image.fromCanvas = function(c) {
 	var i = new lvl_Image(0,0);
@@ -15991,6 +15993,7 @@ sys_FileSystem.exists = function(path) {
 function $iterator(o) { if( o instanceof Array ) return function() { return HxOverrides.iter(o); }; return typeof(o.iterator) == 'function' ? $bind(o,o.iterator) : o.iterator; }
 var $_, $fid = 0;
 function $bind(o,m) { if( m == null ) return null; if( m.__id__ == null ) m.__id__ = $fid++; var f; if( o.hx__closures__ == null ) o.hx__closures__ = {}; else f = o.hx__closures__[m.__id__]; if( f == null ) { f = function(){ return f.method.apply(f.scope, arguments); }; f.scope = o; f.method = m; o.hx__closures__[m.__id__] = f; } return f; }
+var __map_reserved = {}
 $hxClasses["Math"] = Math;
 String.prototype.__class__ = $hxClasses["String"] = String;
 String.__name__ = ["String"];
@@ -16006,7 +16009,6 @@ var Bool = $hxClasses["Bool"] = Boolean;
 Bool.__ename__ = ["Bool"];
 var Class = $hxClasses["Class"] = { __name__ : ["Class"]};
 var Enum = { };
-var __map_reserved = {}
 Level.UID = 0;
 Level.loadedTilesCache = new haxe_ds_StringMap();
 K.INSERT = 45;

@@ -214,7 +214,7 @@ class Image {
 			i.fill(0xFFFF00FF);
 			callb(i);
 		};
-		i.src = url;
+		i.src = "file://"+url;
 	}
 
 	public static function fromCanvas( c : js.html.CanvasElement ) {

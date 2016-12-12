@@ -524,8 +524,9 @@ class Main extends Model {
 		var max = width > height ? width : height;
 		var zoom = max <= 32 ? 2 : 64 / max;
 		var inl = isInline ? 'display:inline-block;' : '';
-		var html = '<div class="tile" id="_c${id}" style="width : ${Std.int(width * zoom)}px; height : ${Std.int(height * zoom)}px; background : url(\'$path\') -${Std.int(v.size*v.x*zoom)}px -${Std.int(v.size*v.y*zoom)}px; $inl"></div>';
-		html += '<img src="$path" style="display:none" onload="$(\'#_c$id\').css({backgroundSize : ((this.width*$zoom)|0)+\'px \' + ((this.height*$zoom)|0)+\'px\' '+(zoom > 1 ? ", imageRendering : 'pixelated'" : "") +'}); if( this.parentNode != null ) this.parentNode.removeChild(this)"/>';
+		var url = "file://" + path;
+		var html = '<div class="tile" id="_c${id}" style="width : ${Std.int(width * zoom)}px; height : ${Std.int(height * zoom)}px; background : url(\'$url\') -${Std.int(v.size*v.x*zoom)}px -${Std.int(v.size*v.y*zoom)}px; opacity:0; $inl"></div>';
+		html += '<img src="$url" style="display:none" onload="$(\'#_c$id\').css({opacity:1, backgroundSize : ((this.width*$zoom)|0)+\'px \' + ((this.height*$zoom)|0)+\'px\' '+(zoom > 1 ? ", imageRendering : 'pixelated'" : "") +'}); if( this.parentNode != null ) this.parentNode.removeChild(this)"/>';
 		return html;
 	}
 
@@ -636,12 +637,13 @@ class Main extends Model {
 			'<div class="color" style="background-color:#${StringTools.hex(v,6)}"></div>';
 		case TFile:
 			var path = getAbsPath(v);
+			var url = "file://" + path;
 			var ext = v.split(".").pop().toLowerCase();
 			var html = v == "" ? '<span class="error">#MISSING</span>' : StringTools.htmlEscape(v);
 			if( v != "" && !quickExists(path) )
 				html = '<span class="error">' + html + '</span>';
 			else if( ext == "png" || ext == "jpg" || ext == "jpeg" || ext == "gif" )
-				html = '<span class="preview">$html<div class="previewContent"><div class="label"></div><img src="$path" onload="$(this).parent().find(\'.label\').text(this.width+\'x\'+this.height)"/></div></span>';
+				html = '<span class="preview">$html<div class="previewContent"><div class="label"></div><img src="$url" onload="$(this).parent().find(\'.label\').text(this.width+\'x\'+this.height)"/></div></span>';
 			if( v != "" )
 				html += ' <input type="submit" value="open" onclick="_.openFile(\'$path\')"/>';
 			html;
@@ -1738,7 +1740,7 @@ class Main extends Model {
 
 						var maxWidth = 1000000, maxHeight = 1000000;
 
-						dialog.find(".tileView").css( { backgroundImage : 'url("${getAbsPath(file)}")' } ).mousemove(function(e) {
+						dialog.find(".tileView").css( { backgroundImage : 'url("file://${getAbsPath(file)}")' } ).mousemove(function(e) {
 							var off = JTHIS.offset();
 							posX = Std.int((e.pageX - off.left)/size);
 							posY = Std.int((e.pageY - off.top) / size);
