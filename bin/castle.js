@@ -1544,7 +1544,7 @@ Level.prototype = {
 				};
 			})(l));
 			$("<span>").text(l[0].name).appendTo(td);
-			if(l[0].images != null) {
+			if(l[0].images != null || l[0].colors == null) {
 				td.find("span").css("margin-top","10px");
 				continue;
 			}
@@ -3215,7 +3215,7 @@ Level.prototype = {
 		var tmp1 = this.content.find("[name=color]");
 		var css;
 		var css1;
-		if(l.idToIndex == null) {
+		if(l.idToIndex == null || (l.images == null || l.hasSize) && l.colors == null) {
 			var css2;
 			switch(l.data[1]) {
 			case 2:case 3:
@@ -3358,8 +3358,11 @@ Level.prototype = {
 				}
 			}
 			this.cursorImage.fill(1616617979);
+			if(l.hasSize) {
+				this.cursor.css({ border : "1px solid black"});
+			}
 		} else {
-			var c1 = l.colors[cur];
+			var c1 = l.colors == null ? l.props.color : l.colors[cur];
 			this.cursorImage.fill(c1 | -16777216);
 			this.cursor.css({ border : "1px solid " + (((c1 & 255) + (c1 >> 8 & 255) + (c1 >> 16 & 255)) / 765 < 0.25 ? "white" : "black")});
 		}
@@ -5655,8 +5658,9 @@ Main.prototype = $extend(Model.prototype,{
 		var height = v.size * (v.height == null ? 1 : v.height);
 		var max = width > height ? width : height;
 		var zoom = max <= 32 ? 2 : 64 / max;
-		var html = "<div class=\"tile\" id=\"_c" + id + "\" style=\"width : " + (width * zoom | 0) + "px; height : " + (height * zoom | 0) + "px; background : url('" + path + "') -" + (v.size * v.x * zoom | 0) + "px -" + (v.size * v.y * zoom | 0) + "px; " + (isInline ? "display:inline-block;" : "") + "\"></div>";
-		html += "<img src=\"" + path + "\" style=\"display:none\" onload=\"$('#_c" + id + "').css({backgroundSize : ((this.width*" + zoom + ")|0)+'px ' + ((this.height*" + zoom + ")|0)+'px' " + (zoom > 1 ? ", imageRendering : 'pixelated'" : "") + "}); if( this.parentNode != null ) this.parentNode.removeChild(this)\"/>";
+		var url = "file://" + path;
+		var html = "<div class=\"tile\" id=\"_c" + id + "\" style=\"width : " + (width * zoom | 0) + "px; height : " + (height * zoom | 0) + "px; background : url('" + url + "') -" + (v.size * v.x * zoom | 0) + "px -" + (v.size * v.y * zoom | 0) + "px; opacity:0; " + (isInline ? "display:inline-block;" : "") + "\"></div>";
+		html += "<img src=\"" + url + "\" style=\"display:none\" onload=\"$('#_c" + id + "').css({opacity:1, backgroundSize : ((this.width*" + zoom + ")|0)+'px ' + ((this.height*" + zoom + ")|0)+'px' " + (zoom > 1 ? ", imageRendering : 'pixelated'" : "") + "}); if( this.parentNode != null ) this.parentNode.removeChild(this)\"/>";
 		return html;
 	}
 	,valueHtml: function(c,v,sheet,obj) {
@@ -5819,7 +5823,7 @@ Main.prototype = $extend(Model.prototype,{
 			if(v != "" && !this.quickExists(path)) {
 				html = "<span class=\"error\">" + html + "</span>";
 			} else if(ext == "png" || ext == "jpg" || ext == "jpeg" || ext == "gif") {
-				html = "<span class=\"preview\">" + html + "<div class=\"previewContent\"><div class=\"label\"></div><img src=\"" + path + "\" onload=\"$(this).parent().find('.label').text(this.width+'x'+this.height)\"/></div></span>";
+				html = "<span class=\"preview\">" + html + "<div class=\"previewContent\"><div class=\"label\"></div><img src=\"" + ("file://" + path) + "\" onload=\"$(this).parent().find('.label').text(this.width+'x'+this.height)\"/></div></span>";
 			}
 			if(v != "") {
 				html += " <input type=\"submit\" value=\"open\" onclick=\"_.openFile('" + path + "')\"/>";
@@ -7081,6 +7085,7 @@ Main.prototype = $extend(Model.prototype,{
 									if(c8[0].opt && val4[0].length == 0) {
 										val4[0] = null;
 										Reflect.deleteField(obj4[0],c8[0].name);
+										_gthis.save();
 									}
 									var tmp4 = _gthis.valueHtml(c8[0],val4[0],sheet,obj4[0]);
 									html3[0] = tmp4;
@@ -7204,7 +7209,7 @@ Main.prototype = $extend(Model.prototype,{
 							var dialog = $($(".tileSelect").parent().html()).prependTo($("body"));
 							var maxWidth = 1000000;
 							var maxHeight = 1000000;
-							dialog.find(".tileView").css({ backgroundImage : "url(\"" + _gthis.getAbsPath(file) + "\")"}).mousemove((function() {
+							dialog.find(".tileView").css({ backgroundImage : "url(\"file://" + _gthis.getAbsPath(file) + "\")"}).mousemove((function() {
 								return function(e11) {
 									var off = $(this).offset();
 									posX = (e11.pageX - off.left) / size | 0;
@@ -7328,6 +7333,7 @@ Main.prototype = $extend(Model.prototype,{
 									if(c13[0].opt && Reflect.fields(val7[0]).length == 0) {
 										val7[0] = null;
 										Reflect.deleteField(obj8[0],c13[0].name);
+										_gthis.save();
 									}
 									var tmp14 = _gthis.valueHtml(c13[0],val7[0],sheet,obj8[0]);
 									html5[0] = tmp14;
@@ -16126,7 +16132,7 @@ lvl_Image.load = function(url,callb,onError,forceReload) {
 		i1.fill(-65281);
 		callb(i1);
 	};
-	i.src = url;
+	i.src = "file://" + url;
 };
 lvl_Image.fromCanvas = function(c) {
 	var i = new lvl_Image(0,0);
@@ -17596,17 +17602,27 @@ lvl_LayerData.prototype = $extend(lvl_LayerGfx.prototype,{
 				while(_g5 < objs.length) {
 					var o2 = objs[_g5];
 					++_g5;
+					var w1 = (this.hasSize ? o2.width * size : size) | 0;
+					var h1 = (this.hasSize ? o2.height * size : size) | 0;
+					var px1 = o2.x * size | 0;
+					var py1 = o2.y * size | 0;
+					var col2 = this.props.color;
 					var k1 = this.idToIndex.get(Reflect.field(o2,idCol));
-					if(k1 == null) {
-						view.fillRect(o2.x * size | 0,o2.y * size | 0,(this.hasSize ? o2.width * size : size) | 0,(this.hasSize ? o2.height * size : size) | 0,-65281);
-						continue;
+					if(k1 != null && this.colors != null) {
+						col2 = this.colors[k1];
 					}
-					if(this.images != null) {
+					if(this.hasSize || this.images == null || k1 == null) {
+						view.fillRect(px1,py1,w1,h1,col2 | -1610612736);
+						var col3 = col2 | -16777216;
+						view.fillRect(px1,py1,w1,1,col3);
+						view.fillRect(px1,py1 + h1 - 1,w1,1,col3);
+						view.fillRect(px1,py1 + 1,1,h1 - 2,col3);
+						view.fillRect(px1 + w1 - 1,py1 + 1,1,h1 - 2,col3);
+					}
+					if(this.images != null && k1 != null) {
 						var i1 = this.images[k1];
-						view.draw(i1,(o2.x * size | 0) - (i1.width - size >> 1),(o2.y * size | 0) - (i1.height - size));
-						continue;
+						view.draw(i1,px1 + ((w1 - i1.width) * 0.5 | 0),py1 + ((h1 - i1.height) * 0.5 | 0));
 					}
-					view.fillRect(o2.x * size | 0,o2.y * size | 0,(this.hasSize ? o2.width * size : size) | 0,(this.hasSize ? o2.height * size : size) | 0,this.colors[k1] | -16777216);
 				}
 			}
 			break;
@@ -17647,15 +17663,15 @@ lvl_LayerData.prototype = $extend(lvl_LayerGfx.prototype,{
 				var x3 = i2.x * size | 0;
 				var y3 = i2.y * size | 0;
 				var obj = objs1.h[i2.o];
-				var w1 = (obj == null ? 1 : obj.w) * size;
-				var h1 = (obj == null ? 1 : obj.h) * size;
+				var w2 = (obj == null ? 1 : obj.w) * size;
+				var h2 = (obj == null ? 1 : obj.h) * size;
 				var rot = i2.rot;
 				mat.a = 1;
 				mat.b = 0;
 				mat.c = 0;
 				mat.d = 1;
-				mat.x = -w1 * 0.5;
-				mat.y = -h1 * 0.5;
+				mat.x = -w2 * 0.5;
+				mat.y = -h2 * 0.5;
 				if(rot != 0) {
 					var a1 = Math.PI * rot / 2;
 					var c = Math.cos(a1);
@@ -17674,16 +17690,16 @@ lvl_LayerData.prototype = $extend(lvl_LayerGfx.prototype,{
 					mat.c = -mat.c;
 					mat.x = -mat.x;
 				}
-				mat.x += Math.abs(mat.a * w1 * 0.5 + mat.c * h1 * 0.5);
-				mat.y += Math.abs(mat.b * w1 * 0.5 + mat.d * h1 * 0.5);
+				mat.x += Math.abs(mat.a * w2 * 0.5 + mat.c * h2 * 0.5);
+				mat.y += Math.abs(mat.b * w2 * 0.5 + mat.d * h2 * 0.5);
 				mat.x += x3;
 				mat.y += y3;
 				if(obj == null) {
 					view.drawMat(this.images[i2.o],mat);
 					view.fillRect(x3,y3,size,size,-2130771968);
 				} else {
-					var px1 = mat.x;
-					var py1 = mat.y;
+					var px2 = mat.x;
+					var py2 = mat.y;
 					var _g21 = 0;
 					var _g12 = obj.h;
 					while(_g21 < _g12) {
@@ -17692,8 +17708,8 @@ lvl_LayerData.prototype = $extend(lvl_LayerGfx.prototype,{
 						var _g32 = obj.w;
 						while(_g41 < _g32) {
 							var dx = _g41++;
-							mat.x = px1 + dx * size * mat.a + dy * size * mat.c;
-							mat.y = py1 + dx * size * mat.b + dy * size * mat.d;
+							mat.x = px2 + dx * size * mat.a + dy * size * mat.c;
+							mat.y = py2 + dx * size * mat.b + dy * size * mat.d;
 							view.drawMat(this.images[i2.o + dx + dy * this.stride],mat);
 						}
 					}
