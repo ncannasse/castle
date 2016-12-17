@@ -3,4 +3,5 @@
 -main Main
 -lib hxnodejs
 -lib format
+-lib hxbit
 -D lz4js

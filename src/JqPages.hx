@@ -47,7 +47,7 @@ extern class DockNode {
 	function onCloseButtonClicked() : Void; // force close
 }
 
-class JqPage extends cdb.jq.Server {
+class JqPage extends vdom.Server {
 
 	public var page : js.html.Element;
 	public var name : String;
@@ -79,8 +79,8 @@ class JqPage extends cdb.jq.Server {
 		dnodes.set(root, dockManager.context.model.documentManagerNode);
 	}
 
-	override function send( msg : cdb.jq.Message.Answer ) {
-		var bytes = cdb.BinSerializer.serialize(msg);
+	override function send( msg : vdom.Answer ) {
+		var bytes = encodeAnswer(msg);
 		var buf = new js.node.Buffer(bytes.length + 2);
 		buf[0] = bytes.length & 0xFF;
 		buf[1] = bytes.length >> 8;
@@ -371,8 +371,7 @@ class JqPages {
 					for( i in 0...max )
 						curBuffer.set(curPos++, e.readUInt8(pos++));
 					if( curPos == curBuffer.length ) {
-						var msg : cdb.jq.Message = cdb.BinSerializer.unserialize(curBuffer);
-						p.onMessage(msg);
+						p.onMessage(@:privateAccess p.decodeMessage(curBuffer));
 						curBuffer = null;
 						sizeCount = 0;
 						size = 0;

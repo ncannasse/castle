@@ -8,7 +8,7 @@
     <movie fps="30" />
     <movie width="800" />
     <movie height="600" />
-    <movie version="1" />
+    <movie version="0" />
     <movie minorVersion="0" />
     <movie platform="JavaScript" />
     <movie background="#FFFFFF" />
@@ -24,7 +24,7 @@
     <option noInlineOnDebug="False" />
     <option mainClass="Main" />
     <option enabledebug="False" />
-    <option additional="-lib hxnodejs&#xA;-lib format&#xA;-D lz4js" />
+    <option additional="-lib hxnodejs&#xA;-lib format&#xA;-lib hxbit&#xA;-D lz4js" />
   </build>
   <!-- haxelib libraries -->
   <haxelib>
