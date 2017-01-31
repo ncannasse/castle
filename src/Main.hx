@@ -30,6 +30,12 @@ private typedef Cursor = {
 	?onchange : Void -> Void,
 }
 
+enum LocField {
+	LName( c : Column );
+	LSub( c : Column, e : Array<LocField> );
+	LSingle( c : Column, e : LocField );
+}
+
 class K {
 	public static inline var INSERT = 45;
 	public static inline var DELETE = 46;
@@ -2087,7 +2093,7 @@ class Main extends Model {
 			form.find("[name=type]").val(ref.type.getName().substr(1).toLowerCase()).change();
 			form.find("[name=req]").prop("checked", !ref.opt);
 			form.find("[name=display]").val(ref.display == null ? "0" : Std.string(ref.display));
-			form.find("[name=localizable]").prop("checked", ref.kind=="localizable");
+			form.find("[name=localizable]").prop("checked", ref.kind==Localizable);
 			switch( ref.type ) {
 			case TEnum(values), TFlags(values):
 				form.find("[name=values]").val(values.join(","));
@@ -2252,7 +2258,7 @@ class Main extends Model {
 		};
 		if( v.req != "on" ) c.opt = true;
 		if( v.display != "0" ) c.display = cast Std.parseInt(v.display);
-		if( v.localizable == "on" ) c.kind = "localizable";
+		if( v.localizable == "on" ) c.kind = Localizable;
 
 		if( refColumn != null ) {
 			var err = super.updateColumn(sheet, refColumn, c);
@@ -2409,6 +2415,7 @@ class Main extends Model {
 		var mrecent = new MenuItem( { label : "Recent Files" } );
 		var msave = new MenuItem( { label : "Save As..." } );
 		var mclean = new MenuItem( { label : "Clean Images" } );
+		var mexport = new MenuItem( { label : "Export Localized texts" } );
 		mcompress = new MenuItem( { label : "Enable Compression", type : MenuItemType.checkbox } );
 		mcompress.click = function() {
 			setCompressionMode(mcompress.checked);
@@ -2476,9 +2483,102 @@ class Main extends Model {
 		}
 		mrecent.submenu = mrecents;
 
-		for( m in [mnew, mopen, mrecent, msave, mclean, mcompress, mabout, mexit] )
+		for( m in [mnew, mopen, mrecent, msave, mclean, mcompress, mexport, mabout, mexit] )
 			mfiles.append(m);
 		mfile.submenu = mfiles;
+
+		mexport.click = function() {
+			var buf = new StringBuf();
+			buf.add("<cdb>\n");
+
+			function makeSheetFields(s:Sheet) : Array<LocField> {
+				function makeLocField(c:Column, s:Sheet) {
+					switch( c.type ) {
+					case TString if( c.kind == Localizable ):
+						return LName(c);
+					case TList, TProperties:
+						var fl = makeSheetFields(s.getSub(c));
+						if( fl.length == 0 )
+							return null;
+						return LSub(c, fl);
+					default:
+						return null;
+					}
+				};
+				var fields = [];
+				for( c in s.columns ) {
+					var f = makeLocField(c, s);
+					if( f != null )
+						switch( f ) {
+						case LSub(c, fl):
+							for( f in fl )
+								fields.push(LSingle(c, f));
+						default:
+							fields.push(f);
+						}
+				}
+				return fields;
+			};
+
+			function getLocText( o : Dynamic, f : LocField ) {
+				switch( f ) {
+				case LName(c):
+					return { name : c.name, value : Reflect.field(o, c.name) };
+				case LSingle(c, f):
+					var v = getLocText(Reflect.field(o, c.name), f);
+					return { name : c.name+"." + v.name, value : v.value };
+				case LSub(_):
+					throw "assert";
+				}
+			}
+
+			for( s in data.sheets ) {
+
+				if( s.props.hide ) continue;
+
+				var locFields = makeSheetFields(s);
+				if( locFields.length == 0 ) continue;
+
+				var id = null;
+				for( c in s.columns )
+					if( c.type == TId ) {
+						id = c;
+						break;
+					}
+
+				buf.add('\t<sheet name="${s.name}">\n');
+				for( o in s.getLines() ) {
+					var id = Reflect.field(o, id.name);
+					if( id == null || id == "" ) continue;
+					var locs = [for( f in locFields ) getLocText(o, f)];
+					var hasLoc = false;
+					for( l in locs )
+						if( l.value != null && l.value != "" ) {
+							hasLoc = true;
+							break;
+						}
+					if( !hasLoc ) continue;
+					buf.add('\t\t<$id>\n');
+					for( l in locs )
+						if( l.value != null && l.value != "" )
+							buf.add('\t\t\t<${l.name}>${StringTools.htmlEscape(l.value)}</${l.name}>\n');
+					buf.add('\t\t</$id>\n');
+				}
+				buf.add('\t</sheet>\n');
+			}
+			buf.add("</cdb>\n");
+
+			var i = J("<input>").attr("type", "file").attr("nwsaveas","export.xml").css("display","none").change(function(e) {
+				var j = JTHIS;
+				var file = j.val();
+				var str = buf.toString();
+				sys.io.File.saveContent(file, String.fromCharCode(0xFEFF)+str); // prefix with BOM
+				j.remove();
+			});
+			i.appendTo(J("body"));
+			i.click();
+
+		};
 
 		menu.append(mfile);
 		menu.append(mdebug);
