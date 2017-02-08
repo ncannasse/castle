@@ -735,6 +735,97 @@ Lambda.find = function(it,f) {
 	}
 	return null;
 };
+var haxe_IMap = function() { };
+$hxClasses["haxe.IMap"] = haxe_IMap;
+haxe_IMap.__name__ = ["haxe","IMap"];
+haxe_IMap.prototype = {
+	__class__: haxe_IMap
+};
+var haxe_ds_StringMap = function() {
+	this.h = { };
+};
+$hxClasses["haxe.ds.StringMap"] = haxe_ds_StringMap;
+haxe_ds_StringMap.__name__ = ["haxe","ds","StringMap"];
+haxe_ds_StringMap.__interfaces__ = [haxe_IMap];
+haxe_ds_StringMap.prototype = {
+	set: function(key,value) {
+		if(__map_reserved[key] != null) {
+			this.setReserved(key,value);
+		} else {
+			this.h[key] = value;
+		}
+	}
+	,get: function(key) {
+		if(__map_reserved[key] != null) {
+			return this.getReserved(key);
+		}
+		return this.h[key];
+	}
+	,exists: function(key) {
+		if(__map_reserved[key] != null) {
+			return this.existsReserved(key);
+		}
+		return this.h.hasOwnProperty(key);
+	}
+	,setReserved: function(key,value) {
+		if(this.rh == null) {
+			this.rh = { };
+		}
+		this.rh["$" + key] = value;
+	}
+	,getReserved: function(key) {
+		if(this.rh == null) {
+			return null;
+		} else {
+			return this.rh["$" + key];
+		}
+	}
+	,existsReserved: function(key) {
+		if(this.rh == null) {
+			return false;
+		}
+		return this.rh.hasOwnProperty("$" + key);
+	}
+	,remove: function(key) {
+		if(__map_reserved[key] != null) {
+			key = "$" + key;
+			if(this.rh == null || !this.rh.hasOwnProperty(key)) {
+				return false;
+			}
+			delete(this.rh[key]);
+			return true;
+		} else {
+			if(!this.h.hasOwnProperty(key)) {
+				return false;
+			}
+			delete(this.h[key]);
+			return true;
+		}
+	}
+	,keys: function() {
+		return HxOverrides.iter(this.arrayKeys());
+	}
+	,arrayKeys: function() {
+		var out = [];
+		for( var key in this.h ) {
+		if(this.h.hasOwnProperty(key)) {
+			out.push(key);
+		}
+		}
+		if(this.rh != null) {
+			for( var key in this.rh ) {
+			if(key.charCodeAt(0) == 36) {
+				out.push(key.substr(1));
+			}
+			}
+		}
+		return out;
+	}
+	,iterator: function() {
+		return new haxe_ds__$StringMap_StringMapIterator(this,this.arrayKeys());
+	}
+	,__class__: haxe_ds_StringMap
+};
 var Level = function(model,sheet,index) {
 	this.reloading = false;
 	this.rotation = 0;
@@ -3572,7 +3663,7 @@ _$List_ListIterator.prototype = {
 };
 var LocField = $hxClasses["LocField"] = { __ename__ : ["LocField"], __constructs__ : ["LName","LSub","LSingle"] };
 LocField.LName = function(c) { var $x = ["LName",0,c]; $x.__enum__ = LocField; $x.toString = $estr; return $x; };
-LocField.LSub = function(c,e) { var $x = ["LSub",1,c,e]; $x.__enum__ = LocField; $x.toString = $estr; return $x; };
+LocField.LSub = function(c,s,e) { var $x = ["LSub",1,c,s,e]; $x.__enum__ = LocField; $x.toString = $estr; return $x; };
 LocField.LSingle = function(c,e) { var $x = ["LSingle",2,c,e]; $x.__enum__ = LocField; $x.toString = $estr; return $x; };
 var K = function() { };
 $hxClasses["K"] = K;
@@ -8587,12 +8678,12 @@ Main.prototype = $extend(Model.prototype,{
 						}
 						break;
 					case 8:case 17:
-						var fl = SheetData.model.smap.get(s1.name + "@" + c.name).s;
-						var fl1 = makeSheetFields(fl);
-						if(fl1.length == 0) {
+						var ssub = SheetData.model.smap.get(s1.name + "@" + c.name).s;
+						var fl = makeSheetFields(ssub);
+						if(fl.length == 0) {
 							return null;
 						}
-						return LocField.LSub(c,fl1);
+						return LocField.LSub(c,ssub,fl);
 					default:
 						return null;
 					}
@@ -8606,13 +8697,17 @@ Main.prototype = $extend(Model.prototype,{
 					var f = makeLocField(c1,s);
 					if(f != null) {
 						if(f[1] == 1) {
-							var fl2 = f[3];
+							var fl1 = f[4];
 							var c2 = f[2];
-							var _g21 = 0;
-							while(_g21 < fl2.length) {
-								var f1 = fl2[_g21];
-								++_g21;
-								fields.push(LocField.LSingle(c2,f1));
+							if(c2.type == cdb_ColumnType.TProperties) {
+								var _g21 = 0;
+								while(_g21 < fl1.length) {
+									var f1 = fl1[_g21];
+									++_g21;
+									fields.push(LocField.LSingle(c2,f1));
+								}
+							} else {
+								fields.push(f);
 							}
 						} else {
 							fields.push(f);
@@ -8622,70 +8717,65 @@ Main.prototype = $extend(Model.prototype,{
 				return fields;
 			};
 			var makeSheetFields1 = makeSheetFields;
+			var buildSheetXml = null;
 			var getLocText = null;
-			getLocText = function(o,f2) {
+			getLocText = function(tabs,o,f2) {
 				switch(f2[1]) {
 				case 0:
 					var c3 = f2[2];
-					return { name : c3.name, value : Reflect.field(o,c3.name)};
+					var v = Reflect.field(o,c3.name);
+					return { name : c3.name, value : v == null ? v : StringTools.htmlEscape(v)};
 				case 1:
-					throw new js__$Boot_HaxeError("assert");
-					break;
+					var fl2 = f2[4];
+					var ssub1 = f2[3];
+					var c4 = f2[2];
+					var v1 = Reflect.field(o,c4.name);
+					var content = buildSheetXml(ssub1,tabs + "\t\t",v1,fl2);
+					return { name : c4.name, value : content};
 				case 2:
 					var f3 = f2[3];
-					var c4 = f2[2];
-					var v = Reflect.field(o,c4.name);
-					var v1 = getLocText(v,f3);
-					return { name : c4.name + "." + v1.name, value : v1.value};
+					var c5 = f2[2];
+					var v2 = Reflect.field(o,c5.name);
+					var v3 = getLocText(tabs,v2,f3);
+					return { name : c5.name + "." + v3.name, value : v3.value};
 				}
 			};
 			var getLocText1 = getLocText;
-			var _g5 = 0;
-			var _g13 = _gthis.data.sheets;
-			while(_g5 < _g13.length) {
-				var s2 = _g13[_g5];
-				++_g5;
-				if(s2.props.hide) {
-					continue;
-				}
-				var locFields = makeSheetFields1(s2);
-				if(locFields.length == 0) {
-					continue;
-				}
+			buildSheetXml = function(s2,tabs1,values,locFields) {
 				var id = null;
-				var _g22 = 0;
-				var _g31 = s2.columns;
-				while(_g22 < _g31.length) {
-					var c5 = _g31[_g22];
-					++_g22;
-					if(c5.type == cdb_ColumnType.TId) {
-						id = c5;
+				var _g5 = 0;
+				var _g13 = s2.columns;
+				while(_g5 < _g13.length) {
+					var c6 = _g13[_g5];
+					++_g5;
+					if(c6.type == cdb_ColumnType.TId) {
+						id = c6;
 						break;
 					}
 				}
-				buf_b += Std.string("\t<sheet name=\"" + s2.name + "\">\n");
-				var _g23 = 0;
-				var _g32 = SheetData.getLines(s2);
-				while(_g23 < _g32.length) {
-					var o1 = _g32[_g23];
-					++_g23;
-					var id1 = Reflect.field(o1,id.name);
+				var buf_b1 = "";
+				var index = 0;
+				var _g6 = 0;
+				while(_g6 < values.length) {
+					var o1 = values[_g6];
+					++_g6;
+					var id1 = id == null ? "" + index++ : Reflect.field(o1,id.name);
 					if(id1 == null || id1 == "") {
 						continue;
 					}
-					var _g41 = [];
-					var _g51 = 0;
-					while(_g51 < locFields.length) {
-						var f4 = locFields[_g51];
-						++_g51;
-						_g41.push(getLocText1(o1,f4));
+					var _g14 = [];
+					var _g22 = 0;
+					while(_g22 < locFields.length) {
+						var f4 = locFields[_g22];
+						++_g22;
+						_g14.push(getLocText1(tabs1,o1,f4));
 					}
-					var locs = _g41;
+					var locs = _g14;
 					var hasLoc = false;
-					var _g52 = 0;
-					while(_g52 < locs.length) {
-						var l = locs[_g52];
-						++_g52;
+					var _g23 = 0;
+					while(_g23 < locs.length) {
+						var l = locs[_g23];
+						++_g23;
 						if(l.value != null && l.value != "") {
 							hasLoc = true;
 							break;
@@ -8694,17 +8784,40 @@ Main.prototype = $extend(Model.prototype,{
 					if(!hasLoc) {
 						continue;
 					}
-					buf_b += Std.string("\t\t<" + id1 + ">\n");
-					var _g53 = 0;
-					while(_g53 < locs.length) {
-						var l1 = locs[_g53];
-						++_g53;
+					buf_b1 += Std.string("" + tabs1 + "<" + id1 + ">\n");
+					var _g24 = 0;
+					while(_g24 < locs.length) {
+						var l1 = locs[_g24];
+						++_g24;
 						if(l1.value != null && l1.value != "") {
-							buf_b += Std.string("\t\t\t<" + l1.name + ">" + StringTools.htmlEscape(l1.value) + "</" + l1.name + ">\n");
+							if(l1.value.indexOf("<") < 0) {
+								buf_b1 += Std.string("" + tabs1 + "\t<" + l1.name + ">" + l1.value + "</" + l1.name + ">\n");
+							} else {
+								buf_b1 += Std.string("" + tabs1 + "\t<" + l1.name + ">\n");
+								buf_b1 += Std.string("" + tabs1 + "\t\t" + StringTools.trim(l1.value) + "\n");
+								buf_b1 += Std.string("" + tabs1 + "\t</" + l1.name + ">\n");
+							}
 						}
 					}
-					buf_b += Std.string("\t\t</" + id1 + ">\n");
+					buf_b1 += Std.string("" + tabs1 + "</" + id1 + ">\n");
 				}
+				return buf_b1;
+			};
+			var _g7 = 0;
+			var _g15 = _gthis.data.sheets;
+			while(_g7 < _g15.length) {
+				var s3 = _g15[_g7];
+				++_g7;
+				if(s3.props.hide) {
+					continue;
+				}
+				var locFields1 = makeSheetFields1(s3);
+				if(locFields1.length == 0) {
+					continue;
+				}
+				buf_b += Std.string("\t<sheet name=\"" + s3.name + "\">\n");
+				var x = SheetData.getLines(s3);
+				buf_b += Std.string(buildSheetXml(s3,"\t\t",x,locFields1));
 				buf_b += "\t</sheet>\n";
 			}
 			buf_b += "</cdb>\n";
@@ -11434,12 +11547,6 @@ cdb_IndexId.prototype = $extend(cdb_Index.prototype,{
 	}
 	,__class__: cdb_IndexId
 });
-var haxe_IMap = function() { };
-$hxClasses["haxe.IMap"] = haxe_IMap;
-haxe_IMap.__name__ = ["haxe","IMap"];
-haxe_IMap.prototype = {
-	__class__: haxe_IMap
-};
 var haxe__$Int64__$_$_$Int64 = function(high,low) {
 	this.high = high;
 	this.low = low;
@@ -12678,91 +12785,6 @@ haxe_ds__$StringMap_StringMapIterator.prototype = {
 		}
 	}
 	,__class__: haxe_ds__$StringMap_StringMapIterator
-};
-var haxe_ds_StringMap = function() {
-	this.h = { };
-};
-$hxClasses["haxe.ds.StringMap"] = haxe_ds_StringMap;
-haxe_ds_StringMap.__name__ = ["haxe","ds","StringMap"];
-haxe_ds_StringMap.__interfaces__ = [haxe_IMap];
-haxe_ds_StringMap.prototype = {
-	set: function(key,value) {
-		if(__map_reserved[key] != null) {
-			this.setReserved(key,value);
-		} else {
-			this.h[key] = value;
-		}
-	}
-	,get: function(key) {
-		if(__map_reserved[key] != null) {
-			return this.getReserved(key);
-		}
-		return this.h[key];
-	}
-	,exists: function(key) {
-		if(__map_reserved[key] != null) {
-			return this.existsReserved(key);
-		}
-		return this.h.hasOwnProperty(key);
-	}
-	,setReserved: function(key,value) {
-		if(this.rh == null) {
-			this.rh = { };
-		}
-		this.rh["$" + key] = value;
-	}
-	,getReserved: function(key) {
-		if(this.rh == null) {
-			return null;
-		} else {
-			return this.rh["$" + key];
-		}
-	}
-	,existsReserved: function(key) {
-		if(this.rh == null) {
-			return false;
-		}
-		return this.rh.hasOwnProperty("$" + key);
-	}
-	,remove: function(key) {
-		if(__map_reserved[key] != null) {
-			key = "$" + key;
-			if(this.rh == null || !this.rh.hasOwnProperty(key)) {
-				return false;
-			}
-			delete(this.rh[key]);
-			return true;
-		} else {
-			if(!this.h.hasOwnProperty(key)) {
-				return false;
-			}
-			delete(this.h[key]);
-			return true;
-		}
-	}
-	,keys: function() {
-		return HxOverrides.iter(this.arrayKeys());
-	}
-	,arrayKeys: function() {
-		var out = [];
-		for( var key in this.h ) {
-		if(this.h.hasOwnProperty(key)) {
-			out.push(key);
-		}
-		}
-		if(this.rh != null) {
-			for( var key in this.rh ) {
-			if(key.charCodeAt(0) == 36) {
-				out.push(key.substr(1));
-			}
-			}
-		}
-		return out;
-	}
-	,iterator: function() {
-		return new haxe_ds__$StringMap_StringMapIterator(this,this.arrayKeys());
-	}
-	,__class__: haxe_ds_StringMap
 };
 var haxe_io_BytesBuffer = function() {
 	this.b = [];
@@ -19570,6 +19592,7 @@ vdom_Message.SetVal = function(id,value) { var $x = ["SetVal",17,id,value]; $x._
 function $iterator(o) { if( o instanceof Array ) return function() { return HxOverrides.iter(o); }; return typeof(o.iterator) == 'function' ? $bind(o,o.iterator) : o.iterator; }
 var $_, $fid = 0;
 function $bind(o,m) { if( m == null ) return null; if( m.__id__ == null ) m.__id__ = $fid++; var f; if( o.hx__closures__ == null ) o.hx__closures__ = {}; else f = o.hx__closures__[m.__id__]; if( f == null ) { f = function(){ return f.method.apply(f.scope, arguments); }; f.scope = o; f.method = m; o.hx__closures__[m.__id__] = f; } return f; }
+var __map_reserved = {}
 $hxClasses["Math"] = Math;
 String.prototype.__class__ = $hxClasses["String"] = String;
 String.__name__ = ["String"];
@@ -19585,7 +19608,6 @@ var Bool = $hxClasses["Bool"] = Boolean;
 Bool.__ename__ = ["Bool"];
 var Class = $hxClasses["Class"] = { __name__ : ["Class"]};
 var Enum = { };
-var __map_reserved = {}
 Level.UID = 0;
 Level.loadedTilesCache = new haxe_ds_StringMap();
 K.INSERT = 45;

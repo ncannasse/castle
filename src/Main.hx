@@ -32,7 +32,7 @@ private typedef Cursor = {
 
 enum LocField {
 	LName( c : Column );
-	LSub( c : Column, e : Array<LocField> );
+	LSub( c : Column, s : Sheet, e : Array<LocField> );
 	LSingle( c : Column, e : LocField );
 }
 
@@ -2497,10 +2497,11 @@ class Main extends Model {
 					case TString if( c.kind == Localizable ):
 						return LName(c);
 					case TList, TProperties:
-						var fl = makeSheetFields(s.getSub(c));
+						var ssub = s.getSub(c);
+						var fl = makeSheetFields(ssub);
 						if( fl.length == 0 )
 							return null;
-						return LSub(c, fl);
+						return LSub(c, ssub, fl);
 					default:
 						return null;
 					}
@@ -2510,7 +2511,7 @@ class Main extends Model {
 					var f = makeLocField(c, s);
 					if( f != null )
 						switch( f ) {
-						case LSub(c, fl):
+						case LSub(c, _, fl) if( c.type == TProperties ):
 							for( f in fl )
 								fields.push(LSingle(c, f));
 						default:
@@ -2520,17 +2521,60 @@ class Main extends Model {
 				return fields;
 			};
 
-			function getLocText( o : Dynamic, f : LocField ) {
+			var buildSheetXml = null;
+
+			function getLocText( tabs : String, o : Dynamic, f : LocField ) {
 				switch( f ) {
 				case LName(c):
-					return { name : c.name, value : Reflect.field(o, c.name) };
+					var v = Reflect.field(o, c.name);
+					return { name : c.name, value : v == null ? v : StringTools.htmlEscape(v) };
 				case LSingle(c, f):
-					var v = getLocText(Reflect.field(o, c.name), f);
+					var v = getLocText(tabs, Reflect.field(o, c.name), f);
 					return { name : c.name+"." + v.name, value : v.value };
-				case LSub(_):
-					throw "assert";
+				case LSub(c, ssub, fl):
+					var v : Array<Dynamic> = Reflect.field(o, c.name);
+					var content = buildSheetXml(ssub, tabs+"\t\t", v, fl);
+					return { name : c.name, value : content };
 				}
 			}
+
+			buildSheetXml = function(s:Sheet, tabs, values, locFields) {
+				var id = null;
+				for( c in s.columns )
+					if( c.type == TId ) {
+						id = c;
+						break;
+					}
+
+				var buf = new StringBuf();
+				var index = 0;
+				for( o in values ) {
+					var id = id == null ? ""+(index++) : Reflect.field(o, id.name);
+					if( id == null || id == "" ) continue;
+
+					var locs = [for( f in locFields ) getLocText(tabs, o, f)];
+					var hasLoc = false;
+					for( l in locs )
+						if( l.value != null && l.value != "" ) {
+							hasLoc = true;
+							break;
+						}
+					if( !hasLoc ) continue;
+					buf.add('$tabs<$id>\n');
+					for( l in locs )
+						if( l.value != null && l.value != "" ) {
+							if( l.value.indexOf("<") < 0 )
+								buf.add('$tabs\t<${l.name}>${l.value}</${l.name}>\n');
+							else {
+								buf.add('$tabs\t<${l.name}>\n');
+								buf.add('$tabs\t\t${StringTools.trim(l.value)}\n');
+								buf.add('$tabs\t</${l.name}>\n');
+							}
+						}
+					buf.add('$tabs</$id>\n');
+				}
+				return buf.toString();
+			};
 
 			for( s in data.sheets ) {
 
@@ -2539,31 +2583,8 @@ class Main extends Model {
 				var locFields = makeSheetFields(s);
 				if( locFields.length == 0 ) continue;
 
-				var id = null;
-				for( c in s.columns )
-					if( c.type == TId ) {
-						id = c;
-						break;
-					}
-
 				buf.add('\t<sheet name="${s.name}">\n');
-				for( o in s.getLines() ) {
-					var id = Reflect.field(o, id.name);
-					if( id == null || id == "" ) continue;
-					var locs = [for( f in locFields ) getLocText(o, f)];
-					var hasLoc = false;
-					for( l in locs )
-						if( l.value != null && l.value != "" ) {
-							hasLoc = true;
-							break;
-						}
-					if( !hasLoc ) continue;
-					buf.add('\t\t<$id>\n');
-					for( l in locs )
-						if( l.value != null && l.value != "" )
-							buf.add('\t\t\t<${l.name}>${StringTools.htmlEscape(l.value)}</${l.name}>\n');
-					buf.add('\t\t</$id>\n');
-				}
+				buf.add(buildSheetXml(s, "\t\t", s.getLines(), locFields));
 				buf.add('\t</sheet>\n');
 			}
 			buf.add("</cdb>\n");
