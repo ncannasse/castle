@@ -194,6 +194,9 @@ div.modal {
 }
 
 .modal.tileSelect {
+	.content {
+		width: 90%;
+	}
 	.menu {
 		input[name=size], input[name=width], input[name=height] {
 			width : 30px;
@@ -227,8 +230,7 @@ div.modal {
 		padding-right : 5px;
 		padding-bottom : 5px;
 		border : 1px solid black;
-		max-width: 640px;
-		max-height : 640px;
+		max-height : 85%;
 		overflow : auto;
 	}
 }
