@@ -504,8 +504,14 @@ class Module {
 			pack : curMod,
 			kind : TDClass(),
 			fields : (macro class {
+				private static var root : cdb.Data;
+				public static function applyLang( xml : String, ?onMissing : String -> Void ) {
+					var c = new cdb.Lang(root);
+					if( onMissing != null ) c.onMissing = onMissing;
+					c.apply(xml);
+				}
 				public static function load( content : String ) {
-					var root = cdb.Parser.parse(content);
+					root = cdb.Parser.parse(content);
 					{$a{assigns}};
 				}
 			}).fields.concat(fields),
