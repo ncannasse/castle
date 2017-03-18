@@ -248,15 +248,7 @@ class SheetData {
 		}
 		if( c.type == TList || c.type == TProperties ) {
 			// create an hidden sheet for the model
-			var s : Sheet = {
-				name : sheet.name + "@" + c.name,
-				props : { hide : true },
-				separators : [],
-				lines : [],
-				columns : [],
-			};
-			if( c.type == TProperties ) s.props.isProps = true;
-			model.data.sheets.push(s);
+			var s = model.base.createSubSheet(sheet, c);
 			model.makeSheet(s);
 		}
 		return null;
@@ -291,7 +283,7 @@ class SheetData {
 	}
 
 	static function changeLineOrder( sheet : Sheet, remap : Array<Int> ) {
-		for( s in model.data.sheets )
+		for( s in model.base.sheets )
 			for( c in s.columns )
 				switch( c.type ) {
 				case TLayer(t) if( t == sheet.name ):
@@ -304,7 +296,7 @@ class SheetData {
 							if( r < 0 ) r = 0; // removed
 							d[i] = r;
 						}
-						ldat = cdb.Types.Layer.encode(d, model.data.compress);
+						ldat = cdb.Types.Layer.encode(d, model.base.compress);
 						Reflect.setField(obj, c.name, ldat);
 					}
 				default:
@@ -325,7 +317,7 @@ class SheetData {
 			return null;
 
 		var results = [];
-		for( s in model.data.sheets ) {
+		for( s in model.base.sheets ) {
 			for( c in s.columns )
 				switch( c.type ) {
 				case TRef(sname) if( sname == sheet.name ):
@@ -398,7 +390,7 @@ class SheetData {
 						}
 					}
 				}
-				return { file : v.file, size : v.size, stride : v.stride, data : cdb.Types.TileLayerData.encode(ndat, model.data.compress) };
+				return { file : v.file, size : v.size, stride : v.stride, data : cdb.Types.TileLayerData.encode(ndat, model.base.compress) };
 			}
 
 			for( c in sheet.columns ) {
@@ -414,7 +406,7 @@ class SheetData {
 							var k = y < oldH && x < oldW ? odat[x + y * oldW] : 0;
 							ndat.push(k);
 						}
-					v = cdb.Types.Layer.encode(ndat, model.data.compress);
+					v = cdb.Types.Layer.encode(ndat, model.base.compress);
 					Reflect.setField(obj, c.name, v);
 				case TList:
 					var s = sheet.getSub(c);

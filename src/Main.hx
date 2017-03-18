@@ -332,7 +332,7 @@ class Main extends Model {
 			save();
 		case K.TAB:
 			if( e.ctrlKey ) {
-				var sheets = data.sheets.filter(function(s) return !s.props.hide);
+				var sheets = base.sheets.filter(function(s) return !s.props.hide);
 				var pos = (level == null ? Lambda.indexOf(sheets, viewSheet) : sheets.length + Lambda.indexOf(levels, level)) + 1;
 				var s = sheets[pos % (sheets.length + levels.length)];
 				if( s != null ) selectSheet(s) else {
@@ -880,22 +880,22 @@ class Main extends Model {
 			n.append(m);
 		nleft.click = function() {
 			var prev = -1;
-			for( i in 0...data.sheets.length ) {
-				var s2 = data.sheets[i];
+			for( i in 0...base.sheets.length ) {
+				var s2 = base.sheets[i];
 				if( s == s2 ) break;
 				if( !s2.props.hide ) prev = i;
 			}
 			if( prev < 0 ) return;
-			data.sheets.remove(s);
-			data.sheets.insert(prev, s);
+			base.sheets.remove(s);
+			base.sheets.insert(prev, s);
 			prefs.curSheet = prev;
 			initContent();
 			save();
 		};
 		nright.click = function() {
 			var found = null;
-			for( i in 0...data.sheets.length ) {
-				var s2 = data.sheets[i];
+			for( i in 0...base.sheets.length ) {
+				var s2 = base.sheets[i];
 				if( s == s2 )
 					found = -1;
 				else if( !s2.props.hide && found != null ) {
@@ -904,8 +904,8 @@ class Main extends Model {
 				}
 			}
 			if( found == null || found < 0 ) return;
-			data.sheets.remove(s);
-			data.sheets.insert(found, s);
+			base.sheets.remove(s);
+			base.sheets.insert(found, s);
 			prefs.curSheet = found;
 			initContent();
 			save();
@@ -1910,7 +1910,7 @@ class Main extends Model {
 			if( level != null ) level.dispose();
 			level = null;
 		}
-		prefs.curSheet = Lambda.indexOf(data.sheets, s);
+		prefs.curSheet = Lambda.indexOf(base.sheets, s);
 		J("#sheets li").removeClass("active").filter("#sheet_" + prefs.curSheet).addClass("active");
 		if( manual ) refresh();
 	}
@@ -1955,7 +1955,7 @@ class Main extends Model {
 	function editTypes() {
 		if( typesStr == null ) {
 			var tl = [];
-			for( t in data.customTypes )
+			for( t in base.getCustomTypes() )
 				tl.push("enum " + t.name + " {\n" + typeCasesToString(t, "\t") + "\n}");
 			typesStr = tl.join("\n\n");
 		}
@@ -2019,12 +2019,12 @@ class Main extends Model {
 			initContent();
 		});
 		apply.click(function(_) {
-			var tpairs = makePairs(data.customTypes, types);
+			var tpairs = makePairs(base.getCustomTypes(), types);
 			// check if we can remove some types used in sheets
 			for( p in tpairs )
 				if( p.b == null ) {
 					var t = p.a;
-					for( s in data.sheets )
+					for( s in base.sheets )
 						for( c in s.columns )
 							switch( c.type ) {
 							case TCustom(name) if( name == t.name ):
@@ -2036,11 +2036,11 @@ class Main extends Model {
 			// add new types
 			for( t in types )
 				if( !Lambda.exists(tpairs,function(p) return p.b == t) )
-					data.customTypes.push(t);
+					base.getCustomTypes().push(t);
 			// update existing types
 			for( p in tpairs ) {
 				if( p.b == null )
-					data.customTypes.remove(p.a);
+					base.getCustomTypes().remove(p.a);
 				else
 					try updateType(p.a, p.b) catch( msg : String ) {
 						error("Error while updating " + p.b.name + " : " + msg);
@@ -2063,8 +2063,8 @@ class Main extends Model {
 
 		var sheets = J("[name=sheet]");
 		sheets.empty();
-		for( i in 0...data.sheets.length ) {
-			var s = data.sheets[i];
+		for( i in 0...base.sheets.length ) {
+			var s = base.sheets[i];
 			if( s.props.hide ) continue;
 			J("<option>").attr("value", "" + i).text(s.name).appendTo(sheets);
 		}
@@ -2076,7 +2076,7 @@ class Main extends Model {
 			J("#col_options").toggleClass("t_edit",types.val() != "");
 		});
 		J("<option>").attr("value", "").text("--- Select ---").appendTo(types);
-		for( t in data.customTypes )
+		for( t in base.getCustomTypes() )
 			J("<option>").attr("value", "" + t.name).text(t.name).appendTo(types);
 
 		form.removeClass("edit").removeClass("create");
@@ -2092,7 +2092,7 @@ class Main extends Model {
 			case TEnum(values), TFlags(values):
 				form.find("[name=values]").val(values.join(","));
 			case TRef(sname), TLayer(sname):
-				form.find("[name=sheet]").val( "" + Lambda.indexOf(data.sheets, Lambda.find(data.sheets,function(s:Sheet) return s.name == sname)));
+				form.find("[name=sheet]").val( "" + base.sheets.indexOf(smap.get(sname).s));
 			case TCustom(name):
 				form.find("[name=ctype]").val(name);
 			default:
@@ -2124,23 +2124,13 @@ class Main extends Model {
 			error("Invalid sheet name");
 			return;
 		}
-		// name already exists
-		for( s in data.sheets )
-			if( s.name == name ) {
-				error("Sheet name already in use");
-				return;
-			}
+		var s = base.createSheet(name);
+		if( s == null ) {
+			error("Sheet name already in use");
+			return;
+		}
 		J("#newsheet").hide();
-		var s : Sheet = {
-			name : name,
-			columns : [],
-			lines : [],
-			separators : [],
-			props : {
-			},
-		};
-		prefs.curSheet = data.sheets.length;
-		data.sheets.push(s);
+		prefs.curSheet = base.sheets.length - 1;
 		makeSheet(s);
 		if( level ) initLevel(s);
 		initContent();
@@ -2206,7 +2196,7 @@ class Main extends Model {
 			}
 			TFlags([for( f in vals ) StringTools.trim(f)]);
 		case "ref":
-			var s = data.sheets[Std.parseInt(v.sheet)];
+			var s = base.sheets[Std.parseInt(v.sheet)];
 			if( s == null ) {
 				error("Sheet not found");
 				return;
@@ -2226,7 +2216,7 @@ class Main extends Model {
 		case "color":
 			TColor;
 		case "layer":
-			var s = data.sheets[Std.parseInt(v.sheet)];
+			var s = base.sheets[Std.parseInt(v.sheet)];
 			if( s == null ) {
 				error("Sheet not found");
 				return;
@@ -2289,8 +2279,8 @@ class Main extends Model {
 		(untyped J("body").spectrum).clearAll();
 		var sheets = J("ul#sheets");
 		sheets.children().remove();
-		for( i in 0...data.sheets.length ) {
-			var s = data.sheets[i];
+		for( i in 0...base.sheets.length ) {
+			var s = base.sheets[i];
 			if( s.props.hide ) continue;
 			var li = J("<li>");
 			li.text(s.name).attr("id", "sheet_" + i).appendTo(sheets).click(function(_) selectSheet(s)).dblclick(function(_) {
@@ -2321,7 +2311,7 @@ class Main extends Model {
 						}
 					});
 
-					for( s in data.sheets )
+					for( s in base.sheets )
 						if( StringTools.startsWith(s.name, old + "@") )
 							s.name = name + "@" + s.name.substr(old.length + 1);
 
@@ -2341,8 +2331,8 @@ class Main extends Model {
 			});
 		}
 		pages.updateTabs();
-		var s = data.sheets[prefs.curSheet];
-		if( s == null ) s = data.sheets[0];
+		var s = base.sheets[prefs.curSheet];
+		if( s == null ) s = base.sheets[0];
 		if( s != null ) selectSheet(s, false);
 
 		var old = levels;
@@ -2366,7 +2356,7 @@ class Main extends Model {
 			pages.select();
 		else if( lcur != null )
 			selectLevel(lcur);
-		else if( data.sheets.length == 0 )
+		else if( base.sheets.length == 0 )
 			J("#content").html("<a href='javascript:_.newSheet()'>Create a sheet</a>");
 		else
 			refresh();
@@ -2374,7 +2364,7 @@ class Main extends Model {
 
 	function cleanLayers() {
 		var count = 0;
-		for( s in data.sheets ) {
+		for( s in base.sheets ) {
 			if( s.props.level == null ) continue;
 			var ts = s.props.level.tileSets;
 			var usedLayers = new Map();
@@ -2412,7 +2402,7 @@ class Main extends Model {
 		var mexport = new MenuItem( { label : "Export Localized texts" } );
 		mcompress = new MenuItem( { label : "Enable Compression", type : MenuItemType.checkbox } );
 		mcompress.click = function() {
-			setCompressionMode(mcompress.checked);
+			base.compress = mcompress.checked;
 			save();
 		};
 		var mabout = new MenuItem( { label : "About" } );
@@ -2483,7 +2473,7 @@ class Main extends Model {
 
 		mexport.click = function() {
 
-			var lang = new cdb.Lang(data);
+			var lang = new cdb.Lang(@:privateAccess base.data);
 			var xml = lang.buildXML();
 			var i = J("<input>").attr("type", "file").attr("nwsaveas","export.xml").css("display","none").change(function(e) {
 				var j = JTHIS;
@@ -2504,7 +2494,7 @@ class Main extends Model {
 		window.show();
 		if( prefs.windowPos.max ) window.maximize();
 		window.on('close', function() {
-			if( prefs.curFile == null && data.sheets.length > 0 ) {
+			if( prefs.curFile == null && base.sheets.length > 0 ) {
 				if( !js.Browser.window.confirm("Do you want to exit without saving your changes?") )
 					return;
 			}
@@ -2552,7 +2542,7 @@ class Main extends Model {
 		if( prefs.recent.length > 8 ) prefs.recent.pop();
 
 		lastSave = getFileTime();
-		mcompress.checked = data.compress;
+		mcompress.checked = base.compress;
 	}
 
 	override function save( history = true ) {

@@ -29,7 +29,7 @@ typedef HistoryElement = { d : String, o : String };
 
 class Model {
 
-	public var data : Data;
+	public var base : data.Database;
 	var prefs : Prefs;
 	var imageBank : Dynamic<String>;
 	var smap : Map< String, { s : Sheet, index : Map<String,Index> , all : Array<Index> } >;
@@ -112,38 +112,6 @@ class Model {
 	}
 
 	public function save( history = true ) {
-
-		// process
-		for( s in data.sheets ) {
-			// clean props
-			for( p in Reflect.fields(s.props) ) {
-				var v : Dynamic = Reflect.field(s.props, p);
-				if( v == null || v == false ) Reflect.deleteField(s.props, p);
-			}
-			if( s.props.hasIndex ) {
-				var lines = s.getLines();
-				for( i in 0...lines.length )
-					lines[i].index = i;
-			}
-			if( s.props.hasGroup ) {
-				var lines = s.getLines();
-				var gid = 0;
-				var sindex = 0;
-				var titles = s.props.separatorTitles;
-				if( titles != null ) {
-					// skip first if at head
-					if( s.separators[sindex] == 0 && titles[sindex] != null ) sindex++;
-					for( i in 0...lines.length ) {
-						if( s.separators[sindex] == i ) {
-							if( titles[sindex] != null ) gid++;
-							sindex++;
-						}
-						lines[i].group = gid;
-					}
-				}
-			}
-		}
-
 		var sdata = quickSave();
 		if( history && (curSavedData == null || sdata.d != curSavedData.d || sdata.o != curSavedData.o) ) {
 			this.history.push(curSavedData);
@@ -177,18 +145,18 @@ class Model {
 
 	function quickSave() : HistoryElement {
 		return {
-			d : cdb.Parser.save(data),
+			d : base.save(),
 			o : haxe.Serializer.run(openedList),
 		};
 	}
 
 	function quickLoad(sdata:HistoryElement) {
-		data = cdb.Parser.parse(sdata.d);
+		base.load(sdata.d);
 		openedList = haxe.Unserializer.run(sdata.o);
 	}
 
 	public function deleteSheet( sheet : Sheet ) {
-		data.sheets.remove(sheet);
+		base.sheets.remove(sheet);
 		smap.remove(sheet.name);
 		for( c in sheet.columns )
 			switch( c.type ) {
@@ -374,32 +342,8 @@ class Model {
 		return null;
 	}
 
-	function setCompressionMode( c ) {
-		data.compress = c;
-		for( s in data.sheets )
-			for( c in s.columns )
-				switch( c.type ) {
-				case TLayer(_):
-					for( obj in s.getLines() ) {
-						var ldat : cdb.Types.Layer<Int> = Reflect.field(obj, c.name);
-						if( ldat == null || ldat == cast "" ) continue;
-						var d = ldat.decode([for( i in 0...256 ) i]);
-						ldat = cdb.Types.Layer.encode(d, data.compress);
-						Reflect.setField(obj, c.name, ldat);
-					}
-				case TTileLayer:
-					for( obj in s.getLines() ) {
-						var ldat : cdb.Types.TileLayer = Reflect.field(obj, c.name);
-						if( ldat == null || ldat == cast "" ) continue;
-						var d = ldat.data.decode();
-						Reflect.setField(ldat,"data",cdb.Types.TileLayerData.encode(d, data.compress));
-					}
-				default:
-				}
-	}
-
 	public function compressionEnabled() {
-		return data.compress;
+		return base.compress;
 	}
 
 	function error( msg ) {
@@ -409,17 +353,17 @@ class Model {
 	function load(noError = false) {
 		history = [];
 		redo = [];
+		base = new data.Database();
 		try {
-			data = cdb.Parser.parse(sys.io.File.getContent(prefs.curFile));
+			base.load(sys.io.File.getContent(prefs.curFile));
+			if( prefs.curSheet > base.sheets.length )
+				prefs.curSheet = 0;
+			else while( base.sheets[prefs.curSheet].props.hide )
+				prefs.curSheet--;
 		} catch( e : Dynamic ) {
 			if( !noError ) error(Std.string(e));
 			prefs.curFile = null;
 			prefs.curSheet = 0;
-			data = {
-				sheets : [],
-				customTypes : [],
-				compress : false,
-			};
 		}
 		try {
 			var img = prefs.curFile.split(".");
@@ -434,10 +378,10 @@ class Model {
 
 	public function initContent() {
 		smap = new Map();
-		for( s in data.sheets )
+		for( s in base.sheets )
 			makeSheet(s);
 		tmap = new Map();
-		for( t in data.customTypes )
+		for( t in base.getCustomTypes() )
 			tmap.set(t.name, t);
 	}
 
@@ -482,7 +426,7 @@ class Model {
 		if( imageBank == null )
 			return;
 		var used = new Map();
-		for( s in data.sheets )
+		for( s in base.sheets )
 			for( c in s.columns ) {
 				switch( c.type ) {
 				case TImage:
@@ -824,7 +768,7 @@ class Model {
 	}
 
 	function mapType( callb ) {
-		for( s in data.sheets )
+		for( s in base.sheets )
 			for( c in s.columns ) {
 				var t = callb(c.type);
 				if( t != c.type ) {
@@ -832,7 +776,7 @@ class Model {
 					c.typeStr = null;
 				}
 			}
-		for( t in data.customTypes )
+		for( t in base.getCustomTypes() )
 			for( c in t.cases )
 				for( a in c.args ) {
 					var t = callb(a.type);
@@ -862,7 +806,7 @@ class Model {
 			}
 		}
 
-		for( s in data.sheets )
+		for( s in base.sheets )
 			for( c in s.columns )
 				switch( c.type ) {
 				case TRef(n) if( n == sheet.name ):
@@ -957,7 +901,7 @@ class Model {
 		}
 
 		// apply convert
-		for( s in data.sheets )
+		for( s in base.sheets )
 			for( c in s.columns )
 				switch( c.type ) {
 				case TCustom(tname):
@@ -982,7 +926,7 @@ class Model {
 
 
 		if( t.name != old.name ) {
-			for( t2 in data.customTypes )
+			for( t2 in base.getCustomTypes() )
 				for( c in t2.cases )
 					for( a in c.args ) {
 						switch( a.type ) {
