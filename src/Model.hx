@@ -14,7 +14,6 @@
  * IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 import cdb.Data;
-using SheetData;
 
 typedef Prefs = {
 	windowPos : { x : Int, y : Int, w : Int, h : Int, max : Bool },
@@ -47,7 +46,6 @@ class Model {
 		};
 		existsCache = new Map();
 		loadPrefs();
-		@:privateAccess SheetData.model = this;
 	}
 
 	function quickExists(path) {
@@ -73,7 +71,7 @@ class Model {
 	}
 
 	public inline function getSheet( name : String ) {
-		return base.getSheet(name).s;
+		return base.getSheet(name);
 	}
 
 	public function save( history = true ) {
@@ -138,11 +136,11 @@ class Model {
 				prefs.curSheet = 0;
 			else while( base.sheets[prefs.curSheet].props.hide )
 				prefs.curSheet--;
-		} catch( e : Dynamic ) {
+		} /*catch( e : Dynamic ) {
 			if( !noError ) error(Std.string(e));
 			prefs.curFile = null;
 			prefs.curSheet = 0;
-		}
+		}*/
 		try {
 			var img = prefs.curFile.split(".");
 			img.pop();

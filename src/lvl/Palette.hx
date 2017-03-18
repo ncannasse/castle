@@ -17,7 +17,6 @@ package lvl;
 import cdb.Data;
 import js.jquery.Helper.*;
 import js.jquery.JQuery;
-using SheetData;
 
 class Palette {
 

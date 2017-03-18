@@ -14,7 +14,7 @@
  * IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 import cdb.Data;
-using SheetData;
+import data.Sheet;
 
 import js.jquery.Helper.*;
 import js.jquery.JQuery;
@@ -366,10 +366,10 @@ class Main extends Model {
 					if( sd != null ) {
 						var k = sd.index.get(id);
 						if( k != null ) {
-							var index = Lambda.indexOf(sd.s.lines, k.obj);
+							var index = Lambda.indexOf(sd.lines, k.obj);
 							if( index >= 0 ) {
-								sheetCursors.set(s, { s : sd.s, x : 0, y : index } );
-								selectSheet(sd.s);
+								sheetCursors.set(s, { s : sd, x : 0, y : index } );
+								selectSheet(sd);
 							}
 						}
 					}
@@ -448,7 +448,7 @@ class Main extends Model {
 				}
 				var starget = rs.s[0].s;
 				sheetCursors.set(starget.name, {
-					s : { name : slast.s.name, path : key, separators : [], lines : [], columns : [], props : {} },
+					s : new data.Sheet(null,{ name : slast.s.name, separators : [], lines : [], columns : [], props : {} },key),
 					x : -1,
 					y : rs.o.indexes[rs.o.indexes.length - 1],
 				});
@@ -1148,7 +1148,7 @@ class Main extends Model {
 			s.change(function(e) e.stopPropagation());
 
 			var props : Dynamic = { data : elts };
-			if( sdat.s.props.displayIcon != null ) {
+			if( sdat.props.displayIcon != null ) {
 				function buildElement(i) {
 					var text = StringTools.htmlEscape(i.text);
 					return J("<div>"+(i.ico == null ? "<div style='display:inline-block;width:16px'/>" : tileHtml(i.ico,true)) + " " + text+"</div>");
@@ -1349,10 +1349,6 @@ class Main extends Model {
 
 		content.addClass("sheet");
 		content.attr("sheet", sheet.getPath());
-
-		// create as many fake lines as properties (for cursor navigation)
-		sheet.lines = [for( f in Reflect.fields(props) ) null];
-		sheet.lines[0] = props;
 
 		var available = [];
 		var index = 0;
@@ -1567,15 +1563,13 @@ class Main extends Model {
 							val = [];
 							Reflect.setField(obj, c.name, val);
 						}
-						psheet = {
+						psheet = new data.Sheet(null,{
 							columns : psheet.columns, // SHARE
 							props : psheet.props, // SHARE
 							name : psheet.name, // same
-							path : key, // unique
-							parent : { sheet : sheet, column : cindex, line : index },
 							lines : val, // ref
 							separators : [], // none
-						};
+						},key, { sheet : sheet, column : cindex, line : index });
 						fillTable(content, psheet);
 						next.insertAfter(l);
 						v.text("...");
@@ -1632,15 +1626,14 @@ class Main extends Model {
 							Reflect.setField(obj, c.name, val);
 						}
 
-						psheet = {
+						psheet = new data.Sheet(null,{
 							columns : psheet.columns, // SHARE
 							props : psheet.props, // SHARE
 							name : psheet.name, // same
-							path : key, // unique
-							parent : { sheet : sheet, column : cindex, line : index },
-							lines : [val], // ref
+							lines : [for( f in Reflect.fields(val) ) null], // create as many fake lines as properties (for cursor navigation)
 							separators : [], // none
-						};
+						}, key, { sheet : sheet, column : cindex, line : index });
+						@:privateAccess psheet.sheet.lines[0] = val; // ref
 						fillProps(content, psheet, val);
 						next.insertAfter(l);
 						v.text("...");
@@ -2294,11 +2287,11 @@ class Main extends Model {
 					}
 					var f = base.getSheet(name);
 					if( f != null ) {
-						if( f.s != s ) error("Sheet name already in use");
+						if( f != s ) error("Sheet name already in use");
 						return;
 					}
 					var old = s.name;
-					s.name = name;
+					s.rename(name);
 
 					base.mapType(function(t) {
 						return switch( t ) {
@@ -2313,7 +2306,7 @@ class Main extends Model {
 
 					for( s in base.sheets )
 						if( StringTools.startsWith(s.name, old + "@") )
-							s.name = name + "@" + s.name.substr(old.length + 1);
+							s.rename(name + "@" + s.name.substr(old.length + 1));
 
 					initContent();
 					save();

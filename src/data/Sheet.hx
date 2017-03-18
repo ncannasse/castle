@@ -13,35 +13,58 @@
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR
  * IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
+package data;
 import cdb.Data;
-using SheetData;
 
-class SheetData {
+typedef Index = { id : String, disp : String, ico : cdb.Types.TilePos, obj : Dynamic }
 
-	static var model : Model;
+class Sheet {
 
-	static inline function getSheet(name:String) {
-		return model.getSheet(name);
+	var base : Database;
+	var sheet : cdb.Data.Sheet;
+
+	public var index : Map<String,Index>;
+	public var all : Array<Index>;
+	public var name(get, never) : String;
+	public var columns(get, never) : Array<cdb.Data.Column>;
+	public var props(get, never) : cdb.Data.SheetProps;
+	public var lines(get, never) : Array<Dynamic>;
+	public var separators(get, never) : Array<Int>;
+
+	var path : String;
+	public var parent : { sheet : Sheet, column : Int, line : Int };
+
+	public function new(base, sheet, ?path, ?parent) {
+		this.base = base;
+		this.sheet = sheet;
+		this.path = path;
+		this.parent = parent;
 	}
 
-	public static inline function isLevel( sheet : Sheet ) {
+	inline function get_lines() return sheet.lines;
+	inline function get_props() return sheet.props;
+	inline function get_columns() return sheet.columns;
+	inline function get_name() return sheet.name;
+	inline function get_separators() return sheet.separators;
+
+	public inline function isLevel() {
 		return sheet.props.level != null;
 	}
 
-	public static inline function getSub( sheet : Sheet, c : Column ) {
-		return getSheet(sheet.name + "@" + c.name);
+	public inline function getSub( c : Column ) {
+		return base.getSheet(name + "@" + c.name);
 	}
 
-	public static function getParent( sheet : Sheet ) {
+	public function getParent() {
 		if( !sheet.props.hide )
 			return null;
 		var parts = sheet.name.split("@");
 		var colName = parts.pop();
-		return { s : getSheet(parts.join("@")), c : colName };
+		return { s : base.getSheet(parts.join("@")), c : colName };
 	}
 
-	public static function getLines( sheet : Sheet ) : Array<Dynamic> {
-		var p = getParent(sheet);
+	public function getLines() : Array<Dynamic> {
+		var p = getParent();
 		if( p == null ) return sheet.lines;
 
 		if( p.s.isLevel() && p.c == "tileProps" ) {
@@ -61,14 +84,14 @@ class SheetData {
 		var all = [];
 		if( sheet.props.isProps ) {
 			// properties
-			for( obj in getLines(p.s) ) {
+			for( obj in p.s.getLines() ) {
 				var v : Dynamic = Reflect.field(obj, p.c);
 				if( v != null )
 					all.push(v);
 			}
 		} else {
 			// lists
-			for( obj in getLines(p.s) ) {
+			for( obj in p.s.getLines() ) {
 				var v : Array<Dynamic> = Reflect.field(obj, p.c);
 				if( v != null )
 					for( v in v )
@@ -78,12 +101,12 @@ class SheetData {
 		return all;
 	}
 
-	public static function getObjects( sheet : Sheet ) : Array<{ path : Array<Dynamic>, indexes : Array<Int> }> {
-		var p = getParent(sheet);
+	public function getObjects() : Array<{ path : Array<Dynamic>, indexes : Array<Int> }> {
+		var p = getParent();
 		if( p == null )
 			return [for( i in 0...sheet.lines.length ) { path : [sheet.lines[i]], indexes : [i] }];
 		var all = [];
-		for( obj in getObjects(p.s) ) {
+		for( obj in p.s.getObjects() ) {
 			var v : Array<Dynamic> = Reflect.field(obj.path[obj.path.length-1], p.c);
 			if( v != null )
 				for( i in 0...v.length ) {
@@ -98,11 +121,11 @@ class SheetData {
 		return all;
 	}
 
-	public static function newLine( sheet : Sheet, ?index : Int ) {
+	public function newLine( ?index : Int ) {
 		var o = {
 		};
 		for( c in sheet.columns ) {
-			var d = model.base.getDefault(c);
+			var d = base.getDefault(c);
 			if( d != null )
 				Reflect.setField(o, c.name, d);
 		}
@@ -114,17 +137,17 @@ class SheetData {
 				if( s > index ) sheet.separators[i] = s + 1;
 			}
 			sheet.lines.insert(index + 1, o);
-			changeLineOrder(sheet, [for( i in 0...sheet.lines.length ) i <= index ? i : i + 1]);
+			changeLineOrder([for( i in 0...sheet.lines.length ) i <= index ? i : i + 1]);
 		}
 		return o;
 	}
 
-	public static function getPath( sheet : Sheet ) {
-		return sheet.path == null ? sheet.name : sheet.path;
+	public function getPath() {
+		return path == null ? sheet.name : path;
 	}
 
-	public static function hasColumn( s : Sheet, name : String, ?types : Array<ColumnType> ) {
-		for( c in s.columns )
+	public function hasColumn( name : String, ?types : Array<ColumnType> ) {
+		for( c in columns )
 			if( c.name == name ) {
 				if( types != null ) {
 					for( t in types )
@@ -137,7 +160,7 @@ class SheetData {
 		return false;
 	}
 
-	public static function moveLine( sheet : Sheet, index : Int, delta : Int ) : Null<Int> {
+	public function moveLine( index : Int, delta : Int ) : Null<Int> {
 		if( delta < 0 && index > 0 ) {
 
 			for( i in 0...sheet.separators.length )
@@ -156,7 +179,7 @@ class SheetData {
 			var arr = [for( i in 0...sheet.lines.length ) i];
 			arr[index] = index - 1;
 			arr[index - 1] = index;
-			changeLineOrder(sheet, arr);
+			changeLineOrder(arr);
 
 			return index - 1;
 		} else if( delta > 0 && sheet != null && index < sheet.lines.length - 1 ) {
@@ -175,18 +198,18 @@ class SheetData {
 			var arr = [for( i in 0...sheet.lines.length ) i];
 			arr[index] = index + 1;
 			arr[index + 1] = index;
-			changeLineOrder(sheet, arr);
+			changeLineOrder(arr);
 
 			return index + 1;
 		}
 		return null;
 	}
 
-	public static function deleteLine( sheet : Sheet, index : Int ) {
+	public function deleteLine( index : Int ) {
 
 		var arr = [for( i in 0...sheet.lines.length ) if( i < index ) i else i - 1];
 		arr[index] = -1;
-		changeLineOrder(sheet, arr);
+		changeLineOrder(arr);
 
 		sheet.lines.splice(index, 1);
 
@@ -206,28 +229,28 @@ class SheetData {
 		}
 	}
 
-	public static function deleteColumn( sheet : Sheet, ?cname : String ) {
+	public function deleteColumn( cname : String ) {
 		for( c in sheet.columns )
 			if( c.name == cname ) {
 				sheet.columns.remove(c);
-				for( o in getLines(sheet) )
+				for( o in getLines() )
 					Reflect.deleteField(o, c.name);
 				if( sheet.props.displayColumn == c.name ) {
 					sheet.props.displayColumn = null;
-					sheet.sync();
+					sync();
 				}
 				if( sheet.props.displayIcon == c.name ) {
 					sheet.props.displayIcon = null;
-					sheet.sync();
+					sync();
 				}
 				if( c.type == TList || c.type == TProperties )
-					model.base.deleteSheet(sheet.getSub(c));
+					base.deleteSheet(getSub(c));
 				return true;
 			}
 		return false;
 	}
 
-	public static function addColumn( sheet : Sheet, c : Column, ?index : Int ) {
+	public function addColumn( c : Column, ?index : Int ) {
 		// create
 		for( c2 in sheet.columns )
 			if( c2.name == c.name )
@@ -242,51 +265,51 @@ class SheetData {
 			sheet.columns.push(c);
 		else
 			sheet.columns.insert(index, c);
-		for( i in sheet.getLines() ) {
-			var def = model.base.getDefault(c);
+		for( i in getLines() ) {
+			var def = base.getDefault(c);
 			if( def != null ) Reflect.setField(i, c.name, def);
 		}
 		if( c.type == TList || c.type == TProperties ) {
 			// create an hidden sheet for the model
-			model.base.createSubSheet(sheet, c);
+			base.createSubSheet(this, c);
 		}
 		return null;
 	}
 
-	public static function objToString( sheet : Sheet, obj : Dynamic, esc = false ) {
+	public function objToString( obj : Dynamic, esc = false ) {
 		if( obj == null )
 			return "null";
 		var fl = [];
 		for( c in sheet.columns ) {
 			var v = Reflect.field(obj, c.name);
 			if( v == null ) continue;
-			fl.push(c.name + " : " + colToString(sheet, c, v, esc));
+			fl.push(c.name + " : " + colToString(c, v, esc));
 		}
 		if( fl.length == 0 )
 			return "{}";
 		return "{ " + fl.join(", ") + " }";
 	}
 
-	public static function colToString( sheet : Sheet, c : Column, v : Dynamic, esc = false ) {
+	public function colToString( c : Column, v : Dynamic, esc = false ) {
 		if( v == null )
 			return "null";
 		switch( c.type ) {
 		case TList:
 			var a : Array<Dynamic> = v;
 			if( a.length == 0 ) return "[]";
-			var s = getSub(sheet, c);
-			return "[ " + [for( v in a ) objToString(s, v, esc)].join(", ") + " ]";
+			var s = getSub(c);
+			return "[ " + [for( v in a ) s.objToString(v, esc)].join(", ") + " ]";
 		default:
-			return model.base.valToString(c.type, v, esc);
+			return base.valToString(c.type, v, esc);
 		}
 	}
 
-	static function changeLineOrder( sheet : Sheet, remap : Array<Int> ) {
-		for( s in model.base.sheets )
+	function changeLineOrder( remap : Array<Int> ) {
+		for( s in base.sheets )
 			for( c in s.columns )
 				switch( c.type ) {
 				case TLayer(t) if( t == sheet.name ):
-					for( obj in getLines(s) ) {
+					for( obj in s.getLines() ) {
 						var ldat : cdb.Types.Layer<Int> = Reflect.field(obj, c.name);
 						if( ldat == null || ldat == cast "" ) continue;
 						var d = ldat.decode([for( i in 0...256 ) i]);
@@ -295,14 +318,14 @@ class SheetData {
 							if( r < 0 ) r = 0; // removed
 							d[i] = r;
 						}
-						ldat = cdb.Types.Layer.encode(d, model.base.compress);
+						ldat = cdb.Types.Layer.encode(d, base.compress);
 						Reflect.setField(obj, c.name, ldat);
 					}
 				default:
 				}
 	}
 
-	public static function getReferences( sheet : Sheet, index : Int ) {
+	public function getReferences( index : Int ) {
 		var id = null;
 		for( c in sheet.columns ) {
 			switch( c.type ) {
@@ -316,7 +339,7 @@ class SheetData {
 			return null;
 
 		var results = [];
-		for( s in model.base.sheets ) {
+		for( s in base.sheets ) {
 			for( c in s.columns )
 				switch( c.type ) {
 				case TRef(sname) if( sname == sheet.name ):
@@ -346,15 +369,11 @@ class SheetData {
 		return results;
 	}
 
-	public static function sync( sheet : Sheet ) {
-		model.base._syncSheet(sheet);
-	}
-
-	public static function updateValue( sheet : Sheet, c : Column, index : Int, old : Dynamic ) {
+	public function updateValue( c : Column, index : Int, old : Dynamic ) {
 		switch( c.type ) {
 		case TId:
-			sheet.sync();
-		case TInt if( sheet.isLevel() && (c.name == "width" || c.name == "height") ):
+			sync();
+		case TInt if( isLevel() && (c.name == "width" || c.name == "height") ):
 			var obj = sheet.lines[index];
 			var newW : Int = Reflect.field(obj, "width");
 			var newH : Int = Reflect.field(obj, "height");
@@ -393,7 +412,7 @@ class SheetData {
 						}
 					}
 				}
-				return { file : v.file, size : v.size, stride : v.stride, data : cdb.Types.TileLayerData.encode(ndat, model.base.compress) };
+				return { file : v.file, size : v.size, stride : v.stride, data : cdb.Types.TileLayerData.encode(ndat, base.compress) };
 			}
 
 			for( c in sheet.columns ) {
@@ -409,10 +428,10 @@ class SheetData {
 							var k = y < oldH && x < oldW ? odat[x + y * oldW] : 0;
 							ndat.push(k);
 						}
-					v = cdb.Types.Layer.encode(ndat, model.base.compress);
+					v = cdb.Types.Layer.encode(ndat, base.compress);
 					Reflect.setField(obj, c.name, v);
 				case TList:
-					var s = sheet.getSub(c);
+					var s = getSub(c);
 					if( s.hasColumn("x", [TInt,TFloat]) && s.hasColumn("y", [TInt,TFloat]) ) {
 						var elts : Array<{ x : Float, y : Float }> = Reflect.field(obj, c.name);
 						for( e in elts.copy() )
@@ -431,28 +450,66 @@ class SheetData {
 		default:
 			if( sheet.props.displayColumn == c.name ) {
 				var obj = sheet.lines[index];
-				var s = model.base.getSheet(sheet.name);
 				for( cid in sheet.columns )
 					if( cid.type == TId ) {
 						var id = Reflect.field(obj, cid.name);
 						if( id != null ) {
 							var disp = Reflect.field(obj, c.name);
 							if( disp == null ) disp = "#" + id;
-							s.index.get(id).disp = disp;
+							this.index.get(id).disp = disp;
 						}
 					}
 			}
 			if( sheet.props.displayIcon == c.name ) {
 				var obj = sheet.lines[index];
-				var s = model.base.getSheet(sheet.name);
 				for( cid in sheet.columns )
 					if( cid.type == TId ) {
 						var id = Reflect.field(obj, cid.name);
 						if( id != null )
-							s.index.get(id).ico = Reflect.field(obj, c.name);
+							this.index.get(id).ico = Reflect.field(obj, c.name);
 					}
 			}
 		}
+	}
+
+	function sortById( a : Index, b : Index ) {
+		return if( a.disp > b.disp ) 1 else -1;
+	}
+
+	public function rename( name : String ) {
+		@:privateAccess base.smap.remove(this.name);
+		sheet.name = name;
+		@:privateAccess base.smap.set(name, this);
+	}
+
+	public function sync() {
+		index = new Map();
+		all = [];
+		var cid = null;
+		var lines = getLines();
+		for( c in columns )
+			if( c.type == TId ) {
+				for( l in lines ) {
+					var v = Reflect.field(l, c.name);
+					if( v != null && v != "" ) {
+						var disp = v;
+						var ico = null;
+						if( props.displayColumn != null ) {
+							disp = Reflect.field(l, props.displayColumn);
+							if( disp == null || disp == "" ) disp = "#"+v;
+						}
+						if( props.displayIcon != null )
+							ico = Reflect.field(l, props.displayIcon);
+						var o = { id : v, disp:disp, ico:ico, obj : l };
+						if( index.get(v) == null )
+							index.set(v, o);
+						all.push(o);
+					}
+				}
+				all.sort(sortById);
+				break;
+			}
+		@:privateAccess base.smap.set(name, this);
 	}
 
 }

@@ -14,6 +14,7 @@
  * IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 import cdb.Data;
+import data.Sheet;
 import js.jquery.Helper.*;
 import js.jquery.JQuery;
 import Main.K;
@@ -22,8 +23,6 @@ import lvl.LayerData;
 import js.node.webkit.Menu;
 import js.node.webkit.MenuItem;
 import js.node.webkit.MenuItemType;
-
-using SheetData;
 
 typedef LevelState = {
 	var curLayer : String;
@@ -1204,15 +1203,13 @@ class Level {
 			var th = J("<th>").text(c.name).appendTo(tr);
 			var td = J("<td>").html(main.valueHtml(c, Reflect.field(o, c.name), l.baseSheet, o)).appendTo(tr);
 			td.click(function(e) {
-				var psheet : Sheet = {
+				var psheet = new Sheet(null,{
 					columns : l.baseSheet.columns, // SHARE
 					props : l.baseSheet.props, // SHARE
 					name : l.baseSheet.name, // same
-					path : l.baseSheet.getPath() + ":" + index, // unique
-					parent : { sheet : sheet, column : Lambda.indexOf(sheet.columns,Lambda.find(sheet.columns,function(c) return c.name == l.name)), line : index },
 					lines : Reflect.field(obj, l.name), // ref
 					separators : [], // none
-				};
+				},l.baseSheet.getPath() + ":" + index, { sheet : sheet, column : Lambda.indexOf(sheet.columns,Lambda.find(sheet.columns,function(c) return c.name == l.name)), line : index });
 				main.editCell(c, td, psheet, index);
 				e.preventDefault();
 				e.stopPropagation();

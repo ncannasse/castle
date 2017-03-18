@@ -1,15 +1,16 @@
 package data;
-import cdb.Data;
-using SheetData;
-
-typedef Index = { id : String, disp : String, ico : cdb.Types.TilePos, obj : Dynamic }
+import cdb.Data.Column;
+import cdb.Data.ColumnType;
+import cdb.Data.CustomType;
+import cdb.Data.CustomTypeCase;
 
 class Database {
 
-	var smap : Map< String, { s : Sheet, index : Map<String,Index> , all : Array<Index> } >;
-	var tmap : Map< String, CustomType >;
+	var smap : Map<String, Sheet>;
+	var tmap : Map<String, CustomType>;
 	var data : cdb.Data;
-	public var sheets(get, never) : Array<Sheet>;
+
+	public var sheets(default, null) : Array<Sheet>;
 	public var compress(get, set) : Bool;
 	public var r_ident : EReg;
 
@@ -20,17 +21,17 @@ class Database {
 			customTypes : [],
 			compress : false,
 		};
+		sheets = [];
 		sync();
 	}
 
-	inline function get_sheets() return data.sheets;
 	inline function get_compress() return data.compress;
 
 	function set_compress(b) {
 		if( data.compress == b )
 			return b;
 		data.compress = b;
-		for( s in data.sheets )
+		for( s in sheets )
 			for( c in s.columns )
 				switch( c.type ) {
 				case TLayer(_):
@@ -63,10 +64,10 @@ class Database {
 
 	public function createSheet( name : String ) {
 		// name already exists
-		for( s in data.sheets )
+		for( s in sheets )
 			if( s.name == name )
 				return null;
-		var s : Sheet = {
+		var s : cdb.Data.Sheet = {
 			name : name,
 			columns : [],
 			lines : [],
@@ -74,13 +75,18 @@ class Database {
 			props : {
 			},
 		};
+		return addSheet(s);
+	}
+
+	function addSheet( s : cdb.Data.Sheet ) : Sheet {
+		var sobj = new Sheet(this, s);
 		data.sheets.push(s);
-		s.sync();
-		return s;
+		sobj.sync();
+		return sobj;
 	}
 
 	public function createSubSheet( s : Sheet, c : Column ) {
-		var s : Sheet = {
+		var s : cdb.Data.Sheet = {
 			name : s.name + "@" + c.name,
 			props : { hide : true },
 			separators : [],
@@ -88,55 +94,16 @@ class Database {
 			columns : [],
 		};
 		if( c.type == TProperties ) s.props.isProps = true;
-		data.sheets.push(s);
-		s.sync();
-		return s;
+		return addSheet(s);
 	}
 
 	public function sync() {
 		smap = new Map();
-		for( s in data.sheets )
+		for( s in sheets )
 			s.sync();
 		tmap = new Map();
 		for( t in data.customTypes )
 			tmap.set(t.name, t);
-	}
-
-	function sortById( a : Index, b : Index ) {
-		return if( a.disp > b.disp ) 1 else -1;
-	}
-
-	public function _syncSheet( s : Sheet ) {
-		var sdat = {
-			s : s,
-			index : new Map(),
-			all : [],
-		};
-		var cid = null;
-		var lines = s.getLines();
-		for( c in s.columns )
-			if( c.type == TId ) {
-				for( l in lines ) {
-					var v = Reflect.field(l, c.name);
-					if( v != null && v != "" ) {
-						var disp = v;
-						var ico = null;
-						if( s.props.displayColumn != null ) {
-							disp = Reflect.field(l, s.props.displayColumn);
-							if( disp == null || disp == "" ) disp = "#"+v;
-						}
-						if( s.props.displayIcon != null )
-							ico = Reflect.field(l, s.props.displayIcon);
-						var o = { id : v, disp:disp, ico:ico, obj : l };
-						if( sdat.index.get(v) == null )
-							sdat.index.set(v, o);
-						sdat.all.push(o);
-					}
-				}
-				sdat.all.sort(sortById);
-				break;
-			}
-		this.smap.set(s.name, sdat);
 	}
 
 	public function getCustomTypes() {
@@ -145,12 +112,13 @@ class Database {
 
 	public function load( content : String ) {
 		data = cdb.Parser.parse(content);
+		sheets = [for( s in data.sheets ) new Sheet(this, s)];
 		sync();
 	}
 
 	public function save() {
 		// process
-		for( s in data.sheets ) {
+		for( s in sheets ) {
 			// clean props
 			for( p in Reflect.fields(s.props) ) {
 				var v : Dynamic = Reflect.field(s.props, p);
@@ -189,7 +157,7 @@ class Database {
 		case TInt, TFloat, TEnum(_), TFlags(_), TColor: 0;
 		case TString, TId, TImage, TLayer(_), TFile: "";
 		case TRef(s):
-			var s = getSheet(s).s;
+			var s = getSheet(s);
 			var l = s.lines[0];
 			var id = "";
 			if( l != null )
@@ -233,7 +201,7 @@ class Database {
 
 			function renameRec(sheet:Sheet, col) {
 				var s = sheet.getSub(col);
-				s.name = sheet.name + "@" + c.name;
+				s.rename(sheet.name + "@" + c.name);
 				for( c in s.columns )
 					if( c.type == TList || c.type == TProperties )
 						renameRec(s, c);
