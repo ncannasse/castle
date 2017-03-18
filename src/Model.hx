@@ -136,11 +136,11 @@ class Model {
 				prefs.curSheet = 0;
 			else while( base.sheets[prefs.curSheet].props.hide )
 				prefs.curSheet--;
-		} /*catch( e : Dynamic ) {
+		} catch( e : Dynamic ) {
 			if( !noError ) error(Std.string(e));
 			prefs.curFile = null;
 			prefs.curSheet = 0;
-		}*/
+		}
 		try {
 			var img = prefs.curFile.split(".");
 			img.pop();
