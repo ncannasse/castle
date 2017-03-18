@@ -23,8 +23,6 @@ typedef Prefs = {
 	recent : Array<String>,
 }
 
-typedef Index = { id : String, disp : String, ico : cdb.Types.TilePos, obj : Dynamic }
-
 typedef HistoryElement = { d : String, o : String };
 
 class Model {
@@ -32,8 +30,6 @@ class Model {
 	public var base : data.Database;
 	var prefs : Prefs;
 	var imageBank : Dynamic<String>;
-	var smap : Map< String, { s : Sheet, index : Map<String,Index> , all : Array<Index> } >;
-	var tmap : Map< String, CustomType >;
 	var openedList : Map<String,Bool>;
 	var existsCache : Map<String,{ t : Float, r : Bool }>;
 
@@ -79,7 +75,7 @@ class Model {
 	}
 
 	public inline function getSheet( name : String ) {
-		return smap.get(name).s;
+		return base.getSheet(name).s;
 	}
 
 	public function getDefault( c : Column, ignoreOpt = false ) : Dynamic {
@@ -157,7 +153,7 @@ class Model {
 
 	public function deleteSheet( sheet : Sheet ) {
 		base.sheets.remove(sheet);
-		smap.remove(sheet.name);
+		@:privateAccess base.smap.remove(sheet.name);
 		for( c in sheet.columns )
 			switch( c.type ) {
 			case TList, TProperties:
@@ -270,7 +266,7 @@ class Model {
 				for( c in s.columns )
 					if( c.type == TList || c.type == TProperties )
 						renameRec(s, c);
-				makeSheet(s);
+				s.sync();
 			}
 			if( old.type == TList || old.type == TProperties ) renameRec(sheet, old);
 			old.name = c.name;
@@ -338,7 +334,7 @@ class Model {
 		else
 			old.kind = c.kind;
 
-		makeSheet(sheet);
+		sheet.sync();
 		return null;
 	}
 
@@ -373,53 +369,6 @@ class Model {
 			imageBank = null;
 		}
 		curSavedData = quickSave();
-		initContent();
-	}
-
-	public function initContent() {
-		smap = new Map();
-		for( s in base.sheets )
-			makeSheet(s);
-		tmap = new Map();
-		for( t in base.getCustomTypes() )
-			tmap.set(t.name, t);
-	}
-
-	function sortById( a : Index, b : Index ) {
-		return if( a.disp > b.disp ) 1 else -1;
-	}
-
-	public function makeSheet( s : Sheet ) {
-		var sdat = {
-			s : s,
-			index : new Map(),
-			all : [],
-		};
-		var cid = null;
-		var lines = s.getLines();
-		for( c in s.columns )
-			if( c.type == TId ) {
-				for( l in lines ) {
-					var v = Reflect.field(l, c.name);
-					if( v != null && v != "" ) {
-						var disp = v;
-						var ico = null;
-						if( s.props.displayColumn != null ) {
-							disp = Reflect.field(l, s.props.displayColumn);
-							if( disp == null || disp == "" ) disp = "#"+v;
-						}
-						if( s.props.displayIcon != null )
-							ico = Reflect.field(l, s.props.displayIcon);
-						var o = { id : v, disp:disp, ico:ico, obj : l };
-						if( sdat.index.get(v) == null )
-							sdat.index.set(v, o);
-						sdat.all.push(o);
-					}
-				}
-				sdat.all.sort(sortById);
-				break;
-			}
-		this.smap.set(s.name, sdat);
 	}
 
 	function cleanImages() {
@@ -469,7 +418,7 @@ class Model {
 		case TEnum(values):
 			valToString(TString, values[val], esc);
 		case TCustom(t):
-			typeValToString(tmap.get(t), val, esc);
+			typeValToString(base.getCustomType(t), val, esc);
 		case TFlags(values):
 			var v : Int = val;
 			var flags = [];
@@ -546,9 +495,9 @@ class Model {
 			if( !Math.isNaN(f) )
 				return f;
 		case TCustom(t):
-			return parseTypeVal(tmap.get(t), val);
+			return parseTypeVal(base.getCustomType(t), val);
 		case TRef(t):
-			var r = smap.get(t).index.get(val);
+			var r = base.getSheet(t).index.get(val);
 			if( r == null ) throw val + " is not a known " + t + " id";
 			return r.id;
 		case TColor:
@@ -652,9 +601,9 @@ class Model {
 		case "Bool": TBool;
 		case "String": TString;
 		default:
-			if( tmap.exists(tstr) )
+			if( base.getCustomType(tstr) != null )
 				TCustom(tstr);
-			else if( smap.exists(tstr) )
+			else if( base.getSheet(tstr) != null )
 				TRef(tstr);
 			else {
 				if( StringTools.endsWith(tstr, ">") ) {
@@ -800,7 +749,7 @@ class Model {
 					if( v == null ) continue;
 					o[i + 1] = v;
 				case TCustom(name):
-					convertTypeRec(tmap.get(name), v);
+					convertTypeRec(base.getCustomType(name), v);
 				default:
 				}
 			}
@@ -821,7 +770,7 @@ class Model {
 					for( obj in s.getLines() ) {
 						var o = Reflect.field(obj, c.name);
 						if( o == null ) continue;
-						convertTypeRec(tmap.get(t), o);
+						convertTypeRec(base.getCustomType(t), o);
 					}
 				default:
 				}
@@ -893,7 +842,7 @@ class Model {
 				case TCustom(tname):
 					var av = v[i + 1];
 					if( av != null )
-						v[i+1] = convertTypeRec(tmap.get(tname), av);
+						v[i+1] = convertTypeRec(base.getCustomType(tname), av);
 				default:
 				}
 			}
@@ -905,7 +854,7 @@ class Model {
 			for( c in s.columns )
 				switch( c.type ) {
 				case TCustom(tname):
-					var t2 = tmap.get(tname);
+					var t2 = base.getCustomType(tname);
 					for( obj in s.getLines() ) {
 						var v = Reflect.field(obj, c.name);
 						if( v != null ) {
@@ -936,9 +885,9 @@ class Model {
 						default:
 						}
 					}
-			tmap.remove(old.name);
+			@:privateAccess base.tmap.remove(old.name);
 			old.name = t.name;
-			tmap.set(old.name, old);
+			@:privateAccess base.tmap.set(old.name, old);
 		}
 		old.cases = t.cases;
 	}

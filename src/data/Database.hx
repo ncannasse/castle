@@ -1,9 +1,13 @@
 package data;
 import cdb.Data;
-using SheetData
-;
+using SheetData;
+
+typedef Index = { id : String, disp : String, ico : cdb.Types.TilePos, obj : Dynamic }
+
 class Database {
 
+	var smap : Map< String, { s : Sheet, index : Map<String,Index> , all : Array<Index> } >;
+	var tmap : Map< String, CustomType >;
 	var data : cdb.Data;
 	public var sheets(get, never) : Array<Sheet>;
 	public var compress(get, set) : Bool;
@@ -14,6 +18,7 @@ class Database {
 			customTypes : [],
 			compress : false,
 		};
+		sync();
 	}
 
 	inline function get_sheets() return data.sheets;
@@ -46,6 +51,14 @@ class Database {
 		return b;
 	}
 
+	public function getCustomType( name : String ) {
+		return tmap.get(name);
+	}
+
+	public function getSheet( name : String ) {
+		return smap.get(name);
+	}
+
 	public function createSheet( name : String ) {
 		// name already exists
 		for( s in data.sheets )
@@ -60,6 +73,7 @@ class Database {
 			},
 		};
 		data.sheets.push(s);
+		s.sync();
 		return s;
 	}
 
@@ -73,7 +87,54 @@ class Database {
 		};
 		if( c.type == TProperties ) s.props.isProps = true;
 		data.sheets.push(s);
+		s.sync();
 		return s;
+	}
+
+	public function sync() {
+		smap = new Map();
+		for( s in data.sheets )
+			s.sync();
+		tmap = new Map();
+		for( t in data.customTypes )
+			tmap.set(t.name, t);
+	}
+
+	function sortById( a : Index, b : Index ) {
+		return if( a.disp > b.disp ) 1 else -1;
+	}
+
+	public function _syncSheet( s : Sheet ) {
+		var sdat = {
+			s : s,
+			index : new Map(),
+			all : [],
+		};
+		var cid = null;
+		var lines = s.getLines();
+		for( c in s.columns )
+			if( c.type == TId ) {
+				for( l in lines ) {
+					var v = Reflect.field(l, c.name);
+					if( v != null && v != "" ) {
+						var disp = v;
+						var ico = null;
+						if( s.props.displayColumn != null ) {
+							disp = Reflect.field(l, s.props.displayColumn);
+							if( disp == null || disp == "" ) disp = "#"+v;
+						}
+						if( s.props.displayIcon != null )
+							ico = Reflect.field(l, s.props.displayIcon);
+						var o = { id : v, disp:disp, ico:ico, obj : l };
+						if( sdat.index.get(v) == null )
+							sdat.index.set(v, o);
+						sdat.all.push(o);
+					}
+				}
+				sdat.all.sort(sortById);
+				break;
+			}
+		this.smap.set(s.name, sdat);
 	}
 
 	public function getCustomTypes() {
@@ -82,6 +143,7 @@ class Database {
 
 	public function load( content : String ) {
 		data = cdb.Parser.parse(content);
+		sync();
 	}
 
 	public function save() {

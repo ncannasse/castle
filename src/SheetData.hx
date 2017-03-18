@@ -214,11 +214,11 @@ class SheetData {
 					Reflect.deleteField(o, c.name);
 				if( sheet.props.displayColumn == c.name ) {
 					sheet.props.displayColumn = null;
-					model.makeSheet(sheet);
+					sheet.sync();
 				}
 				if( sheet.props.displayIcon == c.name ) {
 					sheet.props.displayIcon = null;
-					model.makeSheet(sheet);
+					sheet.sync();
 				}
 				if( c.type == TList || c.type == TProperties )
 					model.deleteSheet(sheet.getSub(c));
@@ -248,8 +248,7 @@ class SheetData {
 		}
 		if( c.type == TList || c.type == TProperties ) {
 			// create an hidden sheet for the model
-			var s = model.base.createSubSheet(sheet, c);
-			model.makeSheet(s);
+			model.base.createSubSheet(sheet, c);
 		}
 		return null;
 	}
@@ -347,10 +346,14 @@ class SheetData {
 		return results;
 	}
 
+	public static function sync( sheet : Sheet ) {
+		model.base._syncSheet(sheet);
+	}
+
 	public static function updateValue( sheet : Sheet, c : Column, index : Int, old : Dynamic ) {
 		switch( c.type ) {
 		case TId:
-			model.makeSheet(sheet);
+			sheet.sync();
 		case TInt if( sheet.isLevel() && (c.name == "width" || c.name == "height") ):
 			var obj = sheet.lines[index];
 			var newW : Int = Reflect.field(obj, "width");
@@ -428,7 +431,7 @@ class SheetData {
 		default:
 			if( sheet.props.displayColumn == c.name ) {
 				var obj = sheet.lines[index];
-				var s = @:privateAccess model.smap.get(sheet.name);
+				var s = model.base.getSheet(sheet.name);
 				for( cid in sheet.columns )
 					if( cid.type == TId ) {
 						var id = Reflect.field(obj, cid.name);
@@ -441,7 +444,7 @@ class SheetData {
 			}
 			if( sheet.props.displayIcon == c.name ) {
 				var obj = sheet.lines[index];
-				var s = @:privateAccess model.smap.get(sheet.name);
+				var s = model.base.getSheet(sheet.name);
 				for( cid in sheet.columns )
 					if( cid.type == TId ) {
 						var id = Reflect.field(obj, cid.name);

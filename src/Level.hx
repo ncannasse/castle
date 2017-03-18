@@ -275,7 +275,7 @@ class Level {
 	public function reload() {
 		if( !reloading ) {
 			reloading = true;
-			model.initContent();
+			Std.instance(model,Main).initContent();
 		}
 	}
 

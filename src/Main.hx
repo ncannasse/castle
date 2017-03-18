@@ -327,7 +327,7 @@ class Main extends Model {
 				}
 				posY++;
 			}
-			makeSheet(sheet);
+			sheet.sync();
 			refresh();
 			save();
 		case K.TAB:
@@ -362,7 +362,7 @@ class Main extends Model {
 				var id = Reflect.field(cursor.s.lines[cursor.y], c.name);
 				switch( c.type ) {
 				case TRef(s):
-					var sd = this.smap.get(s);
+					var sd = base.getSheet(s);
 					if( sd != null ) {
 						var k = sd.index.get(id);
 						if( k != null ) {
@@ -545,14 +545,14 @@ class Main extends Model {
 				v + "";
 			}
 		case TId:
-			v == "" ? '<span class="error">#MISSING</span>' : (smap.get(sheet.name).index.get(v).obj == obj ? v : '<span class="error">#DUP($v)</span>');
+			v == "" ? '<span class="error">#MISSING</span>' : (base.getSheet(sheet.name).index.get(v).obj == obj ? v : '<span class="error">#DUP($v)</span>');
 		case TString, TLayer(_):
 			v == "" ? "&nbsp;" : StringTools.htmlEscape(v);
 		case TRef(sname):
 			if( v == "" )
 				'<span class="error">#MISSING</span>';
 			else {
-				var s = smap.get(sname);
+				var s = base.getSheet(sname);
 				var i = s.index.get(v);
 				i == null ? '<span class="error">#REF($v)</span>' : (i.ico == null ? "" : tileHtml(i.ico,true)+" ") + StringTools.htmlEscape(i.disp);
 			}
@@ -611,7 +611,7 @@ class Main extends Model {
 			}
 			return out.join("<br/>");
 		case TCustom(name):
-			var t = tmap.get(name);
+			var t = base.getCustomType(name);
 			var a : Array<Dynamic> = v;
 			var cas = t.cases[a[0]];
 			var str = cas.name;
@@ -762,7 +762,7 @@ class Main extends Model {
 						}
 						if( c.type == TId )
 							updateRefs(sheet, refMap);
-						makeSheet(sheet); // might have changed ID or DISP
+						sheet.sync(); // might have changed ID or DISP
 					}
 
 
@@ -846,7 +846,7 @@ class Main extends Model {
 			} else {
 				sheet.props.displayColumn = c.name;
 			}
-			makeSheet(sheet);
+			sheet.sync();
 			refresh();
 			save();
 		};
@@ -856,7 +856,7 @@ class Main extends Model {
 			} else {
 				sheet.props.displayIcon = c.name;
 			}
-			makeSheet(sheet);
+			sheet.sync();
 			refresh();
 			save();
 		};
@@ -998,7 +998,7 @@ class Main extends Model {
 			if( val != null )
 				switch( c.type ) {
 				case TCustom(t):
-					i.val(typeValToString(tmap.get(t), val));
+					i.val(typeValToString(base.getCustomType(t), val));
 				case TDynamic:
 					i.val(haxe.Json.stringify(val));
 				default:
@@ -1027,7 +1027,7 @@ class Main extends Model {
 			i.blur(function(_) {
 				var nv = i.val();
 				var old = val;
-				var prevObj = c.type == TId && old != null ? smap.get(sheet.name).index.get(val) : null;
+				var prevObj = c.type == TId && old != null ? base.getSheet(sheet.name).index.get(val) : null;
 				var prevTarget = null;
 				if( nv == "" && c.opt ) {
 					if( val != null ) {
@@ -1045,7 +1045,7 @@ class Main extends Model {
 					case TId:
 						r_ident.match(nv) ? nv : null;
 					case TCustom(t):
-						try parseTypeVal(tmap.get(t), nv) catch( e : Dynamic ) null;
+						try parseTypeVal(base.getCustomType(t), nv) catch( e : Dynamic ) null;
 					case TDynamic:
 						try parseDynamic(nv) catch( e : Dynamic ) null;
 					default:
@@ -1053,7 +1053,7 @@ class Main extends Model {
 					}
 					if( val2 != val && val2 != null ) {
 
-						prevTarget = smap.get(sheet.name).index.get(val2);
+						prevTarget = base.getSheet(sheet.name).index.get(val2);
 						if( c.type == TId && val != null && (prevObj == null || prevObj.obj == obj) ) {
 							var m = new Map();
 							m.set(val, val2);
@@ -1068,14 +1068,14 @@ class Main extends Model {
 				}
 				editDone();
 				// handle #DUP in case we change the first element (creates a dup or removes one)
-				if( c.type == TId && prevObj != null && old != val && ((prevObj.obj == obj && smap.get(sheet.name).index.get(old) != null) || (prevTarget != null && smap.get(sheet.name).index.get(val).obj != prevTarget.obj)) ) {
+				if( c.type == TId && prevObj != null && old != val && ((prevObj.obj == obj && base.getSheet(sheet.name).index.get(old) != null) || (prevTarget != null && base.getSheet(sheet.name).index.get(val).obj != prevTarget.obj)) ) {
 					refresh();
 					return;
 				}
 			});
 			switch( c.type ) {
 			case TCustom(t):
-				var t = tmap.get(t);
+				var t = base.getCustomType(t);
 				i.keyup(function(_) {
 					var str = i.val();
 					try {
@@ -1135,7 +1135,7 @@ class Main extends Model {
 			event.initMouseEvent('mousedown', true, true, js.Browser.window);
 			s[0].dispatchEvent(event);
 		case TRef(sname):
-			var sdat = smap.get(sname);
+			var sdat = base.getSheet(sname);
 			if( sdat == null ) return;
 			v.empty();
 			v.addClass("edit");
@@ -1972,9 +1972,10 @@ class Main extends Model {
 			var errors = [];
 			var t = StringTools.trim(typesStr);
 			var r = ~/^enum[ \r\n\t]+([A-Za-z0-9_]+)[ \r\n\t]*\{([^}]*)\}/;
-			var oldTMap = tmap;
+			var oldTMap = @:privateAccess base.tmap;
 			var descs = [];
-			tmap = new Map();
+			var tmap = new Map();
+			@:privateAccess base.tmap = tmap;
 			types = [];
 			while( r.match(t) ) {
 				var name = r.matched(1);
@@ -1993,7 +1994,7 @@ class Main extends Model {
 				catch( msg : Dynamic )
 					errors.push(msg);
 			}
-			tmap = oldTMap;
+			@:privateAccess base.tmap = oldTMap;
 			if( t != "" )
 				errors.push("Invalid " + StringTools.htmlEscape(t));
 			setErrorMessage(errors.length == 0 ? null : errors.join("<br>"));
@@ -2092,7 +2093,7 @@ class Main extends Model {
 			case TEnum(values), TFlags(values):
 				form.find("[name=values]").val(values.join(","));
 			case TRef(sname), TLayer(sname):
-				form.find("[name=sheet]").val( "" + base.sheets.indexOf(smap.get(sname).s));
+				form.find("[name=sheet]").val( "" + base.sheets.indexOf(getSheet(sname)));
 			case TCustom(name):
 				form.find("[name=ctype]").val(name);
 			default:
@@ -2131,7 +2132,7 @@ class Main extends Model {
 		}
 		J("#newsheet").hide();
 		prefs.curSheet = base.sheets.length - 1;
-		makeSheet(s);
+		s.sync();
 		if( level ) initLevel(s);
 		initContent();
 		save();
@@ -2207,7 +2208,7 @@ class Main extends Model {
 		case "list":
 			TList;
 		case "custom":
-			var t = tmap.get(v.ctype);
+			var t = base.getCustomType(v.ctype);
 			if( t == null ) {
 				error("Type not found");
 				return;
@@ -2274,8 +2275,7 @@ class Main extends Model {
 		save();
 	}
 
-	override function initContent() {
-		super.initContent();
+	public function initContent() {
 		(untyped J("body").spectrum).clearAll();
 		var sheets = J("ul#sheets");
 		sheets.children().remove();
@@ -2292,7 +2292,7 @@ class Main extends Model {
 						error("Invalid sheet name");
 						return;
 					}
-					var f = smap.get(name);
+					var f = base.getSheet(name);
 					if( f != null ) {
 						if( f.s != s ) error("Sheet name already in use");
 						return;
@@ -2339,7 +2339,7 @@ class Main extends Model {
 		var lcur = null;
 		levels = [];
 		for( level in old ) {
-			if( !smap.exists(level.sheetPath) ) continue;
+			if( base.getSheet(level.sheetPath) == null ) continue;
 			var s = getSheet(level.sheetPath);
 			if( s.lines.length < level.index )
 				continue;
@@ -2537,6 +2537,7 @@ class Main extends Model {
 		}
 
 		super.load(noError);
+		initContent();
 		prefs.recent.remove(prefs.curFile);
 		prefs.recent.unshift(prefs.curFile);
 		if( prefs.recent.length > 8 ) prefs.recent.pop();
