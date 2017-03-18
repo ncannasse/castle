@@ -64,7 +64,7 @@ class Palette {
 	}
 
 	function getDefault( c : Column ) : Dynamic {
-		return level.model.getDefault(c);
+		return level.model.base.getDefault(c);
 	}
 
 	function getTileProp(x, y,create=true) {
@@ -632,7 +632,7 @@ class Palette {
 				case TInt: Std.parseInt(val);
 				case TFloat: Std.parseFloat(val);
 				case TString: val;
-				case TDynamic: try level.model.parseDynamic(val) catch( e : Dynamic ) null;
+				case TDynamic: try level.model.base.parseDynamic(val) catch( e : Dynamic ) null;
 				default: throw "assert";
 				}
 				if( v == null )
@@ -644,7 +644,7 @@ class Palette {
 			}
 			var s = l.getTileProp(m);
 			if( s != null ) {
-				var v = val == null ? s.opts.value : try level.model.parseDynamic(val) catch( e : Dynamic ) null;
+				var v = val == null ? s.opts.value : try level.model.base.parseDynamic(val) catch( e : Dynamic ) null;
 				if( v == null )
 					Reflect.deleteField(s.opts, "value");
 				else

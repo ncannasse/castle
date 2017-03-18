@@ -548,7 +548,7 @@ class Level {
 			var s = sheet.getSub(newLayer);
 			var o = { name : null, data : null };
 			for( c in s.columns ) {
-				var v = model.getDefault(c);
+				var v = model.base.getDefault(c);
 				if( v != null ) Reflect.setField(o, c.name, v);
 			}
 			var a : Array<{ name : String, data : cdb.Types.TileLayer }> = Reflect.field(obj, newLayer.name);
@@ -937,7 +937,7 @@ class Level {
 				Reflect.setField(o, idCol, l.indexToId[currentLayer.current]);
 			for( c in l.baseSheet.columns ) {
 				if( c.opt || c.name == "x" || c.name == "y" || c.name == idCol ) continue;
-				var v = model.getDefault(c);
+				var v = model.base.getDefault(c);
 				if( v != null ) Reflect.setField(o, c.name, v);
 			}
 			if( l.hasSize ) {
@@ -1178,7 +1178,7 @@ class Level {
 	function hasProps( l : LayerData, required = false ) {
 		var idCol = switch( l.data ) { case Objects(idCol, _): idCol; default: null; };
 		for( c in l.baseSheet.columns )
-			if( c.name != "x" && c.name != "y" && c.name != idCol && (!required || (!c.opt && model.getDefault(c) == null)) )
+			if( c.name != "x" && c.name != "y" && c.name != idCol && (!required || (!c.opt && model.base.getDefault(c) == null)) )
 				return true;
 		return false;
 	}

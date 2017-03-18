@@ -231,7 +231,7 @@ class Main extends Model {
 						var obj = cursor.s.lines[y];
 						for( x in s.x1...s.x2+1 ) {
 							var c = cursor.s.columns[x];
-							var def = getDefault(c);
+							var def = base.getDefault(c);
 							if( def == null )
 								Reflect.deleteField(obj, c.name);
 							else
@@ -308,10 +308,10 @@ class Main extends Model {
 					var c1 = clipboard.schema[cid];
 					var c2 = sheet.columns[cid + posX];
 					if( c2 == null ) continue;
-					var f = getConvFunction(c1.type, c2.type);
+					var f = base.getConvFunction(c1.type, c2.type);
 					var v : Dynamic = Reflect.field(obj1, c1.name);
 					if( f == null )
-						v = getDefault(c2);
+						v = base.getDefault(c2);
 					else {
 						// make a deep copy to erase references
 						if( v != null ) v = haxe.Json.parse(haxe.Json.stringify(v));
@@ -319,7 +319,7 @@ class Main extends Model {
 							v = f.f(v);
 					}
 					if( v == null && !c2.opt )
-						v = getDefault(c2);
+						v = base.getDefault(c2);
 					if( v == null )
 						Reflect.deleteField(obj2, c2.name);
 					else
@@ -761,7 +761,7 @@ class Main extends Model {
 							}
 						}
 						if( c.type == TId )
-							updateRefs(sheet, refMap);
+							base.updateRefs(sheet, refMap);
 						sheet.sync(); // might have changed ID or DISP
 					}
 
@@ -911,7 +911,7 @@ class Main extends Model {
 			save();
 		}
 		ndel.click = function() {
-			deleteSheet(s);
+			base.deleteSheet(s);
 			initContent();
 			save();
 		};
@@ -998,7 +998,7 @@ class Main extends Model {
 			if( val != null )
 				switch( c.type ) {
 				case TCustom(t):
-					i.val(typeValToString(base.getCustomType(t), val));
+					i.val(base.typeValToString(base.getCustomType(t), val));
 				case TDynamic:
 					i.val(haxe.Json.stringify(val));
 				default:
@@ -1043,11 +1043,11 @@ class Main extends Model {
 						var f = Std.parseFloat(nv);
 						if( Math.isNaN(f) ) null else f;
 					case TId:
-						r_ident.match(nv) ? nv : null;
+						base.r_ident.match(nv) ? nv : null;
 					case TCustom(t):
-						try parseTypeVal(base.getCustomType(t), nv) catch( e : Dynamic ) null;
+						try base.parseTypeVal(base.getCustomType(t), nv) catch( e : Dynamic ) null;
 					case TDynamic:
-						try parseDynamic(nv) catch( e : Dynamic ) null;
+						try base.parseDynamic(nv) catch( e : Dynamic ) null;
 					default:
 						nv;
 					}
@@ -1057,7 +1057,7 @@ class Main extends Model {
 						if( c.type == TId && val != null && (prevObj == null || prevObj.obj == obj) ) {
 							var m = new Map();
 							m.set(val, val2);
-							updateRefs(sheet, m);
+							base.updateRefs(sheet, m);
 						}
 
 						val = val2;
@@ -1080,7 +1080,7 @@ class Main extends Model {
 					var str = i.val();
 					try {
 						if( str != "" )
-							parseTypeVal(t, str);
+							base.parseTypeVal(t, str);
 						setErrorMessage();
 						i.removeClass("error");
 					} catch( msg : String ) {
@@ -1404,7 +1404,7 @@ class Main extends Model {
 			}
 			for( c in available )
 				if( c.name == v ) {
-					Reflect.setField(props, c.name, getDefault(c, true));
+					Reflect.setField(props, c.name, base.getDefault(c, true));
 					save();
 					refresh();
 					return;
@@ -1956,7 +1956,7 @@ class Main extends Model {
 		if( typesStr == null ) {
 			var tl = [];
 			for( t in base.getCustomTypes() )
-				tl.push("enum " + t.name + " {\n" + typeCasesToString(t, "\t") + "\n}");
+				tl.push("enum " + t.name + " {\n" + base.typeCasesToString(t, "\t") + "\n}");
 			typesStr = tl.join("\n\n");
 		}
 		var content = J("#content");
@@ -1990,7 +1990,7 @@ class Main extends Model {
 			}
 			for( t in types ) {
 				try
-					t.cases = parseTypeCases(descs.shift())
+					t.cases = base.parseTypeCases(descs.shift())
 				catch( msg : Dynamic )
 					errors.push(msg);
 			}
@@ -2020,7 +2020,7 @@ class Main extends Model {
 			initContent();
 		});
 		apply.click(function(_) {
-			var tpairs = makePairs(base.getCustomTypes(), types);
+			var tpairs = base.makePairs(base.getCustomTypes(), types);
 			// check if we can remove some types used in sheets
 			for( p in tpairs )
 				if( p.b == null ) {
@@ -2043,7 +2043,7 @@ class Main extends Model {
 				if( p.b == null )
 					base.getCustomTypes().remove(p.a);
 				else
-					try updateType(p.a, p.b) catch( msg : String ) {
+					try base.updateType(p.a, p.b) catch( msg : String ) {
 						error("Error while updating " + p.b.name + " : " + msg);
 						return;
 					}
@@ -2121,7 +2121,7 @@ class Main extends Model {
 
 	function createSheet( name : String, level : Bool ) {
 		name = StringTools.trim(name);
-		if( !r_ident.match(name) ) {
+		if( !base.r_ident.match(name) ) {
 			error("Invalid sheet name");
 			return;
 		}
@@ -2246,7 +2246,7 @@ class Main extends Model {
 		if( v.localizable == "on" ) c.kind = Localizable;
 
 		if( refColumn != null ) {
-			var err = super.updateColumn(sheet, refColumn, c);
+			var err = base.updateColumn(sheet, refColumn, c);
 			if( err != null ) {
 				// might have partial change
 				refresh();
@@ -2264,7 +2264,7 @@ class Main extends Model {
 			if( sheet.props.isProps && cursor.s.columns == sheet.columns ) {
 				var obj = cursor.s.lines[0];
 				if( obj != null )
-					Reflect.setField(obj, c.name, getDefault(c, true));
+					Reflect.setField(obj, c.name, base.getDefault(c, true));
 			}
 		}
 
@@ -2288,7 +2288,7 @@ class Main extends Model {
 				J("<input>").val(s.name).appendTo(li).focus().blur(function(_) {
 					li.text(s.name);
 					var name = JTHIS.val();
-					if( !r_ident.match(name) ) {
+					if( !base.r_ident.match(name) ) {
 						error("Invalid sheet name");
 						return;
 					}
@@ -2300,7 +2300,7 @@ class Main extends Model {
 					var old = s.name;
 					s.name = name;
 
-					mapType(function(t) {
+					base.mapType(function(t) {
 						return switch( t ) {
 						case TRef(o) if( o == old ):
 							TRef(name);

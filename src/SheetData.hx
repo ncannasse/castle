@@ -102,7 +102,7 @@ class SheetData {
 		var o = {
 		};
 		for( c in sheet.columns ) {
-			var d = model.getDefault(c);
+			var d = model.base.getDefault(c);
 			if( d != null )
 				Reflect.setField(o, c.name, d);
 		}
@@ -221,7 +221,7 @@ class SheetData {
 					sheet.sync();
 				}
 				if( c.type == TList || c.type == TProperties )
-					model.deleteSheet(sheet.getSub(c));
+					model.base.deleteSheet(sheet.getSub(c));
 				return true;
 			}
 		return false;
@@ -243,7 +243,7 @@ class SheetData {
 		else
 			sheet.columns.insert(index, c);
 		for( i in sheet.getLines() ) {
-			var def = model.getDefault(c);
+			var def = model.base.getDefault(c);
 			if( def != null ) Reflect.setField(i, c.name, def);
 		}
 		if( c.type == TList || c.type == TProperties ) {
@@ -277,7 +277,7 @@ class SheetData {
 			var s = getSub(sheet, c);
 			return "[ " + [for( v in a ) objToString(s, v, esc)].join(", ") + " ]";
 		default:
-			return model.valToString(c.type, v, esc);
+			return model.base.valToString(c.type, v, esc);
 		}
 	}
 
