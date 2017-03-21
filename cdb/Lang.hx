@@ -142,7 +142,7 @@ class Lang {
 			if( v == null )
 				return;
 			path.push(c.name);
-			applyRec(path, f, v, [for( e in data.keys() ) if( StringTools.startsWith(e, c.name+".") ) e.substr(c.name.length + 1) => data.get(e)]);
+			applyRec(path, f, v, data == null ? null : [for( e in data.keys() ) if( StringTools.startsWith(e, c.name+".") ) e.substr(c.name.length + 1) => data.get(e)]);
 			path.pop();
 		case LSub(c, s, fl):
 			var v : Array<Dynamic> = Reflect.field(o, c.name);
