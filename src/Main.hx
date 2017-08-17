@@ -1735,8 +1735,8 @@ class Main extends Model {
 
 						dialog.find(".tileView").css( { backgroundImage : 'url("file://${getAbsPath(file)}")' } ).mousemove(function(e) {
 							var off = JTHIS.offset();
-							posX = Std.int((e.pageX - off.left)/size);
-							posY = Std.int((e.pageY - off.top) / size);
+							posX = size == 1 ? Std.int((e.pageX - off.left)/width)*width : Std.int((e.pageX - off.left)/size);
+							posY = size == 1 ? Std.int((e.pageY - off.top)/height)*height : Std.int((e.pageY - off.top) / size);
 							if( (posX + width) * size > maxWidth )
 								posX = Std.int(maxWidth / size) - width;
 							if( (posY + height) * size > maxHeight )
