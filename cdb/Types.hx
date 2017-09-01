@@ -191,7 +191,7 @@ class Index<T> {
 
 	public var all(default,null) : ArrayRead<T>;
 	var name : String;
-	var sheet : Data.Sheet;
+	var sheet : Data.SheetData;
 
 	public function new(data:Data , name) {
 		this.name = name;

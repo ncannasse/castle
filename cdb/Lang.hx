@@ -3,7 +3,7 @@ import cdb.Data;
 
 enum LocField {
 	LName( c : Column );
-	LSub( c : Column, s : Sheet, e : Array<LocField> );
+	LSub( c : Column, s : SheetData, e : Array<LocField> );
 	LSingle( c : Column, e : LocField );
 }
 
@@ -19,7 +19,7 @@ class Lang {
 		trace(s);
 	}
 
-	public function getSub( s : Sheet, c : Column ) {
+	public function getSub( s : SheetData, c : Column ) {
 		return getSheet(s.name + "@" + c.name);
 	}
 
@@ -30,7 +30,7 @@ class Lang {
 		return null;
 	}
 
-	function makeLocField(c:Column, s:Sheet) {
+	function makeLocField(c:Column, s:SheetData) {
 		switch( c.type ) {
 		case TString if( c.kind == Localizable ):
 			return LName(c);
@@ -45,7 +45,7 @@ class Lang {
 		}
 	}
 
-	function makeSheetFields(s:Sheet) : Array<LocField> {
+	function makeSheetFields(s:SheetData) : Array<LocField> {
 		var fields = [];
 		for( c in s.columns ) {
 			var f = makeLocField(c, s);
@@ -76,7 +76,7 @@ class Lang {
 		}
 	}
 
-	function applySheet( path : Array<String>, s : Sheet, fields : Array<LocField>, objects : Array<Dynamic>, x : Xml ) {
+	function applySheet( path : Array<String>, s : SheetData, fields : Array<LocField>, objects : Array<Dynamic>, x : Xml ) {
 		var idField = null;
 		for( c in s.columns )
 			if( c.type == TId ) {
@@ -184,7 +184,7 @@ class Lang {
 		}
 	}
 
-	function buildSheetXml(s:Sheet, tabs, values : Array<Dynamic>, locFields:Array<LocField>) {
+	function buildSheetXml(s:SheetData, tabs, values : Array<Dynamic>, locFields:Array<LocField>) {
 		var id = null;
 		for( c in s.columns )
 			if( c.type == TId ) {

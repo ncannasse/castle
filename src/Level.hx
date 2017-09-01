@@ -14,7 +14,7 @@
  * IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 import cdb.Data;
-import data.Sheet;
+import cdb.Sheet;
 import js.jquery.Helper.*;
 import js.jquery.JQuery;
 import Main.K;

@@ -14,7 +14,7 @@
  * IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 import cdb.Data;
-import data.Sheet;
+import cdb.Sheet;
 
 import js.jquery.Helper.*;
 import js.jquery.JQuery;
@@ -448,7 +448,7 @@ class Main extends Model {
 				}
 				var starget = rs.s[0].s;
 				sheetCursors.set(starget.name, {
-					s : new data.Sheet(base,{ name : slast.s.name, separators : [], lines : [], columns : [], props : {} },key),
+					s : new cdb.Sheet(base,{ name : slast.s.name, separators : [], lines : [], columns : [], props : {} },key),
 					x : -1,
 					y : rs.o.indexes[rs.o.indexes.length - 1],
 				});
@@ -1563,7 +1563,7 @@ class Main extends Model {
 							val = [];
 							Reflect.setField(obj, c.name, val);
 						}
-						psheet = new data.Sheet(base,{
+						psheet = new cdb.Sheet(base,{
 							columns : psheet.columns, // SHARE
 							props : psheet.props, // SHARE
 							name : psheet.name, // same
@@ -1626,7 +1626,7 @@ class Main extends Model {
 							Reflect.setField(obj, c.name, val);
 						}
 
-						psheet = new data.Sheet(base,{
+						psheet = new cdb.Sheet(base,{
 							columns : psheet.columns, // SHARE
 							props : psheet.props, // SHARE
 							name : psheet.name, // same

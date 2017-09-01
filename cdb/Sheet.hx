@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Nicolas Cannasse
+ * Copyright (c) 2015-2017, Nicolas Cannasse
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,18 +13,18 @@
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR
  * IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
-package data;
+package cdb;
 import cdb.Data;
 
-typedef Index = { id : String, disp : String, ico : cdb.Types.TilePos, obj : Dynamic }
+typedef SheetIndex = { id : String, disp : String, ico : cdb.Types.TilePos, obj : Dynamic }
 
 class Sheet {
 
 	var base : Database;
-	var sheet : cdb.Data.Sheet;
+	var sheet : cdb.Data.SheetData;
 
-	public var index : Map<String,Index>;
-	public var all : Array<Index>;
+	public var index : Map<String,SheetIndex>;
+	public var all : Array<SheetIndex>;
 	public var name(get, never) : String;
 	public var columns(get, never) : Array<cdb.Data.Column>;
 	public var props(get, never) : cdb.Data.SheetProps;
@@ -472,7 +472,7 @@ class Sheet {
 		}
 	}
 
-	function sortById( a : Index, b : Index ) {
+	function sortById( a : SheetIndex, b : SheetIndex ) {
 		return if( a.disp > b.disp ) 1 else -1;
 	}
 

@@ -124,7 +124,7 @@ typedef SheetProps = {
 	@:optional var level : LevelsProps;
 }
 
-typedef Sheet = {
+typedef SheetData = {
 	var name : String;
 	var columns : Array<Column>;
 	var lines : Array<Dynamic>;
@@ -143,7 +143,7 @@ typedef CustomType = {
 }
 
 typedef Data = {
-	sheets : Array<Sheet>,
+	sheets : Array<SheetData>,
 	customTypes : Array<CustomType>,
 	compress : Bool,
 }

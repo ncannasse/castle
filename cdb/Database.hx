@@ -1,4 +1,19 @@
-package data;
+/*
+ * Copyright (c) 2015-2017, Nicolas Cannasse
+ *
+ * Permission to use, copy, modify, and/or distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
+ * SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR
+ * IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ */
+package cdb;
 import cdb.Data.Column;
 import cdb.Data.ColumnType;
 import cdb.Data.CustomType;
@@ -67,7 +82,7 @@ class Database {
 		for( s in sheets )
 			if( s.name == name )
 				return null;
-		var s : cdb.Data.Sheet = {
+		var s : cdb.Data.SheetData = {
 			name : name,
 			columns : [],
 			lines : [],
@@ -78,7 +93,7 @@ class Database {
 		return addSheet(s);
 	}
 
-	function addSheet( s : cdb.Data.Sheet ) : Sheet {
+	function addSheet( s : cdb.Data.SheetData ) : Sheet {
 		var sobj = new Sheet(this, s);
 		data.sheets.push(s);
 		sobj.sync();
@@ -87,7 +102,7 @@ class Database {
 	}
 
 	public function createSubSheet( s : Sheet, c : Column ) {
-		var s : cdb.Data.Sheet = {
+		var s : cdb.Data.SheetData = {
 			name : s.name + "@" + c.name,
 			props : { hide : true },
 			separators : [],

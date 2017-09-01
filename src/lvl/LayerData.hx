@@ -15,7 +15,7 @@
  */
 package lvl;
 import cdb.Data;
-import data.Sheet;
+import cdb.Sheet;
 
 typedef LayerState = {
 	var current : Int;

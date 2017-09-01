@@ -26,7 +26,7 @@ typedef HistoryElement = { d : String, o : String };
 
 class Model {
 
-	public var base : data.Database;
+	public var base : cdb.Database;
 	var prefs : Prefs;
 	var imageBank : Dynamic<String>;
 	var openedList : Map<String,Bool>;
@@ -129,7 +129,7 @@ class Model {
 	function load(noError = false) {
 		history = [];
 		redo = [];
-		base = new data.Database();
+		base = new cdb.Database();
 		try {
 			base.load(sys.io.File.getContent(prefs.curFile));
 			if( prefs.curSheet > base.sheets.length )
