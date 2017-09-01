@@ -66,7 +66,7 @@ class Module {
 	}
 	#end
 
-	static function getSheetLines( sheets : Array<Data.Sheet>, s : Data.Sheet ) {
+	static function getSheetLines( sheets : Array<Data.SheetData>, s : Data.SheetData ) {
 		if( !s.props.hide )
 			return s.lines;
 		var name = s.name.split("@");
