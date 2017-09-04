@@ -20,7 +20,7 @@ typedef SheetIndex = { id : String, disp : String, ico : cdb.Types.TilePos, obj 
 
 class Sheet {
 
-	var base : Database;
+	public var base(default,null) : Database;
 	var sheet : cdb.Data.SheetData;
 
 	public var index : Map<String,SheetIndex>;
