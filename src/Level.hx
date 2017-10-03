@@ -1187,9 +1187,9 @@ class Level {
 		var o = Reflect.field(obj, l.name)[index];
 		var scroll = content.find(".scrollContent");
 		var popup = J("<div>").addClass("popup").prependTo(scroll);
-		J(js.Browser.window).bind("mousedown", function(_) {
+		J(js.Browser.window).on("mousedown", function(_) {
 			popup.remove();
-			J(js.Browser.window).unbind("mousedown");
+			J(js.Browser.window).off("mousedown");
 			if( view != null ) draw();
 		});
 		popup.mousedown(function(e) e.stopPropagation());
@@ -1631,7 +1631,7 @@ class Level {
 		case K.SPACE:
 			spaceDown = false;
 			var canvas = J(view.getCanvas());
-			canvas.unbind("mousemove");
+			canvas.off("mousemove");
 			canvas.css( { cursor : "" } );
 			updateCursorPos();
 		case "S".code:

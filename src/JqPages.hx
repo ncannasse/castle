@@ -158,10 +158,10 @@ class JqPage extends vdom.Server {
 				prevSelectEvent(null);
 			prevSelectEvent = result;
 			fs.val("");
-			fs.unbind("change");
+			fs.off("change");
 			fs.change(function(_) {
 				prevSelectEvent = null;
-				fs.unbind("change");
+				fs.off("change");
 				var path = fs.val().split("\\").join("/");
 				fs.val("");
 				if( path == "" ) {
