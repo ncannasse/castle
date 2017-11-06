@@ -2384,13 +2384,15 @@ class Main extends Model {
 	}
 
 	function initMenu() {
+		var modifier = "ctrl";
+		if(Sys.systemName().indexOf("Mac") != -1) modifier = "cmd";
 		var menu = Menu.createWindowMenu();
 		var mfile = new MenuItem({ label : "File" });
 		var mfiles = new Menu();
-		var mnew = new MenuItem( { label : "New" } );
-		var mopen = new MenuItem( { label : "Open..." } );
+		var mnew = new MenuItem( { label : "New", key : "N", modifiers : modifier } );
+		var mopen = new MenuItem( { label : "Open...", key : "O", modifiers : modifier } );
 		var mrecent = new MenuItem( { label : "Recent Files" } );
-		var msave = new MenuItem( { label : "Save As..." } );
+		var msave = new MenuItem( { label : "Save As...", key : "S", modifiers : "shift+" + modifier } );
 		var mclean = new MenuItem( { label : "Clean Images" } );
 		var mexport = new MenuItem( { label : "Export Localized texts" } );
 		mcompress = new MenuItem( { label : "Enable Compression", type : MenuItemType.checkbox } );
@@ -2399,7 +2401,7 @@ class Main extends Model {
 			save();
 		};
 		var mabout = new MenuItem( { label : "About" } );
-		var mexit = new MenuItem( { label : "Exit" } );
+		var mexit = new MenuItem( { label : "Exit", key : "Q", modifiers : modifier } );
 		var mdebug = new MenuItem( { label : "Dev" } );
 		mnew.click = function() {
 			prefs.curFile = null;
