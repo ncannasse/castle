@@ -1785,7 +1785,7 @@ class Main extends Model {
 							dialog.find(".tileView").height(i.height).width(i.width);
 							dialog.find(".tilePath").text(file+" (" + i.width + "x" + i.height + ")");
 						};
-						i.src = getAbsPath(file);
+						i.src = "file://" + getAbsPath(file);
 
 					});
 
