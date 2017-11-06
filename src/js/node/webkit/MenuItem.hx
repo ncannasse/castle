@@ -11,7 +11,7 @@ extern class MenuItem {
 	var enabled : Bool;
 	var submenu : Menu;
 
-	function new( ?t : { ?label : String, ?icon : String, ?type : MenuItemType } ) : Void;
+	function new( ?t : { ?label : String, ?icon : String, ?type : MenuItemType, ?key : String, ?modifiers : String } ) : Void;
 
 	dynamic function click() : Void;
 	function on( event : String, callb : Void -> Void ) : Void;
