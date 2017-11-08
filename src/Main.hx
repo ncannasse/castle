@@ -1314,10 +1314,10 @@ class Main extends Model {
 		var fs = J("#fileSelect");
 		if( fs.attr("nwworkingdir") == null )
 			fs.attr("nwworkingdir", new haxe.io.Path(prefs.curFile).dir);
-		fs.unbind("change");
+		fs.off("change");
 		fs.val("");
 		fs.change(function(_) {
-			fs.unbind("change");
+			fs.off("change");
 			var path = fs.val().split("\\").join("/");
 			fs.val("");
 			if( path == "" ) {
@@ -2065,7 +2065,7 @@ class Main extends Model {
 
 		var types = J("[name=ctype]");
 		types.empty();
-		types.unbind("change");
+		types.off("change");
 		types.change(function(_) {
 			J("#col_options").toggleClass("t_edit",types.val() != "");
 		});
@@ -2531,13 +2531,12 @@ class Main extends Model {
 			return;
 		}
 
+		lastSave = getFileTime();
 		super.load(noError);
 		initContent();
 		prefs.recent.remove(prefs.curFile);
 		prefs.recent.unshift(prefs.curFile);
 		if( prefs.recent.length > 8 ) prefs.recent.pop();
-
-		lastSave = getFileTime();
 		mcompress.checked = base.compress;
 	}
 
