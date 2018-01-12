@@ -61,6 +61,10 @@ abstract ArrayRead<T>(Array<T>) from Array<T> {
 		return this.length;
 	}
 
+	@:to inline function toIterable() : Iterable<T> {
+		return this;
+	}
+
 	public inline function iterator() : ArrayIterator<T> {
 		return new ArrayIterator(castArray());
 	}
