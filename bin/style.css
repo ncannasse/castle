@@ -226,6 +226,9 @@ div#menu ul.sheets li.active {
 	color : #252596;
 	background-color : #E0E0FF;
 }
+#content.castle {
+	overflow : hidden;
+}
 .castle .tedit, .dialog-floating .tedit {
 	height : 100%;
 }
