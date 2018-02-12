@@ -186,11 +186,15 @@ class Lang {
 
 	function buildSheetXml(s:SheetData, tabs, values : Array<Dynamic>, locFields:Array<LocField>) {
 		var id = null;
-		for( c in s.columns )
-			if( c.type == TId ) {
-				id = c;
-				break;
+		var helper = null;
+		for( c in s.columns ) {
+			switch( c.type ) {
+			case TId if( id == null ): id = c;
+			case TRef(_) if( helper == null ): helper = c;
+			default:
 			}
+		}
+		if( id != null ) helper = null;
 
 		var buf = new StringBuf();
 		var index = 0;
@@ -206,7 +210,13 @@ class Lang {
 					break;
 				}
 			if( !hasLoc ) continue;
-			buf.add('$tabs<$id>\n');
+			buf.add('$tabs<$id');
+			if( helper != null ) {
+				var hid = Reflect.field(o, helper.name);
+				if( hid != null )
+					buf.add(' ${helper.name}=\"$hid\"');
+			}
+			buf.add('>\n');
 			for( l in locs )
 				if( l.value != null && l.value != "" ) {
 					if( l.value.indexOf("<") < 0 )
