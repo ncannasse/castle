@@ -140,6 +140,7 @@ class Model {
 			if( !noError ) error(Std.string(e));
 			prefs.curFile = null;
 			prefs.curSheet = 0;
+			base = new cdb.Database();
 		}
 		try {
 			var img = prefs.curFile.split(".");

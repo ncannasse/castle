@@ -2453,6 +2453,7 @@ class Main extends Model {
 
 		var mrecents = new Menu();
 		for( file in prefs.recent ) {
+			if( file == null ) continue;
 			var m = new MenuItem( { label : file } );
 			m.click = function() {
 				prefs.curFile = file;
@@ -2533,9 +2534,11 @@ class Main extends Model {
 
 		lastSave = getFileTime();
 		super.load(noError);
+
 		initContent();
 		prefs.recent.remove(prefs.curFile);
-		prefs.recent.unshift(prefs.curFile);
+		if( prefs.curFile != null )
+			prefs.recent.unshift(prefs.curFile);
 		if( prefs.recent.length > 8 ) prefs.recent.pop();
 		mcompress.checked = base.compress;
 	}
