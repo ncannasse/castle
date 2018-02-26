@@ -186,15 +186,37 @@ class Lang {
 
 	function buildSheetXml(s:SheetData, tabs, values : Array<Dynamic>, locFields:Array<LocField>) {
 		var id = null;
-		var helper = null;
+		var helpers = [];
 		for( c in s.columns ) {
 			switch( c.type ) {
 			case TId if( id == null ): id = c;
-			case TRef(_) if( helper == null ): helper = c;
+			case TRef(sheet):
+				var map = null;
+				var s = getSheet(sheet);
+				if( s.props.displayColumn != null ) {
+					var idCol = null;
+					for( c in s.columns )
+						if( c.type == TId ) {
+							idCol = c;
+							break;
+						}
+					if( idCol != null ) {
+						map = new Map();
+						for( o in s.lines ) {
+							var id : String = Reflect.field(o, idCol.name);
+							var name : String = Reflect.field(o, s.props.displayColumn);
+							if( id != null && id != "" && name != null && name != "" )
+								map.set(id, name);
+						}
+					}
+				}
+				helpers.push({ c : c, map : map });
+			case TString if( c.kind != Localizable ):
+				helpers.push({ c : c, map : null });
 			default:
 			}
 		}
-		if( id != null ) helper = null;
+		if( id != null ) helpers = [];
 
 		var buf = new StringBuf();
 		var index = 0;
@@ -211,10 +233,15 @@ class Lang {
 				}
 			if( !hasLoc ) continue;
 			buf.add('$tabs<$id');
-			if( helper != null ) {
-				var hid = Reflect.field(o, helper.name);
-				if( hid != null )
-					buf.add(' ${helper.name}=\"$hid\"');
+			for( c in helpers ) {
+				var hid = Reflect.field(o, c.c.name);
+				if( hid != null ) {
+					if( c.map != null ) {
+						var v = c.map.get(hid);
+						if( v != null ) hid = v;
+					}
+					buf.add(' ${c.c.name}=\"$hid\"');
+				}
 			}
 			buf.add('>\n');
 			for( l in locs )
