@@ -508,7 +508,7 @@ class Module {
 				public static function applyLang( xml : String, ?onMissing : String -> Void ) {
 					var c = new cdb.Lang(root);
 					if( onMissing != null ) c.onMissing = onMissing;
-					c.apply(xml);
+					return c.apply(xml);
 				}
 				public static function load( content : String ) {
 					root = cdb.Parser.parse(content);
