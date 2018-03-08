@@ -89,14 +89,9 @@ class Lang {
 	}
 
 	function applySheet( path : Array<String>, s : SheetData, fields : Array<LocField>, objects : Array<Dynamic>, x : Xml, out : Array<{}> ) {
-		var idField = null;
-		for( c in s.columns )
-			if( c.type == TId ) {
-				idField = c.name;
-				break;
-			}
+		var inf = getSheetHelpers(s);
 
-		if( idField == null ) {
+		if( inf.id == null ) {
 
 			var byIndex = [];
 			if( x != null )
@@ -109,13 +104,21 @@ class Lang {
 
 			for( i in 0...objects.length ) {
 				var outSub = {};
+				var o = objects[i];
 				for( f in fields ) {
 					path.push("[" + i + "]");
-					applyRec(path, f, objects[i], byIndex[i], outSub);
+					applyRec(path, f, o, byIndex[i], outSub);
 					path.pop();
 				}
-				if( Reflect.fields(outSub).length > 0 )
+				if( Reflect.fields(outSub).length > 0 ) {
+					// copy helpers to allow buildXML
+					for( c in inf.helpers ) {
+						var hid = Reflect.field(o, c.c.name);
+						if( hid != null )
+							Reflect.setField(outSub, c.c.name, hid);
+					}
 					out[i] = outSub;
+				}
 			}
 
 		} else {
@@ -131,13 +134,13 @@ class Lang {
 
 			for( o in objects ) {
 				var outSub = {};
-				var id = Reflect.field(o, idField);
+				var id = Reflect.field(o, inf.id);
 				path.push(id);
 				for( f in fields )
 					applyRec(path, f, o, byID.get(id), outSub);
 				path.pop();
 				if( Reflect.fields(outSub).length > 0 ) {
-					Reflect.setField(outSub, idField, id);
+					Reflect.setField(outSub, inf.id, id);
 					out.push(outSub);
 				}
 			}
@@ -223,7 +226,7 @@ class Lang {
 		}
 	}
 
-	function buildSheetXml(s:SheetData, tabs, values : Array<Dynamic>, locFields:Array<LocField>, diff : Map<String,Array<{}>> ) {
+	function getSheetHelpers(s:SheetData) {
 		var id = null;
 		var helpers = [];
 		for( c in s.columns ) {
@@ -241,7 +244,7 @@ class Lang {
 						}
 					if( idCol != null ) {
 						map = new Map();
-						for( o in getLines(s,diff) ) {
+						for( o in s.lines ) {
 							var id : String = Reflect.field(o, idCol.name);
 							var name : String = Reflect.field(o, s.props.displayColumn);
 							if( id != null && id != "" && name != null && name != "" )
@@ -256,11 +259,16 @@ class Lang {
 			}
 		}
 		if( id != null ) helpers = [];
+		return { id : id == null ? null : id.name, helpers : helpers };
+	}
 
+	function buildSheetXml(s:SheetData, tabs, values : Array<Dynamic>, locFields:Array<LocField>, diff : Map<String,Array<{}>> ) {
+		var inf = getSheetHelpers(s);
+		var id = inf.id;
 		var buf = new StringBuf();
 		var index = 0;
 		for( o in values ) {
-			var id = id == null ? ""+(index++) : Reflect.field(o, id.name);
+			var id = id == null ? ""+(index++) : Reflect.field(o, id);
 			if( id == null || id == "" ) continue;
 
 			var locs = [for( f in locFields ) getLocText(tabs, o, f, diff)];
@@ -272,7 +280,7 @@ class Lang {
 				}
 			if( !hasLoc ) continue;
 			buf.add('$tabs<$id');
-			for( c in helpers ) {
+			for( c in inf.helpers ) {
 				var hid = Reflect.field(o, c.c.name);
 				if( hid != null ) {
 					if( c.map != null ) {
