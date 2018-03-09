@@ -88,6 +88,51 @@ class Lang {
 		return out;
 	}
 
+	public function delete( l : LangDiff ) {
+		for( s in root.sheets ) {
+			var sdel = l.get(s.name);
+			if( sdel == null ) continue;
+			deleteSheet(s, makeSheetFields(s), sdel, s.lines);
+		}
+	}
+
+	function deleteSheet( s : SheetData, loc : Array<LocField>, del : Array<{}>, lines : Array<Dynamic> ) {
+		var inf = getSheetHelpers(s);
+		if( inf.id == null ) {
+			for( i in 0...lines.length )
+				if( del[i] != null && lines[i] != null )
+					deleteObj(loc, del[i], lines[i]);
+		} else {
+			var byID = new Map();
+			for( d in del )
+				byID.set((Reflect.field(d, inf.id) : String), d);
+			for( o in lines ) {
+				var id = Reflect.field(o, inf.id);
+				if( id == null || !byID.exists(id) ) continue;
+				deleteObj(loc, byID.get(id), o);
+			}
+		}
+	}
+
+	function deleteObj( loc : Array<LocField>, del : {}, obj : Dynamic ) {
+		for( l in loc )
+			switch( l ) {
+			case LName(c):
+				if( Reflect.hasField(del, c.name) )
+					Reflect.setField(obj, c.name, "");
+			case LSub(c, s, el):
+				var ol : Array<Dynamic> = Reflect.field(obj, c.name);
+				var dl : Array<{}> = Reflect.field(del, c.name);
+				if( ol == null || dl == null ) continue;
+				deleteSheet(s, el, dl, ol);
+			case LSingle(c, e):
+				var o = Reflect.field(obj, c.name);
+				var d = Reflect.field(del, c.name);
+				if( o == null || d == null ) continue;
+				deleteObj([e], d, o);
+			}
+	}
+
 	function applySheet( path : Array<String>, s : SheetData, fields : Array<LocField>, objects : Array<Dynamic>, x : Xml, out : Array<{}> ) {
 		var inf = getSheetHelpers(s);
 
