@@ -520,7 +520,7 @@ class Database {
 		case TId, TRef(_), TLayer(_), TFile: esc ? '"'+val+'"' : val;
 		case TString:
 			var val : String = val;
-			if( ~/^[A-Za-z0-9_]+$/g.match(val) && !esc )
+			if( !esc )
 				val;
 			else
 				'"' + val.split("\\").join("\\\\").split('"').join("\\\"") + '"';
