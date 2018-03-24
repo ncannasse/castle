@@ -868,7 +868,7 @@ Or(Random(0.5),Fixed)</pre>
 				<li><code>0xFFFF</code> : marks this layer as Object Layer, followed by the below information, for each object :</li>
 				<li><code>X</code> the X position of the object in the level in pixels</li>
 				<li><code>Y</code> the Y position of the object in the level in pixels</li>
-				<li><code>ID</code> the object id, which is its position in the tileset</li>
+				<li><code>ID</code> the object id (top-left tile id if the object contains several tiles), which is its position in the tileset</li>
 			</ul>
 
 			<p>
@@ -949,7 +949,11 @@ Or(Random(0.5),Fixed)</pre>
 			<h3>Shortcuts</h3>
 
 			<ul class="noicon">
+				<li><code>Left-click</code> place tile (default), move the selected area (if any), paint with selected tile (in Paint mode)</li>
 				<li><code>Right-click</code> pick tile under cursor</li>
+				<li><code>S</code> select tile under the cursor (hold and drag to select an area)</li>
+				<li><code>Del/Ctrl+X</code> delete tile under the cursor (default) or in the selected area (if any)</li>
+				<li><code>Ctrl+Del</code> delete all tiles like the one under the cursor</li>
 				<li><code>Tab</code> next layer</li>
 				<li><code>Shift+Tab</code> previous layer</li>
 				<li><code>V</code> toggle visibility for current layer</li>
@@ -958,7 +962,8 @@ Or(Random(0.5),Fixed)</pre>
 				<li><code>I</code> toggle palette visibility</li>
 				<li><code>P</code> paint with current tile</li>
 				<li><code>R</code> toggle random mode (select a random element as part of current palette selection)</li>
-				<li><code>+/-</code> (numpad) zoom/dezoom level</li>
+				<li><code>+/-</code> (numpad) zoom in/zoom out</li>
+				<li><code>Shift+Mouse Wheel</code> zoom in/zoom out</li>
 				<li><code>/</code> (numpad) return to default zoom</li>
 				<li><code>E</code> edit list/zone layer instance properties</li>
 				<li><code>Esc</code> clear selection</li>
@@ -966,6 +971,8 @@ Or(Random(0.5),Fixed)</pre>
 				<li><code>F</code> flip current tile (tile objects only)</li>
 				<li><code>D</code> rotate current tile (tile objects only)</li>
 				<li><code>O</code> create object group in tile palette</li>
+				<li><code>Arrow keys</code> navigate in the tile palette</li>
+				<li><code>Ctrl+F4</code> close the current level</li>
 			</ul>
 
 		</div>
