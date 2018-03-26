@@ -145,7 +145,7 @@
 			<div class="img"><img src="img/json.png"/></div>
 
 			<p>
-				A database consists of several <em>sheets</em>. Each sheet is a collection of structured objects (similar to a TABLE in a traditional database).
+				A database consists of several <em>sheets</em>. Each sheet is a collection of structured objects (similar to a TABLE in a traditional database)
 			</p>
 
 			<p>
@@ -174,7 +174,7 @@
 
 			<dt>Unique Identifier</dt>
 			<dd>
-				This is an unique identifier for the current row. It allows <em>referencing</em> this row from other sheets or columns. Unique identifiers must be valid code identifiers <code>[A-Za-z_][A-Za-z0_9_]*</code>.
+				This is an unique identifier for the current row. It allows <em>referencing</em> this row from other sheets or columns. Unique identifiers must be valid code identifiers <code>[A-Za-z_][A-Za-z0-9_]*</code>.
 			</dd>
 
 			<dt>Text</dt>
@@ -189,7 +189,7 @@
 
 			<dt>Integer</dt>
 			<dd>
-				A integer number (which does not have fractional component).
+				An integer number (which does not have fractional component)
 			</dd>
 
 			<dt>Float</dt>
@@ -204,7 +204,7 @@
 
 			<dt>Enumeration</dt>
 			<dd>
-				An exclusive choice between a number of a given custom values. For example: <code>Yes,No,Cancel,Error</code>
+				An exclusive choice between a number of given custom values. For example: <code>Yes,No,Cancel,Error</code>
 			</dd>
 
 			<dt>Flags</dt>
@@ -234,12 +234,12 @@
 
 			<dt>List</dt>
 			<dd>
-				A list of structured values <a href="#list">learn more</a>.
+				A list of structured values (<a href="#list">learn more</a>)
 			</dd>
 
 			<dt>Custom</dt>
 			<dd>
-				A custom type <a href="#custom">learn more</a>.
+				A custom type <a href="#custom">(learn more)</a>
 			</dd>
 
 			<dt>Dynamic</dt>
@@ -249,7 +249,7 @@
 
 			<dt>Data/Tile Layer</dt>
 			<dd>
-				Packed layer information for map edition <a href="#level">learn more</a>.
+				Packed layer information for map edition <a href="#level">(learn more)</a>
 			</dd>
 
 
@@ -330,12 +330,12 @@
 			</tr>
 			<tr>
 				<td>List</td>
-				<td>an Array of structured objects <a href="#list">learn more</a></td>
+				<td>an Array of structured objects <a href="#list">(learn more)</a></td>
 				<td><code>[]</code> (empty array)</td>
 			</tr>
 			<tr>
 				<td>Custom</td>
-				<td>a mixed array representation <a href="#custom">learn more</a></td>
+				<td>a mixed array representation <a href="#custom">(learn more)</a></td>
 				<td><code>null</code> (missing type)</td>
 			</tr>
 			<tr>
@@ -345,12 +345,12 @@
 			</tr>
 			<tr>
 				<td>Data Layer</td>
-				<td>width x height bytes indexes encoded as Base64 <a href="#level">learn more</a></td>
+				<td>width x height bytes indexes encoded as Base64 <a href="#level">(learn more)</a></td>
 				<td><code>""</code> (empty layer)</td>
 			</tr>
 			<tr>
 				<td>Tile Layer</td>
-				<td>either the same as DataLayer or an array of objects <a href="#level">learn more</a></td>
+				<td>either the same as DataLayer or an array of objects <a href="#level">(learn more)</a></td>
 				<td><code>""</code> (empty layer)</td>
 			</tr>
 			</table>
@@ -400,12 +400,12 @@
 		<li>Use <code>Delete</code> to remove the current cell or whole line</li>
 		<li>Use <code>Ctrl+Z</code> and <code>Ctrl+Y</code> to Undo/Redo your changes</li>
 		<li>Use <code>Tab</code> and <code>Shift+Tab</code> to navigate to next/prev cell on the same row</li>
-		<li>Use <code>F4</code> to go the row referenced by the cell and <code>F3</code> to search for references of this row"</li>
-		<li>Use <code>Ctrl+Tab</code> and <code>Shift+Ctrl+Tab</code> to move between sheets.</li>
-		<li>Use <code>Ctrl+F</code> to quick filter your database view.</li>
-		<li>Use <code>Arrow keys</code> to navigate in your database, <code>Enter/F2</code> to edit content and <code>Esc</code> to exit editing.</li>
-		<li>Use <code>Ctrl+Up/Down</code> to move line(s).</li>
-		<li>Use <code>Ctrl+X/C/V</code> to cut/copy/past.</li>
+		<li>Use <code>F4</code> to go the row referenced by the cell and <code>F3</code> to search for references of this row</li>
+		<li>Use <code>Ctrl+Tab</code> and <code>Shift+Ctrl+Tab</code> to move between sheets</li>
+		<li>Use <code>Ctrl+F</code> to quick filter your database view</li>
+		<li>Use <code>Arrow keys</code> to navigate in your database, <code>Enter/F2</code> to edit content and <code>Esc</code> to exit editing</li>
+		<li>Use <code>Ctrl+Up/Down</code> to move line(s)</li>
+		<li>Use <code>Ctrl+X/C/V</code> to cut/copy/paste</li>
 		</ul>
 
 		<h3>Managing sheets</h3>
@@ -423,14 +423,14 @@
 		<h3>Managing columns</h3>
 
 		<p>
-			Right click on the column title in order to access to the following options:
+			Right click on the column title in order to access the following options:
 		</p>
 		<ul>
-			<li>Edit the column allowing you to rename it, change its type and its required flag.</li>
+			<li>Edit the column allowing you to rename it, change its type and its required flag</li>
 			<li>Move the columns to reorder them</li>
 			<li>Add a new column</li>
 			<li>Delete the column or set it as <a href="#disp">Display Column or Icon</a></li>
-			<li>Convert the column content if some convert functions are available for this type.</li>
+			<li>Convert the column content if some convert functions are available for this type</li>
 		</ul>
 
 		<p>
@@ -452,7 +452,7 @@
 			<li>Insert a new row at the cursor position, same as <code>Insert</code> key</li>
 			<li>Delete the selected row(s), same as <code>Delete</code> key</li>
 			<li>Insert or remove a <a href="#sep">Separator</a> for this row</li>
-			<li>look for the references pointing to this row (requires an unique identifier)</li>
+			<li>Look for the references pointing to this row (requires an unique identifier)</li>
 		</ul>
 
 		<h3>Selection</h3>
@@ -466,7 +466,7 @@
 		</p>
 
 		<p>
-			You can copy/paste using <code>Ctrl+C</code>, <code>Ctrl+V</code> and <code>Ctrl+X</code> between columns and rows.
+			You can cut/copy/paste using <code>Ctrl+X</code>, <code>Ctrl+C</code> and <code>Ctrl+V</code> between columns and rows.
 		</p>
 
 		</div>
@@ -539,7 +539,7 @@
 			</p>
 
 			<p>
-				The index starts at 0, then each time a new separator with a defined title is reached, it will increment by one (unless the first row separator has a title).
+				The index starts at 0, then each time a new separator with a defined title is reached, it will increment by one (unless the first row separator has a title)
 			</p>
 
 			<p>
@@ -711,7 +711,7 @@ Or(Random(0.5),Fixed)</pre>
 			<h3>Create Level</h3>
 
 			<p>
-				When creating a new sheet, check the <code>Create Level</code> option in order to create a level sheet. This will automatically create the necessary columns that let you to create and edit tile layers.
+				When creating a new sheet, check the <code>Create Level</code> option in order to create a level sheet. This will automatically create the necessary columns that let you create and edit tile layers.
 			</p>
 
 			<h3>Layers</h3>
@@ -725,12 +725,12 @@ Or(Random(0.5),Fixed)</pre>
 			<dl class="dl-horizontal big">
 				<dt>Tile Layer</dt>
 				<dd>
-					These layers can be created as soon as you create a new level. Each layer has a name and can be assigned to a tileset. A tile layer can be displayed using three different modes : <em>Tiles, Ground, Objects</em> <a href="#tile-mode">learn more</a>
+					These layers can be created as soon as you create a new level. Each layer has a name and can be assigned to a tileset. A tile layer can be displayed using three different modes : <em>Tiles, Ground or Objects</em>. <a href="#tile-mode">(learn more)</a>
 				</dd>
 
 				<dt>List Layer</dt>
 				<dd>
-					If you add a <a href="#list">List</a> column to your level sheet that has <code>x</code> and <code>y</code> numerical properties a list layer which you can visually edit will be created.
+					If you add a <a href="#list">List</a> column to your level sheet that has <code>x</code> and <code>y</code> numerical properties, a list layer which you can visually edit will be created.
 					You can add extra properties/columns to the List that you will be able to input directly into the editor. In particular, if you add a <code>Reference</code> to another sheet which has a <code>Tile</code> or <code>Image</code>, you will be able to place these directly into your map.
 				</dd>
 
@@ -741,7 +741,7 @@ Or(Random(0.5),Fixed)</pre>
 
 				<dt>Zone Layer</dt>
 				<dd>
-				A zone layer is similar to the List Layer except that it has additional <code>width</code> and <code>height</code> numerical properties. It will be displayed as a given zone in the map editor.
+				A zone layer is similar to a List Layer except that it has additional <code>width</code> and <code>height</code> numerical properties. It will be displayed as a given zone in the map editor.
 				</dd>
 			</dl>
 
@@ -811,9 +811,10 @@ Or(Random(0.5),Fixed)</pre>
 				<li><code>Show All</code> restores all layers to visible.</li>
 				<li><code>Rename</code> changes the layer name (tile layer only, other layers names can be changed by renaming the corresponding column)</li>
 				<li><code>Clear</code> clears the layer data.</li>
-				<li><code>Delete</code> removes the layer clear (tile layer only, other layers can be removed by deleting the corresponding column)</li>
+				<li><code>Delete</code> removes the layer (tile layer only, other layers can be removed by deleting the corresponding column)</li>
 			</ul>
 
+			<a class="anch" name="tile-mode"></a>
 			<h3>Tile Layers</h3>
 
 			<p>
@@ -827,8 +828,8 @@ Or(Random(0.5),Fixed)</pre>
 			<div class="img"><img src="img/tileLayerProps.png"/></div>
 
 			<ul class="noicon">
-				<li><code>Mode</code> a tile layer can work in three different modes. The default mode is <em>Tiles</em>, other modes are detailed below</li>
-				<li><code>File</code> allows you to change the tileset for this layer</li>
+				<li><code>Mode</code> a tile layer can work in three different modes. The default mode is <em>Tiles</em>, other modes are detailed below.</li>
+				<li><code>File</code> allows you to change the tileset for this layer.</li>
 				<li><code>Size</code> by default CDB uses 16x16 tiles. You can change it on a per layer basis. Please note that you should also change your level tile size by using the <code>Options</code> menu.</li>
 			</ul>
 
@@ -921,7 +922,7 @@ Or(Random(0.5),Fixed)</pre>
 			<div class="img"><img src="img/tileEdit.png"/></div>
 
 			<p>
-				In our example level, we have an <code>npcs</code> column which is a <code>List</code> containing <code>kind</code> <code>x</code> <code>y</code> and <code>item</code> values.
+				In our example level, we have an <code>npcs</code> column which is a <code>List</code> containing <code>kind</code>, <code>x</code>, <code>y</code> and <code>item</code> values.
 			</p>
 
 			<p>
@@ -1038,7 +1039,7 @@ trace(d.loot.name); <span class="cmt">// automatically fetch the Refenced object
 			</p>
 
 			<p>
-				If the sheet has an unique identifier, you can access the <code>all</code> field, but also use <code>get</code> (by id) and <code>resolve</code> (by string).
+				If the sheet has an unique identifier, you can access the <code>all</code> field, but also use <code>get</code> (by id) and <code>resolve</code> (by string)
 			</p>
 
 			<p>
