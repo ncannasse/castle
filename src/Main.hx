@@ -888,6 +888,7 @@ class Main extends Model {
 			if( prev < 0 ) return;
 			base.sheets.remove(s);
 			base.sheets.insert(prev, s);
+			base.updateSheets();
 			prefs.curSheet = prev;
 			initContent();
 			save();
@@ -906,6 +907,7 @@ class Main extends Model {
 			if( found == null || found < 0 ) return;
 			base.sheets.remove(s);
 			base.sheets.insert(found, s);
+			base.updateSheets();
 			prefs.curSheet = found;
 			initContent();
 			save();

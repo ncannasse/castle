@@ -932,8 +932,13 @@ class Database {
 		return undo;
 	}
 
+	public function updateSheets() {
+		data.sheets = [for( s in sheets ) @:privateAccess s.sheet];
+	}
+
 	public function deleteSheet( sheet : Sheet ) {
 		sheets.remove(sheet);
+		updateSheets();
 		smap.remove(sheet.name);
 		for( c in sheet.columns )
 			switch( c.type ) {
