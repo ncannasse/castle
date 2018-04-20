@@ -84,6 +84,10 @@ class Model {
 		}
 		if( prefs.curFile == null )
 			return;
+		var tmp = Sys.getEnv("TMP");
+		if( tmp == null ) tmp = Sys.getEnv("TMPDIR");
+		var tmpFile = tmp+"/"+prefs.curFile.split("\\").join("/").split("/").pop()+".lock";
+		try sys.io.File.saveContent(tmpFile,"LOCKED by CDB") catch( e : Dynamic ) {};
 		try {
 			sys.io.File.saveContent(prefs.curFile, sdata.d);
 		} catch( e : Dynamic ) {
@@ -92,6 +96,7 @@ class Model {
 				sys.io.File.saveContent(prefs.curFile, sdata.d);
 			},500);
 		}
+		try sys.FileSystem.deleteFile(tmpFile) catch( e : Dynamic ) {};
 	}
 
 	function saveImages() {
