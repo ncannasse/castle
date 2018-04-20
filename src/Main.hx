@@ -894,21 +894,29 @@ class Main extends Model {
 			save();
 		};
 		nright.click = function() {
-			var found = null;
-			for( i in 0...base.sheets.length ) {
-				var s2 = base.sheets[i];
-				if( s == s2 )
-					found = -1;
-				else if( !s2.props.hide && found != null ) {
-					found = i;
-					break;
+			var sheets = [for( s in base.sheets ) if( !s.props.hide ) s];
+			var index = sheets.indexOf(s);
+			var next = sheets[index+1];
+			if( index < 0 || next == null ) return;
+			base.sheets.remove(s);
+			index = base.sheets.indexOf(next) + 1;
+			base.sheets.insert(index, s);
+
+			// move sub sheets as well !
+			var moved = [s];
+			var delta = 0;
+			for( ssub in base.sheets.copy() ) {
+				var parent = ssub.getParent();
+				if( parent != null && moved.indexOf(parent.s) >= 0 ) {
+					base.sheets.remove(ssub);
+					var idx = base.sheets.indexOf(s) + (++delta);
+					base.sheets.insert(idx, ssub);
+					moved.push(ssub);
 				}
 			}
-			if( found == null || found < 0 ) return;
-			base.sheets.remove(s);
-			base.sheets.insert(found, s);
+
 			base.updateSheets();
-			prefs.curSheet = found;
+			prefs.curSheet = base.sheets.indexOf(s);
 			initContent();
 			save();
 		}
