@@ -34,8 +34,9 @@ http://castledb.org/file/package-1.5.zip
 ### Compile from sources:
 
  * Compile with Haxe
- * Download and copy NWJS from http://nwjs.io into the `/bin/nwjs` directory
- * Run `bin/cdb.cmd` on windows or `./nwjs/nwjs` from `/bin` directory on Linux/OSX
+ * Download and copy NWJS from http://nwjs.io into the `bin/nwjs` directory
+ * Run `cdb.cmd` on windows or `nwjs/nwjs` from `bin` directory on Linux
+ * On OSX, you need to copy all `bin` files into `bin/nwjs.app/Contents/Resources/app.nw` folder, then open the NWJS application
  * Enjoy!
 
 To re-compile please install `https://github.com/HaxeFoundation/hxnodejs`
