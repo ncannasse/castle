@@ -276,6 +276,16 @@ class Sheet {
 		return null;
 	}
 
+	public function getDefaults() {
+		var props = {};
+		for( c in columns ) {
+			var d = base.getDefault(c);
+			if( d != null )
+				Reflect.setField(props, c.name, d);
+		}
+		return props;
+	}
+
 	public function objToString( obj : Dynamic, esc = false ) {
 		if( obj == null )
 			return "null";
