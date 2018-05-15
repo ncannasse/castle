@@ -27,6 +27,8 @@ enum ChangeKind {
 	SetField( o : Dynamic, field : String, v : Dynamic );
 	SetIndex( o : Array<Dynamic>, index : Int, v : Dynamic );
 	DeleteField( o : Dynamic, field : String );
+	DeleteIndex( o : Array<Dynamic>, index : Int );
+	InsertIndex( o : Array<Dynamic>, index : Int, v : Dynamic );
 }
 
 typedef ChangeRef = {
@@ -928,6 +930,13 @@ class Database {
 				if( prev != null )
 					undo.push({ ref : c.ref, v : SetField(o, f, prev) });
 				Reflect.deleteField(o, f);
+			case InsertIndex(arr, index, v):
+				undo.push({ ref : c.ref, v : DeleteIndex(arr,index) });
+				arr.insert(index, v);
+			case DeleteIndex(arr, index):
+				var old = arr[index];
+				undo.push({ ref : c.ref, v : InsertIndex(arr,index,old) });
+				arr.splice(index, 1);
 			}
 		undo.reverse();
 		return undo;
