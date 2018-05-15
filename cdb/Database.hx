@@ -19,7 +19,9 @@ import cdb.Data.ColumnType;
 import cdb.Data.CustomType;
 import cdb.Data.CustomTypeCase;
 
-typedef Changes = Array<{ ref : ChangeRef, v : ChangeKind }>;
+typedef Changes = Array<Change>;
+
+typedef Change = { ref : ChangeRef, v : ChangeKind };
 
 enum ChangeKind {
 	SetField( o : Dynamic, field : String, v : Dynamic );
@@ -876,8 +878,7 @@ class Database {
 				}
 			}
 		});
-		applyChanges(changes);
-		return changes;
+		return applyChanges(changes);
 	}
 
 	function browseObjects( callb : ChangeRef -> Void ) {
