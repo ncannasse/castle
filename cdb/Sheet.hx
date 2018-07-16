@@ -213,7 +213,7 @@ class Sheet {
 
 		sheet.lines.splice(index, 1);
 
-		var prev = -1, toRemove = null;
+		var prev = -1, toRemove : Null<Int> = null;
 		for( i in 0...sheet.separators.length ) {
 			var s = sheet.separators[i];
 			if( s > index ) {

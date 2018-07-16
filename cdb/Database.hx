@@ -367,7 +367,7 @@ class Database {
 				map.set(values[i].toLowerCase(), i);
 			conv = function(s:String) return map.get(s.toLowerCase());
 		case [TFloat, TInt]:
-			conv = Std.int;
+			conv = function(v) return Std.int(v);
 		case [(TInt | TFloat | TBool), TString]:
 			conv = Std.string;
 		case [(TFloat|TInt), TBool]:
@@ -380,7 +380,7 @@ class Database {
 			}
 			conv = function(i) return map[i];
 		case [TFlags(values1), TFlags(values2)]:
-			var map = [];
+			var map : Array<Null<Int>> = [];
 			for( p in makePairs([for( i in 0...values1.length ) { name : values1[i], i : i } ], [for( i in 0...values2.length ) { name : values2[i], i : i } ]) ) {
 				if( p.b == null ) continue;
 				map[p.a.i] = p.b.i;
@@ -701,7 +701,7 @@ class Database {
 		for( i in 0...t.cases.length ) {
 			var c = t.cases[i];
 			if( c.name == id ) {
-				var vals = [i];
+				var vals : Array<Null<Int>> = [i];
 				for( a in c.args ) {
 					var v = args.shift();
 					if( v == null ) {
