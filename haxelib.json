@@ -4,6 +4,6 @@
 	"license" : "Public",
 	"contributors" : ["ncannasse"],
     "description" : "CastleDB Haxe integration macros",
-    "version" : "1.6.0",
-	"releasenote" : "Includes level editor"
+    "version" : "1.6.1",
+	"releasenote" : ""
 }
