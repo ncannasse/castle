@@ -48,6 +48,7 @@ abstract DisplayType(Int) {
 @:enum
 abstract ColumnKind(String) {
 	var Localizable = "localizable";
+	var Script = "script";
 }
 #end
 
