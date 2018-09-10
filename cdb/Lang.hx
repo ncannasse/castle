@@ -197,7 +197,7 @@ class Lang {
 		case LName(c):
 			var v = data == null ? null : data.get(c.name);
 			if( v != null )
-				Reflect.setField(o, c.name, StringTools.htmlUnescape(new haxe.xml.Fast(v).innerHTML));
+				Reflect.setField(o, c.name, StringTools.htmlUnescape(#if (haxe_ver < 4) new haxe.xml.Fast #else new haxe.xml.Access #end(v).innerHTML));
 			else {
 				var v = Reflect.field(o, c.name);
 				if( v != null && v != "" ) {
