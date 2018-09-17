@@ -33,13 +33,21 @@ http://castledb.org/file/package-1.5.zip
 
 ### Compile from sources:
 
- * Compile with Haxe
- * Download and copy NWJS from http://nwjs.io into the `bin/nwjs` directory
- * Run `cdb.cmd` on windows or `nwjs/nwjs` from `bin` directory on Linux
- * On OSX, you need to copy all `bin` files into `bin/nwjs.app/Contents/Resources/app.nw` folder, then open the NWJS application
- * Enjoy!
+#### 1. Install Prerequisites
+- Install [Haxe](https://haxe.org) using approriate installer from https://haxe.org/download/
+- Install [hxnodejs](https://github.com/HaxeFoundation/hxnodejs) using the command `haxelib install hxnodejs`
+- Install [hxbit](https://github.com/ncannasse/hxbit) using the command `haxelib install hxbit`
 
-To re-compile please install `https://github.com/HaxeFoundation/hxnodejs`
+#### 2. Build castle.js
+- Clone this repository
+- At the root of the repository folder run
+```haxe -lib hxbit -lib hxnodejs -cp src -main Main.hx -js bin/castle.js```
+- This will create `castle.js` file in the `bin` folder
+
+#### 3. Package or Run with NWJS
+- Download and copy NWJS from http://nwjs.io into the bin/nwjs directory
+- Run cdb.cmd on windows or nwjs/nwjs from bin directory on Linux
+- On OSX, you need to copy all bin files into bin/nwjs.app/Contents/Resources/app.nw folder, then open the NWJS application
 
 ### More info
 Website / documentation: http://castledb.org
