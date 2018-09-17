@@ -72,6 +72,8 @@ class Main extends Model {
 	var mcompress : MenuItem;
 	var pages : JqPages;
 
+	var macEditMenu : MenuItem;
+
 	function new() {
 		super();
 		window = js.node.webkit.Window.get();
@@ -197,7 +199,11 @@ class Main extends Model {
 	}
 
 	function onKey( e : js.html.KeyboardEvent ) {
-
+		var ctrlDown = e.ctrlKey;
+		if(Sys.systemName().indexOf("Mac") != -1) {
+			ctrlDown = e.metaKey;
+		}
+		
 		if( isInput() )
 			return;
 
@@ -243,22 +249,22 @@ class Main extends Model {
 			refresh();
 			save();
 		case K.UP:
-			moveCursor(0, -1, e.shiftKey, e.ctrlKey);
+			moveCursor(0, -1, e.shiftKey, ctrlDown);
 			e.preventDefault();
 		case K.DOWN:
-			moveCursor(0, 1, e.shiftKey, e.ctrlKey);
+			moveCursor(0, 1, e.shiftKey, ctrlDown);
 			e.preventDefault();
 		case K.LEFT:
-			moveCursor(-1, 0, e.shiftKey, e.ctrlKey);
+			moveCursor(-1, 0, e.shiftKey, ctrlDown);
 		case K.RIGHT:
-			moveCursor(1, 0, e.shiftKey, e.ctrlKey);
+			moveCursor(1, 0, e.shiftKey, ctrlDown);
 		case K.ENTER if( inCDB ):
 			// open list
 			if( cursor.s != null && J(".cursor.t_list,.cursor.t_properties").click().length > 0 )
 				e.preventDefault();
 		case K.SPACE:
 			e.preventDefault(); // scrolling
-		case 'Z'.code if( e.ctrlKey && pages.curPage < 0 ):
+		case 'Z'.code if( ctrlDown && pages.curPage < 0 ):
 			if( history.length > 0 ) {
 				redo.push(curSavedData);
 				curSavedData = history.pop();
@@ -266,7 +272,7 @@ class Main extends Model {
 				initContent();
 				save(false);
 			}
-		case 'Y'.code if( e.ctrlKey && pages.curPage < 0 ):
+		case 'Y'.code if( ctrlDown && pages.curPage < 0 ):
 			if( redo.length > 0 ) {
 				history.push(curSavedData);
 				curSavedData = redo.pop();
@@ -274,7 +280,7 @@ class Main extends Model {
 				initContent();
 				save(false);
 			}
-		case 'C'.code if( e.ctrlKey ):
+		case 'C'.code if( ctrlDown ):
 			if( cursor.s != null ) {
 				var s = getSelection();
 				var data = [];
@@ -291,10 +297,10 @@ class Main extends Model {
 				}
 				setClipBoard([for( x in s.x1...s.x2+1 ) cursor.s.columns[x]], data);
 			}
-		case 'X'.code if( e.ctrlKey ):
+		case 'X'.code if( ctrlDown ):
 			onKey(cast { keyCode : 'C'.code, ctrlKey : true });
 			onKey(cast { keyCode : K.DELETE } );
-		case 'V'.code if( e.ctrlKey ):
+		case 'V'.code if( ctrlDown ):
 			if( cursor.s == null || clipboard == null || js.node.webkit.Clipboard.getInstance().get("text")  != clipboard.text )
 				return;
 			var sheet = cursor.s;
@@ -331,7 +337,7 @@ class Main extends Model {
 			refresh();
 			save();
 		case K.TAB:
-			if( e.ctrlKey ) {
+			if( ctrlDown ) {
 				var sheets = base.sheets.filter(function(s) return !s.props.hide);
 				var pos = (level == null ? Lambda.indexOf(sheets, viewSheet) : sheets.length + Lambda.indexOf(levels, level)) + 1;
 				var s = sheets[pos % (sheets.length + levels.length)];
@@ -376,7 +382,7 @@ class Main extends Model {
 				default:
 				}
 			}
-		case "F".code if( e.ctrlKey && inCDB ):
+		case "F".code if( ctrlDown && inCDB ):
 			var s = J("#search");
 			s.show();
 			s.find("input").focus().select();
@@ -983,6 +989,7 @@ class Main extends Model {
 	}
 
 	public function editCell( c : Column, v : JQuery, sheet : Sheet, index : Int ) {
+		if( macEditMenu != null ) window.menu.append(macEditMenu);
 		var obj = sheet.lines[index];
 		var val : Dynamic = Reflect.field(obj, c.name);
 		var old = val;
@@ -995,6 +1002,7 @@ class Main extends Model {
 		var html = getValue();
 		if( v.hasClass("edit") ) return;
 		function editDone() {
+			if( macEditMenu != null ) window.menu.remove(macEditMenu);
 			v.html(html);
 			v.removeClass("edit");
 			setErrorMessage();
@@ -2395,8 +2403,10 @@ class Main extends Model {
 
 	function initMenu() {
 		var modifier = "ctrl";
-		if(Sys.systemName().indexOf("Mac") != -1) modifier = "cmd";
 		var menu = Menu.createWindowMenu();
+		if(Sys.systemName().indexOf("Mac") != -1) {
+			modifier = "cmd";
+		}
 		var mfile = new MenuItem({ label : "File" });
 		var mfiles = new Menu();
 		var mnew = new MenuItem( { label : "New", key : "N", modifiers : modifier } );
@@ -2492,8 +2502,19 @@ class Main extends Model {
 
 		};
 
-		menu.append(mfile);
-		menu.append(mdebug);
+		if(Sys.systemName().indexOf("Mac") != -1) {
+			menu.createMacBuiltin("CastleDB", {hideEdit: false, hideWindow: true}); // needed so copy&paste inside INPUTs work
+			menu.removeAt(0); // remove default menu
+			macEditMenu = menu.items[0]; // save default edit menu
+			menu.removeAt(0); // remove default edit menu
+			menu.insert(mfile, 0); // put it before the default Edit menu
+			mfiles.insert(mdebug, 7); // needs to go under File or it won't show
+		}
+		else {
+			menu.append(mfile);
+			menu.append(mdebug);
+		}
+
 		window.menu = menu;
 		if( prefs.windowPos.x > 0 && prefs.windowPos.y > 0 ) window.moveTo(prefs.windowPos.x, prefs.windowPos.y);
 		if( prefs.windowPos.w > 50 && prefs.windowPos.h > 50 ) window.resizeTo(prefs.windowPos.w, prefs.windowPos.h);

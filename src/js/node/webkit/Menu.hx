@@ -9,8 +9,9 @@ extern class Menu {
 	function append( it : MenuItem ) : Void;
 	function insert( it : MenuItem, pos : Int ) : Void;
 	function remove( it : MenuItem ) : Void;
-	function removeAt( it : MenuItem, pos : Int ) : Void;
+	function removeAt( pos : Int ) : Void;
 	function popup( x : Int, y : Int ) : Void;
+	function createMacBuiltin( appName : String, options : Dynamic ) : Void;
 
 	static inline function createWindowMenu() : Menu {
 		return new Menu( { type : "menubar" } );
