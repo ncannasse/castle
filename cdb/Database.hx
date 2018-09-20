@@ -558,10 +558,34 @@ class Database {
 			var s = "#" + StringTools.hex(val, 6);
 			esc ? '"' + s + '"' : s;
 		case TTileLayer, TDynamic, TTilePos:
-			esc ? haxe.Json.stringify(val) : Std.string(val);
+			if( esc )
+				return haxe.Json.stringify(val);
+			return valueToString(val);
 		case TProperties, TList:
 			"???";
 		}
+	}
+
+	function valueToString( v : Dynamic ) {
+		switch (Type.typeof(v)) {
+		case TNull:
+			return "null";
+		case TObject:
+			var fl = [for( f in Reflect.fields(v) ) f+" : "+valueToString(Reflect.field(v,f))];
+			return fl.length == 0 ? "{}" : "{ " + fl.join(", ") + " }";
+		case TClass(c):
+			switch( Type.getClassName(c) ) {
+			case "Array":
+				var arr : Array<Dynamic> = v;
+				var vl = [for( v in arr ) valueToString(v)];
+				return vl.length == 0 ? "[]" : "["+vl.join(", ")+"]";
+			case "String":
+				return valToString(TString,v,true); // escape ! (valid JSON)
+			default:
+			}
+		default:
+		}
+		return Std.string(v);
 	}
 
 	public function typeValToString( t : CustomType, val : Array<Dynamic>, esc = false ) {
@@ -579,7 +603,7 @@ class Database {
 	}
 
 	public function parseDynamic( s : String ) : Dynamic {
-		s = ~/([{,]) *([a-zA-Z_][a-zA-Z0-9_]*) *:/g.replace(s, "$1\"$2\":");
+		s = ~/([{,])[ \t\n]*([a-zA-Z_][a-zA-Z0-9_]*)[ \t\n]*:/g.replace(s, "$1\"$2\":");
 		return haxe.Json.parse(s);
 	}
 
