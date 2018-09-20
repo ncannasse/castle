@@ -202,7 +202,7 @@ class Database {
 						break;
 					}
 			id;
-		case TBool: false;
+		case TBool: c.opt ? true : false;
 		case TList: [];
 		case TProperties : {};
 		case TCustom(_), TTilePos, TTileLayer, TDynamic: null;
