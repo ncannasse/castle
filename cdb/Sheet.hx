@@ -475,7 +475,7 @@ class Sheet {
 				for( cid in sheet.columns )
 					if( cid.type == TId ) {
 						var id = Reflect.field(obj, cid.name);
-						if( id != null )
+						if( id != null && id != "" )
 							this.index.get(id).ico = Reflect.field(obj, c.name);
 					}
 			}
