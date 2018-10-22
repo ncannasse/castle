@@ -406,7 +406,7 @@ class Image3D extends Image {
 		return z;
 	}
 
-	static var inst;
+	static var inst : Image3D;
 	public static function getInstance() {
 		if( inst == null )
 			inst = new Image3D(0, 0);

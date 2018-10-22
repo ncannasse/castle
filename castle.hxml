@@ -2,6 +2,7 @@
 -js bin/castle.js
 -main Main
 -lib hxnodejs
+-lib jqueryextern
 -lib format
 -lib hxbit
 -D lz4js
