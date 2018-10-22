@@ -35,8 +35,7 @@ http://castledb.org/file/package-1.5.zip
 
 #### 1. Install Prerequisites
 - Install [Haxe](https://haxe.org) using approriate installer from https://haxe.org/download/
-- Install [hxnodejs](https://github.com/HaxeFoundation/hxnodejs) using the command `haxelib install hxnodejs`
-- Install [hxbit](https://github.com/ncannasse/hxbit) using the command `haxelib install hxbit`
+- Install dependencies (https://github.com/HaxeFoundation/hxnodejs) using the command `haxelib install castle.hxml`
 
 #### 2. Build castle.js
 - Clone this repository
