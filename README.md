@@ -41,7 +41,7 @@ http://castledb.org/file/package-1.5.zip
 #### 2. Build castle.js
 - Clone this repository
 - At the root of the repository folder run
-```haxe -lib hxbit -lib hxnodejs -cp src -main Main.hx -js bin/castle.js```
+```haxe castle.hxml```
 - This will create `castle.js` file in the `bin` folder
 
 #### 3. Package or Run with NWJS
