@@ -132,6 +132,38 @@ class Database {
 		sync();
 	}
 
+	public function cleanup() {
+		cleanLayers();
+	}
+
+	function cleanLayers() {
+		var count = 0;
+		for( s in sheets ) {
+			if( s.props.level == null ) continue;
+			var ts = s.props.level.tileSets;
+			var usedLayers = new Map();
+			for( c in s.columns ) {
+				switch( c.type ) {
+				case TList:
+					var sub = s.getSub(c);
+					if( !sub.hasColumn("data", [TTileLayer]) ) continue;
+					for( obj in sub.getLines() ) {
+						var v : cdb.Types.TileLayer = obj.data;
+						if( v == null || v.file == null ) continue;
+						usedLayers.set(v.file, true);
+					}
+				default:
+				}
+			}
+			for( f in Reflect.fields(ts) )
+				if( !usedLayers.get(f) ) {
+					Reflect.deleteField(ts, f);
+					count++;
+				}
+		}
+		return count;
+	}
+
 	public function save() {
 		// process
 		for( s in sheets ) {
