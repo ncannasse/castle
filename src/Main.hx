@@ -203,7 +203,7 @@ class Main extends Model {
 		if(Sys.systemName().indexOf("Mac") != -1) {
 			ctrlDown = e.metaKey;
 		}
-		
+
 		if( isInput() )
 			return;
 
@@ -2373,34 +2373,6 @@ class Main extends Model {
 			refresh();
 	}
 
-	function cleanLayers() {
-		var count = 0;
-		for( s in base.sheets ) {
-			if( s.props.level == null ) continue;
-			var ts = s.props.level.tileSets;
-			var usedLayers = new Map();
-			for( c in s.columns ) {
-				switch( c.type ) {
-				case TList:
-					var sub = s.getSub(c);
-					if( !sub.hasColumn("data", [TTileLayer]) ) continue;
-					for( obj in sub.getLines() ) {
-						var v : cdb.Types.TileLayer = obj.data;
-						if( v == null || v.file == null ) continue;
-						usedLayers.set(v.file, true);
-					}
-				default:
-				}
-			}
-			for( f in Reflect.fields(ts) )
-				if( !usedLayers.get(f) ) {
-					Reflect.deleteField(ts, f);
-					count++;
-				}
-		}
-		return count;
-	}
-
 	function initMenu() {
 		var modifier = "ctrl";
 		var menu = Menu.createWindowMenu();
@@ -2449,7 +2421,7 @@ class Main extends Model {
 			i.click();
 		};
 		mclean.click = function() {
-			var lcount = cleanLayers();
+			var lcount = @:privateAccess base.cleanLayers();
 			var icount = 0;
 			if( imageBank != null ) {
 				var count = Reflect.fields(imageBank).length;
