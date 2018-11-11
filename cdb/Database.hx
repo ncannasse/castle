@@ -19,25 +19,6 @@ import cdb.Data.ColumnType;
 import cdb.Data.CustomType;
 import cdb.Data.CustomTypeCase;
 
-typedef Changes = Array<Change>;
-
-typedef Change = { ref : ChangeRef, v : ChangeKind };
-
-enum ChangeKind {
-	SetField( o : Dynamic, field : String, v : Dynamic );
-	SetIndex( o : Array<Dynamic>, index : Int, v : Dynamic );
-	DeleteField( o : Dynamic, field : String );
-	DeleteIndex( o : Array<Dynamic>, index : Int );
-	InsertIndex( o : Array<Dynamic>, index : Int, v : Dynamic );
-}
-
-typedef ChangeRef = {
-	var mainSheet : Sheet;
-	var mainObj : Dynamic;
-	var sheet : Sheet;
-	var obj : Dynamic;
-}
-
 class Database {
 
 	var smap : Map<String, Sheet>;
@@ -869,101 +850,43 @@ class Database {
 				}
 	}
 
-	public function updateRefs( sheet : Sheet, refMap : Map<String,String> ) {
-		var changes = [];
-		browseObjects(function(ref) {
-			for( c in ref.sheet.columns ) {
-				switch( c.type ) {
+	public function updateRefs( sheet : Sheet, refMap : Map <String, String> ) {
+		function convertTypeRec( t : CustomType, o : Array<Dynamic> ) {
+			var c = t.cases[o[0]];
+			for( i in 0...o.length - 1 ) {
+				var v : Dynamic = o[i + 1];
+				if( v == null ) continue;
+				switch( c.args[i].type ) {
 				case TRef(n) if( n == sheet.name ):
-					var id = Reflect.field(ref.obj, c.name);
-					if( id == null ) continue;
-					var nid = refMap.get(id);
-					if( nid == null ) continue;
-					changes.push({ ref : ref, v : SetField(ref.obj, c.name, nid) });
-				case TCustom(t):
-					var v = Reflect.field(ref.obj, c.name);
+					var v = refMap.get(v);
 					if( v == null ) continue;
-					function convertTypeRec( t : CustomType, arr : Array<Dynamic> ) {
-						var c = t.cases[arr[0]];
-						for( i in 0...arr.length - 1 ) {
-							var v : Dynamic = arr[i + 1];
-							if( v == null ) continue;
-							switch( c.args[i].type ) {
-							case TRef(n) if( n == sheet.name ):
-								var nv = refMap.get(v);
-								if( nv == null ) continue;
-								changes.push({ ref : ref, v : SetIndex(arr, i+1, nv) });
-							case TCustom(name):
-								convertTypeRec(getCustomType(name), v);
-							default:
-							}
-						}
-					}
-					convertTypeRec(getCustomType(t), v);
+					o[i + 1] = v;
+				case TCustom(name):
+					convertTypeRec(getCustomType(name), v);
 				default:
 				}
 			}
-		});
-		return applyChanges(changes);
-	}
+		}
 
-	function browseObjects( callb : ChangeRef -> Void ) {
-		function browseRec(mainSheet:Sheet, mainObj:Dynamic, s:Sheet, o:Dynamic) {
-			callb({ mainSheet : mainSheet, mainObj : mainSheet, sheet : s, obj : o });
+		for( s in sheets )
 			for( c in s.columns )
 				switch( c.type ) {
-				case TList:
-					var arr : Array<Dynamic> = Reflect.field(o, c.name);
-					if( arr != null ) {
-						var ssub = s.getSub(c);
-						for( o in arr )
-							browseRec(mainSheet, mainObj, ssub, o);
+				case TRef(n) if( n == sheet.name ):
+					for( obj in s.getLines() ) {
+						var id = Reflect.field(obj, c.name);
+						if( id == null ) continue;
+						id = refMap.get(id);
+						if( id == null ) continue;
+						Reflect.setField(obj, c.name, id);
 					}
-				case TProperties:
-					var pr : Dynamic = Reflect.field(o, c.name);
-					if( pr != null ) {
-						var ssub = s.getSub(c);
-						browseRec(mainSheet, mainObj, ssub, pr);
+				case TCustom(t):
+					for( obj in s.getLines() ) {
+						var o = Reflect.field(obj, c.name);
+						if( o == null ) continue;
+						convertTypeRec(getCustomType(t), o);
 					}
 				default:
 				}
-		}
-		for( s in sheets ) {
-			if( s.props.hide ) continue;
-			for( o in s.getLines() )
-				browseRec(s, o, s, o);
-		}
-	}
-
-	public function applyChanges( changes : Changes ) : Changes {
-		var undo = [];
-		for( c in changes )
-			switch( c.v ) {
-			case SetField(o, f, v):
-				var prev = Reflect.field(o, f);
-				undo.push({ ref : c.ref, v : SetField(o, f, prev) });
-				if( v == null )
-					Reflect.deleteField(o, f);
-				else
-					Reflect.setField(o, f, v);
-			case SetIndex(arr, index, v):
-				undo.push({ ref : c.ref, v : SetIndex(arr, index, arr[index]) });
-				arr[index] = v;
-			case DeleteField(o, f):
-				var prev = Reflect.field(o, f);
-				if( prev != null )
-					undo.push({ ref : c.ref, v : SetField(o, f, prev) });
-				Reflect.deleteField(o, f);
-			case InsertIndex(arr, index, v):
-				undo.push({ ref : c.ref, v : DeleteIndex(arr,index) });
-				arr.insert(index, v);
-			case DeleteIndex(arr, index):
-				var old = arr[index];
-				undo.push({ ref : c.ref, v : InsertIndex(arr,index,old) });
-				arr.splice(index, 1);
-			}
-		undo.reverse();
-		return undo;
 	}
 
 	public function updateSheets() {
