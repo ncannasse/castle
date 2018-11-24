@@ -435,8 +435,8 @@ class Level {
 						if( k == null ) continue;
 						var img = l.images[k];
 						var w = img.width / tileSize, h = img.height / tileSize;
-						var ox = o.x - (w - 1) * 0.5;
-						var oy = o.y - (h - 1);
+						var ox = o.x;
+						var oy = o.y;
 						if( x >= ox && y >= oy && x < ox + w && y < oy + h && !hasHole(img, Std.int((x - ox) * tileSize), Std.int((y - oy) * tileSize)) )
 							return { k : k, layer : l, index : i };
 					}
@@ -1962,8 +1962,6 @@ class Level {
 				cursorImage.setSize(w, h);
 				cursorImage.clear();
 				cursorImage.drawScaled(i, 0, 0, w, h);
-				px = (w - size) >> 1;
-				py = h - size;
 			default:
 				cursorImage.clear();
 				for( y in 0...h )

@@ -604,7 +604,7 @@ class LayerData extends LayerGfx {
 
 					if( images != null && k != null ) {
 						var i = images[k];
-						view.draw(i, px + Std.int((w - i.width) * 0.5), py + Std.int((h - i.height) * 0.5));
+						view.draw(i, px, py);
 					}
 				}
 			}
