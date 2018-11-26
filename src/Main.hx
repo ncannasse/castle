@@ -1344,8 +1344,6 @@ class Main extends Model {
 		
 		var parts = path.split("\\").join("/").split("/");
 		var base = prefs.curFile.split("\\").join("/").split("/");
-		untyped console.log(parts);
-		untyped console.log(base);
 		base.pop();
 		while( parts.length > 1 && base.length > 0 && parts[0] == base[0] ) {
 			parts.shift();
@@ -1593,7 +1591,6 @@ class Main extends Model {
 							editCell(c, v, sheet, index);
 							untyped v.dropFile = null;
 						}
-						untyped console.log(e);
 					});
 				case TList:
 					var key = sheet.getPath() + "@" + c.name + ":" + index;
