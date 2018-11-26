@@ -87,6 +87,8 @@ class Main extends Model {
 		window.window.addEventListener("keypress", onKeyPress);
 		window.window.addEventListener("keyup", onKeyUp);
 		window.window.addEventListener("mousemove", onMouseMove);
+		window.window.addEventListener("dragover", function(e : js.html.Event) { e.preventDefault(); return false; });
+		window.window.addEventListener("drop", onDragDrop);
 		J(".modal").keypress(function(e) e.stopPropagation()).keydown(function(e) e.stopPropagation());
 		J("#search input").keydown(function(e) {
 			if( e.keyCode == 27 ) {
@@ -137,6 +139,17 @@ class Main extends Model {
 	function onMouseMove( e : js.html.MouseEvent ) {
 		mousePos.x = e.clientX;
 		mousePos.y = e.clientY;
+	}
+	
+	function onDragDrop( e : js.html.DragEvent ) {
+		e.preventDefault();
+		for ( i in 0...e.dataTransfer.files.length ) {
+			var file = e.dataTransfer.files[i];
+			if (haxe.io.Path.extension(file.name) == "cdb") {
+				prefs.curFile = untyped file.path;
+				load();
+			}
+		}
 	}
 
 	function setClipBoard( schema : Array<Column>, data : Array<Dynamic> ) {
@@ -1202,9 +1215,7 @@ class Main extends Model {
 			v.html(getValue());
 			changed();
 		case TImage:
-			var i = J("<input>").attr("type", "file").css("display","none").change(function(e) {
-				var j = JTHIS;
-				var file : String = j.val();
+			inline function loadImage(file : String) {
 				var ext = file.split(".").pop().toLowerCase();
 				if( ext == "jpeg" ) ext = "jpg";
 				if( ext != "png" && ext != "gif" && ext != "jpg" ) {
@@ -1222,10 +1233,18 @@ class Main extends Model {
 				Reflect.setField(obj, c.name, val);
 				v.html(getValue());
 				changed();
-				j.remove();
-			});
-			i.appendTo(J("body"));
-			i.click();
+			}
+			if ( untyped v.dropFile != null ) {
+				loadImage(untyped v.dropFile);
+			} else {
+				var i = J("<input>").attr("type", "file").css("display","none").change(function(e) {
+					var j = JTHIS;
+					loadImage(j.val());
+					j.remove();
+				});
+				i.appendTo(J("body"));
+				i.click();
+			}
 		case TFlags(values):
 			var div = J("<div>").addClass("flagValues");
 			div.click(function(e) e.stopPropagation()).dblclick(function(e) e.stopPropagation());
@@ -1320,6 +1339,24 @@ class Main extends Model {
 		updateCursor();
 	}
 
+	inline function makeRelativePath( path : String ) : String {
+		if ( prefs.curFile == null ) return path;
+		
+		var parts = path.split("\\").join("/").split("/");
+		var base = prefs.curFile.split("\\").join("/").split("/");
+		base.pop();
+		while( parts.length > 1 && base.length > 0 && parts[0] == base[0] ) {
+			parts.shift();
+			base.shift();
+		}
+		if( parts.length == 0 || (parts[0] != "" && parts[0].charAt(1) != ":") )
+			while( base.length > 0 ) {
+				parts.unshift("..");
+				base.pop();
+			}
+		return parts.join("/");
+	}
+
 	public function chooseFile( callb : String -> Void, ?cancel : Void -> Void ) {
 
 		if( prefs.curFile == null ) {
@@ -1336,7 +1373,7 @@ class Main extends Model {
 		fs.val("");
 		fs.change(function(_) {
 			fs.off("change");
-			var path = fs.val().split("\\").join("/");
+			var path : String = fs.val();
 			fs.val("");
 			if( path == "" ) {
 				if( cancel != null ) cancel();
@@ -1345,19 +1382,7 @@ class Main extends Model {
 			fs.attr("nwworkingdir", ""); // keep path
 
 			// make the path relative
-			var parts = path.split("/");
-			var base = prefs.curFile.split("\\").join("/").split("/");
-			base.pop();
-			while( parts.length > 1 && base.length > 0 && parts[0] == base[0] ) {
-				parts.shift();
-				base.shift();
-			}
-			if( parts.length == 0 || (parts[0] != "" && parts[0].charAt(1) != ":") )
-				while( base.length > 0 ) {
-					parts.unshift("..");
-					base.pop();
-				}
-			var relPath = parts.join("/");
+			var relPath = makeRelativePath(path);
 
 			callb(relPath);
 		}).click();
@@ -1558,6 +1583,15 @@ class Main extends Model {
 						e.stopPropagation();
 					});
 					v.dblclick(function(_) editCell(c, v, sheet, index));
+					v[0].addEventListener("drop", function(e : js.html.DragEvent ) {
+						e.preventDefault();
+						e.stopPropagation();
+						if (e.dataTransfer.files.length > 0) {
+							untyped v.dropFile = e.dataTransfer.files[0].path;
+							editCell(c, v, sheet, index);
+							untyped v.dropFile = null;
+						}
+					});
 				case TList:
 					var key = sheet.getPath() + "@" + c.name + ":" + index;
 					v.click(function(e) {
@@ -1698,6 +1732,16 @@ class Main extends Model {
 							set(path);
 							save();
 						});
+					});
+					v[0].addEventListener("drop", function( e : js.html.DragEvent ) {
+						if ( e.dataTransfer.files.length > 0 ) {
+							e.preventDefault();
+							e.stopPropagation();
+							var path = untyped e.dataTransfer.files[0].path;
+							var relPath = makeRelativePath(path);
+							set(relPath);
+							save();
+						}
 					});
 				case TTilePos:
 
