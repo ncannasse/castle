@@ -140,7 +140,7 @@ class Main extends Model {
 		mousePos.x = e.clientX;
 		mousePos.y = e.clientY;
 	}
-	
+
 	function onDragDrop( e : js.html.DragEvent ) {
 		e.preventDefault();
 		for ( i in 0...e.dataTransfer.files.length ) {
@@ -658,7 +658,8 @@ class Main extends Model {
 			var path = getAbsPath(v);
 			var url = "file://" + path;
 			var ext = v.split(".").pop().toLowerCase();
-			var html = v == "" ? '<span class="error">#MISSING</span>' : StringTools.htmlEscape(v);
+			var val = StringTools.htmlEscape(v);
+			var html = v == "" ? '<span class="error">#MISSING</span>' : '<span title="$val">$val</span>';
 			if( v != "" && !quickExists(path) )
 				html = '<span class="error">' + html + '</span>';
 			else if( ext == "png" || ext == "jpg" || ext == "jpeg" || ext == "gif" )
@@ -1341,7 +1342,7 @@ class Main extends Model {
 
 	inline function makeRelativePath( path : String ) : String {
 		if ( prefs.curFile == null ) return path;
-		
+
 		var parts = path.split("\\").join("/").split("/");
 		var base = prefs.curFile.split("\\").join("/").split("/");
 		base.pop();
