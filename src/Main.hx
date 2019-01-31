@@ -1282,7 +1282,26 @@ class Main extends Model {
 				v.html(getValue());
 				save();
 			}}).spectrum("show");
-		case TList, TLayer(_), TFile, TTilePos, TProperties:
+		case TFile:
+			v.empty();
+			v.off();
+			v.html(getValue());
+			v.find("input").addClass("deletable").change(function(e) {
+				if( Reflect.field(obj,c.name) != null ) {
+					Reflect.deleteField(obj, c.name);
+					v.html(getValue());
+					save();
+				}
+			});
+			v.dblclick(function(_) {
+				chooseFile(function(path) {
+					val = path;
+					Reflect.setField(obj, c.name, path);
+					v.html(getValue());
+					save();
+				});
+			});
+		case TList, TLayer(_), TTilePos, TProperties:
 			throw "assert2";
 		}
 	}
