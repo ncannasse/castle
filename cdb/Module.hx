@@ -377,12 +377,12 @@ class Module {
 				}
 			}
 
-
+			var cdef = def.toComplex();
 			types.push({
 				pos : pos,
 				name : tname,
 				pack : curMod,
-				kind : TDAbstract(def.toComplex()),
+				kind : TDAbstract(cdef, [cdef], [cdef]),
 				fields : fields,
 			});
 		}
