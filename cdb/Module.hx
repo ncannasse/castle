@@ -342,6 +342,21 @@ class Module {
 				fields : realFields,
 			});
 
+			if ( Context.defined("castle_unsafe") ) {
+				fields.push({
+					name: "toDef",
+					pos: pos,
+					kind: FFun( { ret: def.toComplex(), args: [], expr: macro return this } ),
+					access: [AInline, APublic]
+				});
+
+				fields.push({
+					name: "fromDef",
+					pos: pos,
+					kind: FFun( { ret : tname.toComplex(), args : [{ name : "v", type : def.toComplex(), }], expr : macro return cast v }),
+					access: [AInline, AStatic, APublic]
+				});
+			}
 
 			if( hasId ) {
 				ids.push( {
@@ -376,7 +391,6 @@ class Module {
 					continue;
 				}
 			}
-
 
 			types.push({
 				pos : pos,
