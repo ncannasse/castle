@@ -52,7 +52,7 @@ class Parser {
 		}
 	}
 
-	public static function parse( content : String ) : Data {
+	public static function parse( content : String, editMode : Bool ) : Data {
 		if( content == null ) throw "CDB content is null";
 		var data : Data = haxe.Json.parse(content);
 		for( s in data.sheets )
@@ -66,17 +66,67 @@ class Parser {
 					a.type = getType(a.typeStr);
 					a.typeStr = null;
 				}
+		if( editMode ) {
+			// resolve separators
+			for( s in data.sheets ) {
+				if( s.separators == null ) {
+					var idField = null;
+					for( c in s.columns )
+						if( c.type == TId ) {
+							idField = c.name;
+							break;
+						}
+					var indexMap = new Map();
+					for( i in 0...s.lines.length ) {
+						var l = s.lines[i];
+						var id : String = Reflect.field(l, idField);
+						if( id != null ) indexMap.set(id, i);
+					}
+					var ids : Array<Dynamic> = Reflect.field(s,"separatorIds");
+					s.separators = [for( i in ids ) if( Std.is(i,Int) ) (i:Int) else indexMap.get(i)];
+					Reflect.deleteField(s, "separatorIds");
+				}
+			}
+		}
 		return data;
 	}
 
 	public static function save( data : Data ) : String {
 		var save = [];
+		var seps = [];
 		for( s in data.sheets ) {
+			var idField = null;
 			for( c in s.columns ) {
+				if( c.type == TId && idField == null ) idField = c.name;
 				save.push(c.type);
 				if( c.typeStr == null ) c.typeStr = cdb.Parser.saveType(c.type);
 				Reflect.deleteField(c, "type");
 			}
+			// remap separators based on indexes
+			var oldSeps = null;
+			if( idField != null && s.separators.length > 0 ) {
+				var uniqueIDs = true;
+				var uids = new Map();
+				for( l in s.lines ) {
+					var id : String = Reflect.field(l, idField);
+					if( id != null ) {
+						if( uids.get(id) ) {
+							uniqueIDs = false;
+							break;
+						}
+						uids.set(id, true);
+					}
+				}
+				if( uniqueIDs ) {
+					Reflect.setField(s,"separatorIds",[for( i in s.separators ) {
+						var id = Reflect.field(s.lines[i], idField);
+						id == null || id == "" ? (i : Dynamic) : (id : Dynamic);
+					}]);
+					oldSeps = s.separators;
+					Reflect.deleteField(s,"separators");
+				}
+			}
+			seps.push(oldSeps);
 		}
 		for( t in data.customTypes )
 			for( c in t.cases )
@@ -86,9 +136,15 @@ class Parser {
 					Reflect.deleteField(a, "type");
 				}
 		var str = haxe.Json.stringify(data, null, "\t");
-		for( s in data.sheets )
+		for( s in data.sheets ) {
 			for( c in s.columns )
 				c.type = save.shift();
+			var oldSeps = seps.shift();
+			if( oldSeps != null ) {
+				s.separators = oldSeps;
+				Reflect.deleteField(s,"separatorIds");
+			}
+		}
 		for( t in data.customTypes )
 			for( c in t.cases )
 				for( a in c.args )

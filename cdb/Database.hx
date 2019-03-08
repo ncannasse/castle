@@ -127,7 +127,7 @@ class Database {
 	}
 
 	public function load( content : String ) {
-		data = cdb.Parser.parse(content);
+		data = cdb.Parser.parse(content, true);
 		sheets = [for( s in data.sheets ) new Sheet(this, s)];
 		for( s in sheets )
 			if( s.props.hasIndex ) {

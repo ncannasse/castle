@@ -525,7 +525,7 @@ class Module {
 					return c.apply(xml);
 				}
 				public static function load( content : String ) {
-					root = cdb.Parser.parse(content);
+					root = cdb.Parser.parse(content, false);
 					{$a{assigns}};
 				}
 			}).fields.concat(fields),
