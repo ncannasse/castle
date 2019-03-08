@@ -108,7 +108,7 @@ class Module {
 			try path = Context.resolvePath("res/" + file) catch( e : Dynamic ) null;
 		if( path == null )
 			Context.error("File not found " + file, pos);
-		var data = Parser.parse(sys.io.File.getContent(path));
+		var data = Parser.parse(sys.io.File.getContent(path), false);
 		var r_chars = ~/[^A-Za-z0-9_]/g;
 		function makeTypeName( name : String ) {
 			var t = r_chars.replace(name, "_");
@@ -519,10 +519,10 @@ class Module {
 			kind : TDClass(),
 			fields : (macro class {
 				private static var root : cdb.Data;
-				public static function applyLang( xml : String, ?onMissing : String -> Void ) {
+				public static function applyLang( xml : String, ?reference : String, ?onMissing : String -> Void ) {
 					var c = new cdb.Lang(root);
 					if( onMissing != null ) c.onMissing = onMissing;
-					return c.apply(xml);
+					return c.apply(xml,reference);
 				}
 				public static function load( content : String ) {
 					root = cdb.Parser.parse(content, false);

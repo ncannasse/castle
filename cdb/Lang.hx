@@ -9,6 +9,14 @@ enum LocField {
 
 typedef LangDiff = Map<String,Array<{}>>;
 
+class Ref {
+	public var e : Xml;
+	public var ref : Null<Xml>;
+	public function new(e) {
+		this.e = e;
+	}
+}
+
 class Lang {
 
 	var root : Data;
@@ -63,11 +71,17 @@ class Lang {
 		return fields;
 	}
 
-	public function apply( xml : String ) : LangDiff {
+	public function apply( xml : String, ?reference : String ) : LangDiff {
 		var x = Xml.parse(xml).firstElement();
+		var ref = reference == null ? null : Xml.parse(reference).firstElement();
 		var xsheets = new Map();
 		for( e in x.elements() )
-			xsheets.set(e.get("name"), e);
+			xsheets.set(e.get("name"), new Ref(e));
+		if( ref != null )
+			for( e in ref.elements() ) {
+				var s = xsheets.get(e.get("name"));
+				if( s != null ) s.ref = e;
+			}
 		var out = new Map();
 		for( s in root.sheets ) {
 			if( s.props.hide ) continue;
@@ -133,19 +147,29 @@ class Lang {
 			}
 	}
 
-	function applySheet( path : Array<String>, s : SheetData, fields : Array<LocField>, objects : Array<Dynamic>, x : Xml, out : Array<{}> ) {
+	function applySheet( path : Array<String>, s : SheetData, fields : Array<LocField>, objects : Array<Dynamic>, x : Ref, out : Array<{}> ) {
 		var inf = getSheetHelpers(s);
 
 		if( inf.id == null ) {
 
 			var byIndex = [];
-			if( x != null )
-				for( e in x.elements() ) {
+			if( x != null ) {
+				for( e in x.e.elements() ) {
 					var m = new Map();
 					for( e in e.elements() )
-						m.set(e.nodeName, e);
+						m.set(e.nodeName, new Ref(e));
 					byIndex[Std.parseInt(e.nodeName)] = m;
 				}
+				if( x.ref != null )
+					for( e in x.ref.elements() ) {
+						var m = byIndex[Std.parseInt(e.nodeName)];
+						if( m != null )
+							for( e in e.elements() ) {
+								var r = m.get(e.nodeName);
+								if( r != null ) r.ref = e;
+							}
+					}
+			}
 
 			for( i in 0...objects.length ) {
 				var outSub = {};
@@ -169,13 +193,24 @@ class Lang {
 		} else {
 
 			var byID = new Map();
-			if( x != null )
-				for( e in x.elements() ) {
+			if( x != null ) {
+				for( e in x.e.elements() ) {
 					var m = new Map();
 					for( e in e.elements() )
-						m.set(e.nodeName, e);
+						m.set(e.nodeName, new Ref(e));
 					byID.set(e.nodeName, m);
 				}
+				if( x.ref != null ) {
+					for( e in x.ref.elements() ) {
+						var m = byID.get(e.nodeName);
+						if( m != null )
+							for( e in e.elements() ) {
+								var r = m.get(e.nodeName);
+								if( r != null ) r.ref = e;
+							}
+					}
+				}
+			}
 
 			for( o in objects ) {
 				var outSub = {};
@@ -192,13 +227,20 @@ class Lang {
 		}
 	}
 
-	function applyRec( path : Array<String>, f : LocField, o : Dynamic, data : Map<String,Xml>, out : Dynamic ) {
+	function applyRec( path : Array<String>, f : LocField, o : Dynamic, data : Map<String,Ref>, out : Dynamic ) {
 		switch( f ) {
 		case LName(c):
 			var v = data == null ? null : data.get(c.name);
-			if( v != null )
-				Reflect.setField(o, c.name, StringTools.htmlUnescape(#if (haxe_ver < 4) new haxe.xml.Fast #else new haxe.xml.Access #end(v).innerHTML));
-			else {
+			if( v != null ) {
+				var str = StringTools.htmlUnescape(#if (haxe_ver < 4) new haxe.xml.Fast #else new haxe.xml.Access #end(v.e).innerHTML);
+				var ref = v.ref == null ? null : StringTools.htmlUnescape(#if (haxe_ver < 4) new haxe.xml.Fast #else new haxe.xml.Access #end(v.ref).innerHTML);
+				if( ref != null && ref != Reflect.field(o,c.name) ) {
+					path.push(c.name);
+					onMissing("Ignored since has changed "+path.join("."));
+					path.pop();
+				} else
+					Reflect.setField(o, c.name, str);
+			} else {
 				var v = Reflect.field(o, c.name);
 				if( v != null && v != "" ) {
 					path.push(c.name);
