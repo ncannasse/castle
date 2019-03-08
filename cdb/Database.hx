@@ -186,9 +186,9 @@ class Database {
 				var titles = s.props.separatorTitles;
 				if( titles != null ) {
 					// skip first if at head
-					if( s.separators[sindex] == 0 && titles[sindex] != null ) sindex++;
+					while( s.separators[sindex] == 0 && titles[sindex] != null ) sindex++;
 					for( i in 0...lines.length ) {
-						if( s.separators[sindex] == i ) {
+						while( s.separators[sindex] == i ) {
 							if( titles[sindex] != null ) gid++;
 							sindex++;
 						}
