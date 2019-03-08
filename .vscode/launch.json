@@ -1,0 +1,13 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "nwjs",
+            "request": "launch",
+            "name": "Launch NWjs",
+            "nwjsVersion": "any",
+            "webRoot": "${workspaceFolder}/bin",
+            "preLaunchTask": "Build"
+        }
+    ]
+}
