@@ -203,6 +203,9 @@ class Index<T> {
 			if( s.name == name ) {
 				all = cast s.lines;
 				this.sheet = s;
+				if( s.props.hasIndex )
+					for( i in 0...all.length )
+						(all[i] : Dynamic).index = i;
 				break;
 			}
 		if( sheet == null )

@@ -129,6 +129,13 @@ class Database {
 	public function load( content : String ) {
 		data = cdb.Parser.parse(content);
 		sheets = [for( s in data.sheets ) new Sheet(this, s)];
+		for( s in sheets )
+			if( s.props.hasIndex ) {
+				// delete old index data, if present
+				var lines = s.getLines();
+				for( i in 0...lines.length )
+					Reflect.deleteField(lines[i],"index");
+			}
 		sync();
 	}
 
@@ -171,11 +178,6 @@ class Database {
 			for( p in Reflect.fields(s.props) ) {
 				var v : Dynamic = Reflect.field(s.props, p);
 				if( v == null || v == false ) Reflect.deleteField(s.props, p);
-			}
-			if( s.props.hasIndex ) {
-				var lines = s.getLines();
-				for( i in 0...lines.length )
-					lines[i].index = i;
 			}
 			if( s.props.hasGroup ) {
 				var lines = s.getLines();
