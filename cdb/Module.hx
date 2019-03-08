@@ -320,7 +320,7 @@ class Module {
 				realFields.push( { name : "group", pos : pos, kind : FVar(tint) } );
 				var tgroup = makeTypeName(s.name + "@group");
 				var groups = [for( t in gtitles ) if( t != null ) makeTypeName(t)];
-				if( s.separators[0] != 0 || gtitles[0] == null )
+				if( s.separators != null && s.separators[0] != 0 || gtitles[0] == null )
 					groups.unshift("None");
 				types.push(makeFakeEnum(tgroup, curMod, pos, groups));
 				var tgroup = tgroup.toComplex();
