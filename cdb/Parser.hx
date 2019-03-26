@@ -119,7 +119,7 @@ class Parser {
 				}
 				if( uniqueIDs ) {
 					Reflect.setField(s,"separatorIds",[for( i in s.separators ) {
-						var id = Reflect.field(s.lines[i], idField);
+						var id = s.lines[i] != null ? Reflect.field(s.lines[i], idField) : null;
 						id == null || id == "" ? (i : Dynamic) : (id : Dynamic);
 					}]);
 					oldSeps = s.separators;
