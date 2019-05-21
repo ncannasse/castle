@@ -244,7 +244,6 @@ div#menu {
 }
 
 .castle#content {
-	overflow: hidden;
 }
 
 .castle, .dialog-floating {
@@ -285,6 +284,10 @@ div#menu {
 	td {
 		padding : 2px 4px;
 		overflow : hidden;
+	}
+
+	td[colspan] {
+		overflow: visible;
 	}
 
 	td.cursor {
@@ -373,14 +376,15 @@ div#menu {
 		background-color : #f8f8f8;
 	}
 
-	tr.head, th {
+	tr.head > th {
+		position: CSS("sticky");
+		top: 0;
 		font-weight: bold;
 		text-align: center;
 		border-bottom : 1px solid #888;
 		border-left: 1px solid #888;
 		background-color : #333;
 		color : #EEE;
-		width: auto;
 		white-space: nowrap;
 		overflow: hidden;
 	}
@@ -577,7 +581,7 @@ div#menu {
 			.icon {
 				width : 16px;
 				height : 16px;
-				border : 1 px solid #CCC;
+				border : 1px solid #CCC;
 				cursor : pointer;
 				display : inline-block;
 				margin-right : 2px;
@@ -778,7 +782,7 @@ div#menu {
 		}
 		.item.selected {
 			background-color : #FFF;
-			border : 1 px solid #888;
+			border : 1px solid #888;
 			padding : 9px;
 		}
 
