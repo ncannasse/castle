@@ -377,6 +377,7 @@ div#menu {
 	}
 
 	tr.head > th {
+		position: CSS("-webkit-sticky");
 		position: CSS("sticky");
 		top: 0;
 		font-weight: bold;

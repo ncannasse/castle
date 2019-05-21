@@ -323,6 +323,7 @@ div#menu ul.sheets li.active {
 	background-color : #f8f8f8;
 }
 .castle tr.head > th, .dialog-floating tr.head > th {
+	position : -webkit-sticky;
 	position : sticky;
 	top : 0;
 	font-weight : bold;
