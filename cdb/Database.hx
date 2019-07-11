@@ -128,6 +128,14 @@ class Database {
 
 	public function load( content : String ) {
 		data = cdb.Parser.parse(content, true);
+		if( sheets != null ) {
+			// reset old sheets (should not be used)
+			for( s in sheets ) @:privateAccess {
+				s.base = null;
+				s.index = null;
+				s.sheet = null;
+			}
+		}
 		sheets = [for( s in data.sheets ) new Sheet(this, s)];
 		for( s in sheets )
 			if( s.props.hasIndex ) {
