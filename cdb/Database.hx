@@ -77,7 +77,7 @@ class Database {
 		return smap.get(name);
 	}
 
-	public function createSheet( name : String ) {
+	public function createSheet( name : String, ?index : Int ) {
 		// name already exists
 		for( s in sheets )
 			if( s.name == name )
@@ -90,14 +90,48 @@ class Database {
 			props : {
 			},
 		};
-		return addSheet(s);
+		return addSheet(s, index);
 	}
 
-	function addSheet( s : cdb.Data.SheetData ) : Sheet {
+	public function moveSheet( s : Sheet, delta : Int ) {
+		var fsheets = [for( s in sheets ) if( !s.props.hide ) s];
+		var index = fsheets.indexOf(s);
+		var other = fsheets[index+delta];
+		if( index < 0 || other == null ) return false;
+
+		// move to new index
+		sheets.remove(s);
+		index = sheets.indexOf(other);
+		if( delta > 0 ) index++;
+		sheets.insert(index, s);
+
+		// move sub sheets as well !
+		var moved = [s];
+		var delta = 0;
+		for( ssub in sheets.copy() ) {
+			var parent = ssub.getParent();
+			if( parent != null && moved.indexOf(parent.s) >= 0 ) {
+				sheets.remove(ssub);
+				var idx = sheets.indexOf(s) + (++delta);
+				sheets.insert(idx, ssub);
+				moved.push(ssub);
+			}
+		}
+		updateSheets();
+		return true;
+	}
+
+	function addSheet( s : cdb.Data.SheetData, ?index : Int ) : Sheet {
 		var sobj = new Sheet(this, s);
-		data.sheets.push(s);
+		if( index != null )
+			data.sheets.insert(index, s);
+		else
+			data.sheets.push(s);
 		sobj.sync();
-		sheets.push(sobj);
+		if( index != null )
+			sheets.insert(index, sobj);
+		else
+			sheets.push(sobj);
 		return sobj;
 	}
 
