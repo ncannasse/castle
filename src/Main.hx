@@ -742,9 +742,30 @@ class Main extends Model {
 		var nleft = new MenuItem( { label : "Move Left" } );
 		var nright = new MenuItem( { label : "Move Right" } );
 		var ndel = new MenuItem( { label : "Delete" } );
+
+		var nhide = new MenuItem({label: "Hide Column"});
+		var nshowcols = new MenuItem({label: "Show Columns"});
+		var ncols = new Menu();
+		for (col in sheet.columns) {
+			var ncol = new MenuItem({
+				label: col.name,
+				type: MenuItemType.checkbox
+			});
+			if (col.hidden)
+				ncol.checked = false;
+			else
+				ncol.checked = true;
+			ncol.click = function() {
+				col.hidden = !ncol.checked;
+				refresh();
+			}
+			ncols.append(ncol);
+		}
+		nshowcols.submenu = ncols;
+	
 		var ndisp = new MenuItem( { label : "Display Column", type : MenuItemType.checkbox } );
 		var nicon = new MenuItem( { label : "Display Icon", type : MenuItemType.checkbox } );
-		for( m in [nedit, nins, nleft, nright, ndel, ndisp, nicon] )
+		for( m in [nedit, nins, nleft, nright, ndel, nhide, nshowcols, ndisp, nicon] )
 			n.append(m);
 
 		switch( c.type ) {
@@ -860,6 +881,10 @@ class Main extends Model {
 			if( !isProperties || js.Browser.window.confirm("Do you really want to delete this property for all objects?") )
 				deleteColumn(sheet, c.name);
 		};
+		nhide.click = function() {
+			c.hidden = true;
+			refresh();
+		}
 		ndisp.click = function() {
 			if( sheet.props.displayColumn == c.name ) {
 				sheet.props.displayColumn = null;
@@ -1536,6 +1561,10 @@ class Main extends Model {
 
 		for( cindex in 0...sheet.columns.length ) {
 			var c = sheet.columns[cindex];
+			if (c.hidden) {
+				continue;
+			}
+
 			var col = J("<th>");
 			col.text(c.name);
 			col.addClass( "t_"+c.type.getName().substr(1).toLowerCase() );
