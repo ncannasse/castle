@@ -762,6 +762,11 @@ class Main extends Model {
 			}
 			ncols.append(ncol);
 		}
+		var nsep = new MenuItem({type: MenuItemType.separator});
+		ncols.append(nsep);
+		var nshowall = new MenuItem({label: "Show All"});
+		ncols.append(nshowall);
+
 		nshowcols.submenu = ncols;
 	
 		var ndisp = new MenuItem( { label : "Display Column", type : MenuItemType.checkbox } );
@@ -884,6 +889,14 @@ class Main extends Model {
 		};
 		nhide.click = function() {
 			c.hidden = true;
+			refresh();
+			save();
+		}
+		nshowall.click = function() {
+			for (col in sheet.columns) {
+				if (col.hidden)
+					col.hidden = false;
+			}
 			refresh();
 			save();
 		}
