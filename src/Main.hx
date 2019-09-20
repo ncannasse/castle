@@ -758,6 +758,7 @@ class Main extends Model {
 			ncol.click = function() {
 				col.hidden = !ncol.checked;
 				refresh();
+				save();
 			}
 			ncols.append(ncol);
 		}
@@ -884,6 +885,7 @@ class Main extends Model {
 		nhide.click = function() {
 			c.hidden = true;
 			refresh();
+			save();
 		}
 		ndisp.click = function() {
 			if( sheet.props.displayColumn == c.name ) {
@@ -1558,6 +1560,14 @@ class Main extends Model {
 
 		var colCount = sheet.columns.length;
 		if( sheet.isLevel() ) colCount++;
+
+		// count hidden columns
+		for( cindex in 0...sheet.columns.length ) {
+			var c = sheet.columns[cindex];
+			if (c.hidden) {
+				colCount--;
+			}
+		}
 
 		for( cindex in 0...sheet.columns.length ) {
 			var c = sheet.columns[cindex];
