@@ -398,10 +398,13 @@ class Database {
 		return pairs;
 	}
 
-	public function getConvFunction( old : ColumnType, t : ColumnType ) {
+	public function getConvFunction( old : ColumnType, t : ColumnType, ?custom : { t : ColumnType, f : Dynamic -> Dynamic } ) {
 		var conv : Dynamic -> Dynamic = null;
-		if( Type.enumEq(old, t) )
+		if( Type.enumEq(old, t) ) {
+			if( custom != null && Type.enumEq(old,custom.t) )
+				return { f : custom.f };
 			return { f : null };
+		}
 		switch( [old, t] ) {
 		case [TInt, TFloat]:
 			// nothing
@@ -476,46 +479,7 @@ class Database {
 		var casesPairs = makePairs(old.cases, t.cases);
 
 		// build convert map
-		var convMap = [];
-		for( p in casesPairs ) {
-
-			if( p.b == null ) continue;
-
-			var id = Lambda.indexOf(t.cases, p.b);
-			var conv = {
-				def : ([id] : Array<Dynamic>),
-				args : [],
-			};
-			var args = makePairs(p.a.args, p.b.args);
-			for( a in args ) {
-				if( a.b == null ) {
-					conv.args[Lambda.indexOf(p.a.args, a.a)] = function(_) return null; // discard
-					continue;
-				}
-				var b = a.b, a = a.a;
-				var c = getConvFunction(a.type, b.type);
-				if( c == null )
-					throw "Cannot convert " + p.a.name + "." + a.name + ":" + typeStr(a.type) + " to " + p.b.name + "." + b.name + ":" + typeStr(b.type);
-				var f : Dynamic -> Dynamic = c.f;
-				if( f == null ) f = function(x) return x;
-				if( a.opt != b.opt ) {
-					var oldf = f;
-					if( a.opt ) {
-						f = function(v) { v = oldf(v); return v == null ? getDefault(b) : v; };
-					} else {
-						var def = getDefault(a);
-						f = function(v) return if( v == def ) null else oldf(v);
-					}
-				}
-				var index = Lambda.indexOf(p.b.args, b);
-				conv.args[Lambda.indexOf(p.a.args, a)] = function(v) return { v = f(v); return if( v == null && b.opt ) null else { index : index, v : v }; };
-			}
-			for( b in p.b.args )
-				conv.def.push(getDefault(b));
-			while( conv.def[conv.def.length - 1] == null )
-				conv.def.pop();
-			convMap[Lambda.indexOf(old.cases, p.a)] = conv;
-		}
+		var convMap : Array<{ def : Array<Dynamic>, args : Array<Dynamic -> Dynamic> }> = [];
 
 		function convertTypeRec( t : CustomType, v : Array<Dynamic> ) : Array<Dynamic> {
 			if( t == null )
@@ -543,6 +507,47 @@ class Database {
 				}
 			}
 			return v;
+		}
+
+
+		for( p in casesPairs ) {
+
+			if( p.b == null ) continue;
+
+			var id = Lambda.indexOf(t.cases, p.b);
+			var conv = {
+				def : ([id] : Array<Dynamic>),
+				args : [],
+			};
+			var args = makePairs(p.a.args, p.b.args);
+			for( a in args ) {
+				if( a.b == null ) {
+					conv.args[Lambda.indexOf(p.a.args, a.a)] = function(_) return null; // discard
+					continue;
+				}
+				var b = a.b, a = a.a;
+				var c = getConvFunction(a.type, b.type, { t : TCustom(old.name), f : convertTypeRec.bind(old) });
+				if( c == null )
+					throw "Cannot convert " + p.a.name + "." + a.name + ":" + typeStr(a.type) + " to " + p.b.name + "." + b.name + ":" + typeStr(b.type);
+				var f : Dynamic -> Dynamic = c.f;
+				if( f == null ) f = function(x) return x;
+				if( a.opt != b.opt ) {
+					var oldf = f;
+					if( a.opt ) {
+						f = function(v) { v = oldf(v); return v == null ? getDefault(b) : v; };
+					} else {
+						var def = getDefault(a);
+						f = function(v) return if( v == def ) null else oldf(v);
+					}
+				}
+				var index = Lambda.indexOf(p.b.args, b);
+				conv.args[Lambda.indexOf(p.a.args, a)] = function(v) return { v = f(v); return if( v == null && b.opt ) null else { index : index, v : v }; };
+			}
+			for( b in p.b.args )
+				conv.def.push(getDefault(b));
+			while( conv.def[conv.def.length - 1] == null )
+				conv.def.pop();
+			convMap[Lambda.indexOf(old.cases, p.a)] = conv;
 		}
 
 		// apply convert
