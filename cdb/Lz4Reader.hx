@@ -18,8 +18,13 @@ package cdb;
 #if lz4js
 @:native("lz4")
 extern class Lz4js {
+	#if (haxe_ver < 4)
 	public static function compress( source : js.html.Uint8Array, blockSize : Int ) : js.html.Uint8Array;
 	public static function decompress( source : js.html.Uint8Array ) : js.html.Uint8Array;
+	#else
+	public static function compress( source : js.lib.Uint8Array, blockSize : Int ) : js.lib.Uint8Array;
+	public static function decompress( source : js.lib.Uint8Array ) : js.lib.Uint8Array;
+	#end
 }
 #end
 
@@ -195,7 +200,7 @@ class Lz4Reader {
 		if( k.get(0) != 0x04 || k.get(1) != 0x22 || k.get(2) != 0x4D || k.get(3) != 0x18 )
 			return k;
 		#if lz4js
-		var tmp = new js.html.Uint8Array(k.length);
+		var tmp = new js.lib.Uint8Array(k.length);
 		for( i in 0...k.length ) tmp[i] = k.get(i);
 		var k = Lz4js.decompress(tmp);
 		var b = haxe.io.Bytes.alloc(k.length);
@@ -209,7 +214,7 @@ class Lz4Reader {
 	public static function encodeBytes( b : haxe.io.Bytes, compress : Bool ) : String {
 		if( compress && b.length > 0 ) {
 			#if lz4js
-				var tmp = new js.html.Uint8Array(b.length);
+				var tmp = new js.lib.Uint8Array(b.length);
 				for( i in 0...b.length ) tmp[i] = b.get(i);
 				tmp = Lz4Reader.Lz4js.compress(tmp,65536);
 				b = haxe.io.Bytes.alloc(tmp.length);

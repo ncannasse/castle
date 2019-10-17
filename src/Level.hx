@@ -274,7 +274,11 @@ class Level {
 	public function reload() {
 		if( !reloading ) {
 			reloading = true;
+			#if (haxe_ver < 4)
 			Std.instance(model,Main).initContent();
+			#else
+			Std.downcast(model,Main).initContent();
+			#end
 		}
 	}
 
@@ -1197,7 +1201,7 @@ class Level {
 		popup.click(function(e) e.stopPropagation());
 
 		var table = J("<table>").appendTo(popup);
-		var main = Std.instance(model, Main);
+		var main = #if (haxe_ver < 4) Std.instance(model, Main) #else Std.downcast(model, Main) #end;
 		for( c in l.baseSheet.columns ) {
 			var tr = J("<tr>").appendTo(table);
 			var th = J("<th>").text(c.name).appendTo(tr);
