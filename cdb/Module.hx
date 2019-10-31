@@ -517,7 +517,7 @@ class Module {
 					access : [APublic, AStatic],
 					kind : FVar(macro : cdb.Types.IndexId<$t,$kind>),
 				});
-				assigns.push(macro $i { fname } = new cdb.Types.IndexId(root, $v { s.name } ));
+				assigns.push(macro if( allowReload && $i{fname} != null ) @:privateAccess $i{fname}.reload(root) else $i{fname} = new cdb.Types.IndexId(root, $v{s.name}));
 			} else {
 				fields.push({
 					name : fname,
@@ -525,7 +525,7 @@ class Module {
 					access : [APublic, AStatic],
 					kind : FVar(macro : cdb.Types.Index<$t>),
 				});
-				assigns.push(macro $i { fname } = new cdb.Types.Index(root, $v { s.name } ));
+				assigns.push(macro $i{ fname } = new cdb.Types.Index(root, $v{ s.name }));
 			}
 		}
 		types.push({
@@ -540,7 +540,7 @@ class Module {
 					if( onMissing != null ) c.onMissing = onMissing;
 					return c.apply(xml,reference);
 				}
-				public static function load( content : String ) {
+				public static function load( content : String, allowReload = false ) {
 					root = cdb.Parser.parse(content, false);
 					{$a{assigns}};
 				}
