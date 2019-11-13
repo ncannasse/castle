@@ -439,6 +439,8 @@ class Database {
 				map[p.a.i] = p.b.i;
 			}
 			conv = function(i) return map[i];
+		case [TEnum(values), TString]:
+			conv = function(i) return values[i];
 		case [TFlags(values1), TFlags(values2)]:
 			var map : Array<Null<Int>> = [];
 			for( p in makePairs([for( i in 0...values1.length ) { name : values1[i], i : i } ], [for( i in 0...values2.length ) { name : values2[i], i : i } ]) ) {
