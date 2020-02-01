@@ -161,7 +161,7 @@ class Sheet {
 	}
 
 	public function moveLine( index : Int, delta : Int ) : Null<Int> {
-		if( delta < 0 && index > 0 ) {
+		if( delta < 0 ) {
 
 			for( i in 0...sheet.separators.length )
 				if( sheet.separators[i] == index ) {
@@ -171,6 +171,9 @@ class Sheet {
 					sheet.separators[i]++;
 					return index;
 				}
+
+			if( index <= 0 )
+				return null;
 
 			var l = sheet.lines[index];
 			sheet.lines.splice(index, 1);
@@ -182,7 +185,7 @@ class Sheet {
 			changeLineOrder(arr);
 
 			return index - 1;
-		} else if( delta > 0 && sheet != null ) {
+		} else if( delta > 0 ) {
 
 
 			for( i in 0...sheet.separators.length )
