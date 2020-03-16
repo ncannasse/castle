@@ -161,7 +161,12 @@ class Database {
 	}
 
 	public function load( content : String ) {
-		data = cdb.Parser.parse(content, true);
+		var data = cdb.Parser.parse(content, true);
+		loadData(data);
+	}
+	
+	public function loadData( data : cdb.Data ) {
+		this.data = data;
 		if( sheets != null ) {
 			// reset old sheets (should not be used)
 			for( s in sheets ) @:privateAccess {
