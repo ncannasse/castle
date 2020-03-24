@@ -144,7 +144,15 @@ class Database {
 			columns : [],
 		};
 		if( c.type == TProperties ) s.props.isProps = true;
-		return addSheet(s, data.sheets.indexOf(@:privateAccess parent.sheet));
+		var index = data.sheets.indexOf(@:privateAccess parent.sheet) + 1;
+		for( c2 in parent.columns ) {
+			if( c == c2 ) break;
+			if( c2.type.match(TProperties|TList) ) {
+				var sub = parent.getSub(c2);
+				index = data.sheets.indexOf(@:privateAccess sub.sheet) + 1;
+			}
+		}
+		return addSheet(s, index);
 	}
 
 	public function sync() {
