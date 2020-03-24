@@ -125,7 +125,7 @@ class Sheet {
 		var o = {
 		};
 		for( c in sheet.columns ) {
-			var d = base.getDefault(c);
+			var d = base.getDefault(c, this);
 			if( d != null )
 				Reflect.setField(o, c.name, d);
 		}
@@ -271,7 +271,7 @@ class Sheet {
 		else
 			sheet.columns.insert(index, c);
 		for( i in getLines() ) {
-			var def = base.getDefault(c);
+			var def = base.getDefault(c, this);
 			if( def != null ) Reflect.setField(i, c.name, def);
 		}
 		if( c.type == TList || c.type == TProperties ) {
@@ -284,7 +284,7 @@ class Sheet {
 	public function getDefaults() {
 		var props = {};
 		for( c in columns ) {
-			var d = base.getDefault(c);
+			var d = base.getDefault(c, this);
 			if( d != null )
 				Reflect.setField(props, c.name, d);
 		}

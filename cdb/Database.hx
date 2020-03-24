@@ -164,7 +164,7 @@ class Database {
 		var data = cdb.Parser.parse(content, true);
 		loadData(data);
 	}
-	
+
 	public function loadData( data : cdb.Data ) {
 		this.data = data;
 		if( sheets != null ) {
@@ -247,7 +247,7 @@ class Database {
 		return cdb.Parser.save(data);
 	}
 
-	public function getDefault( c : Column, ignoreOpt = false ) : Dynamic {
+	public function getDefault( c : Column, ?ignoreOpt = false, ?sheet : Sheet ) : Dynamic {
 		if( c.opt && !ignoreOpt )
 			return null;
 		return switch( c.type ) {
@@ -266,7 +266,17 @@ class Database {
 			id;
 		case TBool: c.opt ? true : false;
 		case TList: [];
-		case TProperties : {};
+		case TProperties:
+			var obj = {};
+			if( sheet != null ) {
+				var s = sheet.getSub(c);
+				for( c in s.columns )
+					if( !c.opt ) {
+						var def = getDefault(c, s);
+						if( def != null ) Reflect.setField(obj, c.name, def);
+					}
+			}
+			obj;
 		case TCustom(_), TTilePos, TTileLayer, TDynamic: null;
 		}
 	}
@@ -330,7 +340,7 @@ class Database {
 				for( o in sheet.getLines() ) {
 					var v = Reflect.field(o, c.name);
 					if( v == null ) {
-						v = getDefault(c);
+						v = getDefault(c, sheet);
 						if( v != null ) Reflect.setField(o, c.name, v);
 					}
 				}
@@ -339,7 +349,7 @@ class Database {
 				case TEnum(_):
 					// first choice should not be removed
 				default:
-					var def = getDefault(old);
+					var def = getDefault(old, sheet);
 					for( o in sheet.getLines() ) {
 						var v = Reflect.field(o, c.name);
 						switch( c.type ) {
@@ -348,7 +358,7 @@ class Database {
 							if( v.length == 0 )
 								Reflect.deleteField(o, c.name);
 						case TProperties:
-							if( Reflect.fields(v).length == 0 )
+							if( Reflect.fields(v).length == 0 || haxe.Json.stringify(v) == haxe.Json.stringify(def) )
 								Reflect.deleteField(o, c.name);
 						default:
 							if( v == def )
