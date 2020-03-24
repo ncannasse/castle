@@ -135,16 +135,16 @@ class Database {
 		return sobj;
 	}
 
-	public function createSubSheet( s : Sheet, c : Column ) {
+	public function createSubSheet( parent : Sheet, c : Column ) {
 		var s : cdb.Data.SheetData = {
-			name : s.name + "@" + c.name,
+			name : parent.name + "@" + c.name,
 			props : { hide : true },
 			separators : [],
 			lines : [],
 			columns : [],
 		};
 		if( c.type == TProperties ) s.props.isProps = true;
-		return addSheet(s);
+		return addSheet(s, data.sheets.indexOf(@:privateAccess parent.sheet));
 	}
 
 	public function sync() {
