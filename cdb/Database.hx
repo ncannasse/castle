@@ -144,15 +144,16 @@ class Database {
 			columns : [],
 		};
 		if( c.type == TProperties ) s.props.isProps = true;
-		var index = data.sheets.indexOf(@:privateAccess parent.sheet) + 1;
+		// our parent might be a virtual sheet
+		var index = data.sheets.indexOf(Lambda.find(data.sheets, function(s) return s.name == parent.name));
 		for( c2 in parent.columns ) {
 			if( c == c2 ) break;
 			if( c2.type.match(TProperties|TList) ) {
 				var sub = parent.getSub(c2);
-				index = data.sheets.indexOf(@:privateAccess sub.sheet) + 1;
+				index = data.sheets.indexOf(@:privateAccess sub.sheet);
 			}
 		}
-		return addSheet(s, index);
+		return addSheet(s, index < 0 ? null : index + 1);
 	}
 
 	public function sync() {
