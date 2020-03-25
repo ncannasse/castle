@@ -270,13 +270,13 @@ class Sheet {
 			sheet.columns.push(c);
 		else
 			sheet.columns.insert(index, c);
-		for( i in getLines() ) {
-			var def = base.getDefault(c, this);
-			if( def != null ) Reflect.setField(i, c.name, def);
-		}
 		if( c.type == TList || c.type == TProperties ) {
 			// create an hidden sheet for the model
 			base.createSubSheet(this, c);
+		}
+		for( i in getLines() ) {
+			var def = base.getDefault(c, this);
+			if( def != null ) Reflect.setField(i, c.name, def);
 		}
 		return null;
 	}
