@@ -424,6 +424,8 @@ class Database {
 
 	public function getConvFunction( old : ColumnType, t : ColumnType ) {
 		var conv : Dynamic -> Dynamic = null;
+		if( Type.enumEq(old, t) )
+			return { f : null };
 		switch( [old, t] ) {
 		case [TInt, TFloat]:
 			// nothing
