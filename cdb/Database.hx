@@ -422,13 +422,8 @@ class Database {
 		return pairs;
 	}
 
-	public function getConvFunction( old : ColumnType, t : ColumnType, ?custom : { t : ColumnType, f : Dynamic -> Dynamic } ) {
+	public function getConvFunction( old : ColumnType, t : ColumnType ) {
 		var conv : Dynamic -> Dynamic = null;
-		if( Type.enumEq(old, t) ) {
-			if( custom != null && Type.enumEq(old,custom.t) )
-				return { f : custom.f };
-			return { f : null };
-		}
 		switch( [old, t] ) {
 		case [TInt, TFloat]:
 			// nothing
@@ -508,8 +503,18 @@ class Database {
 		var convMap : Array<{ def : Array<Dynamic>, args : Array<Dynamic -> Dynamic> }> = [];
 
 		function convertTypeRec( t : CustomType, v : Array<Dynamic> ) : Array<Dynamic> {
-			if( t == null )
+			if( t == null || v == null )
 				return null;
+			var c = t.cases[v[0]];
+			for( i in 0...c.args.length ) {
+				switch( c.args[i].type ) {
+				case TCustom(tname):
+					var av = v[i + 1];
+					if( av != null )
+						v[i+1] = convertTypeRec(getCustomType(tname), av);
+				default:
+				}
+			}
 			if( t == old ) {
 				var conv = convMap[v[0]];
 				if( conv == null )
@@ -522,19 +527,8 @@ class Database {
 				}
 				return out;
 			}
-			var c = t.cases[v[0]];
-			for( i in 0...c.args.length ) {
-				switch( c.args[i].type ) {
-				case TCustom(tname):
-					var av = v[i + 1];
-					if( av != null )
-						v[i+1] = convertTypeRec(getCustomType(tname), av);
-				default:
-				}
-			}
 			return v;
 		}
-
 
 		for( p in casesPairs ) {
 
@@ -552,7 +546,7 @@ class Database {
 					continue;
 				}
 				var b = a.b, a = a.a;
-				var c = getConvFunction(a.type, b.type, { t : TCustom(old.name), f : convertTypeRec.bind(old) });
+				var c = getConvFunction(a.type, b.type);
 				if( c == null )
 					throw "Cannot convert " + p.a.name + "." + a.name + ":" + typeStr(a.type) + " to " + p.b.name + "." + b.name + ":" + typeStr(b.type);
 				var f : Dynamic -> Dynamic = c.f;
