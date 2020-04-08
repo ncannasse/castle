@@ -20,8 +20,10 @@ class DiffFile {
 
 	public function apply( db : Database, diff : DiffData, view : ConfigView ) {
 		db1 = db;
-		for( s in db.sheets )
-			applySheet(s, s.lines, Reflect.field(diff,s.name), Reflect.field(view, s.name));
+		for( s in db.sheets ) {
+			var sview : SheetView = view == null ? { insert : true, edit : [for( c in s.columns ) c.name] } : Reflect.field(view, s.name);
+			applySheet(s, s.lines, Reflect.field(diff,s.name), sview);
+		}
 	}
 
 	function applySheet( s : Sheet, lines : Array<Dynamic>, diff : DiffData, view : SheetView ) {
@@ -189,7 +191,7 @@ class DiffFile {
 			case TProperties:
 				d = diffObject(s1.getSub(c1), s2.getSub(c1), vnew, vold);
 				if( d == null ) continue;
-			case TDynamic, TTilePos, TCustom(_):
+			case TDynamic, TTilePos, TCustom(_), TTileLayer, TLayer(_):
 				if( haxe.Json.stringify(vnew) == haxe.Json.stringify(vold) )
 					continue;
 				d = copy(vnew);
