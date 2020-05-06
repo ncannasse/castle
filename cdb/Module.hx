@@ -217,14 +217,17 @@ class Module {
 						idField = c.name;
 
 					var cname = c.name;
+					var idMap = new Map();
 					for( obj in getSheetLines(data.sheets,s) ) {
 						var id = Reflect.field(obj, cname);
-						if( id != null && id != "" )
+						if( id != null && id != "" && (c.scope != null || !idMap.exists(id)) ) {
 							ids.push({
 								name : id,
 								pos : pos,
 								kind : FVar(null,macro $v{id}),
 							});
+							idMap.set(id, true);
+						}
 					}
 
 					fields.push({
@@ -250,21 +253,25 @@ class Module {
 						}),
 						access : [AInline,APrivate],
 					});
-				case TRef(s):
+				case TRef(ref):
 					var cname = c.name;
-					var fname = fieldName(s);
-					fields.push({
-						name : "get_"+c.name,
-						pos : pos,
-						kind : FFun({
-							ret : t,
-							args : [],
-							expr : c.opt ? macro return $i{modName}.$fname.resolve(this.$cname) : macro return this.$cname == null ? null : $i{modName}.$fname.resolve(this.$cname),
-						}),
-						access : [APrivate],
-					});
+					var fname = fieldName(ref);
+					if( ref.indexOf('@') < 0 )
+						fields.push({
+							name : "get_"+c.name,
+							pos : pos,
+							kind : FFun({
+								ret : t,
+								args : [],
+								expr : c.opt ? macro return $i{modName}.$fname.resolve(this.$cname) : macro return this.$cname == null ? null : $i{modName}.$fname.resolve(this.$cname),
+							}),
+							access : [APrivate],
+						});
+					else
+						fields.pop(); // no field access
+
 					// allow direct id access (no fetch)
-					var tid = (makeTypeName(s) + "Kind").toComplex();
+					var tid = (makeTypeName(ref) + "Kind").toComplex();
 					if( c.opt ) tid = macro : Null<$tid>;
 					fields.push( {
 						name : c.name + "Id",

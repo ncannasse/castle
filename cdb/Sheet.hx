@@ -20,6 +20,9 @@ typedef SheetIndex = { id : String, disp : String, ico : cdb.Types.TilePos, obj 
 
 class Sheet {
 
+	static var _UID = 0;
+	var uid = _UID++;
+
 	public var base(default,null) : Database;
 	var sheet : cdb.Data.SheetData;
 
@@ -30,6 +33,8 @@ class Sheet {
 	public var props(get, never) : cdb.Data.SheetProps;
 	public var lines(get, never) : Array<Dynamic>;
 	public var separators(get, never) : Array<Int>;
+
+	public var idCol : cdb.Data.Column;
 
 	var path : String;
 	public var parent : { sheet : Sheet, column : Int, line : Int };
@@ -63,11 +68,18 @@ class Sheet {
 		return { s : base.getSheet(parts.join("@")), c : colName };
 	}
 
-	public function getLines() : Array<Dynamic> {
+	public function getLines( scope = -1 ) : Array<Dynamic> {
 		var p = getParent();
-		if( p == null ) return sheet.lines;
+		if( p == null ) {
+			if( scope == 0 ) {
+				var cname = idCol == null ? "" : idCol.name;
+				return [for( l in sheet.lines ) { id : Reflect.field(l,cname), obj : l }];
+			}
+			return sheet.lines;
+		}
 
 		if( p.s.isLevel() && p.c == "tileProps" ) {
+			if( scope == 0 ) throw "TODO";
 			// level tileprops
 			var all = [];
 			var sets = p.s.props.level.tileSets;
@@ -82,20 +94,32 @@ class Sheet {
 		}
 
 		var all = [];
+		var parentScope = scope - 1;
+		if( scope == 0 && idCol.scope != null ) parentScope = idCol.scope - 1;
+
+		inline function makeId(obj:Dynamic,v:Dynamic) {
+			var id = parentScope >= 0 ? obj.id : null;
+			if( scope == 0 ) {
+				var locId = idCol != null ? Reflect.field(v, idCol.name) : null;
+				if( locId == null ) id = null else if( parentScope >= 0 ) { if( id != null ) id = id +":"+locId; } else id = locId;
+			}
+			return id;
+		}
+
 		if( sheet.props.isProps ) {
 			// properties
-			for( obj in p.s.getLines() ) {
-				var v : Dynamic = Reflect.field(obj, p.c);
+			for( obj in p.s.getLines(parentScope) ) {
+				var v : Dynamic = Reflect.field(parentScope >= 0 ? obj.obj : obj, p.c);
 				if( v != null )
-					all.push(v);
+					all.push(scope >= 0 ? { id : makeId(obj,v), obj : v } : v);
 			}
 		} else {
 			// lists
-			for( obj in p.s.getLines() ) {
-				var v : Array<Dynamic> = Reflect.field(obj, p.c);
-				if( v != null )
-					for( v in v )
-						all.push(v);
+			for( obj in p.s.getLines(parentScope) ) {
+				var arr : Array<Dynamic> = Reflect.field(parentScope >= 0 ? obj.obj : obj, p.c);
+				if( arr != null )
+					for( v in arr )
+						all.push(scope >= 0 ? { id : makeId(obj,v), obj : v } : v);
 			}
 		}
 		return all;
@@ -498,28 +522,35 @@ class Sheet {
 	}
 
 	public function sync() {
+		if( parent != null )
+			throw "assert";
 		index = new Map();
 		all = [];
-		var cid = null;
-		var lines = getLines();
+		idCol = null;
 		for( c in columns )
 			if( c.type == TId ) {
-				for( l in lines ) {
-					var v = Reflect.field(l, c.name);
-					if( v != null && v != "" ) {
-						var disp = v;
-						var ico = null;
-						if( props.displayColumn != null ) {
-							disp = Reflect.field(l, props.displayColumn);
-							if( disp == null || disp == "" ) disp = "#"+v;
-						}
-						if( props.displayIcon != null )
-							ico = Reflect.field(l, props.displayIcon);
-						var o = { id : v, disp:disp, ico:ico, obj : l };
-						if( index.get(v) == null )
-							index.set(v, o);
-						all.push(o);
+				var isLocal = c.scope != null;
+				idCol = c;
+				for( l in getLines(c.scope) ) {
+					var obj = isLocal ? l.obj : l;
+					var v = Reflect.field(obj, c.name);
+					if( v == null || v == "" ) continue;
+					var disp = v;
+					if( isLocal ) {
+						if( l.id == null || l.id == "" ) continue;
+						v = l.id+":"+v;
 					}
+					var ico = null;
+					if( props.displayColumn != null ) {
+						disp = Reflect.field(obj, props.displayColumn);
+						if( disp == null || disp == "" ) disp = "#"+v;
+					}
+					if( props.displayIcon != null )
+						ico = Reflect.field(obj, props.displayIcon);
+					var o = { id : v, disp:disp, ico:ico, obj : obj };
+					if( index.get(v) == null )
+						index.set(v, o);
+					all.push(o);
 				}
 				all.sort(sortById);
 				break;

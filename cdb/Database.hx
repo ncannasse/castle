@@ -314,16 +314,21 @@ class Database {
 				if( v != null )
 					Reflect.setField(o, c.name, v);
 			}
-
-			function renameRec(sheet:Sheet, col) {
+			var renames = [];
+			function renameRec(sheet:Sheet, col, newName) {
 				var s = sheet.getSub(col);
-				s.rename(sheet.name + "@" + c.name);
+				renames.push(function() {
+					s.rename(sheet.name + "@" + newName);
+					s.sync();
+				});
 				for( c in s.columns )
 					if( c.type == TList || c.type == TProperties )
-						renameRec(s, c);
-				s.sync();
+						renameRec(s, c, c.name);
 			}
-			if( old.type == TList || old.type == TProperties ) renameRec(sheet, old);
+			if( old.type == TList || old.type == TProperties ) {
+				renameRec(sheet, old, c.name);
+				for( f in renames ) f();
+			}
 			old.name = c.name;
 		}
 
@@ -388,6 +393,11 @@ class Database {
 			Reflect.deleteField(old,"kind");
 		else
 			old.kind = c.kind;
+
+		if( c.scope == null )
+			Reflect.deleteField(old,"scope");
+		else
+			old.scope = c.scope;
 
 		sheet.sync();
 		return null;
@@ -953,24 +963,46 @@ class Database {
 				}
 	}
 
-	public function updateRefs( sheet : Sheet, refMap : Map <String, String> ) {
-		function convertTypeRec( t : CustomType, o : Array<Dynamic> ) {
-			var c = t.cases[o[0]];
-			for( i in 0...o.length - 1 ) {
-				var v : Dynamic = o[i + 1];
+	function convertTypeRec( sheet : Sheet, refMap : Map<String, String>, t : CustomType, o : Array<Dynamic> ) {
+		var c = t.cases[o[0]];
+		for( i in 0...o.length - 1 ) {
+			var v : Dynamic = o[i + 1];
+			if( v == null ) continue;
+			switch( c.args[i].type ) {
+			case TRef(n) if( n == sheet.name ):
+				var v = refMap.get(v);
 				if( v == null ) continue;
-				switch( c.args[i].type ) {
-				case TRef(n) if( n == sheet.name ):
-					var v = refMap.get(v);
-					if( v == null ) continue;
-					o[i + 1] = v;
-				case TCustom(name):
-					convertTypeRec(getCustomType(name), v);
-				default:
-				}
+				o[i + 1] = v;
+			case TCustom(name):
+				convertTypeRec(sheet, refMap, getCustomType(name), v);
+			default:
 			}
 		}
+	}
 
+	public function updateLocalRefs( sheet : Sheet, refMap : Map<String, String>, obj : Dynamic, objSheet : Sheet ) {
+		for( c in objSheet.columns ) {
+			var v : Dynamic = Reflect.field(obj, c.name);
+			if( v == null ) continue;
+			switch( c.type ) {
+			case TRef(n) if( n == sheet.name ):
+				v = refMap.get(v);
+				if( v == null ) continue;
+				Reflect.setField(obj, c.name, v);
+			case TCustom(t):
+				convertTypeRec(sheet, refMap, getCustomType(t), v);
+			case TList:
+				var sub = objSheet.getSub(c);
+				for( obj in (v:Array<Dynamic>) )
+					updateLocalRefs(sheet, refMap, obj, sub);
+			case TProperties:
+				updateLocalRefs(sheet, refMap, v, objSheet.getSub(c));
+			default:
+			}
+		}
+	}
+
+	public function updateRefs( sheet : Sheet, refMap : Map<String, String> ) {
 		for( s in sheets )
 			for( c in s.columns )
 				switch( c.type ) {
@@ -986,7 +1018,7 @@ class Database {
 					for( obj in s.getLines() ) {
 						var o = Reflect.field(obj, c.name);
 						if( o == null ) continue;
-						convertTypeRec(getCustomType(t), o);
+						convertTypeRec(sheet, refMap, getCustomType(t), o);
 					}
 				default:
 				}

@@ -36,21 +36,15 @@ enum ColumnType {
 	TProperties;
 }
 
-#if macro
-typedef DisplayType = Int;
-typedef ColumnKind = String;
-#else
-@:enum
-abstract DisplayType(Int) {
+@:enum abstract DisplayType(Int) {
 	var Default = 0;
 	var Percent = 1;
 }
-@:enum
-abstract ColumnKind(String) {
+
+@:enum abstract ColumnKind(String) {
 	var Localizable = "localizable";
 	var Script = "script";
 }
-#end
 
 typedef Column = {
 	var name : String;
@@ -59,6 +53,7 @@ typedef Column = {
 	@:optional var opt : Bool;
 	@:optional var display : DisplayType;
 	@:optional var kind : ColumnKind;
+	@:optional var scope : Int;
 }
 
 @:enum abstract LayerMode(String) {
