@@ -6,6 +6,7 @@ typedef SheetView = {
 	var ?sub : haxe.DynamicAccess<SheetView>;
 	var ?show : Array<String>;
 	var ?forbid : Array<String>;
+	var ?options : Dynamic;
 }
 
 typedef ConfigView = haxe.DynamicAccess<SheetView>;
@@ -98,6 +99,20 @@ class DiffFile {
 					applyObject(sub, value, d, view);
 				else
 					applySheet(sub, value, d, view);
+			case TFlags(_):
+				if( allow ) {
+					var mask = null;
+					if( view.options != null )
+						mask = Reflect.field(view.options, f);
+					if( mask == null )
+						Reflect.setField(obj, f, d);
+					else {
+						var prev = Reflect.field(obj, f);
+						if( prev == null ) prev = 0 else prev = prev & ~mask;
+						if( d == null ) { if( prev != 0 ) d = prev; } else d = (d&mask) | prev;
+						Reflect.setField(obj, f, d);
+					}
+				}
 			default:
 				if( allow ) Reflect.setField(obj, f, d);
 			}
