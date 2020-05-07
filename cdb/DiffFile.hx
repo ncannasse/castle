@@ -101,13 +101,13 @@ class DiffFile {
 					applySheet(sub, value, d, view);
 			case TFlags(_):
 				if( allow ) {
-					var mask = null;
+					var mask : Null<Int> = null;
 					if( view.options != null )
 						mask = Reflect.field(view.options, f);
 					if( mask == null )
 						Reflect.setField(obj, f, d);
 					else {
-						var prev = Reflect.field(obj, f);
+						var prev : Null<Int> = Reflect.field(obj, f);
 						if( prev == null ) prev = 0 else prev = prev & ~mask;
 						if( d == null ) { if( prev != 0 ) d = prev; } else d = (d&mask) | prev;
 						Reflect.setField(obj, f, d);
