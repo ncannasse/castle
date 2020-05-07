@@ -1,12 +1,14 @@
 package cdb;
 
-private typedef SheetView = {
+typedef SheetView = {
 	var insert : Bool;
 	var ?edit : Array<String>;
 	var ?sub : haxe.DynamicAccess<SheetView>;
+	var ?show : Array<String>;
+	var ?forbid : Array<String>;
 }
 
-private typedef ConfigView = haxe.DynamicAccess<SheetView>;
+typedef ConfigView = haxe.DynamicAccess<SheetView>;
 
 private typedef DiffData = Any;
 
@@ -43,6 +45,8 @@ class DiffFile {
 					oldById.set(vid, v);
 			}
 			for( f in Reflect.fields(diff) ) {
+				if( view.forbid != null && view.forbid.indexOf(f) >= 0 )
+					continue;
 				var obj : Dynamic = oldById.get(f);
 				var d : Dynamic = Reflect.field(diff,f);
 				if( obj == null ) {
