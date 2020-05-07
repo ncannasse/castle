@@ -54,6 +54,7 @@ typedef Column = {
 	@:optional var display : DisplayType;
 	@:optional var kind : ColumnKind;
 	@:optional var scope : Int;
+	@:optional var documentation : String;
 }
 
 @:enum abstract LayerMode(String) {

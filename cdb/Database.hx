@@ -384,20 +384,13 @@ class Database {
 			old.opt = c.opt;
 		}
 
-		if( c.display == null )
-			Reflect.deleteField(old,"display");
-		else
-			old.display = c.display;
-
-		if( c.kind == null )
-			Reflect.deleteField(old,"kind");
-		else
-			old.kind = c.kind;
-
-		if( c.scope == null )
-			Reflect.deleteField(old,"scope");
-		else
-			old.scope = c.scope;
+		for( f in ["display","kind","scope","documentation"] ) {
+			var v : Dynamic = Reflect.field(c,f);
+			if( v == null )
+				Reflect.deleteField(old, f);
+			else
+				Reflect.setField(old,f,v);
+		}
 
 		sheet.sync();
 		return null;
