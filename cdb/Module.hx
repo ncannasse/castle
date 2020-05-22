@@ -67,6 +67,8 @@ class Module {
 	#end
 
 	static function getSheetLines( sheets : Array<Data.SheetData>, s : Data.SheetData ) {
+		if( s.props.dataFiles != null )
+			return [];
 		if( !s.props.hide )
 			return s.lines;
 		var name = s.name.split("@");
@@ -512,7 +514,7 @@ class Module {
 
 		var assigns = [], fields = new Array<haxe.macro.Expr.Field>();
 		for( s in data.sheets ) {
-			if( s.props.hide ) continue;
+			if( s.props.hide || s.props.dataFiles != null ) continue;
 			var tname = makeTypeName(s.name);
 			var t = tname.toComplex();
 			var fname = fieldName(s.name);
