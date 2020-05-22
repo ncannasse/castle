@@ -531,6 +531,7 @@ class Sheet {
 			if( c.type == TId ) {
 				var isLocal = c.scope != null;
 				idCol = c;
+				if( lines == null && sheet.props.dataFiles != null ) continue;
 				for( l in getLines(c.scope) ) {
 					var obj = isLocal ? l.obj : l;
 					var v = Reflect.field(obj, c.name);

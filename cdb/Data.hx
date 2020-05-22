@@ -119,6 +119,7 @@ typedef SheetProps = {
 	@:optional var hasIndex : Bool;
 	@:optional var hasGroup : Bool;
 	@:optional var level : LevelsProps;
+	@:optional var dataFiles : String;
 }
 
 typedef SheetData = {
@@ -127,6 +128,7 @@ typedef SheetData = {
 	var lines : Array<Dynamic>;
 	var props : SheetProps;
 	var separators : Array<Int>;
+	@:optional var linesData : Array<Dynamic>;
 }
 
 typedef CustomTypeCase = {
