@@ -35,6 +35,7 @@ class Sheet {
 	public var separators(get, never) : Array<Int>;
 
 	public var idCol : cdb.Data.Column;
+	public var realSheet : Sheet;
 
 	var path : String;
 	public var parent : { sheet : Sheet, column : Int, line : Int };
@@ -44,6 +45,7 @@ class Sheet {
 		this.sheet = sheet;
 		this.path = path;
 		this.parent = parent;
+		realSheet = this;
 	}
 
 	inline function get_lines() return sheet.lines;
