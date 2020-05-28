@@ -185,6 +185,7 @@ class Database {
 			}
 		}
 		sheets = [for( s in data.sheets ) new Sheet(this, s)];
+		#if cdb_old_compat
 		for( s in sheets )
 			if( s.props.hasIndex ) {
 				// delete old index data, if present
@@ -192,6 +193,7 @@ class Database {
 				for( i in 0...lines.length )
 					Reflect.deleteField(lines[i],"index");
 			}
+		#end
 		sync();
 	}
 
