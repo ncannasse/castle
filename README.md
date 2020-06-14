@@ -2,6 +2,8 @@ CastleDB
 ========
 <a href="http://castledb.org"><img src="http://castledb.org/img/icon_hd.png" align=right /></a>
 
+**Important Note:** CastleDB editor has been rewritten to be integrated with [HIDE](https://github.com/heapsio/hide). Castle library is still being developped but the editor here is legacy.
+
 _A structured database and level editor with a local web app to edit it._
 
 ### Why
