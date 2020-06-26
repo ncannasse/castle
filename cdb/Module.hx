@@ -126,6 +126,9 @@ class Module {
 		if( typeName != null ) modName = typeName;
 
 		var typesCache = new Map<String,String>();
+		var hsheets = new Map();
+		for( s in data.sheets )
+			hsheets.set(s.name, s);
 
 		for( s in data.sheets ) {
 			var tname = makeTypeName(s.name);
@@ -258,7 +261,7 @@ class Module {
 				case TRef(ref):
 					var cname = c.name;
 					var fname = fieldName(ref);
-					if( ref.indexOf('@') < 0 )
+					if( ref.indexOf('@') < 0 && hsheets.get(ref).props.dataFiles == null )
 						fields.push({
 							name : "get_"+c.name,
 							pos : pos,
