@@ -73,6 +73,8 @@ class Sheet {
 	public function getLines( scope = -1 ) : Array<Dynamic> {
 		var p = getParent();
 		if( p == null ) {
+			if( sheet.lines == null && sheet.props.dataFiles != null )
+				return [];
 			if( scope == 0 ) {
 				var cname = idCol == null ? "" : idCol.name;
 				return [for( l in sheet.lines ) { id : Reflect.field(l,cname), obj : l }];
