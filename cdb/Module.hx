@@ -179,7 +179,8 @@ class Module {
 				case TInt, TEnum(_), TFlags(_), TColor: macro : Int;
 				case TFloat: macro : Float;
 				case TBool: macro : Bool;
-				case TString, TRef(_), TImage, TId, TFile: macro : String;
+				case TString, TImage, TId, TFile: macro : String;
+				case TRef(t): makeTypeName(t+"Kind").toComplex();
 				case TCustom(_): macro : Array<Dynamic>;
 				case TList:
 					var t = (makeTypeName(s.name+"@"+c.name) + "Def").toComplex();
@@ -268,7 +269,7 @@ class Module {
 							kind : FFun({
 								ret : t,
 								args : [],
-								expr : c.opt ? macro return $i{modName}.$fname.resolve(this.$cname) : macro return this.$cname == null ? null : $i{modName}.$fname.resolve(this.$cname),
+								expr : c.opt ? macro return $i{modName}.$fname.resolve(this.$cname.toString()) : macro return this.$cname == null ? null : $i{modName}.$fname.resolve(this.$cname.toString()),
 							}),
 							access : [APrivate],
 						});
@@ -312,6 +313,7 @@ class Module {
 					name : c.name,
 					pos : pos,
 					kind : FVar(rt),
+					meta : c.opt ? [{ name : ":optional", pos : pos }] : [],
 				});
 			}
 
