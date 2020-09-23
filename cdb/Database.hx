@@ -386,7 +386,7 @@ class Database {
 			old.opt = c.opt;
 		}
 
-		for( f in ["display","kind","scope","documentation"] ) {
+		for( f in ["display","kind","scope","documentation","extension"] ) {
 			var v : Dynamic = Reflect.field(c,f);
 			if( v == null )
 				Reflect.deleteField(old, f);
