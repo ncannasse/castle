@@ -226,7 +226,7 @@ class Module {
 					var idMap = new Map();
 					for( obj in getSheetLines(data.sheets,s) ) {
 						var id = Reflect.field(obj, cname);
-						if( id != null && id != "" && (c.scope != null || !idMap.exists(id)) ) {
+						if( id != null && id != "" && (c.scope == null || !idMap.exists(id)) ) {
 							ids.push({
 								name : id,
 								pos : pos,
