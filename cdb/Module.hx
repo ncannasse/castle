@@ -176,10 +176,11 @@ class Module {
 				}
 
 				var rt = switch( c.type ) {
-				case TInt, TEnum(_), TFlags(_), TColor: macro : Int;
+				case TInt, TColor: macro : Int;
 				case TFloat: macro : Float;
 				case TBool: macro : Bool;
 				case TString, TImage, TId, TFile: macro : String;
+				case TEnum(_), TFlags(_): t; // allow safe type def build
 				case TRef(t): makeTypeName(t+"Kind").toComplex();
 				case TCustom(_): macro : Array<Dynamic>;
 				case TList:
