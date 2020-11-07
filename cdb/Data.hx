@@ -55,6 +55,7 @@ typedef Column = {
 	@:optional var kind : ColumnKind;
 	@:optional var scope : Int;
 	@:optional var documentation : String;
+	@:optional var editor : Any;
 }
 
 @:enum abstract LayerMode(String) {
@@ -120,6 +121,7 @@ typedef SheetProps = {
 	@:optional var hasGroup : Bool;
 	@:optional var level : LevelsProps;
 	@:optional var dataFiles : String;
+	@:optional var editor : Any;
 }
 
 typedef SheetData = {
