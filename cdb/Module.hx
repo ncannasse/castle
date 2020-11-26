@@ -130,6 +130,25 @@ class Module {
 		for( s in data.sheets )
 			hsheets.set(s.name, s);
 
+		var defineEnums = new Map<String,String>();
+
+		function makeEnum( c : Data.Column, tname : String, values : Array<String> ) {
+			var key = c.name+":"+values.join("|");
+			var prev = defineEnums.get(key);
+			if( prev != null ) {
+				types.push({
+					name : tname,
+					pack : curMod,
+					kind : TDAlias(prev.toComplex()),
+					pos : pos,
+					fields : [],
+				});
+				return;
+			}
+			types.push(makeFakeEnum(tname,curMod,pos,values));
+			defineEnums.set(key, tname);
+		}
+
 		for( s in data.sheets ) {
 			var tname = makeTypeName(s.name);
 			var tkind = tname + "Kind";
@@ -152,13 +171,13 @@ class Module {
 					tkind.toComplex();
 				case TEnum(values):
 					var t = makeTypeName(s.name + "@" + c.name);
-					types.push(makeFakeEnum(t,curMod,pos,values));
+					makeEnum(c,t,values);
 					t.toComplex();
 				case TCustom(name):
 					name.toComplex();
 				case TFlags(values):
 					var t = makeTypeName(s.name + "@" + c.name);
-					types.push(makeFakeEnum(t, curMod, pos, values));
+					makeEnum(c,t,values);
 					var t = t.toComplex();
 					macro : cdb.Types.Flags<$t>;
 				case TLayer(t):
