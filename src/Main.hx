@@ -2422,7 +2422,7 @@ class Main extends Model {
 			if( level == this.level ) lcur = l;
 			levels.push(l);
 			var li = J("<li>");
-			var name = level.getName();
+			var name = l.getName();
 			if( name == "" ) name = "???";
 			li.text(name).attr("id", "level_" + l.sheetPath.split(".").join("_") + "_" + l.index).appendTo(sheets).click(function(_) selectLevel(l));
 		}
