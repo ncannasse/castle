@@ -158,7 +158,7 @@ class Module {
 			var ids : Array<haxe.macro.Expr.Field> = [];
 			for( c in s.columns ) {
 
-				if( c.display == Hidden ) continue;
+				if( c.kind == Hidden ) continue;
 
 				var t = switch( c.type ) {
 				case TInt, TColor: macro : Int;
