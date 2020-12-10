@@ -44,6 +44,7 @@ enum ColumnType {
 @:enum abstract ColumnKind(String) {
 	var Localizable = "localizable";
 	var Script = "script";
+	var Hidden = "hidden";
 }
 
 typedef Column = {

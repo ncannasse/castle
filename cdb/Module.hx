@@ -157,6 +157,9 @@ class Module {
 			var realFields : Array<haxe.macro.Expr.Field> = [];
 			var ids : Array<haxe.macro.Expr.Field> = [];
 			for( c in s.columns ) {
+
+				if( c.display == Hidden ) continue;
+
 				var t = switch( c.type ) {
 				case TInt, TColor: macro : Int;
 				case TFloat: macro : Float;
