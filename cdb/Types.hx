@@ -271,9 +271,19 @@ class IndexId<T,Kind> extends Index<T> {
 		return byId.get(cast k);
 	}
 
-	public function resolve( id : String, ?opt : Bool ) : T {
+	public function resolve( id : String, ?opt : Bool, ?approximate : Bool ) : T {
 		if( id == null ) return null;
 		var v = byId.get(id);
+		if( v == null && approximate ) {
+			id = id.toLowerCase();
+			var best = 1000;
+			for( k => value in byId ) {
+				if( StringTools.startsWith(k.toLowerCase(),id) && k.length < best ) {
+					v = value;
+					best = k.length;
+				}
+			}
+		}
 		return v == null && !opt ? throw "Missing " + name + "." + id : v;
 	}
 
