@@ -975,6 +975,10 @@ class Database {
 		}
 	}
 
+	function replaceScriptIdent( v : String, oldId : String, newId : String ) {
+		return new EReg("\\b"+oldId.split(".").join("\\.")+"\\b","").replace(v, newId);
+	}
+
 	public function updateLocalRefs( sheet : Sheet, refMap : Map<String, String>, obj : Dynamic, objSheet : Sheet ) {
 		for( c in objSheet.columns ) {
 			var v : Dynamic = Reflect.field(obj, c.name);
@@ -992,6 +996,12 @@ class Database {
 					updateLocalRefs(sheet, refMap, obj, sub);
 			case TProperties:
 				updateLocalRefs(sheet, refMap, v, objSheet.getSub(c));
+			case TString if( c.kind == Script ):
+				var prefix = sheet.name.split("@").pop();
+				prefix = prefix.charAt(0).toUpperCase() + prefix.substr(1);
+				for( oldId => newId in refMap )
+					v = replaceScriptIdent(v,prefix+"."+oldId,prefix+"."+newId);
+				Reflect.setField(obj, c.name, v);
 			default:
 			}
 		}
@@ -1014,6 +1024,17 @@ class Database {
 						var o = Reflect.field(obj, c.name);
 						if( o == null ) continue;
 						convertTypeRec(sheet, refMap, getCustomType(t), o);
+					}
+				case TString if( c.kind == Script ):
+					var prefix = sheet.name.split("@").pop();
+					prefix = prefix.charAt(0).toUpperCase() + prefix.substr(1);
+					for( obj in s.getLines() ) {
+						var v : String = Reflect.field(obj, c.name);
+						if( v != null ) {
+							for( oldId => newId in refMap )
+								v = replaceScriptIdent(v,prefix+"."+oldId,prefix+"."+newId);
+							Reflect.setField(obj, c.name, v);
+						}
 					}
 				default:
 				}
