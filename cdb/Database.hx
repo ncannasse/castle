@@ -976,6 +976,8 @@ class Database {
 	}
 
 	function replaceScriptIdent( v : String, oldId : String, newId : String ) {
+		if( oldId == "" || newId == "" )
+			return v;
 		return new EReg("\\b"+oldId.split(".").join("\\.")+"\\b","").replace(v, newId);
 	}
 
