@@ -83,7 +83,7 @@ class Parser {
 						if( id != null ) indexMap.set(id, i);
 					}
 					var ids : Array<Dynamic> = Reflect.field(s,"separatorIds");
-					s.separators = [for( i in ids ) if( Std.is(i,Int) ) (i:Int) else indexMap.get(i)];
+					s.separators = [for( i in ids ) if( Std.isOfType(i,Int) ) (i:Int) else indexMap.get(i)];
 					Reflect.deleteField(s, "separatorIds");
 				}
 			}
