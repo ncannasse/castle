@@ -303,7 +303,7 @@ class Lang {
 		case LName(c):
 			var v : String = Reflect.field(o, c.name);
 			if( v != null )
-				v = StringTools.htmlEscape(v).split("\n").join("<br/>").split("\r").join("");
+				v = StringTools.htmlEscape(v.split("\n").join("<br/>").split("\r").join(""));
 			return { name : c.name, value : v };
 		case LSingle(c, f):
 			var v = getLocText(tabs, Reflect.field(o, c.name), f, diff);
