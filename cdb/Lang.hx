@@ -380,11 +380,12 @@ class Lang {
 			buf.add('>\n');
 			for( l in locs )
 				if( l.value != null && l.value != "" ) {
-					if( l.value.indexOf("<") < 0 )
-						buf.add('$tabs\t<${l.name}>${l.value}</${l.name}>\n');
+					var value = l.value.split("\n").join("<br/>").split("\r").join("");
+					if( value.indexOf("<") < 0 )
+						buf.add('$tabs\t<${l.name}>$value</${l.name}>\n');
 					else {
 						buf.add('$tabs\t<${l.name}>\n');
-						buf.add('$tabs\t\t${StringTools.trim(l.value)}\n');
+						buf.add('$tabs\t\t${StringTools.trim(value)}\n');
 						buf.add('$tabs\t</${l.name}>\n');
 					}
 				}
