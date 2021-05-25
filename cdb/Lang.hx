@@ -301,8 +301,10 @@ class Lang {
 	function getLocText( tabs : String, o : Dynamic, f : LocField, diff : LangDiff ) {
 		switch( f ) {
 		case LName(c):
-			var v = Reflect.field(o, c.name);
-			return { name : c.name, value : v == null ? v : StringTools.htmlEscape(v) };
+			var v : String = Reflect.field(o, c.name);
+			if( v != null )
+				v = StringTools.htmlEscape(v).split("\n").join("<br/>").split("\r").join("");
+			return { name : c.name, value : v };
 		case LSingle(c, f):
 			var v = getLocText(tabs, Reflect.field(o, c.name), f, diff);
 			return { name : c.name+"." + v.name, value : v.value };
@@ -380,12 +382,11 @@ class Lang {
 			buf.add('>\n');
 			for( l in locs )
 				if( l.value != null && l.value != "" ) {
-					var value = l.value.split("\n").join("<br/>").split("\r").join("");
-					if( value.indexOf("<") < 0 )
-						buf.add('$tabs\t<${l.name}>$value</${l.name}>\n');
+					if( l.value.indexOf("<") < 0 )
+						buf.add('$tabs\t<${l.name}>${l.value}</${l.name}>\n');
 					else {
 						buf.add('$tabs\t<${l.name}>\n');
-						buf.add('$tabs\t\t${StringTools.trim(value)}\n');
+						buf.add('$tabs\t\t${StringTools.trim(l.value)}\n');
 						buf.add('$tabs\t</${l.name}>\n');
 					}
 				}
