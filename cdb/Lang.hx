@@ -20,9 +20,11 @@ class Ref {
 class Lang {
 
 	var root : Data;
+	var dataSheets : Map<String,{ sheet : SheetData, idField : String, fields : Array<LocField>, refs : Map<String,Map<String,Ref>> }>;
 
 	public function new(root) {
 		this.root = root;
+		dataSheets = new Map();
 	}
 
 	public dynamic function onMissing( s : String ) {
@@ -86,12 +88,29 @@ class Lang {
 		for( s in root.sheets ) {
 			if( s.props.hide ) continue;
 			var x = xsheets.get(s.name);
+			if( s.props.dataFiles != null ) {
+				var fields = makeSheetFields(s);
+				if( fields.length > 0 ) {
+					var idField = null;
+					for( c in s.columns )
+						if( c.type == TId ) {
+							idField = c.name;
+							break;
+						}
+					if( idField == null ) throw "assert";
+					if( x == null ) {
+						onMissing("Missing sheet " + s.name);
+						continue;
+					}
+					dataSheets.set(s.name, { sheet : s, idField : idField, fields : fields, refs : makeIdMap(x) });
+				}
+				continue;
+			}
 			if( x == null ) {
 				if( s.lines.length > 0 && makeSheetFields(s).length > 0 )
 					onMissing("Missing sheet " + s.name);
 				continue;
 			}
-
 			var path = [s.name];
 			var outLines = [];
 			applySheet(path, s, makeSheetFields(s), s.lines, x, outLines);
@@ -109,6 +128,26 @@ class Lang {
 			deleteSheet(s, makeSheetFields(s), sdel, s.lines);
 		}
 	}
+
+	#if hide
+	public function applyPrefab( p : hrt.prefab.Prefab ) {
+		var t = p.getCdbType();
+		if( t != null ) {
+			var data = dataSheets.get(t);
+			if( data != null ) {
+				var o = p.props;
+				var id = Reflect.field(o, data.idField);
+				var path = [data.sheet.name, id];
+				var ref = data.refs.get(id);
+				var outSub = {};
+				for( f in data.fields )
+					applyRec(path, f, o, ref, outSub);
+			}
+		}
+		for( x in p )
+			applyPrefab(x);
+	}
+	#end
 
 	function deleteSheet( s : SheetData, loc : Array<LocField>, del : Array<{}>, lines : Array<Dynamic> ) {
 		var inf = getSheetHelpers(s);
@@ -192,29 +231,11 @@ class Lang {
 
 		} else {
 
-			var byID = new Map();
-			if( x != null ) {
-				for( e in x.e.elements() ) {
-					var m = new Map();
-					for( e in e.elements() )
-						m.set(e.nodeName, new Ref(e));
-					byID.set(e.nodeName, m);
-				}
-				if( x.ref != null ) {
-					for( e in x.ref.elements() ) {
-						var m = byID.get(e.nodeName);
-						if( m != null )
-							for( e in e.elements() ) {
-								var r = m.get(e.nodeName);
-								if( r != null ) r.ref = e;
-							}
-					}
-				}
-			}
-
+			var byID = makeIdMap(x);
 			for( o in objects ) {
 				var outSub = {};
 				var id = Reflect.field(o, inf.id);
+				if( id == null ) id = "null";
 				path.push(id);
 				for( f in fields )
 					applyRec(path, f, o, byID.get(id), outSub);
@@ -225,6 +246,29 @@ class Lang {
 				}
 			}
 		}
+	}
+
+	function makeIdMap( x : Ref ) {
+		var byID = new Map();
+		if( x == null )
+			return byID;
+		for( e in x.e.elements() ) {
+			var m = new Map();
+			for( e in e.elements() )
+				m.set(e.nodeName, new Ref(e));
+			byID.set(e.nodeName, m);
+		}
+		if( x.ref != null ) {
+			for( e in x.ref.elements() ) {
+				var m = byID.get(e.nodeName);
+				if( m != null )
+					for( e in e.elements() ) {
+						var r = m.get(e.nodeName);
+						if( r != null ) r.ref = e;
+					}
+			}
+		}
+		return byID;
 	}
 
 	function applyRec( path : Array<String>, f : LocField, o : Dynamic, data : Map<String,Ref>, out : Dynamic ) {
@@ -320,7 +364,8 @@ class Lang {
 		var helpers = [];
 		for( c in s.columns ) {
 			switch( c.type ) {
-			case TId if( id == null ): id = c;
+			case TId if( id == null ):
+				id = c;
 			case TRef(sheet):
 				var map = null;
 				var s = getSheet(sheet);
@@ -348,18 +393,25 @@ class Lang {
 			}
 		}
 		if( id != null ) helpers = [];
-		return { id : id == null ? null : id.name, helpers : helpers };
+		return { id : id == null ? null : id.name, idOpt : id == null ? false : id.opt, helpers : helpers };
 	}
 
 	function buildSheetXml(s:SheetData, tabs, values : Array<Dynamic>, locFields:Array<LocField>, diff : Map<String,Array<{}>> ) {
 		var inf = getSheetHelpers(s);
-		var id = inf.id;
 		var buf = new StringBuf();
 		var index = 0;
 		for( o in values ) {
-			var id = id == null ? ""+(index++) : Reflect.field(o, id);
-			if( id == null || id == "" ) continue;
-
+			var id;
+			if( inf.id == null )
+				id = ""+(index++);
+			else {
+				id = Reflect.field(o, inf.id);
+				if( id == "" ) continue;
+				if( id == null ) {
+					if( !inf.idOpt ) continue;
+					id = "null";
+				}
+			}
 			var locs = [for( f in locFields ) getLocText(tabs, o, f, diff)];
 			var hasLoc = false;
 			for( l in locs )
