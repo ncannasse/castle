@@ -276,8 +276,13 @@ class Lang {
 		case LName(c):
 			var v = data == null ? null : data.get(c.name);
 			if( v != null ) {
-				var str = StringTools.htmlUnescape(#if (haxe_ver < 4) new haxe.xml.Fast #else new haxe.xml.Access #end(v.e).innerHTML);
-				var ref = v.ref == null ? null : StringTools.htmlUnescape(#if (haxe_ver < 4) new haxe.xml.Fast #else new haxe.xml.Access #end(v.ref).innerHTML);
+				inline function unescape(x:Xml) {
+					var html = #if (haxe_ver < 4) new haxe.xml.Fast #else new haxe.xml.Access #end(x).innerHTML;
+					html = ~/<br\/>/gi.replace(html,"\n");
+					return StringTools.htmlUnescape(html);
+				}
+				var str = unescape(v.e);
+				var ref = v.ref == null ? null : unescape(v.ref);
 				if( ref != null && ref != Reflect.field(o,c.name) ) {
 					path.push(c.name);
 					onMissing("Ignored since has changed "+path.join("."));
@@ -347,7 +352,7 @@ class Lang {
 		case LName(c):
 			var v : String = Reflect.field(o, c.name);
 			if( v != null )
-				v = StringTools.htmlEscape(v.split("\n").join("<br/>").split("\r").join(""));
+				v = StringTools.htmlEscape(v).split("\n").join("<br/>").split("\r").join("");
 			return { name : c.name, value : v };
 		case LSingle(c, f):
 			var v = getLocText(tabs, Reflect.field(o, c.name), f, diff);
