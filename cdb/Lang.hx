@@ -417,7 +417,7 @@ class Lang {
 					id = "null";
 				}
 			}
-			var locs = [for( f in locFields ) getLocText(tabs, o, f, diff)];
+			var locs = [for( f in locFields ) { var l = getLocText(tabs, o, f, diff); { f : f, value : l.value, name : l.name }; }];
 			var hasLoc = false;
 			for( l in locs )
 				if( l.value != null && l.value != "" ) {
@@ -439,7 +439,7 @@ class Lang {
 			buf.add('>\n');
 			for( l in locs )
 				if( l.value != null && l.value != "" ) {
-					if( l.value.indexOf("<") < 0 )
+					if( l.f.match(LName(_)) || l.value.indexOf("<") < 0 )
 						buf.add('$tabs\t<${l.name}>${l.value}</${l.name}>\n');
 					else {
 						buf.add('$tabs\t<${l.name}>\n');
