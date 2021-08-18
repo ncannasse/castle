@@ -23,8 +23,8 @@ class Image3D extends Image {
 
 	var gl : js.html.webgl.RenderingContext;
 	var curTexture : Texture;
-	var curDraw : js.html.Float32Array;
-	var curIndex : js.html.Uint16Array;
+	var curDraw : js.lib.Float32Array;
+	var curIndex : js.lib.Uint16Array;
 	var drawPos : Int;
 	var indexPos : Int;
 
@@ -62,8 +62,8 @@ class Image3D extends Image {
 		canvas.setAttribute("width", CANVAS_SIZE+"px");
 		canvas.setAttribute("height", CANVAS_SIZE+"px");
 		colorCache = new Map();
-		curDraw = new js.html.Float32Array(4 * 4 * Math.ceil(65536 / 6));
-		curIndex = new js.html.Uint16Array(65536);
+		curDraw = new js.lib.Float32Array(4 * 4 * Math.ceil(65536 / 6));
+		curIndex = new js.lib.Uint16Array(65536);
 	}
 
 	override function init() {
