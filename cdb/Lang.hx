@@ -197,11 +197,15 @@ class Lang {
 					var m = new Map();
 					for( e in e.elements() )
 						m.set(e.nodeName, new Ref(e));
-					byIndex[Std.parseInt(e.nodeName)] = m;
+					var name = e.nodeName;
+					if( StringTools.startsWith(name, "line") ) name = name.substr(4);
+					byIndex[Std.parseInt(name)] = m;
 				}
 				if( x.ref != null )
 					for( e in x.ref.elements() ) {
-						var m = byIndex[Std.parseInt(e.nodeName)];
+						var name = e.nodeName;
+						if( StringTools.startsWith(name, "line") ) name = name.substr(4);
+						var m = byIndex[Std.parseInt(name)];
 						if( m != null )
 							for( e in e.elements() ) {
 								var r = m.get(e.nodeName);
@@ -408,7 +412,7 @@ class Lang {
 		for( o in values ) {
 			var id;
 			if( inf.id == null )
-				id = ""+(index++);
+				id = "line"+(index++);
 			else {
 				id = Reflect.field(o, inf.id);
 				if( id == "" ) continue;
