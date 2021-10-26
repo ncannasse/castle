@@ -135,8 +135,11 @@ class Sheet {
 			return [for( i in 0...sheet.lines.length ) { path : [sheet.lines[i]], indexes : [i] }];
 		var all = [];
 		for( obj in p.s.getObjects() ) {
-			var v : Array<Dynamic> = Reflect.field(obj.path[obj.path.length-1], p.c);
-			if( v != null )
+			var v : Dynamic = Reflect.field(obj.path[obj.path.length-1], p.c);
+			if( v == null ) continue;
+			if( Std.is(v, Array) ) {
+				// list
+				var v : Array<Dynamic> = v;
 				for( i in 0...v.length ) {
 					var sobj = v[i];
 					var p = obj.path.copy();
@@ -145,6 +148,14 @@ class Sheet {
 					idx.push(i);
 					all.push({ path : p, indexes : idx });
 				}
+			} else {
+				// props
+				var p = obj.path.copy();
+				var idx = obj.indexes.copy();
+				p.push(v);
+				idx.push(-1);
+				all.push({ path : p, indexes : idx });
+			}
 		}
 		return all;
 	}
@@ -380,7 +391,10 @@ class Sheet {
 		}
 		if( id == "" || id == null )
 			return null;
+		return getReferencesFromId(id);
+	}
 
+	public function getReferencesFromId( id : String ) {
 		var results = [];
 		for( s in base.sheets ) {
 			for( c in s.columns )
