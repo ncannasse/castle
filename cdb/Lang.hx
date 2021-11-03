@@ -97,7 +97,8 @@ class Lang {
 							idField = c.name;
 							break;
 						}
-					if( idField == null ) throw "assert";
+					if( idField == null )
+						continue; // sheet with no id not supported - should not have loc either
 					if( x == null ) {
 						onMissing("Missing sheet " + s.name);
 						continue;
