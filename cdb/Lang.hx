@@ -19,6 +19,8 @@ class Ref {
 
 class Lang {
 
+	public static var IGNORE_EXPORT_FIELD = "__ignoreLoc__";
+
 	var root : Data;
 	var dataSheets : Map<String,{ sheet : SheetData, idField : String, fields : Array<LocField>, refs : Map<String,Map<String,Ref>> }>;
 
@@ -411,6 +413,9 @@ class Lang {
 		var buf = new StringBuf();
 		var index = 0;
 		for( o in values ) {
+
+			if( Reflect.hasField(o, IGNORE_EXPORT_FIELD) ) continue;
+
 			var id;
 			if( inf.id == null )
 				id = "line"+(index++);
