@@ -48,7 +48,7 @@ private class FlagsIterator<T> {
 
 }
 
-@:forward(map, filter, indexOf)
+@:forward(map, filter, indexOf, exists, find)
 abstract ArrayRead<T>(Array<T>) from Array<T> {
 
 	public var length(get, never) : Int;
