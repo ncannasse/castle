@@ -23,6 +23,8 @@ class Lang {
 
 	var root : Data;
 	var dataSheets : Map<String,{ sheet : SheetData, idField : String, fields : Array<LocField>, refs : Map<String,Map<String,Ref>> }>;
+	var skipMissing : Bool;
+	public var missingSetLocKey : Bool;
 
 	public function new(root) {
 		this.root = root;
@@ -299,10 +301,17 @@ class Lang {
 			} else {
 				var v = Reflect.field(o, c.name);
 				if( v != null && v != "" ) {
-					path.push(c.name);
-					Reflect.setField(out, c.name, v);
-					onMissing("Missing " + path.join("."));
-					path.pop();
+					if( !skipMissing ) {
+						path.push(c.name);
+						Reflect.setField(out, c.name, v);
+						onMissing("Missing " + path.join("."));
+						path.pop();
+					}
+					if( missingSetLocKey ) {
+						path.push(c.name);
+						Reflect.setField(o, c.name, "#"+path.join("."));
+						path.pop();
+					}
 				}
 			}
 		case LSingle(c, f):
