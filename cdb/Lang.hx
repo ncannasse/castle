@@ -280,7 +280,15 @@ class Lang {
 		return byID;
 	}
 
-	function applyRec( path : Array<String>, f : LocField, o : Dynamic, data : Map<String,Ref>, out : Dynamic ) {
+	function applyRec(path,f,o:Dynamic,data,out) {
+		var prevMissing = skipMissing;
+		if( Reflect.hasField(o, IGNORE_EXPORT_FIELD) )
+			skipMissing = true;
+		_applyRec(path,f,o,data,out);
+		skipMissing = prevMissing;
+	}
+
+	function _applyRec( path : Array<String>, f : LocField, o : Dynamic, data : Map<String,Ref>, out : Dynamic ) {
 		switch( f ) {
 		case LName(c):
 			var v = data == null ? null : data.get(c.name);
