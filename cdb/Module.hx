@@ -352,27 +352,18 @@ class Module {
 				});
 			}
 
-			var gtitles = s.props.separatorTitles;
-			if( s.props.hasGroup && gtitles != null ) {
+			if( s.props.hasGroup ) {
 				var tint = macro : Int;
 				realFields.push( { name : "group", pos : pos, kind : FVar(tint) } );
 				var tgroup = makeTypeName(s.name + "@group");
-				var groups = [for( t in gtitles ) if( t != null ) makeTypeName(t)];
+				var groups = [for( t in s.separators ) if( t.title != null ) makeTypeName(t.title)];
 				var needNone = false;
 				// check if we have items without a separator
-				if( gtitles[0] == null )
-					needNone = true;
-				else if( s.separators != null )
-					needNone = s.separators[0] > 0;
-				else {
-					var ids : Array<Dynamic> = Reflect.field(s, "separatorIds");
-					var fid = ids[0];
-					if( Std.is(fid,Int) ) {
-						needNone = fid > 0;
-					} else
-						needNone = fid != Reflect.field(s.lines[0],idField);
+				if( s.separators.length > 0 ) {
+					var s0 = s.separators[0];
+					if( s0.title == null || s0.index > 0 || (s0.id != null && s0.id != Reflect.field(s.lines[0],idField)) )
+						needNone = true;
 				}
-
 				if( needNone )
 					groups.unshift("None");
 				types.push(makeFakeEnum(tgroup, curMod, pos, groups));
