@@ -115,7 +115,6 @@ typedef LevelsProps = {
 typedef SheetProps = {
 	@:optional var displayColumn : Null<String>;
 	@:optional var displayIcon : Null<String>;
-	@:optional var separatorTitles : Array<String>;
 	@:optional var hide : Bool;
 	@:optional var isProps : Bool;
 	@:optional var hasIndex : Bool;
@@ -125,12 +124,18 @@ typedef SheetProps = {
 	@:optional var editor : Any;
 }
 
+typedef Separator = {
+	var ?index : Int;
+	var ?id : String;
+	var ?title : String;
+}
+
 typedef SheetData = {
 	var name : String;
 	var columns : Array<Column>;
 	var lines : Array<Dynamic>;
 	var props : SheetProps;
-	var separators : Array<Int>;
+	var separators : Array<Separator>;
 	@:optional var linesData : Array<Dynamic>;
 }
 

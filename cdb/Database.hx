@@ -241,17 +241,20 @@ class Database {
 				var lines = s.getLines();
 				var gid = 0;
 				var sindex = 0;
-				var titles = s.props.separatorTitles;
-				if( titles != null ) {
-					// skip first if at head
-					while( s.separators[sindex] == 0 && titles[sindex] != null ) sindex++;
-					for( i in 0...lines.length ) {
-						while( s.separators[sindex] == i ) {
-							if( titles[sindex] != null ) gid++;
-							sindex++;
-						}
-						lines[i].group = gid;
+				// skip first if at head
+				while( true ) {
+					var s = s.separators[sindex];
+					if( s == null || s.index != 0 || s.title == null ) break;
+					sindex++;
+				}
+				for( i in 0...lines.length ) {
+					while( true ) {
+						var s = s.separators[sindex];
+						if( s == null || s.index != i ) break;
+						if( s.title != null ) gid++;
+						sindex++;
 					}
+					lines[i].group = gid;
 				}
 			}
 		}

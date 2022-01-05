@@ -32,7 +32,7 @@ class Sheet {
 	public var columns(get, never) : Array<cdb.Data.Column>;
 	public var props(get, never) : cdb.Data.SheetProps;
 	public var lines(get, never) : Array<Dynamic>;
-	public var separators(get, never) : Array<Int>;
+	public var separators(get, never) : Array<Separator>;
 
 	public var idCol : cdb.Data.Column;
 	public var realSheet : Sheet;
@@ -171,9 +171,8 @@ class Sheet {
 		if( index == null )
 			sheet.lines.push(o);
 		else {
-			for( i in 0...sheet.separators.length ) {
-				var s = sheet.separators[i];
-				if( s > index ) sheet.separators[i] = s + 1;
+			for( s in sheet.separators ) {
+				if( s.index > index ) s.index++;
 			}
 			sheet.lines.insert(index + 1, o);
 			changeLineOrder([for( i in 0...sheet.lines.length ) i <= index ? i : i + 1]);
@@ -202,14 +201,13 @@ class Sheet {
 	public function moveLine( index : Int, delta : Int ) : Null<Int> {
 		if( delta < 0 ) {
 
-			for( i in 0...sheet.separators.length )
-				if( sheet.separators[i] == index ) {
-					var i = i;
-					while( i < sheet.separators.length - 1 && sheet.separators[i+1] == index )
-						i++;
-					sheet.separators[i]++;
+			for( i in 0...sheet.separators.length ) {
+				var sep = sheet.separators[sheet.separators.length - 1 - i];
+				if( sep.index == index ) {
+					sep.index++;
 					return index;
 				}
+			}
 
 			if( index <= 0 )
 				return null;
@@ -227,9 +225,9 @@ class Sheet {
 		} else if( delta > 0 ) {
 
 
-			for( i in 0...sheet.separators.length )
-				if( sheet.separators[i] == index + 1 ) {
-					sheet.separators[i]--;
+			for( sep in sheet.separators )
+				if( sep.index == index + 1 ) {
+					sep.index--;
 					return index;
 				}
 
@@ -257,19 +255,9 @@ class Sheet {
 
 		sheet.lines.splice(index, 1);
 
-		var prev = -1, toRemove : Null<Int> = null;
 		for( i in 0...sheet.separators.length ) {
 			var s = sheet.separators[i];
-			if( s > index ) {
-				if( prev == s ) toRemove = i;
-				sheet.separators[i] = s - 1;
-			} else
-				prev = s;
-		}
-		// prevent duplicates
-		if( toRemove != null ) {
-			sheet.separators.splice(toRemove, 1);
-			if( sheet.props.separatorTitles != null ) sheet.props.separatorTitles.splice(toRemove, 1);
+			if( s.index > index ) s.index--;
 		}
 	}
 
