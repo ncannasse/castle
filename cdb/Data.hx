@@ -128,6 +128,7 @@ typedef Separator = {
 	var ?index : Int;
 	var ?id : String;
 	var ?title : String;
+	var ?level : Int;
 }
 
 typedef SheetData = {
