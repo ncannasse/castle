@@ -129,6 +129,7 @@ typedef Separator = {
 	var ?id : String;
 	var ?title : String;
 	var ?level : Int;
+	var ?path : String;
 }
 
 typedef SheetData = {
