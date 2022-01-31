@@ -242,11 +242,10 @@ class Database {
 				var gid = 0;
 				var sindex = 0;
 				// skip first if at head
-				while( true ) {
-					var s = s.separators[sindex];
-					if( s == null || s.index != 0 || s.title == null ) break;
+				var firstSeparator = s.separators[0];
+				if( firstSeparator != null && firstSeparator.index == 0 && firstSeparator.title != null )
 					sindex++;
-				}
+				
 				for( i in 0...lines.length ) {
 					while( true ) {
 						var s = s.separators[sindex];
