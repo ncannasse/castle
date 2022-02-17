@@ -190,6 +190,26 @@ typedef TileLayer = {
 	var size(default, never) : Int;
 	var data(default, never) : TileLayerData;
 }
+typedef Float2 = {
+	var x(default, never) : Float;
+	var y(default, never) : Float;
+}
+
+typedef Float3 = {
+	var x(default, never) : Float;
+	var y(default, never) : Float;
+	var z(default, never) : Float;
+}
+
+typedef Float4 = {
+	var x(default, never) : Float;
+	var y(default, never) : Float;
+	var z(default, never) : Float;
+	var w(default, never) : Float;
+}
+
+
+
 
 class Index<T> {
 

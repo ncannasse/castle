@@ -560,6 +560,8 @@ class Main extends Model {
 			switch( c.display ) {
 			case Percent:
 				(Math.round(v * 10000)/100) + "%";
+			case Degrees:
+				(Math.round(100 * v * (180.0 / Math.PI))/ 100) + " deg";
 			default:
 				v + "";
 			}
@@ -680,6 +682,19 @@ class Main extends Model {
 			var str = Std.string(v).split("\n").join(" ").split("\t").join("");
 			if( str.length > 50 ) str = str.substr(0, 47) + "...";
 			str;
+		case TFloat2:
+			var v : cdb.Types.Float2 = v;
+			v.x + "," + v.y;
+		case TFloat3:
+			var v : cdb.Types.Float3 = v;
+			v.x + "," + v.y + "," + v.z;
+		case TFloat4:
+			var v : cdb.Types.Float4 = v;
+			v.x + "," + v.y + "," + v.z + "," + v.w;
+		case TCurve:
+			//var v : cdb.Types.Curve = v;
+			//v.x0 + "," + v.y0 + "," + v.x1 + "," + v.y1;
+			'<span class="error">#Unsupported</span>';
 		}
 	}
 
@@ -1022,7 +1037,7 @@ class Main extends Model {
 			setErrorMessage();
 		}
 		switch( c.type ) {
-		case TInt, TFloat, TString, TId, TCustom(_), TDynamic:
+		case TFloat2, TFloat3, TFloat4,TInt, TFloat, TString, TId, TCustom(_), TDynamic:
 			v.empty();
 			var i = J("<input>");
 			v.addClass("edit");
@@ -1269,7 +1284,7 @@ class Main extends Model {
 				editDone();
 				save();
 			};
-		case TTileLayer:
+		case TCurve,TTileLayer:
 			// nothing
 		case TColor:
 			var id = Std.random(0x1);

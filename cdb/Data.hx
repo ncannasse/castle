@@ -34,11 +34,17 @@ enum ColumnType {
 	TTileLayer;
 	TDynamic;
 	TProperties;
+	//[RC] Extensions
+	TFloat2;
+	TFloat3;
+	TFloat4;
+	TCurve;
 }
 
 @:enum abstract DisplayType(Int) {
 	var Default = 0;
 	var Percent = 1;
+	var Degrees = 2;
 }
 
 @:enum abstract ColumnKind(String) {

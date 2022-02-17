@@ -14,8 +14,10 @@
  * IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 package cdb;
+import haxe.macro.Printer;
 import haxe.macro.Context;
 using haxe.macro.Tools;
+import tink.macro.Exprs;
 
 class Module {
 
@@ -92,10 +94,47 @@ class Module {
 		return out;
 	}
 
+	/*
+typedef TilePos = {
+	var file(default, never) : String;
+	var size(default, never) : Int;
+	var x(default, never) : Int;
+	var y(default, never) : Int;
+	var width(default, never) : Null<Int>;
+	var height(default, never) : Null<Int>;
+}
+
+typedef TileLayer = {
+	var file(default, never) : String;
+	var stride(default, never) : Int;
+	var size(default, never) : Int;
+	var data(default, never) : TileLayerData;
+}
+typedef Float2 = {
+	var x(default, never) : Float;
+	var y(default, never) : Float;
+}
+
+typedef Float3 = {
+	var x(default, never) : Float;
+	var y(default, never) : Float;
+	var z(default, never) : Float;
+}
+
+typedef Float4 = {
+	var x(default, never) : Float;
+	var y(default, never) : Float;
+	var z(default, never) : Float;
+	var w(default, never) : Float;
+}
+
+
+	*/
 	public static function build( file : String, ?typeName : String ) {
 		#if !macro
 		throw "This can only be called in a macro";
 		#else
+
 		var pos = Context.currentPos();
 		var path = try Context.resolvePath(file) catch( e : Dynamic ) null;
 		if( path == null ) {
@@ -195,8 +234,15 @@ class Module {
 					s.props.level != null && c.name == "props" ? macro : cdb.Types.LevelPropsAccess<$t> : macro : Dynamic;
 				case TProperties:
 					makeTypeName(s.name + "@" + c.name).toComplex();
+				case TFloat2: 
+					macro : cdb.Types.Float2;
+				case TFloat3: 
+					macro : cdb.Types.Float3;
+				case TFloat4: 
+					macro : cdb.Types.Float4;
+				case TCurve:
+					macro : cdb.Curve;
 				}
-
 				var rt = switch( c.type ) {
 				case TInt, TColor: macro : Int;
 				case TFloat: macro : Float;
@@ -214,6 +260,15 @@ class Module {
 				case TDynamic: macro : Dynamic;
 				case TProperties:
 					(makeTypeName(s.name+"@" + c.name) + "Def").toComplex();
+				// I think this is wrong [RC] - I think these should be strings, but not sure.
+				case TFloat2: 
+					macro :  { x : Float, y : Float };
+				case TFloat3: 
+					macro :  { x : Float, y : Float, z : Float };
+				case TFloat4: 
+					macro :  { x : Float, y : Float, z : Float, w : Float };
+				case TCurve:
+					macro : Dynamic;
 				};
 
 				if( c.opt ) {
@@ -229,7 +284,7 @@ class Module {
 				});
 
 				switch( c.type ) {
-				case TInt, TFloat, TString, TBool, TImage, TColor, TFile, TTilePos, TDynamic:
+				case TInt, TFloat, TFloat2, TFloat3, TFloat4, TString, TBool, TImage, TColor, TFile,  TTilePos, TDynamic:
 					var cname = c.name;
 					fields.push({
 						name : "get_"+c.name,
@@ -241,6 +296,28 @@ class Module {
 						}),
 						access : [AInline, APrivate],
 					});
+				case  TCurve:
+					var cname = c.name;
+					var cachecname = c.name + "_cache";
+					fields.push({
+						name : "get_"+c.name,
+						pos : pos,
+						kind : FFun({
+							ret : t,
+							args : [],
+							expr : macro return ((this.$cachecname == null) ? this.$cachecname =  cdb.Curve.fromDynamic(this.$cname) : this.$cachecname),
+						}),
+						access : [AInline, APrivate],
+					});
+
+					realFields.push({
+						name : cachecname,
+						pos : pos,
+						kind : FVar(t),
+						meta : []
+					});
+
+					
 				case TId:
 					if( idField == null )
 						idField = c.name;
@@ -330,6 +407,7 @@ class Module {
 						}),
 						access : [AInline,APrivate],
 					});
+					
 				}
 
 				realFields.push({
@@ -487,7 +565,7 @@ class Module {
 				for( ai in 0...c.args.length ) {
 					var a = c.args[ai];
 					var econv = switch( a.type ) {
-					case TId, TString, TBool, TInt, TFloat, TImage, TEnum(_), TFlags(_), TColor, TFile, TTileLayer, TDynamic:
+					case TId, TString, TBool, TInt, TFloat, TFloat2, TFloat3, TFloat4, TCurve, TImage, TEnum(_), TFlags(_), TColor, TFile, TTileLayer, TDynamic:
 						macro v[$v { ai + 1 } ];
 					case TCustom(id):
 						if( a.opt )
@@ -574,6 +652,8 @@ class Module {
 				}
 			}).fields.concat(fields),
 		});
+
+
 		var mpath = Context.getLocalModule();
 		Context.defineModule(mpath, types);
 		Context.registerModuleDependency(mpath, path);

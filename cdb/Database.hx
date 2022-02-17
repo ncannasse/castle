@@ -14,6 +14,7 @@
  * IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 package cdb;
+import cdb.Curve;
 import cdb.Data.Column;
 import cdb.Data.ColumnType;
 import cdb.Data.CustomType;
@@ -291,7 +292,12 @@ class Database {
 					}
 			}
 			obj;
-		case TCustom(_), TTilePos, TTileLayer, TDynamic: null;
+		case TTilePos, TTileLayer, TDynamic: null;
+		case TCustom(_): new Array<Dynamic>();
+		case TFloat2: {x : 0., y : 0.};
+		case TFloat3: {x : 0., y : 0., z : 0.};
+		case TFloat4: {x : 0., y : 0., z : 0., w : 0.};
+		case TCurve: new Curve() ;
 		}
 	}
 
@@ -649,10 +655,18 @@ class Database {
 		case TColor:
 			var s = "#" + StringTools.hex(val, 6);
 			esc ? '"' + s + '"' : s;
-		case TTileLayer, TDynamic, TTilePos:
+		case TTileLayer, TDynamic, TTilePos, TFloat2, TFloat3, TFloat4:
 			if( esc )
 				return haxe.Json.stringify(val);
 			return valueToString(val);
+		case TCurve:
+			var curve : Curve = val;
+			if (curve != null) {
+				if( esc )
+					return haxe.Json.stringify(curve.save());
+				return valueToString(curve.save());	
+			}
+			"???";
 		case TProperties, TList:
 			"???";
 		}
@@ -681,6 +695,9 @@ class Database {
 	}
 
 	public function typeValToString( t : CustomType, val : Array<Dynamic>, esc = false ) {
+		if (val.length == 0) {
+			return "";
+		}
 		var c = t.cases[val[0]];
 		var str = c.name;
 		if( c.args.length > 0 ) {
@@ -759,6 +776,12 @@ class Database {
 				return Std.parseInt(val);
 		case TDynamic:
 			return parseDynamic(val);
+		case TFloat2, TFloat3, TFloat4:
+			return parseDynamic(val);
+		case TCurve:
+			var c = new Curve();
+			c.load(val);
+			return c;
 		default:
 		}
 		throw "'" + val + "' should be "+typeStr(t);
@@ -766,7 +789,7 @@ class Database {
 
 	public function parseTypeVal( t : CustomType, val : String ) : Dynamic {
 		if( t == null || val == null )
-			throw "Missing val/type";
+			throw "Missing val/type | Format - id (parameters)";
 		val = StringTools.trim(val);
 		var missingCloseParent = false;
 		var pos = val.indexOf("(");
@@ -775,7 +798,7 @@ class Database {
 			id = val;
 			args = [];
 		} else {
-			id = val.substr(0, pos);
+			id = val.substr(0, pos + 1);
 			val = val.substr(pos + 1);
 
 			if( StringTools.endsWith(val, ")") )
@@ -789,12 +812,12 @@ class Database {
 				case '('.code:
 					pc++;
 				case ')'.code:
-					if( pc == 0 ) throw "Extra )";
+					if( pc == 0 ) throw "Extra ) | Format - id (parameters)";
 					pc--;
 				case '"'.code:
 					var esc = false;
 					while( true ) {
-						if( p == val.length ) throw "Unclosed \"";
+						if( p == val.length ) throw "Unclosed \" | Format - id (parameters)";
 						var c = val.charCodeAt(p++);
 						if( esc )
 							esc = false;
@@ -814,38 +837,56 @@ class Database {
 			if( pc > 0 ) missingCloseParent = true;
 			if( p > start || (start > 0 && p == start) ) args.push(val.substr(start, p - start));
 		}
+
+		var cidx : Int = -1;
 		for( i in 0...t.cases.length ) {
 			var c = t.cases[i];
 			if( c.name == id ) {
-				var vals : Array<Null<Int>> = [i];
-				for( a in c.args ) {
-					var v = args.shift();
-					if( v == null ) {
-						if( a.opt )
-							vals.push(null);
-						else
-							throw "Missing argument " + a.name+" : "+typeStr(a.type);
-					} else {
-						v = StringTools.trim(v);
-						if( a.opt && v == "null" ) {
-							vals.push(null);
-							continue;
-						}
-						var val = try parseValue(a.type, v, true) catch( e : String ) throw e + " for " + a.name;
-						vals.push(val);
-					}
-				}
-				if( args.length > 0 )
-					throw "Extra argument '" + args.shift() + "'";
-				if( missingCloseParent )
-					throw "Missing )";
-				while( vals[vals.length - 1] == null )
-					vals.pop();
-				return vals;
+				cidx = i;
 			}
 		}
-		throw "Unkown value '" + id + "'";
-		return null;
+		if (cidx == -1) {
+			//fallback on index
+			cidx = Std.parseInt(id);
+		}
+
+		if (cidx >= t.cases.length) {
+			throw "Type id out of range | Format - id (parameters)"; 
+		} else if (cidx <0) {
+			throw "Unkown value '" + id + "' | Format - id (parameters)";
+		}
+
+		var i = cidx;
+		var c = t.cases[i];
+		if (c == null) {
+			throw "Null case " + cidx + " from " + id + " over " + t.cases.length + "| Format - id (parameters)";
+		}
+		var vals : Array<Null<Int>> = [i];
+		for( a in c.args ) {
+			var v = args.shift();
+			if( v == null ) {
+				if( a.opt )
+					vals.push(null);
+				else
+					throw "Missing argument " + a.name+" : "+typeStr(a.type) + "| Format - id (parameters)";
+			} else {
+				v = StringTools.trim(v);
+				if( a.opt && v == "null" ) {
+					vals.push(null);
+					continue;
+				}
+				var val = try parseValue(a.type, v, true) catch( e : String ) throw e + " for " + a.name;
+				vals.push(val);
+			}
+		}
+		if( args.length > 0 )
+			throw "Extra argument '" + args.shift() + "' + | Format - id (parameters)";
+		if( missingCloseParent )
+			throw "Missing )" + " | Format - id (parameters)";
+		while( vals[vals.length - 1] == null )
+			vals.pop();
+		return vals;
+		
 	}
 
 	function parseType( tstr : String ) : ColumnType {
