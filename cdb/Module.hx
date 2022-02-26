@@ -195,6 +195,8 @@ class Module {
 					s.props.level != null && c.name == "props" ? macro : cdb.Types.LevelPropsAccess<$t> : macro : Dynamic;
 				case TProperties:
 					makeTypeName(s.name + "@" + c.name).toComplex();
+				case TCurve:
+						macro : cdb.Curve;
 				}
 
 				var rt = switch( c.type ) {
@@ -214,6 +216,7 @@ class Module {
 				case TDynamic: macro : Dynamic;
 				case TProperties:
 					(makeTypeName(s.name+"@" + c.name) + "Def").toComplex();
+				case TCurve: macro : Dynamic;
 				};
 
 				if( c.opt ) {
@@ -241,6 +244,26 @@ class Module {
 						}),
 						access : [AInline, APrivate],
 					});
+				case  TCurve:
+						var cname = c.name;
+						var cachecname = c.name + "_cache";
+						fields.push({
+							name : "get_"+c.name,
+							pos : pos,
+							kind : FFun({
+								ret : t,
+								args : [],
+								expr : macro return ((this.$cachecname == null) ? this.$cachecname =  cdb.Curve.fromDynamic(this.$cname) : this.$cachecname),
+							}),
+							access : [AInline, APrivate],
+						});
+	
+						realFields.push({
+							name : cachecname,
+							pos : pos,
+							kind : FVar(t),
+							meta : []
+						});
 				case TId:
 					if( idField == null )
 						idField = c.name;
@@ -487,7 +510,7 @@ class Module {
 				for( ai in 0...c.args.length ) {
 					var a = c.args[ai];
 					var econv = switch( a.type ) {
-					case TId, TString, TBool, TInt, TFloat, TImage, TEnum(_), TFlags(_), TColor, TFile, TTileLayer, TDynamic:
+					case TId, TString, TBool, TInt, TFloat, TCurve, TImage, TEnum(_), TFlags(_), TColor, TFile, TTileLayer, TDynamic:
 						macro v[$v { ai + 1 } ];
 					case TCustom(id):
 						if( a.opt )

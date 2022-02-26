@@ -18,6 +18,7 @@ import cdb.Data.Column;
 import cdb.Data.ColumnType;
 import cdb.Data.CustomType;
 import cdb.Data.CustomTypeCase;
+import cdb.Curve;
 
 class Database {
 
@@ -292,6 +293,7 @@ class Database {
 			}
 			obj;
 		case TCustom(_), TTilePos, TTileLayer, TDynamic: null;
+		case TCurve: new Curve() ;
 		}
 	}
 
@@ -655,6 +657,14 @@ class Database {
 			return valueToString(val);
 		case TProperties, TList:
 			"???";
+		case TCurve:
+			var curve : Curve = val;
+			if (curve != null) {
+				if( esc )
+					return haxe.Json.stringify(curve.save());
+				return valueToString(curve.save());	
+			}
+			"???";
 		}
 	}
 
@@ -681,6 +691,10 @@ class Database {
 	}
 
 	public function typeValToString( t : CustomType, val : Array<Dynamic>, esc = false ) {
+		if (val.length == 0) {
+			return "";
+		}
+
 		var c = t.cases[val[0]];
 		var str = c.name;
 		if( c.args.length > 0 ) {
@@ -759,6 +773,10 @@ class Database {
 				return Std.parseInt(val);
 		case TDynamic:
 			return parseDynamic(val);
+		case TCurve:
+				var c = new Curve();
+				c.load(val);
+				return c;
 		default:
 		}
 		throw "'" + val + "' should be "+typeStr(t);

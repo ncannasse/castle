@@ -15,6 +15,7 @@
  */
 import cdb.Data;
 import cdb.Sheet;
+import cdb.Curve;
 
 import js.jquery.Helper.*;
 import js.jquery.JQuery;
@@ -680,6 +681,8 @@ class Main extends Model {
 			var str = Std.string(v).split("\n").join(" ").split("\t").join("");
 			if( str.length > 50 ) str = str.substr(0, 47) + "...";
 			str;
+		case TCurve:
+			'<span class="error">#Unsupported</span>';
 		}
 	}
 
@@ -1269,7 +1272,7 @@ class Main extends Model {
 				editDone();
 				save();
 			};
-		case TTileLayer:
+		case TCurve, TTileLayer:
 			// nothing
 		case TColor:
 			var id = Std.random(0x1);

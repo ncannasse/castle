@@ -34,6 +34,7 @@ enum ColumnType {
 	TTileLayer;
 	TDynamic;
 	TProperties;
+	TCurve;
 }
 
 @:enum abstract DisplayType(Int) {
