@@ -268,7 +268,13 @@ class IndexId<T,Kind> extends Index<T> {
 	}
 
 	public inline function get( k : Kind ) {
+		#if castle_check_get
+		var v : T = byId.get(cast k);
+		if( v == null ) throw "Missing "+k;
+		return v;
+		#else
 		return byId.get(cast k);
+		#end
 	}
 
 	public function resolve( id : String, ?opt : Bool, ?approximate : Bool ) : T {
