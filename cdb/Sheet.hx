@@ -26,6 +26,7 @@ class Sheet {
 	public var base(default,null) : Database;
 	var sheet : cdb.Data.SheetData;
 
+	public var duplicateIds : Map<String, Bool>;
 	public var index : Map<String,SheetIndex>;
 	public var all : Array<SheetIndex>;
 	public var name(get, never) : String;
@@ -531,6 +532,7 @@ class Sheet {
 		if( parent != null )
 			throw "assert";
 		index = new Map();
+		duplicateIds = new Map();
 		all = [];
 		idCol = null;
 		for( c in columns )
@@ -557,6 +559,8 @@ class Sheet {
 					var o = { id : v, disp:disp, ico:ico, obj : obj };
 					if( index.get(v) == null )
 						index.set(v, o);
+					else
+						duplicateIds.set(v, true);
 					all.push(o);
 				}
 				all.sort(sortById);
