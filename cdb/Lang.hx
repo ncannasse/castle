@@ -300,7 +300,8 @@ class Lang {
 				}
 				var str = unescape(v.e);
 				var ref = v.ref == null ? null : unescape(v.ref);
-				if( ref != null && ref != Reflect.field(o,c.name) ) {
+				var oname = Reflect.field(o,c.name);
+				if( ref != null && (oname == null || StringTools.trim(ref) != StringTools.trim(oname)) ) {
 					path.push(c.name);
 					onMissing("Ignored since has changed "+path.join("."));
 					path.pop();
