@@ -384,6 +384,32 @@ class Sheet {
 	}
 
 	public function getReferencesFromId( id : String ) {
+		var scopeObj = null;
+		var depth = 0;
+		var ourIdCol = idCol;
+		if (ourIdCol == null) {
+			for (c in columns) {
+				if (c.type == TId) {
+					ourIdCol = c;
+					break;
+				}
+			}
+		}
+
+		if (ourIdCol != null && ourIdCol.scope != null && ourIdCol.scope >= 0) {
+			var cur = this;
+			for (i in 0...ourIdCol.scope-1) {
+				cur = cur.parent.sheet;
+			}
+			var cur2 = cur;
+			while(cur2 != null && cur2.parent != null){
+				cur2 = cur2.parent.sheet;
+				depth++;
+			}
+			depth--;
+			scopeObj = cur.parent.sheet.getLines()[cur.parent.line];
+		}
+
 		var results = [];
 		for( s in base.sheets ) {
 			for( c in s.columns )
@@ -404,6 +430,8 @@ class Sheet {
 					}
 					for( o in s.getObjects() ) {
 						var obj = o.path[o.path.length - 1];
+						if (scopeObj != null && o.path[depth] != scopeObj)
+							continue;
 						if( Reflect.field(obj, c.name) == id )
 							results.push({ s : sheets, o : o });
 					}
