@@ -432,7 +432,7 @@ class Lang {
 	}
 
 	function resolveField(obj:Dynamic, path:String, linesData:Array<Dynamic>) {
-		var o = obj;
+		var o:Dynamic = obj;
 		for( s in path.split(".") ) {
 			if( s == "$root" ) {
 				if( linesData == null )
@@ -448,7 +448,7 @@ class Lang {
 				o = Reflect.field(o, s);
 			}
 		}
-		return ""+o;
+		return o == null ? null : Std.string(o);
 	}
 
 	function buildSheetXml(s:SheetData, tabs, values : Array<Dynamic>, linesData:Array<Dynamic>, locFields:Array<LocField>, diff : Map<String,Array<{}>> ) {
