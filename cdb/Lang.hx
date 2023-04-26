@@ -7,6 +7,8 @@ enum LocField {
 	LSingle( c : Column, e : LocField );
 }
 
+typedef LangAttributes = haxe.DynamicAccess<String>;
+
 typedef LangDiff = Map<String,Array<{}>>;
 
 class Ref {
@@ -21,9 +23,12 @@ class Lang {
 
 	public static var IGNORE_EXPORT_FIELD = "__ignoreLoc__";
 
+	public static var LANG_CONFIG : haxe.DynamicAccess<LangAttributes> = null;
+
 	var root : Data;
 	var dataSheets : Map<String,{ sheet : SheetData, idField : String, fields : Array<LocField>, refs : Map<String,Map<String,Ref>> }>;
 	var skipMissing : Bool;
+	var currentLineData : Dynamic;
 	public var missingSetLocKey : Bool;
 
 	public function new(root) {
@@ -230,9 +235,9 @@ class Lang {
 				if( Reflect.fields(outSub).length > 0 ) {
 					// copy helpers to allow buildXML
 					for( c in inf.helpers ) {
-						var hid = Reflect.field(o, c.c.name);
+						var hid = Reflect.field(o, c.name);
 						if( hid != null )
-							Reflect.setField(outSub, c.c.name, hid);
+							Reflect.setField(outSub, c.name, hid);
 					}
 					out[i] = outSub;
 				}
@@ -356,7 +361,7 @@ class Lang {
 			var lines = getLines(s, diff);
 			if( lines.length == 0 ) continue;
 			buf.add('\t<sheet name="${s.name}">\n');
-			buf.add(buildSheetXml(s, "\t\t", lines, locFields, diff));
+			buf.add(buildSheetXml(s, "\t\t", lines, s.linesData, locFields, diff));
 			buf.add('\t</sheet>\n');
 		}
 		buf.add("</cdb>\n");
@@ -384,7 +389,7 @@ class Lang {
 			return { name : c.name+"." + v.name, value : v.value };
 		case LSub(c, ssub, fl):
 			var v : Array<Dynamic> = Reflect.field(o, c.name);
-			var content = buildSheetXml(ssub, tabs+"\t\t", v == null ? [] : v, fl, diff);
+			var content = buildSheetXml(ssub, tabs+"\t\t", v == null ? [] : v, null, fl, diff);
 			return { name : c.name, value : content };
 		}
 	}
@@ -416,9 +421,9 @@ class Lang {
 						}
 					}
 				}
-				helpers.push({ c : c, map : map });
+				helpers.push({ label : c.name, name : c.name, map : map });
 			case TString if( c.kind != Localizable ):
-				helpers.push({ c : c, map : null });
+				helpers.push({ label : c.name, name : c.name, map : null });
 			default:
 			}
 		}
@@ -426,13 +431,41 @@ class Lang {
 		return { id : id == null ? null : id.name, idOpt : id == null ? false : id.opt, helpers : helpers };
 	}
 
-	function buildSheetXml(s:SheetData, tabs, values : Array<Dynamic>, locFields:Array<LocField>, diff : Map<String,Array<{}>> ) {
+	function resolveField(obj:Dynamic, path:String, linesData:Array<Dynamic>) {
+		var o:Dynamic = obj;
+		for( s in path.split(".") ) {
+			if( s == "$root" ) {
+				if( linesData == null )
+					return null;
+				var prefab : Dynamic = getObjParent(obj, linesData);
+				if( prefab == null )
+					return null;
+				o = prefab;
+			}
+			else {
+				if( !Reflect.hasField(o, s) )
+					return null;
+				o = Reflect.field(o, s);
+			}
+		}
+		return o == null ? null : Std.string(o);
+	}
+
+	function buildSheetXml(s:SheetData, tabs, values : Array<Dynamic>, linesData:Array<Dynamic>, locFields:Array<LocField>, diff : Map<String,Array<{}>> ) {
 		var inf = getSheetHelpers(s);
+		var attr = LANG_CONFIG != null ? LANG_CONFIG[s.name] : null;
+		if( attr != null )
+			for( k => v in attr )
+				inf.helpers.push({ label: k, name: v, map : null });
 		var buf = new StringBuf();
 		var index = 0;
-		for( o in values ) {
+		var prevData = currentLineData;
+		for( i => o in values ) {
 
 			if( Reflect.hasField(o, IGNORE_EXPORT_FIELD) ) continue;
+
+			if( linesData != null )
+				currentLineData = linesData[i];
 
 			var id;
 			if( inf.id == null )
@@ -455,13 +488,14 @@ class Lang {
 			if( !hasLoc ) continue;
 			buf.add('$tabs<$id');
 			for( c in inf.helpers ) {
-				var hid = Reflect.field(o, c.c.name);
+				var hid = resolveField(o, c.name, s.linesData != null ? s.linesData[i] : null);
 				if( hid != null ) {
 					if( c.map != null ) {
 						var v = c.map.get(hid);
 						if( v != null ) hid = v;
 					}
-					buf.add(' ${c.c.name}=\"$hid\"');
+					var label = ~/\$/g.replace(c.label, "_");
+					buf.add(' $label=\"${StringTools.htmlEscape(hid, true)}\"');
 				}
 			}
 			buf.add('>\n');
@@ -477,7 +511,9 @@ class Lang {
 				}
 			buf.add('$tabs</$id>\n');
 		}
+		currentLineData = prevData;
 		return buf.toString();
 	}
 
+	static dynamic function getObjParent( obj : Dynamic, data : Dynamic ) return null;
 }
