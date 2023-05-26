@@ -374,7 +374,7 @@ class Database {
 						switch( c.type ) {
 						case TList:
 							var v : Array<Dynamic> = v;
-							if( v.length == 0 )
+							if( v != null && v.length == 0 )
 								Reflect.deleteField(o, c.name);
 						case TProperties:
 							if( Reflect.fields(v).length == 0 || haxe.Json.stringify(v) == haxe.Json.stringify(def) )
