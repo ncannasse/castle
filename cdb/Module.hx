@@ -49,6 +49,18 @@ class Module {
 			access : [APublic, AInline],
 		});
 		fields.push( {
+			name : "toString",
+			pos : pos,
+			kind : FFun( {
+				args : [],
+				ret : tstring,
+				expr : macro {
+					return NAMES[this];
+				}
+			}),
+			access : [APublic, AInline],
+		});
+		fields.push( {
 			name : "ofInt",
 			pos : pos,
 			kind : FFun({
