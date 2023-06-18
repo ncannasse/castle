@@ -23,6 +23,7 @@ class Module {
 	static function makeFakeEnum( tname : String, curMod, pos, values : Array<String> ) : haxe.macro.Expr.TypeDefinition {
 		var fields : Array<haxe.macro.Expr.Field> = [for( i in 0...values.length ) { name : values[i], pos : pos, kind : FVar(null, macro $v { i } ) } ];
 		var tint = macro : Int;
+		var tstring = macro : String;
 		fields.push( {
 			name : "COUNT",
 			pos : pos,
@@ -34,6 +35,30 @@ class Module {
 			pos : pos,
 			kind : FVar(null, macro $v { values } ),
 			access : [APublic, AStatic],
+		});
+		fields.push( {
+			name : "getName",
+			pos : pos,
+			kind : FFun( {
+				args : [],
+				ret : tstring,
+				expr : macro {
+					return NAMES[this];
+				}
+			}),
+			access : [APublic, AInline],
+		});
+		fields.push( {
+			name : "toString",
+			pos : pos,
+			kind : FFun( {
+				args : [],
+				ret : tstring,
+				expr : macro {
+					return NAMES[this];
+				}
+			}),
+			access : [APublic, AInline],
 		});
 		fields.push( {
 			name : "ofInt",
