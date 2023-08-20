@@ -11,10 +11,102 @@ typedef LangAttributes = haxe.DynamicAccess<String>;
 
 typedef LangDiff = Map<String,Array<{}>>;
 
+private class LangXml {
+
+	public var elements : Array<LangXml>;
+	public var nodeName : String;
+	public var value : String;
+
+	static var nodeNames : Map<String, String>;
+
+	public function new( xml : Xml, fields : Array<LocField>, isSheet : Bool = false ) {
+		if( isSheet ) {
+			nodeNames = [];
+			for( e in xml.elements() )
+				addChild(new LangXml(e, fields));
+			nodeNames = null;
+			return;
+		}
+		var isLeaf = fields.length == 1 && fields[0].match(LName(_));
+		if( !isLeaf ) {
+			for( e in xml.elements() ) {
+				if( e.nodeType == Element ) {
+					var found = false;
+					for( f in fields ) {
+						function getName( f : LocField ) {
+							return switch( f ) {
+								case LName(c): c.name;
+								case LSub(c, s, fields): c.name;
+								case LSingle(c, field): c.name + "." + getName(field);
+							}
+						}
+						if( getName(f) == e.nodeName ) {
+							found = true;
+							if( elements != null )
+							elements = [];
+							switch( f ) {
+								case LName(c):
+									addChild(new LangXml(e, [f]));
+								case LSub(c, s, fields):
+									addChild(new LangXml(e, fields));
+								case LSingle(c, field):
+									addChild(new LangXml(e, [field]));
+							}
+							break;
+						}
+					}
+					if( !found ) {
+						for( e in xml.elements() )
+							addChild(new LangXml(e, fields));
+					}
+				}
+			}
+		}
+		var n = nodeNames.get(xml.nodeName);
+		if( n != null )
+			nodeName = n;
+		else {
+			nodeNames.set(xml.nodeName, xml.nodeName);
+			nodeName = nodeNames.get(xml.nodeName);
+		}
+		inline function unescape( str : String ) {
+			var str = ~/<br\/>/gi.replace(str,"\n");
+			return StringTools.htmlUnescape(str);
+		}
+		if( isLeaf ) {
+			if( @:privateAccess xml.children.length == 1 )
+				value = unescape(xml.firstChild().nodeValue);
+			else {
+				var s = new StringBuf();
+				for( x in xml )
+					s.add(x.toString());
+				value = unescape(s.toString());
+			}
+		}
+	}
+
+	function addChild( c : LangXml ) {
+		if( elements == null )
+			elements = [];
+		elements.push(c);
+	}
+
+	public function getChildByName( name : String ) {
+		if( elements != null ) {
+			for( n in elements ) {
+				if( n.nodeName == name )
+					return n;
+			}
+		}
+		return null;
+	}
+
+}
+
 class Ref {
-	public var e : Xml;
-	public var ref : Null<Xml>;
-	public function new(e) {
+	public var e : LangXml;
+	public var ref : Null<LangXml>;
+	public function new( e : LangXml ) {
 		this.e = e;
 	}
 }
@@ -26,7 +118,7 @@ class Lang {
 	public static var LANG_CONFIG : haxe.DynamicAccess<LangAttributes> = null;
 
 	var root : Data;
-	var dataSheets : Map<String,{ sheet : SheetData, idField : String, fields : Array<LocField>, refs : Map<String,Map<String,Ref>> }>;
+	var dataSheets : Map<String,{ sheet : SheetData, idField : String, fields : Array<LocField>, ref : Ref }>;
 	var skipMissing : Bool;
 	var currentLineData : Dynamic;
 	public var missingSetLocKey : Bool;
@@ -87,7 +179,7 @@ class Lang {
 		var ref = reference == null ? null : Xml.parse(reference).firstElement();
 		var xsheets = new Map();
 		for( e in x.elements() )
-			xsheets.set(e.get("name"), new Ref(e));
+			xsheets.set(e.get("name"), { e : e, ref : null });
 		if( ref != null )
 			for( e in ref.elements() ) {
 				var s = xsheets.get(e.get("name"));
@@ -96,9 +188,13 @@ class Lang {
 		var out = new Map();
 		for( s in root.sheets ) {
 			if( s.props.hide ) continue;
-			var x = xsheets.get(s.name);
+			var xsheet = xsheets.get(s.name);
+			if( xsheet == null ) continue;
+			var fields = makeSheetFields(s);
+			var x = new Ref(new LangXml(xsheet.e, fields, true));
+			if( xsheet.ref != null )
+				x.ref = new LangXml(xsheet.ref, fields, true);
 			if( s.props.dataFiles != null ) {
-				var fields = makeSheetFields(s);
 				if( fields.length > 0 ) {
 					var idField = null;
 					for( c in s.columns )
@@ -112,7 +208,7 @@ class Lang {
 						onMissing("Missing sheet " + s.name);
 						continue;
 					}
-					dataSheets.set(s.name, { sheet : s, idField : idField, fields : fields, refs : makeIdMap(x) });
+					dataSheets.set(s.name, { sheet : s, idField : idField, fields : fields, ref : x });
 				}
 				continue;
 			}
@@ -140,6 +236,27 @@ class Lang {
 	}
 
 	#if hide
+	function getNode( x : Ref, nodeName : String ) {
+		var m = new Map();
+		if( x == null )
+			return m;
+		var node = x.e.getChildByName(nodeName);
+		if( node != null && node.elements != null ) {
+			for( e in node.elements )
+				m.set(e.nodeName, new Ref(e));
+		}
+		if( x.ref != null ) {
+			var node = x.ref.getChildByName(nodeName);
+			if( node != null && node.elements != null ) {
+				for( e in node.elements ) {
+					var r = m.get(e.nodeName);
+					if( r != null ) r.ref = e;
+				}
+			}
+		}
+		return m;
+	}
+
 	public function applyPrefab( p : hrt.prefab.Prefab ) {
 		var t = p.getCdbType();
 		if( t != null ) {
@@ -148,7 +265,7 @@ class Lang {
 				var o = p.props;
 				var id = Reflect.field(o, data.idField);
 				var path = [data.sheet.name, id];
-				var ref = data.refs.get(id);
+				var ref = getNode(data.ref, id);
 				var outSub = {};
 				for( f in data.fields )
 					applyRec(path, f, o, ref, outSub);
@@ -202,22 +319,22 @@ class Lang {
 		if( inf.id == null ) {
 
 			var byIndex = [];
-			if( x != null ) {
-				for( e in x.e.elements() ) {
+			if( x != null && x.e.elements != null ) {
+				for( e in x.e.elements ) {
 					var m = new Map();
-					for( e in e.elements() )
+					for( e in e.elements )
 						m.set(e.nodeName, new Ref(e));
 					var name = e.nodeName;
 					if( StringTools.startsWith(name, "line") ) name = name.substr(4);
 					byIndex[Std.parseInt(name)] = m;
 				}
-				if( x.ref != null )
-					for( e in x.ref.elements() ) {
+				if( x.ref != null && x.ref.elements != null )
+					for( e in x.ref.elements ) {
 						var name = e.nodeName;
 						if( StringTools.startsWith(name, "line") ) name = name.substr(4);
 						var m = byIndex[Std.parseInt(name)];
 						if( m != null )
-							for( e in e.elements() ) {
+							for( e in e.elements) {
 								var r = m.get(e.nodeName);
 								if( r != null ) r.ref = e;
 							}
@@ -266,17 +383,21 @@ class Lang {
 		var byID = new Map();
 		if( x == null )
 			return byID;
-		for( e in x.e.elements() ) {
-			var m = new Map();
-			for( e in e.elements() )
-				m.set(e.nodeName, new Ref(e));
-			byID.set(e.nodeName, m);
+		if( x.e.elements != null ) {
+			for( e in x.e.elements ) {
+				if( e.elements != null ) {
+					var m = new Map();
+					for( e in e.elements )
+						m.set(e.nodeName, new Ref(e));
+					byID.set(e.nodeName, m);
+				}
+			}
 		}
-		if( x.ref != null ) {
-			for( e in x.ref.elements() ) {
+		if( x.ref != null && x.ref.elements != null ) {
+			for( e in x.ref.elements ) {
 				var m = byID.get(e.nodeName);
 				if( m != null )
-					for( e in e.elements() ) {
+					for( e in e.elements ) {
 						var r = m.get(e.nodeName);
 						if( r != null ) r.ref = e;
 					}
@@ -298,13 +419,8 @@ class Lang {
 		case LName(c):
 			var v = data == null ? null : data.get(c.name);
 			if( v != null ) {
-				inline function unescape(x:Xml) {
-					var html = #if (haxe_ver < 4) new haxe.xml.Fast #else new haxe.xml.Access #end(x).innerHTML;
-					html = ~/<br\/>/gi.replace(html,"\n");
-					return StringTools.htmlUnescape(html);
-				}
-				var str = unescape(v.e);
-				var ref = v.ref == null ? null : unescape(v.ref);
+				var str = v.e.value;
+				var ref = v.ref == null ? null : v.ref.value;
 				var oname = Reflect.field(o,c.name);
 				if( ref != null && (oname == null || StringTools.trim(ref) != StringTools.trim(oname)) ) {
 					path.push(c.name);
