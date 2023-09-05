@@ -466,6 +466,7 @@ class Module {
 				name : tname,
 				pack : curMod,
 				kind : TDAbstract(def.toComplex()),
+				meta : [{ name : ":cdb", params : [], pos : pos }],
 				fields : fields,
 			});
 		}
