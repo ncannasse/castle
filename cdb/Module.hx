@@ -470,12 +470,46 @@ class Module {
 				fields : fields,
 			});
 		}
+
+		var customRef = new Map();
+		for( t in data.customTypes ) {
+			var hasRef = false;
+			for( c in t.cases ) {
+				for( a in c.args ) {
+					switch( a.type ) {
+					case TRef(_): hasRef = true;
+					default:
+					}
+				}
+			}
+			if( hasRef ) customRef.set(t.name, true);
+		}
+		var changed = true;
+		while( changed ) {
+			changed = false;
+			for( t in data.customTypes ) {
+				if( customRef.exists(t.name) )
+					continue;
+				for( c in t.cases ) {
+					for( a in c.args ) {
+						switch( a.type ) {
+						case TCustom(name) if( customRef.exists(name) ):
+							customRef.set(t.name, true);
+							changed = true;
+						default:
+						}
+					}
+				}
+			}
+		}
+
 		for( t in data.customTypes ) {
 			types.push( {
 				pos : pos,
 				name : t.name,
 				pack : curMod,
 				kind : TDEnum,
+				meta : customRef.exists(t.name) ? [{ name : ":cdb", params : [], pos : pos }] : [],
 				fields : [for( c in t.cases )
 				{
 					name : c.name,
