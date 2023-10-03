@@ -11,9 +11,18 @@ typedef LangAttributes = haxe.DynamicAccess<String>;
 
 typedef LangDiff = Map<String,Array<{}>>;
 
+class LangXml {
+	public var nodeName : String;
+	public var _elements : Array<LangXml>;
+	public var _html : String;
+	public function new() { }
+	public inline function unescape() { if( _html == null ) throw "assert"; return _html; }
+	public inline function elements() return _elements;
+}
+
 class Ref {
-	public var e : Xml;
-	public var ref : Null<Xml>;
+	public var e : LangXml;
+	public var ref : Null<LangXml>;
 	public function new(e) {
 		this.e = e;
 	}
@@ -82,18 +91,48 @@ class Lang {
 		return fields;
 	}
 
+	static var NODES : Map<String,String>;
+	static var r_spaces = ~/^[ \t\r\n]+$/;
+	static function toLangXml( xml : Xml ) : LangXml {
+		var l = new LangXml();
+		var name = xml.nodeName;
+		l.nodeName = NODES.get(name);
+		if( l.nodeName == null ) {
+			l.nodeName = name;
+			NODES.set(name, name);
+		}
+		var hasText = false;
+		for( e in xml )
+			if( e.nodeType == PCData && !r_spaces.match(e.nodeValue) ) {
+				hasText = true;
+				break;
+			}
+		if( hasText ) {
+			var html = #if (haxe_ver < 4) new haxe.xml.Fast #else new haxe.xml.Access #end(xml).innerHTML;
+			html = ~/<br\/>/gi.replace(html,"\n");
+			l._html = StringTools.htmlUnescape(html);
+		} else {
+			l._elements = [];
+			for( e in xml.elements() )
+				l._elements.push(toLangXml(e));
+		}
+		return l;
+	}
+
 	public function apply( xml : String, ?reference : String ) : LangDiff {
 		var x = Xml.parse(xml).firstElement();
 		var ref = reference == null ? null : Xml.parse(reference).firstElement();
 		var xsheets = new Map();
+		NODES = new Map();
 		for( e in x.elements() )
-			xsheets.set(e.get("name"), new Ref(e));
+			xsheets.set(e.get("name"), new Ref(toLangXml(e)));
 		if( ref != null )
 			for( e in ref.elements() ) {
 				var s = xsheets.get(e.get("name"));
-				if( s != null ) s.ref = e;
+				if( s != null ) s.ref = toLangXml(e);
 			}
-		var out = new Map();
+		NODES = null;
+	 	var out = new Map();
 		for( s in root.sheets ) {
 			if( s.props.hide ) continue;
 			var x = xsheets.get(s.name);
@@ -298,13 +337,8 @@ class Lang {
 		case LName(c):
 			var v = data == null ? null : data.get(c.name);
 			if( v != null ) {
-				inline function unescape(x:Xml) {
-					var html = #if (haxe_ver < 4) new haxe.xml.Fast #else new haxe.xml.Access #end(x).innerHTML;
-					html = ~/<br\/>/gi.replace(html,"\n");
-					return StringTools.htmlUnescape(html);
-				}
-				var str = unescape(v.e);
-				var ref = v.ref == null ? null : unescape(v.ref);
+				var str = v.e.unescape();
+				var ref = v.ref == null ? null : v.ref.unescape();
 				var oname = Reflect.field(o,c.name);
 				if( ref != null && (oname == null || StringTools.trim(ref) != StringTools.trim(oname)) ) {
 					path.push(c.name);
