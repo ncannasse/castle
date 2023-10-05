@@ -36,12 +36,12 @@ enum ColumnType {
 	TProperties;
 }
 
-@:enum abstract DisplayType(Int) {
+enum abstract DisplayType(Int) {
 	var Default = 0;
 	var Percent = 1;
 }
 
-@:enum abstract ColumnKind(String) {
+enum abstract ColumnKind(String) {
 	var Localizable = "localizable";
 	var Script = "script";
 	var Hidden = "hidden";
@@ -59,7 +59,7 @@ typedef Column = {
 	@:optional var editor : Any;
 }
 
-@:enum abstract LayerMode(String) {
+enum abstract LayerMode(String) {
 	var Tiles = "tiles";
 	var Ground = "ground";
 	var Objects = "objects";
@@ -71,7 +71,7 @@ typedef LayerProps = {
 	@:optional var color : Int;
 }
 
-@:enum abstract TileMode(String) {
+enum abstract TileMode(String) {
 	var Tile = "tile";
 	var Ground = "ground";
 	var Border = "border";
