@@ -525,7 +525,7 @@ class Module {
 								case TString: macro : String;
 								case TBool: macro : Bool;
 								case TCustom(name): name.toComplex();
-								case TRef(name): makeTypeName(name).toComplex();
+								case TRef(name): (makeTypeName(name) + (a.kind == TypeKind ? "Kind" : "")).toComplex();
 								default: throw "TODO " + a.type;
 								}
 								{
@@ -554,6 +554,8 @@ class Module {
 							macro { var tmp = v[$v{ai+1}]; tmp == null ? null : $i{id+"Builder"}.build(tmp); }
 						else
 							macro $i{id+"Builder"}.build(v[$v{ai+1}]);
+					case TRef(_) if( a.kind == TypeKind ):
+						macro v[$v { ai + 1 } ];
 					case TRef(s):
 						var fname = fieldName(s);
 						macro $i{modName}.$fname.resolve(v[$v{ai+1}]);

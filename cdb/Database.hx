@@ -570,6 +570,10 @@ class Database {
 						f = function(v) return if( v == def ) null else oldf(v);
 					}
 				}
+				if( a.kind != b.kind ) {
+					a.kind = b.kind;
+					if( a.kind == null ) Reflect.deleteField(a,"kind");
+				}
 				var index = Lambda.indexOf(p.b.args, b);
 				conv.args[Lambda.indexOf(p.a.args, a)] = function(v) return { v = f(v); return if( v == null && b.opt ) null else { index : index, v : v }; };
 			}
@@ -880,6 +884,7 @@ class Database {
 					var k = "";
 					if( a.opt ) k += "?";
 					k += a.name + " : " + typeStr(a.type);
+					if( a.kind == TypeKind ) k += "Kind";
 					out.push(k);
 				}
 				str += out.join(", ");
@@ -913,13 +918,17 @@ class Database {
 				for( arg in line.split(",") ) {
 					var tname = arg.split(":");
 					if( tname.length != 2 ) throw "Required name:type in '" + arg + "'";
-					var opt = false;
+					var opt = false, isKind = false;
 					var id = StringTools.trim(tname[0]);
 					if( id.charAt(0) == "?" ) {
 						opt = true;
 						id = StringTools.trim(id.substr(1));
 					}
 					var t = StringTools.trim(tname[1]);
+					if( StringTools.endsWith(t,"Kind") && getSheet(t.substr(0,-4)) != null ) {
+						isKind = true;
+						t = t.substr(0,-4);
+					}
 					if( !r_ident.match(id) )
 						throw "Invalid identifier " + id;
 					var c : Column = {
@@ -928,6 +937,7 @@ class Database {
 						typeStr : null,
 					};
 					if( opt ) c.opt = true;
+					if( isKind ) c.kind = TypeKind;
 					args.push(c);
 				}
 			}

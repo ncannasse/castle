@@ -45,6 +45,7 @@ enum abstract ColumnKind(String) {
 	var Localizable = "localizable";
 	var Script = "script";
 	var Hidden = "hidden";
+	var TypeKind = "typekind";
 }
 
 typedef Column = {
