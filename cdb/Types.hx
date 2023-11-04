@@ -212,6 +212,27 @@ class Index<T> {
 				if( s.props.hasIndex )
 					for( i in 0...all.length )
 						(all[i] : Dynamic).index = i;
+				if( s.props.hasGroup ) {
+					var gid = -1;
+					var sindex = 0;
+					// skip separators if at head
+					while( true ) {
+						var s = s.separators[sindex];
+						if( s == null || s.index != 0 ) break;
+						sindex++;
+						if( s.title != null ) gid++;
+					}
+					if( gid < 0 ) gid++; // None insert
+					for( i in 0...all.length ) {
+						while( true ) {
+							var s = s.separators[sindex];
+							if( s == null || s.index != i ) break;
+							if( s.title != null ) gid++;
+							sindex++;
+						}
+						(all[i] : Dynamic).group = gid;
+					}
+				}
 				break;
 			}
 	}

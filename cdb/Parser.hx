@@ -66,48 +66,48 @@ class Parser {
 					a.type = getType(a.typeStr);
 					a.typeStr = null;
 				}
-		if( editMode ) {
-			// resolve separators
-			for( s in data.sheets ) {
 
-				if( s.separators == null ) {
-					var ids : Array<Dynamic> = Reflect.field(s,"separatorIds");
-					s.separators = [for( i in ids ) if( Std.isOfType(i,Int) ) { index : (i:Int) } else { id : (i:String) }];
-					Reflect.deleteField(s, "separatorIds");
-				}
+		// resolve separators
+		for( s in data.sheets ) {
+			if( !(editMode || s.props.hasGroup) ) continue;
 
-				var indexMap = null;
-				for( i in 0...s.separators.length ) {
-					var sep = s.separators[i];
-					if( Std.isOfType(sep,Int) )
-						s.separators[i] = { index : (cast sep:Int) };
-					else if( sep.id != null ) {
-						if( indexMap == null ) {
-							var idField = null;
-							for( c in s.columns )
-								if( c.type == TId ) {
-									idField = c.name;
-									break;
-								}
-							indexMap = new Map();
-							for( i in 0...s.lines.length ) {
-								var l = s.lines[i];
-								var id : String = Reflect.field(l, idField);
-								if( id != null ) indexMap.set(id, i);
+			if( s.separators == null ) {
+				var ids : Array<Dynamic> = Reflect.field(s,"separatorIds");
+				s.separators = [for( i in ids ) if( Std.isOfType(i,Int) ) { index : (i:Int) } else { id : (i:String) }];
+				Reflect.deleteField(s, "separatorIds");
+			}
+
+			var indexMap = null;
+			for( i in 0...s.separators.length ) {
+				var sep = s.separators[i];
+				if( Std.isOfType(sep,Int) )
+					s.separators[i] = { index : (cast sep:Int) };
+				else if( sep.id != null ) {
+					if( indexMap == null ) {
+						var idField = null;
+						for( c in s.columns )
+							if( c.type == TId ) {
+								idField = c.name;
+								break;
 							}
+						indexMap = new Map();
+						for( i in 0...s.lines.length ) {
+							var l = s.lines[i];
+							var id : String = Reflect.field(l, idField);
+							if( id != null ) indexMap.set(id, i);
 						}
-						sep.index = indexMap.get(sep.id);
-						Reflect.deleteField(sep,"id");
 					}
+					sep.index = indexMap.get(sep.id);
+					Reflect.deleteField(sep,"id");
 				}
+			}
 
-				var titles : Array<String> = Reflect.field(s.props,"separatorTitles");
-				if( titles != null ) {
-					Reflect.deleteField(s.props,"separatorTitles");
-					for( i in 0...titles.length )
-						if( titles[i] != null )
-							s.separators[i].title = titles[i];
-				}
+			var titles : Array<String> = Reflect.field(s.props,"separatorTitles");
+			if( titles != null ) {
+				Reflect.deleteField(s.props,"separatorTitles");
+				for( i in 0...titles.length )
+					if( titles[i] != null )
+						s.separators[i].title = titles[i];
 			}
 		}
 		return data;

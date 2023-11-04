@@ -233,29 +233,15 @@ class Database {
 		// process
 		for( s in sheets ) {
 			// clean props
+			if( s.props.hasGroup ) {
+				var lines = s.getLines();
+				for( l in lines )
+					if( l.group != null )
+						Reflect.deleteField(l,"group");
+			}
 			for( p in Reflect.fields(s.props) ) {
 				var v : Dynamic = Reflect.field(s.props, p);
 				if( v == null || v == false ) Reflect.deleteField(s.props, p);
-			}
-			if( s.props.hasGroup ) {
-				var lines = s.getLines();
-				var gid = 0;
-				var sindex = 0;
-				// skip first if at head
-				while( true ) {
-					var s = s.separators[sindex];
-					if( s == null || s.index != 0 || s.title == null ) break;
-					sindex++;
-				}
-				for( i in 0...lines.length ) {
-					while( true ) {
-						var s = s.separators[sindex];
-						if( s == null || s.index != i ) break;
-						if( s.title != null ) gid++;
-						sindex++;
-					}
-					lines[i].group = gid;
-				}
 			}
 		}
 		return cdb.Parser.save(data);
