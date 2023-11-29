@@ -336,6 +336,14 @@ class Database {
 						if( v != null ) Reflect.setField(o, c.name, v) else Reflect.deleteField(o, c.name);
 					}
 				}
+			switch( [old.type, c.type] ) {
+				case [TList, TProperties]:
+					sheet.getSub(old).props.isProps = true;
+				case [TProperties, TList]:
+					sheet.getSub(old).props.isProps = false;
+				default:
+			}
+
 			old.type = c.type;
 			old.typeStr = null;
 		}
