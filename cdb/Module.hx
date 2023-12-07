@@ -84,8 +84,12 @@ class Module {
 			pos : pos,
 			name : tname,
 			pack : curMod,
+			#if (haxe_ver >= 5)
+			kind : TDAbstract(tint,[AbEnum]),
+			#else
 			kind : TDAbstract(tint),
 			meta : [{ name : ":enum", pos : pos },{ name : ":fakeEnum", pos : pos }],
+			#end
 			fields : fields,
 		};
 	}
@@ -438,8 +442,12 @@ class Module {
 					pos : pos,
 					name : tkind,
 					pack : curMod,
+					#if (haxe_ver >= 5)
+					kind : TDAbstract(macro : String, [AbEnum]),
+					#else
 					meta : [{ name : ":enum", pos : pos },{ name : ":fakeEnum", pos : pos }],
 					kind : TDAbstract(macro : String),
+					#end
 					fields : ids,
 				});
 			} else {
