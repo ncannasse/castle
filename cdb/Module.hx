@@ -84,7 +84,7 @@ class Module {
 			pos : pos,
 			name : tname,
 			pack : curMod,
-			#if (haxe_ver >= 5)
+			#if( haxe >= version("4.3.3") )
 			kind : TDAbstract(tint,[AbEnum]),
 			#else
 			kind : TDAbstract(tint),
@@ -442,7 +442,7 @@ class Module {
 					pos : pos,
 					name : tkind,
 					pack : curMod,
-					#if (haxe_ver >= 5)
+					#if( haxe >= version("4.3.3") )
 					kind : TDAbstract(macro : String, [AbEnum]),
 					#else
 					meta : [{ name : ":enum", pos : pos },{ name : ":fakeEnum", pos : pos }],
