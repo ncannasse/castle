@@ -288,10 +288,10 @@ class IndexId<T,Kind> extends Index<T> {
 		}
 	}
 
-	public inline function get( k : Kind ) {
+	public inline function get( k : Kind #if castle_check_get , opt = false #end ) {
 		#if castle_check_get
 		var v : T = byId.get(cast k);
-		if( v == null ) throw "Missing "+k;
+		if( v == null && !opt ) throw "Missing "+k;
 		return v;
 		#else
 		return byId.get(cast k);
