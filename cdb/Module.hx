@@ -101,19 +101,29 @@ class Module {
 		if( !s.props.hide )
 			return s.lines;
 		var name = s.name.split("@");
-		var col = name.pop();
-		var parent = name.join("@");
 		var psheet = null;
-		for( sp in sheets )
-			if( sp.name == parent ) {
-				psheet = sp;
-				break;
+		var cols = [];
+		do {
+			cols.push(name.pop());
+			var parent = name.join("@");
+			for( sp in sheets ) {
+				if( sp.name == parent ) {
+					psheet = sp;
+					break;
+				}
 			}
+		}
+		while (psheet.props.isProps ?? false);
+
 		if( psheet == null )
 			return s.lines;
 		var out = [];
 		for( o in getSheetLines(sheets,psheet) ) {
-			var objs : Array<Dynamic> = Reflect.field(o, col);
+			var obj : Dynamic = o;
+			for (col in cols) {
+				obj = Reflect.field(obj, col);
+			}
+			var objs : Array<Dynamic> = obj;
 			if( objs != null )
 				for( o in objs )
 					out.push(o);
