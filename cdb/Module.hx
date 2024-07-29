@@ -261,7 +261,7 @@ class Module {
 				});
 
 				switch( c.type ) {
-				case TInt, TFloat, TString, TBool, TImage, TColor, TFile, TTilePos, TDynamic:
+				case TInt, TFloat, TString, TBool, TImage, TColor, TFile, TTilePos, TDynamic, TGradient:
 					var cname = c.name;
 					fields.push({
 						name : "get_"+c.name,
@@ -558,7 +558,7 @@ class Module {
 				for( ai in 0...c.args.length ) {
 					var a = c.args[ai];
 					var econv = switch( a.type ) {
-					case TId, TString, TBool, TInt, TFloat, TImage, TEnum(_), TFlags(_), TColor, TFile, TTileLayer, TDynamic:
+					case TId, TString, TBool, TInt, TFloat, TImage, TEnum(_), TFlags(_), TColor, TFile, TTileLayer, TDynamic, TGradient:
 						macro v[$v { ai + 1 } ];
 					case TCustom(id):
 						if( a.opt )
