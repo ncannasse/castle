@@ -224,6 +224,8 @@ class Module {
 					s.props.level != null && c.name == "props" ? macro : cdb.Types.LevelPropsAccess<$t> : macro : Dynamic;
 				case TProperties:
 					makeTypeName(s.name + "@" + c.name).toComplex();
+				case TGradient:
+					macro : cdb.Types.Gradient;
 				}
 
 				var rt = switch( c.type ) {
@@ -243,6 +245,7 @@ class Module {
 				case TDynamic: macro : Dynamic;
 				case TProperties:
 					(makeTypeName(s.name+"@" + c.name) + "Def").toComplex();
+				case TGradient: macro : { colors: Array<Int>, positions: Array<Float>};
 				};
 
 				if( c.opt ) {

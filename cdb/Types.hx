@@ -191,6 +191,11 @@ typedef TileLayer = {
 	var data(default, never) : TileLayerData;
 }
 
+typedef Gradient = {
+	var colors: Array<Int>;
+	var positions: Array<Float>;
+}
+
 class Index<T> {
 
 	public var all(default,null) : ArrayRead<T>;
