@@ -224,6 +224,8 @@ class Module {
 					s.props.level != null && c.name == "props" ? macro : cdb.Types.LevelPropsAccess<$t> : macro : Dynamic;
 				case TProperties:
 					makeTypeName(s.name + "@" + c.name).toComplex();
+				case TGradient:
+					macro : cdb.Types.Gradient;
 				}
 
 				var rt = switch( c.type ) {
@@ -243,6 +245,7 @@ class Module {
 				case TDynamic: macro : Dynamic;
 				case TProperties:
 					(makeTypeName(s.name+"@" + c.name) + "Def").toComplex();
+				case TGradient: macro : { colors: Array<Int>, positions: Array<Float>};
 				};
 
 				if( c.opt ) {
@@ -258,7 +261,7 @@ class Module {
 				});
 
 				switch( c.type ) {
-				case TInt, TFloat, TString, TBool, TImage, TColor, TFile, TTilePos, TDynamic:
+				case TInt, TFloat, TString, TBool, TImage, TColor, TFile, TTilePos, TDynamic, TGradient:
 					var cname = c.name;
 					fields.push({
 						name : "get_"+c.name,
@@ -555,7 +558,7 @@ class Module {
 				for( ai in 0...c.args.length ) {
 					var a = c.args[ai];
 					var econv = switch( a.type ) {
-					case TId, TString, TBool, TInt, TFloat, TImage, TEnum(_), TFlags(_), TColor, TFile, TTileLayer, TDynamic:
+					case TId, TString, TBool, TInt, TFloat, TImage, TEnum(_), TFlags(_), TColor, TFile, TTileLayer, TDynamic, TGradient:
 						macro v[$v { ai + 1 } ];
 					case TCustom(id):
 						if( a.opt )

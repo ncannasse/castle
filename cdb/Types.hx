@@ -191,6 +191,95 @@ typedef TileLayer = {
 	var data(default, never) : TileLayerData;
 }
 
+typedef GradientData = {
+	var colors: Array<Int>;
+	var positions: Array<Float>;
+}
+
+abstract Gradient(GradientData) from GradientData {
+	public var data(get, never) : GradientData;
+
+	public function get_data() : GradientData {
+		return this;
+	}
+
+	inline public function new(g:GradientData) {
+		this = g;
+	}
+
+	public function generate(count: Int) : Array<Int> {
+		var r0 : Float = 0;
+		var g0 : Float = 0;
+		var b0 : Float = 0;
+		var a0 : Float = 0;
+		var r1 : Float = 0;
+		var g1 : Float = 0;
+		var b1 : Float = 0;
+		var a1 : Float = 0;
+
+		var currentStop = 0;
+
+		var stop0 = this.positions[currentStop] ?? 0.0;
+		var c = this.colors[currentStop];
+		a0 = a1 = (c >> 24 & 0xFF) / 255.0;
+		r0 = r1 = (c >> 16 & 0xFF) / 255.0;
+		g0 = g1 = (c >> 8 & 0xFF) / 255.0;
+		b0 = b1 = (c >> 0 & 0xFF) / 255.0;
+
+		var stop1 = stop0;
+
+		var outColors : Array<Int> = [];
+
+		for (current in 0...count) {
+			var currentPos = current / (count-1);
+			if (currentPos > stop1) {
+				stop0 = stop1;
+				a0 = a1;
+				r0 = r1;
+				g0 = g1;
+				b0 = b1;
+
+				currentStop += 1;
+				if (currentStop < this.positions.length) {
+					stop1 = this.positions[currentStop];
+					var c = this.colors[currentStop];
+					a1 = (c >> 24 & 0xFF) / 255.0;
+					r1 = (c >> 16 & 0xFF) / 255.0;
+					g1 = (c >> 8 & 0xFF) / 255.0;
+					b1 = (c >> 0 & 0xFF) / 255.0;
+				} else {
+					stop1 = 1.0;
+				}
+			}
+			var r = r0;
+			var b = b0;
+			var g = g0;
+			var a = a0;
+
+			// avoid division by 0 if stop1 == stop0
+			if (stop1 > stop0) {
+				inline function lerp(from:Float,to: Float, blend: Float) {
+					return (to - from) * blend + from;
+				}
+				inline function saturate(a:Float) {
+					return Math.min(Math.max(0.0, a), 1.0);
+				}
+				var blend = (currentPos - stop0) / (stop1 - stop0);
+				blend = saturate(blend);
+
+				r = saturate(lerp(r0, r1, blend));
+				g = saturate(lerp(g0, g1, blend));
+				b = saturate(lerp(b0, b1, blend));
+				a = saturate(lerp(a0, a1, blend));
+			}
+
+			var cInt = Std.int(Math.round(a * 255.0)) << 24 | Std.int(Math.round(r * 255.0)) << 16 | Std.int(Math.round(g * 255.0)) << 8 | Std.int(Math.round(b * 255.0));
+			outColors.push(cInt);
+		}
+		return outColors;
+	}
+}
+
 class Index<T> {
 
 	public var all(default,null) : ArrayRead<T>;
