@@ -304,41 +304,6 @@ abstract Curve(CurveData) from CurveData {
 		return new BakedCurve(this, resolution);
 	}
 
-	inline public function numKeys() : Int {
-		return Std.int(this.length / 6);
-	}
-
-	inline public function time(idx: Int) : Float {
-		return this[idx * 6];
-	}
-
-	inline public function value(idx: Int) : Float {
-		return this[idx * 6 + 1];
-	}
-
-	inline public function prevDt(idx: Int) : Float {
-		return keyMode(idx) == Free ? this[idx * 6 + 2] : 0.0;
-	}
-
-	inline public function prevDv(idx: Int) : Float {
-		return keyMode(idx) == Free ? this[idx * 6 + 3] : 0.0;
-	}
-
-	inline public function nextDt(idx: Int) : Float {
-		return keyMode(idx) == Free ? this[idx * 6 + 4] : 0.0;
-	}
-
-	inline public function nextDv(idx: Int) : Float {
-		return keyMode(idx) == Free ? this[idx * 6 + 5] : 0.0;
-	}
-
-	public function keyMode(idx: Int) : CurveKeyMode {
-		if (this[idx * 6 + 2] == HandleData) {
-			return cast Std.int(this[idx * 6 + 3]);
-		}
-		return Free;
-	}
-
 	public function eval(t: Float) : Float {
 		var numKeys = numKeys();
 		switch(numKeys) {
@@ -404,6 +369,41 @@ abstract Curve(CurveData) from CurveData {
 		var y1 = sampleVal(maxT);
 		var y = y0 + (y1 - y0) * xfactor;
 		return y;
+	}
+
+	inline function numKeys() : Int {
+		return Std.int(this.length / 6);
+	}
+
+	inline function time(idx: Int) : Float {
+		return this[idx * 6];
+	}
+
+	inline function value(idx: Int) : Float {
+		return this[idx * 6 + 1];
+	}
+
+	inline function prevDt(idx: Int) : Float {
+		return keyMode(idx) == Free ? this[idx * 6 + 2] : 0.0;
+	}
+
+	inline function prevDv(idx: Int) : Float {
+		return keyMode(idx) == Free ? this[idx * 6 + 3] : 0.0;
+	}
+
+	inline function nextDt(idx: Int) : Float {
+		return keyMode(idx) == Free ? this[idx * 6 + 4] : 0.0;
+	}
+
+	inline function nextDv(idx: Int) : Float {
+		return keyMode(idx) == Free ? this[idx * 6 + 5] : 0.0;
+	}
+
+	function keyMode(idx: Int) : CurveKeyMode {
+		if (this[idx * 6 + 2] == HandleData) {
+			return cast Std.int(this[idx * 6 + 3]);
+		}
+		return Free;
 	}
 
 	// If an handle value is set to this value, then it's not an handle
