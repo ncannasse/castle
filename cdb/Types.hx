@@ -411,6 +411,7 @@ abstract Curve(CurveData) from CurveData {
 	public static final HandleData : Float = -10000000000;
 }
 
+@:access(cdb.Curve)
 class BakedCurve {
 	var width : Float;
 	var offset : Float;
