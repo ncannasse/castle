@@ -280,6 +280,24 @@ abstract Gradient(GradientData) from GradientData {
 	}
 }
 
+typedef CurveData = Array<Float>;
+
+abstract Curve(CurveData) from CurveData {
+	public var data(get, never) : CurveData;
+
+	function get_data() {
+		return cast this;
+	}
+
+	public function new(d: CurveData) {
+		this = d;
+	}
+
+	// If an handle value is set to this value, then it's not an handle
+	// and the next value must be interpreted as something else
+	public static final HandleData : Float = -10000000000;
+}
+
 class Index<T> {
 
 	public var all(default,null) : ArrayRead<T>;

@@ -35,6 +35,7 @@ enum ColumnType {
 	TDynamic;
 	TProperties;
 	TGradient;
+	TCurve;
 }
 
 enum abstract DisplayType(Int) {
