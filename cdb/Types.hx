@@ -280,6 +280,175 @@ abstract Gradient(GradientData) from GradientData {
 	}
 }
 
+typedef CurveData = Array<Float>;
+
+enum abstract CurveKeyMode(Int) {
+	var Aligned = 0; // for compat with hide curves
+	var Free = 1;
+	var Linear = 2;
+	var Constant = 3;
+}
+
+abstract Curve(CurveData) from CurveData {
+	public var data(get, never) : CurveData;
+
+	function get_data() {
+		return cast this;
+	}
+
+	public function new(d: CurveData) {
+		this = d;
+	}
+
+	public function bake(resolution: Int) : BakedCurve {
+		return new BakedCurve(this, resolution);
+	}
+
+	public function eval(t: Float) : Float {
+		var numKeys = numKeys();
+		switch(numKeys) {
+			case 0: return 0;
+			case 1: return value(0);
+			default:
+		}
+
+		var idx = -1;
+		for(ik in 0...numKeys) {
+			if(t > time(ik))
+				idx = ik;
+		}
+
+		if(idx < 0)
+			return value(0);
+
+		if (idx > numKeys-1 || keyMode(idx) == Constant)
+			return value(idx);
+		var cur = idx;
+		var next = idx+1;
+
+		var minT = 0.;
+		var maxT = 1.;
+		var maxDelta = 1./ 25.;
+
+		inline function bezier(c0: Float, c1:Float, c2:Float, c3: Float, t:Float) {
+			var u = 1 - t;
+			return u * u * u * c0 + c1 * 3 * t * u * u + c2 * 3 * t * t * u + t * t * t * c3;
+		}
+
+		inline function sampleTime(t) {
+			return bezier(
+				time(cur),
+				time(cur) + nextDt(cur),
+				time(next) + prevDt(next),
+				time(next), t);
+		}
+
+		inline function sampleVal(t) {
+			return bezier(
+				value(cur),
+				value(cur) + nextDv(cur),
+				value(next) + prevDv(next),
+				value(next), t);
+		}
+
+		while( maxT - minT > maxDelta ) {
+			var curT = (maxT + minT) * 0.5;
+			var x = sampleTime(curT);
+			if( x > t )
+				maxT = curT;
+			else
+				minT = curT;
+		}
+
+		var x0 = sampleTime(minT);
+		var x1 = sampleTime(maxT);
+		var dx = x1 - x0;
+		var xfactor = dx == 0 ? 0.5 : (t - x0) / dx;
+
+		var y0 = sampleVal(minT);
+		var y1 = sampleVal(maxT);
+		var y = y0 + (y1 - y0) * xfactor;
+		return y;
+	}
+
+	inline function numKeys() : Int {
+		return Std.int(this.length / 6);
+	}
+
+	inline function time(idx: Int) : Float {
+		return this[idx * 6];
+	}
+
+	inline function value(idx: Int) : Float {
+		return this[idx * 6 + 1];
+	}
+
+	inline function prevDt(idx: Int) : Float {
+		return keyMode(idx) == Free ? this[idx * 6 + 2] : 0.0;
+	}
+
+	inline function prevDv(idx: Int) : Float {
+		return keyMode(idx) == Free ? this[idx * 6 + 3] : 0.0;
+	}
+
+	inline function nextDt(idx: Int) : Float {
+		return keyMode(idx) == Free ? this[idx * 6 + 4] : 0.0;
+	}
+
+	inline function nextDv(idx: Int) : Float {
+		return keyMode(idx) == Free ? this[idx * 6 + 5] : 0.0;
+	}
+
+	function keyMode(idx: Int) : CurveKeyMode {
+		if (this[idx * 6 + 2] == HandleData) {
+			return cast Std.int(this[idx * 6 + 3]);
+		}
+		return Free;
+	}
+
+	// If an handle value is set to this value, then it's not an handle
+	// and the next value must be interpreted as something else
+	public static final HandleData : Float = -10000000000;
+}
+
+class BakedCurve {
+	var width : Float;
+	var offset : Float;
+	var points : Array<Float>;
+
+	public function new(from: Curve, resolution: Int) {
+		var numKeys = from.numKeys();
+		if (numKeys == 0)
+		{
+			width = 0;
+			return;
+		}
+		offset = from.time(0);
+		width = from.time(numKeys-1) - offset;
+		points = [];
+		for (point in 0...resolution) {
+			var t = (point / (resolution - 1))*width;
+			points[point] = from.eval(t + offset);
+		}
+	}
+
+	public function eval(t: Float) : Float {
+		if (width == 0.0)
+			return 0.0;
+		t -= offset;
+		var pointF = t / width * (points.length-1);
+		var point = Math.floor(pointF);
+		if (point < 0) point = 0;
+		if (point > points.length - 2) point = points.length - 2;
+		var blend = pointF - point;
+		blend = Math.min(width, Math.max(0.0, blend));
+
+		var a = points[point];
+		var b = points[point+1];
+		return (b - a) * blend + a;
+	}
+}
+
 class Index<T> {
 
 	public var all(default,null) : ArrayRead<T>;

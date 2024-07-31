@@ -277,7 +277,7 @@ class Database {
 					}
 			}
 			obj;
-		case TCustom(_), TTilePos, TTileLayer, TDynamic, TGradient: null;
+		case TCustom(_), TTilePos, TTileLayer, TDynamic, TGradient, TCurve: null;
 		}
 	}
 
@@ -498,6 +498,12 @@ class Database {
 			conv = function(c) return {colors: [c | 0xFF000000], positions: [0.0]};
 		case [TGradient, (TInt | TColor)]:
 			conv = function(g) return (g != null && g.colors != null && g.colors.length > 0) ? g.colors[0] & 0xFFFFFF : 0;
+		case [(TInt|TFloat), TCurve]:
+			conv = function(v) return [0.0, v, 0.0,0.0,0.0,0.0];
+		case [TCurve, TInt]:
+			conv = function(c) return Std.int(c[1]);
+		case [TCurve, TFloat]:
+			conv = function(c) return c[1];
 		default:
 			return null;
 		}
@@ -651,7 +657,7 @@ class Database {
 		case TColor:
 			var s = "#" + StringTools.hex(val, 6);
 			esc ? '"' + s + '"' : s;
-		case TTileLayer, TDynamic, TTilePos, TGradient:
+		case TTileLayer, TDynamic, TTilePos, TGradient, TCurve:
 			if( esc )
 				return haxe.Json.stringify(val);
 			return valueToString(val);
