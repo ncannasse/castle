@@ -993,7 +993,7 @@ class Database {
 	}
 
 	function replaceScriptIdent( v : String, oldId : String, newId : String ) {
-		return new EReg("\\b"+oldId.split(".").join("\\.")+"\\b","").replace(v, newId);
+		return new EReg("\\b"+oldId.split(".").join("\\.")+"\\b","g").replace(v, newId);
 	}
 
 	public function updateLocalRefs( sheet : Sheet, refMap : Map<String, String>, obj : Dynamic, objSheet : Sheet ) {
