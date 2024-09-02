@@ -60,6 +60,7 @@ typedef Column = {
 	@:optional var scope : Int;
 	@:optional var documentation : String;
 	@:optional var editor : Any;
+	@:optional var defaultValue : Any;
 }
 
 enum abstract LayerMode(String) {

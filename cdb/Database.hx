@@ -250,6 +250,8 @@ class Database {
 	public function getDefault( c : Column, ?ignoreOpt = false, ?sheet : Sheet ) : Dynamic {
 		if( c.opt && !ignoreOpt )
 			return null;
+		if (Reflect.hasField(c, "defaultValue"))
+			return c.defaultValue;
 		return switch( c.type ) {
 		case TInt, TFloat, TEnum(_), TFlags(_), TColor: 0;
 		case TString, TId, TImage, TLayer(_), TFile: "";
@@ -383,7 +385,19 @@ class Database {
 			old.opt = c.opt;
 		}
 
-		for( f in ["display","kind","scope","documentation", "editor"] ) {
+		if (old.defaultValue != c.defaultValue) {
+			for( o in sheet.getLines() ) {
+				var v = Reflect.field(o, c.name);
+				if( v == getDefault(old, false, sheet) ) {
+					if (c.opt)
+						Reflect.deleteField(o, c.name);
+					else
+						Reflect.setField(o, c.name, getDefault(c, false, sheet));
+				}
+			}
+		}
+
+		for( f in ["display","kind","scope","documentation", "editor", "defaultValue"] ) {
 			var v : Dynamic = Reflect.field(c,f);
 			if( v == null )
 				Reflect.deleteField(old, f);
