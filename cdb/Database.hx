@@ -250,7 +250,7 @@ class Database {
 	public function getDefault( c : Column, ?ignoreOpt = false, ?sheet : Sheet ) : Dynamic {
 		if( c.opt && !ignoreOpt )
 			return null;
-		if (Reflect.hasField(c, "defaultValue"))
+		if (c.defaultValue != null)
 			return c.defaultValue;
 		return switch( c.type ) {
 		case TInt, TFloat, TEnum(_), TFlags(_), TColor: 0;
