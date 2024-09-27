@@ -126,6 +126,10 @@ class Parser {
 				if( c.typeStr == null ) c.typeStr = cdb.Parser.saveType(c.type);
 				Reflect.deleteField(c, "type");
 			}
+
+			// Cleanup invalid separators
+			s.separators = s.separators.filter((sep) -> sep.id != null || sep.index != null);
+
 			// remap separators based on indexes
 			var oldSeps = null;
 			if( idField != null && s.separators.length > 0 ) {
@@ -153,12 +157,14 @@ class Parser {
 							Reflect.deleteField(sep,"index");
 							sep.id = id;
 						}
-						s.separators.push(sep);
+						if (sep.id != null || sep.index != null)
+							s.separators.push(sep);
 					}
 				}
 			}
 			seps.push(oldSeps);
 		}
+
 		for( t in data.customTypes )
 			for( c in t.cases )
 				for( a in c.args ) {
