@@ -415,19 +415,7 @@ class Sheet {
 			for( c in s.columns )
 				switch( c.type ) {
 				case TRef(sname) if( sname == sheet.name ):
-					var sheets = [];
-					var p = { s : s, c : c.name, id : null };
-					while( true ) {
-						for( c in p.s.columns )
-							switch( c.type ) {
-							case TId: p.id = c.name; break;
-							default:
-							}
-						sheets.unshift(p);
-						var p2 = p.s.getParent();
-						if( p2 == null ) break;
-						p = { s : p2.s, c : p2.c, id : null };
-					}
+					var sheets = getSheetPath(s, c.name);
 					for( o in s.getObjects() ) {
 						var obj = o.path[o.path.length - 1];
 						if (scopeObj != null && o.path[depth] != scopeObj)
@@ -441,6 +429,23 @@ class Sheet {
 				}
 		}
 		return results;
+	}
+
+	static public function getSheetPath(currentSheet: Sheet, currentColumn: String) {
+		var sheets = [];
+		var p = { s : currentSheet, c : currentColumn, id : null };
+		while( true ) {
+			for( c in p.s.columns )
+				switch( c.type ) {
+				case TId: p.id = c.name; break;
+				default:
+				}
+			sheets.unshift(p);
+			var p2 = p.s.getParent();
+			if( p2 == null ) break;
+			p = { s : p2.s, c : p2.c, id : null };
+		}
+		return sheets;
 	}
 
 	public function updateValue( c : Column, index : Int, old : Dynamic ) {
