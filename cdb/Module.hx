@@ -228,6 +228,9 @@ class Module {
 					macro : cdb.Types.Gradient;
 				case TCurve:
 					macro : cdb.Types.Curve;
+				case TGuid:
+					var t = tname.toComplex();
+					macro : cdb.Types.Guid<$t>;
 				}
 
 				var rt = switch( c.type ) {
@@ -249,6 +252,7 @@ class Module {
 					(makeTypeName(s.name+"@" + c.name) + "Def").toComplex();
 				case TCurve: macro : Array<Float>;
 				case TGradient: macro : { colors: Array<Int>, positions: Array<Float>};
+				case TGuid: macro : String;
 				};
 
 				if( c.opt ) {
@@ -304,7 +308,7 @@ class Module {
 						}),
 						access : [AInline, APrivate],
 					});
-				case TList, TEnum(_), TFlags(_), TLayer(_), TTileLayer, TProperties:
+				case TList, TEnum(_), TFlags(_), TLayer(_), TTileLayer, TProperties, TGuid:
 					// cast
 					var cname = c.name;
 					fields.push({
@@ -561,7 +565,7 @@ class Module {
 				for( ai in 0...c.args.length ) {
 					var a = c.args[ai];
 					var econv = switch( a.type ) {
-					case TId, TString, TBool, TInt, TFloat, TImage, TEnum(_), TFlags(_), TColor, TFile, TTileLayer, TDynamic, TGradient, TCurve:
+					case TId, TString, TBool, TInt, TFloat, TImage, TEnum(_), TFlags(_), TColor, TFile, TTileLayer, TDynamic, TGradient, TCurve, TGuid:
 						macro v[$v { ai + 1 } ];
 					case TCustom(id):
 						if( a.opt )
