@@ -247,6 +247,34 @@ class Database {
 		return cdb.Parser.save(data);
 	}
 
+	static var GUID_INCR = Std.random(1024 + 512);
+	static var INIT_GUID = GUID_INCR;
+	static var EPOQ = 0x60000000;
+	static var PREV_TIME = -1;
+
+	static function getTime() {
+		#if (sys || hxnodejs)
+		return Std.int(Sys.time() - EPOQ);
+		#else
+		return Std.int(Date.now().getTime() / 1000 - EPOQ);
+		#end
+	}
+
+	public static function genGUID() {
+		var time = getTime();
+		GUID_INCR++;
+		GUID_INCR %= 2048;
+		if( GUID_INCR == 0 ) {
+			while( time == PREV_TIME )
+				time = getTime();
+			GUID_INCR = Std.random(1024);
+		}
+		PREV_TIME = time;
+		var rnd = Std.random(1 << 20);
+		var int64 = haxe.Int64.make(time,(GUID_INCR << 20) | rnd);
+		return cdb.Types.Guid.ofInt64(int64);
+	}
+
 	public function getDefault( c : Column, ?ignoreOpt = false, ?sheet : Sheet ) : Dynamic {
 		if( c.opt && !ignoreOpt )
 			return null;
@@ -255,6 +283,7 @@ class Database {
 		return switch( c.type ) {
 		case TInt, TFloat, TEnum(_), TFlags(_), TColor: 0;
 		case TString, TId, TImage, TLayer(_), TFile: "";
+		case TGuid: genGUID();
 		case TRef(s):
 			var s = getSheet(s);
 			var l = s.lines[0];
@@ -650,7 +679,7 @@ class Database {
 			return "null";
 		return switch( t ) {
 		case TInt, TFloat, TBool, TImage: Std.string(val);
-		case TId, TRef(_), TLayer(_), TFile: esc ? '"'+val+'"' : val;
+		case TId, TRef(_), TLayer(_), TFile, TGuid: esc ? '"'+val+'"' : val;
 		case TString:
 			var val : String = val;
 			if( !esc )

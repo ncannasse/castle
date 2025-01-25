@@ -450,6 +450,36 @@ class BakedCurve {
 	}
 }
 
+abstract Guid<T>(String) {
+	public function new(s:String) {
+		this = s;
+	}
+
+	public function toInt64() : haxe.Int64 {
+		var k = 0;
+		var tot = haxe.Int64.ofInt(0);
+		for( i in 0...13 ) {
+			if( i == 4 || i == 9 ) continue;
+			var v = CVALUES[this.charCodeAt(i)];
+			if( v < 0 ) throw "assert";
+			tot |= (v : haxe.Int64) << (60 - (k++ * 6));
+		}
+		return tot;
+	}
+
+	public static function ofInt64( v : haxe.Int64 ) {
+		var str = "";
+		for( i in 0...11 ) {
+			if( i == 4 || i == 8 )
+				str += "-";
+			str += CHARS.charAt( (v >> (60 - i*6)).low & 63 );
+		}
+		return new Guid(str);
+	}
+	static var CHARS = "#&0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+	static var CVALUES = [for( i in 0...128 ) CHARS.indexOf(String.fromCharCode(i))];
+}
+
 class Index<T> {
 
 	public var all(default,null) : ArrayRead<T>;
