@@ -455,7 +455,9 @@ abstract Guid<T>(String) {
 		this = s;
 	}
 
-	public function toInt64() : haxe.Int64 {
+	public function toInt() : GuidInt<T> {
+		if( this == null )
+			return GuidInt.getNull();
 		var k = 0;
 		var tot = haxe.Int64.ofInt(0);
 		for( i in 0...13 ) {
@@ -467,17 +469,34 @@ abstract Guid<T>(String) {
 		return tot;
 	}
 
-	public static function ofInt64( v : haxe.Int64 ) {
+	public static function ofInt<T>( v : GuidInt<T> ) {
+		if( v.isNull() )
+			return new Guid<T>(null);
 		var str = "";
+		var v : haxe.Int64 = v;
 		for( i in 0...11 ) {
 			if( i == 4 || i == 8 )
 				str += "-";
 			str += CHARS.charAt( (v >> (60 - i*6)).low & 63 );
 		}
-		return new Guid(str);
+		return new Guid<T>(str);
 	}
+
 	static var CHARS = "#&0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 	static var CVALUES = [for( i in 0...128 ) CHARS.indexOf(String.fromCharCode(i))];
+}
+
+abstract GuidInt<T>(haxe.Int64) from haxe.Int64 to haxe.Int64 {
+
+	public inline function toGuid() {
+		return Guid.ofInt(this);
+	}
+
+	public inline function isNull() {
+		return haxe.Int64.isZero(this);
+	}
+
+	public static inline function getNull<T>() : GuidInt<T> return haxe.Int64.ofInt(0);
 }
 
 class Index<T> {

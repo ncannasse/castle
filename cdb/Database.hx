@@ -272,7 +272,7 @@ class Database {
 		PREV_TIME = time;
 		var rnd = Std.random(1 << 20);
 		var int64 = haxe.Int64.make(time,(GUID_INCR << 20) | rnd);
-		return cdb.Types.Guid.ofInt64(int64);
+		return cdb.Types.Guid.ofInt(int64);
 	}
 
 	public function getDefault( c : Column, ?ignoreOpt = false, ?sheet : Sheet ) : Dynamic {
