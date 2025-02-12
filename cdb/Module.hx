@@ -197,9 +197,12 @@ class Module {
 
 		var typesCache = new Map<String,String>();
 		var hsheets = new Map();
-		for( s in data.sheets )
+		for( s in data.sheets ){
+			if ( s.lines != null && s.lines.length == 0 )
+				s.lines = getSheetLines( data.sheets, s );
 			hsheets.set(s.name, s);
-
+		}
+		
 		var defineEnums = new Map<String,String>();
 
 		function makeEnum( c : Data.Column, tname : String, values : Array<String> ) {
@@ -820,7 +823,7 @@ class Module {
 
 		var assigns = [], fields = new Array<haxe.macro.Expr.Field>();
 		for( s in data.sheets ) {
-			if( s.props.hide || s.props.dataFiles != null ) continue;
+			if( /* s.props.hide || */ s.props.dataFiles != null ) continue;
 			var tname = makeTypeName(s.name);
 			var t = tname.toComplex();
 			var fname = fieldName(s.name);
@@ -860,6 +863,11 @@ class Module {
 				}
 				public static function load( content : String, allowReload = false ) {
 					root = cdb.Parser.parse(content, false);
+					for (s in root.sheets) {
+						@:privateAccess
+						if ( s.lines != null && s.lines.length == 0 )
+							s.lines = cdb.Module.getSheetLines( root.sheets, s );
+					}
 					{$a{assigns}};
 				}
 			}).fields.concat(fields),
