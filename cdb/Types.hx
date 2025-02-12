@@ -312,6 +312,16 @@ abstract Curve(CurveData) from CurveData {
 			default:
 		}
 
+		var minTime = time(0);
+		if (t < minTime) {
+			t = minTime;
+		} else {
+			var maxTime = time(numKeys-1);
+			if (t > maxTime) {
+				t = maxTime;
+			}
+		}
+
 		var idx = -1;
 		for(ik in 0...numKeys) {
 			if(t > time(ik))
