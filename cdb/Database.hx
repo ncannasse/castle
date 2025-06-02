@@ -19,6 +19,8 @@ import cdb.Data.ColumnType;
 import cdb.Data.CustomType;
 import cdb.Data.CustomTypeCase;
 
+typedef OptionalBackup = Array<{line: Dynamic, colName: String, data: Dynamic}>;
+
 class Database {
 
 	var smap : Map<String, Sheet>;
@@ -229,7 +231,51 @@ class Database {
 		return count;
 	}
 
+	/**
+		Recursively removes empty list/properties from the optional columns of `sheet` in the given `lines` objects.
+		A record of the removed items are stored in `optionalBackup` so they can be restored later using `restoreOptionals()`.
+	**/
+	public static function cleanupOptionalLines(lines: Array<Dynamic>, sheet: cdb.Sheet, optionalBackup: OptionalBackup) {
+		if (lines == null)
+			return;
+		for (column in sheet.columns) {
+				for (line in lines) {
+					var data = Reflect.field(line, column.name);
+					if (data == null)
+						continue;
+					switch (column.type) {
+						case TList:
+							var list : Array<Dynamic> = cast data;
+							if (list.length == 0 && column.opt) {
+								optionalBackup.push({line: line, colName: column.name, data: list});
+								Reflect.deleteField(line, column.name);
+							} else {
+								var sub = sheet.getSub(column);
+								cleanupOptionalLines(list, sub, optionalBackup);
+							}
+						case TProperties:
+							var props : Dynamic = cast data;
+							if	(Reflect.fields(props).length == 0 && column.opt) {
+								optionalBackup.push({line: line, colName: column.name, data: props});
+								Reflect.deleteField(line, column.name);
+							} else {
+								var sub = sheet.getSub(column);
+								cleanupOptionalLines([props], sub, optionalBackup);
+							}
+						default:
+					}
+				}
+		}
+	}
+
+	public static function restoreOptionals(optionalBackup: OptionalBackup) {
+		for (backup in optionalBackup) {
+			Reflect.setField(backup.line, backup.colName, backup.data);
+		}
+	}
+
 	public function save() {
+		var optionalBackup = [];
 		// process
 		for( s in sheets ) {
 			// clean props
@@ -243,8 +289,16 @@ class Database {
 				var v : Dynamic = Reflect.field(s.props, p);
 				if( v == null || v == false ) Reflect.deleteField(s.props, p);
 			}
+
+			// only perform cleanup on root sheets as the function is recursive
+			if (s.parent == null) {
+				cleanupOptionalLines(s.lines, s, optionalBackup);
+			}
 		}
-		return cdb.Parser.save(data);
+		var result = cdb.Parser.save(data);
+
+		restoreOptionals(optionalBackup);
+		return result;
 	}
 
 	static var GUID_INCR = Std.random(1024 + 512);
