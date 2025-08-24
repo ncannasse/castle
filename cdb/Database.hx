@@ -379,7 +379,9 @@ class Database {
 			old.typeStr = null;
 		}
 
-		if( old.opt != c.opt ) {
+		var oldOpt = old.opt ?? false;
+		var newOpt = c.opt ?? false;
+		if( oldOpt != newOpt ) {
 			if( old.opt ) {
 				for( o in sheet.getLines() ) {
 					var v = Reflect.field(o, c.name);
