@@ -392,7 +392,7 @@ class Database {
 				}
 			} else {
 				switch( old.type ) {
-				case TEnum(_):
+				case TEnum(_), TRef(_):
 					// first choice should not be removed
 				default:
 					var def = getDefault(old, sheet);
