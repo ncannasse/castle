@@ -617,15 +617,18 @@ class Module {
 			var tname = makeTypeName(s.name);
 			var t = tname.toComplex();
 			var fname = fieldName(s.name);
-			if( Lambda.exists(s.columns, function(c) return c.type == TId) ) {
+			var hasID = Lambda.exists(s.columns, function(c) return c.type == TId);
+			var hasGUID = Lambda.exists(s.columns, function(c) return c.type == TGuid);
+			if( hasID ) {
 				var kind = (tname + "Kind").toComplex();
 				fields.push({
 					name : fname,
 					pos : pos,
 					access : [APublic, AStatic],
-					kind : FVar(macro : cdb.Types.IndexId<$t,$kind>),
+					kind : FVar(hasGUID ? macro : cdb.Types.IndexGuid<$t,$kind> : macro : cdb.Types.IndexId<$t,$kind>),
 				});
-				assigns.push(macro if( allowReload && $i{fname} != null ) @:privateAccess $i{fname}.reload(root) else $i{fname} = new cdb.Types.IndexId(root, $v{s.name}));
+				var enew = hasGUID ? macro new cdb.Types.IndexGuid(root, $v{s.name}) : macro new cdb.Types.IndexId(root, $v{s.name});
+				assigns.push(macro if( allowReload && $i{fname} != null ) @:privateAccess $i{fname}.reload(root) else $i{fname} = $enew);
 			} else {
 				fields.push({
 					name : fname,
