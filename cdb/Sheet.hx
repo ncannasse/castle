@@ -384,48 +384,59 @@ class Sheet {
 	}
 
 	public function getReferencesFromId( id : String ) {
-		var scopeObj = null;
-		var depth = 0;
-		var ourIdCol = idCol;
-		if (ourIdCol == null) {
-			for (c in columns) {
-				if (c.type == TId) {
-					ourIdCol = c;
-					break;
+		function getIdCol(sheet : cdb.Sheet) {
+			if (sheet.idCol != null)
+				return sheet.idCol;
+			for (c in columns)
+				if (c.type == TId)
+					return c;
+			return null;
+		}
+
+		function getScopedIds(sheet : cdb.Sheet, obj : Dynamic) : Array<String> {
+			var parent = this.parent.sheet;
+			var idCol = getIdCol(this);
+
+			var colScopeDef = null;
+			for (c in sheet.columns) {
+				switch (c.type) {
+					case TRef(sname) if ( sname == parentTarget.name ):
+						colScopeDef = c;
+						break;
+					default:
 				}
 			}
+
+			if (colScopeDef == null)
+				return [];
+
+			var targetLineId = Reflect.field(obj, colScopeDef.name);
+			if (targetLineId != Reflect.field(parentTarget.lines[parent.line], idCol.name))
+				return [];
+
+			var line = parentTarget.getLines()[parent.line];
+			var scopedLines : Array<Dynamic> = Reflect.field(line, parentTarget.columns[parent.column].name);
+			return [ for(sl in scopedLines) Reflect.field(sl, idCol.name) ];
 		}
 
-		if (ourIdCol != null && ourIdCol.scope != null && ourIdCol.scope >= 0) {
-			var cur = this;
-			for (i in 0...ourIdCol.scope-1) {
-				cur = cur.parent.sheet;
-			}
-			var cur2 = cur;
-			while(cur2 != null && cur2.parent != null){
-				cur2 = cur2.parent.sheet;
-				depth++;
-			}
-			depth--;
-			scopeObj = cur.parent.sheet.getLines()[cur.parent.line];
-		}
-
+		var idCol = getIdCol(this);
+		var isLocal = idCol != null && idCol.scope != null;
 		var results = [];
 		for( s in base.sheets ) {
 			for( c in s.columns )
 				switch( c.type ) {
-				case TRef(sname) if( sname == sheet.name ):
-					var sheets = getSheetPath(s, c.name);
-					for( o in s.getObjects() ) {
-						var obj = o.path[o.path.length - 1];
-						if (scopeObj != null && o.path[depth] != scopeObj)
-							continue;
-						if( Reflect.field(obj, c.name) == id )
-							results.push({ s : sheets, o : o });
-					}
-				case TCustom(tname):
-					// todo : lookup in custom types
-				default:
+					case TRef(sname) if( sname == sheet.name ):
+						var sheets = getSheetPath(s, c.name);
+						for( o in s.getObjects() ) {
+							var obj = o.path[o.path.length - 1];
+							if (isLocal && !getScopedIds(s, obj).contains(id))
+								continue;
+							if( Reflect.field(obj, c.name) == id )
+								results.push({ s : sheets, o : o });
+						}
+					case TCustom(tname):
+						// todo : lookup in custom types
+					default:
 				}
 		}
 		return results;
