@@ -60,10 +60,7 @@ class Sheet {
 	}
 
 	public function getSub( c : Column ) {
-		var resolved = base.resolveColumn(c);
-		if( resolved != null )
-			return resolved.sheet.getSub(resolved.column);
-		return base.getSheet(name + "@" + c.name);
+		return base.getSheet(c.structRef != null ? c.structRef : name + "@" + c.name);
 	}
 
 	public function getParent() {
