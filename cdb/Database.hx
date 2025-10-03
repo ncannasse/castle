@@ -392,20 +392,32 @@ class Database {
 					Reflect.setField(o, c.name, v);
 			}
 			
-			var renames = [];
-			function renameRec(sheet:Sheet, col, newName) {
-				var s = sheet.getSub(col);
-				renames.push(function() {
-					s.rename(sheet.name + "@" + newName);
-					s.sync();
-				});
-				for( c in s.columns )
-					if( c.type == TList || c.type == TProperties )
-						renameRec(s, c, c.name);
-			}
-			if( old.type == TList || old.type == TProperties ) {
+			// Only rename sub-sheets if this column owns them (no structRef)
+			if( (old.type == TList || old.type == TProperties) && old.structRef == null ) {
+				var renames = [];
+				function renameRec(sheet:Sheet, col, newName) {
+					var s = sheet.getSub(col);
+					renames.push(function() {
+						s.rename(sheet.name + "@" + newName);
+						s.sync();
+					});
+					for( c in s.columns )
+						if( c.type == TList || c.type == TProperties )
+							renameRec(s, c, c.name);
+				}
 				renameRec(sheet, old, c.name);
 				for( f in renames ) f();
+				
+				// Update structRef in all columns that reference this shared structure
+				if( old.shared == true ) {
+					var oldRefAt = sheet.name + "@" + old.name;
+					var oldRefColon = sheet.name + ":" + old.name;
+					var newRef = sheet.name + "@" + c.name;
+					for( s in sheets )
+						for( col in s.columns )
+							if( col.structRef == oldRefAt || col.structRef == oldRefColon )
+								col.structRef = newRef;
+				}
 			}
 			old.name = c.name;
 		}
