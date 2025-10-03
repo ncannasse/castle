@@ -362,7 +362,7 @@ class Database {
 				return "Referenced column '" + c.structRef + "' is not marked as shareable";
 		}
 
-		var lines = getAllSharedDataObjects(sheet);
+		var lines = getAllLines(sheet);
 
 		if( old.name != c.name ) {
 
@@ -508,7 +508,7 @@ class Database {
 		return null;
 	}
 
-	public function getAllSharedDataObjects( sheet : Sheet ) : Array<Dynamic> {
+	public function getAllLines( sheet : Sheet ) : Array<Dynamic> {
 		// Walk up the parent chain to find a shared column
 		var path = [];
 		var current = sheet;

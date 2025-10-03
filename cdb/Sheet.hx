@@ -268,7 +268,7 @@ class Sheet {
 	public function deleteColumn( cname : String ) {
 		for( c in sheet.columns )
 			if( c.name == cname ) {
-				for( obj in base.getAllSharedDataObjects(this) )
+				for( obj in base.getAllLines(this) )
 					Reflect.deleteField(obj, cname);
 
 				sheet.columns.remove(c);
@@ -310,7 +310,7 @@ class Sheet {
 
 		var def = base.getDefault(c, this);
 		if( def != null )
-			for( obj in base.getAllSharedDataObjects(this) )
+			for( obj in base.getAllLines(this) )
 				Reflect.setField(obj, c.name, def);
 
 		return null;
