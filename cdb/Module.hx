@@ -178,6 +178,16 @@ class Module {
 			defineEnums.set(key, tname);
 		}
 
+		function resolveType( c : Data.Column, s : Data.SheetData ) {
+			var ref = s.name + "@" + c.name;
+			if( c.structRef != null ) {
+				var parts = c.structRef.split("@");
+				if( parts.length == 1 ) parts = c.structRef.split(":");
+				ref = parts.length == 2 ? parts[0] + "@" + parts[1] : s.name + "@" + c.name;
+			}
+			return makeTypeName(ref);
+		}
+
 		for( s in data.sheets ) {
 			var tname = makeTypeName(s.name);
 			var tkind = tname + "Kind";
@@ -195,21 +205,23 @@ class Module {
 				case TBool: macro : Bool;
 				case TString, TFile: macro : String;
 				case TList:
-					var t = makeTypeName(s.name + "@" + c.name).toComplex();
+					var t = resolveType(c, s).toComplex();
 					macro : cdb.Types.ArrayRead<$t>;
 				case TRef(t): makeTypeName(t).toComplex();
 				case TImage: macro : String;
 				case TId:
 					tkind.toComplex();
 				case TEnum(values):
-					var t = makeTypeName(s.name + "@" + c.name);
-					makeEnum(c,t,values);
+					var t = resolveType(c, s);
+					if( c.structRef == null )
+						makeEnum(c,t,values);
 					t.toComplex();
 				case TCustom(name):
 					name.toComplex();
 				case TFlags(values):
-					var t = makeTypeName(s.name + "@" + c.name);
-					makeEnum(c,t,values);
+					var t = resolveType(c, s);
+					if( c.structRef == null )
+						makeEnum(c,t,values);
 					var t = t.toComplex();
 					macro : cdb.Types.Flags<$t>;
 				case TLayer(t):
@@ -223,12 +235,7 @@ class Module {
 					var t = tname.toComplex();
 					s.props.level != null && c.name == "props" ? macro : cdb.Types.LevelPropsAccess<$t> : macro : Dynamic;
 				case TProperties:
-					var ref = if( c.structRef != null ) {
-						var parts = c.structRef.split("@");
-						if( parts.length == 1 ) parts = c.structRef.split(":");
-						parts.length == 2 ? parts[0] + "@" + parts[1] : s.name + "@" + c.name;
-					} else s.name + "@" + c.name;
-					makeTypeName(ref).toComplex();
+					resolveType(c, s).toComplex();
 				case TGradient:
 					macro : cdb.Types.Gradient;
 				case TCurve:
@@ -247,19 +254,14 @@ class Module {
 				case TRef(t): makeTypeName(t+"Kind").toComplex();
 				case TCustom(_): macro : Array<Dynamic>;
 				case TList:
-					var t = (makeTypeName(s.name+"@"+c.name) + "Def").toComplex();
+					var t = (resolveType(c, s) + "Def").toComplex();
 					macro : Array<$t>;
 				case TLayer(_): macro : String;
 				case TTilePos: macro : { file : String, size : Int, x : Int, y : Int, ?width : Int, ?height : Int };
 				case TTileLayer: macro : { file : String, stride : Int, size : Int, data : String };
 				case TDynamic: macro : Dynamic;
 				case TProperties:
-					var ref = if( c.structRef != null ) {
-						var parts = c.structRef.split("@");
-						if( parts.length == 1 ) parts = c.structRef.split(":");
-						parts.length == 2 ? parts[0] + "@" + parts[1] : s.name + "@" + c.name;
-					} else s.name + "@" + c.name;
-					(makeTypeName(ref) + "Def").toComplex();
+					(resolveType(c, s) + "Def").toComplex();
 				case TCurve: macro : Array<Float>;
 				case TGradient: macro : { colors: Array<Int>, positions: Array<Float>};
 				case TGuid: macro : String;
