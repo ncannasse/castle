@@ -59,7 +59,7 @@ class Sheet {
 		return sheet.props.level != null;
 	}
 
-	public inline function getSub( c : Column ) {
+	public function getSub( c : Column ) {
 		var resolved = base.resolveColumn(c);
 		if( resolved != null )
 			return resolved.sheet.getSub(resolved.column);
@@ -268,7 +268,8 @@ class Sheet {
 	public function deleteColumn( cname : String ) {
 		for( c in sheet.columns )
 			if( c.name == cname ) {
-				base.propagateColumnDeletion(this, cname);
+				for( obj in base.getAllSharedDataObjects(this) )
+					Reflect.deleteField(obj, cname);
 
 				sheet.columns.remove(c);
 				if( sheet.props.displayColumn == c.name ) {
@@ -307,7 +308,10 @@ class Sheet {
 				base.createSubSheet(this, c);
 		}
 
-		base.propagateColumnAddition(this, c);
+		var def = base.getDefault(c, this);
+		if( def != null )
+			for( obj in base.getAllSharedDataObjects(this) )
+				Reflect.setField(obj, c.name, def);
 
 		return null;
 	}

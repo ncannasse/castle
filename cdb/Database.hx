@@ -508,7 +508,7 @@ class Database {
 		return null;
 	}
 
-	function getAllSharedDataObjects( sheet : Sheet ) : Array<Dynamic> {
+	public function getAllSharedDataObjects( sheet : Sheet ) : Array<Dynamic> {
 		// Walk up the parent chain to find a shared column
 		var path = [];
 		var current = sheet;
@@ -549,18 +549,6 @@ class Database {
 			path.push(p.c);
 			current = p.s;
 		}
-	}
-
-	public function propagateColumnAddition( sheet : Sheet, c : Column ) {
-		var def = getDefault(c, sheet);
-		if( def != null )
-			for( obj in getAllSharedDataObjects(sheet) )
-				Reflect.setField(obj, c.name, def);
-	}
-
-	public function propagateColumnDeletion( sheet : Sheet, columnName : String ) {
-		for( obj in getAllSharedDataObjects(sheet) )
-			Reflect.deleteField(obj, columnName);
 	}
 
 	public function makePairs < T: { name:String } > ( oldA : Array<T>, newA : Array<T> ) : Array<{ a : T, b : T }> {
