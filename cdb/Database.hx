@@ -320,8 +320,6 @@ class Database {
 	}
 
 	public function updateColumn( sheet : Sheet, old : Column, c : Column ) {
-		var lines = getAllLines(sheet);
-
 		if( old.name != c.name ) {
 
 			for( c2 in sheet.columns )
@@ -332,7 +330,7 @@ class Database {
 			if( c.name == "group" && sheet.props.hasGroup )
 				return "Sheet already has a group";
 
-			for( o in lines ) {
+			for( o in getAllLines(sheet) ) {
 				var v = Reflect.field(o, old.name);
 				Reflect.deleteField(o, old.name);
 				if( v != null )
@@ -372,7 +370,7 @@ class Database {
 				return "Cannot convert " + typeStr(old.type) + " to " + typeStr(c.type);
 			var conv = conv.f;
 			if( conv != null )
-				for( o in lines ) {
+				for( o in getAllLines(sheet) ) {
 					var v = Reflect.field(o, c.name);
 					if( v != null ) {
 						v = conv(v);
@@ -396,19 +394,23 @@ class Database {
 		if( old.structRef != c.structRef ) {
 			if( old.type == TList || old.type == TProperties ) {
 				if( old.structRef != null && c.structRef == null ) {
+					old.structRef = null;
 					sheet.base.createSubSheet(sheet, old);
 				}
 				else if( old.structRef == null && c.structRef != null ) {
 					var subSheet = sheet.base.getSheet(sheet.name + "@" + old.name);
 					if( subSheet != null )
 						sheet.base.deleteSheet(subSheet);
+					old.structRef = c.structRef;
 				}
+			} else {
+				old.structRef = c.structRef;
 			}
 		}
 
 		if( old.opt != c.opt ) {
 			if( old.opt ) {
-				for( o in lines ) {
+				for( o in getAllLines(sheet) ) {
 					var v = Reflect.field(o, c.name);
 					if( v == null ) {
 						v = getDefault(c, sheet);
@@ -421,7 +423,7 @@ class Database {
 					// first choice should not be removed
 				default:
 					var def = getDefault(old, sheet);
-					for( o in lines ) {
+					for( o in getAllLines(sheet) ) {
 						var v = Reflect.field(o, c.name);
 						switch( c.type ) {
 						case TList:
@@ -442,7 +444,7 @@ class Database {
 		}
 
 		if (old.defaultValue != c.defaultValue) {
-			for( o in lines ) {
+			for( o in getAllLines(sheet) ) {
 				var v = Reflect.field(o, c.name);
 				if( v == getDefault(old, false, sheet) ) {
 					if (c.opt)
