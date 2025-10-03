@@ -271,6 +271,9 @@ class Sheet {
 	public function deleteColumn( cname : String ) {
 		for( c in sheet.columns )
 			if( c.name == cname ) {
+				// Propagate deletion to referencing sheets if this is a shared structure
+				base.propagateColumnDeletion(this, cname);
+				
 				sheet.columns.remove(c);
 				for( o in getLines() )
 					Reflect.deleteField(o, c.name);
@@ -314,6 +317,10 @@ class Sheet {
 			var def = base.getDefault(c, this);
 			if( def != null ) Reflect.setField(i, c.name, def);
 		}
+		
+		// Propagate addition to referencing sheets if this is a shared structure
+		base.propagateColumnAddition(this, c);
+		
 		return null;
 	}
 

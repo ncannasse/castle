@@ -371,6 +371,9 @@ class Database {
 				return "Referenced column '" + c.structRef + "' is not marked as shareable";
 		}
 		
+		// Gather all sheets that share this structure data
+		var allDataSheets = getAllSheetsWithSharedData(sheet);
+		
 		if( old.name != c.name ) {
 
 			for( c2 in sheet.columns )
@@ -381,12 +384,15 @@ class Database {
 			if( c.name == "group" && sheet.props.hasGroup )
 				return "Sheet already has a group";
 
-			for( o in sheet.getLines() ) {
-				var v = Reflect.field(o, old.name);
-				Reflect.deleteField(o, old.name);
-				if( v != null )
-					Reflect.setField(o, c.name, v);
-			}
+			// Apply rename to all sheets with shared data
+			for( dataSheet in allDataSheets )
+				for( o in dataSheet.lines ) {
+					var v = Reflect.field(o, old.name);
+					Reflect.deleteField(o, old.name);
+					if( v != null )
+						Reflect.setField(o, c.name, v);
+				}
+			
 			var renames = [];
 			function renameRec(sheet:Sheet, col, newName) {
 				var s = sheet.getSub(col);
@@ -411,13 +417,15 @@ class Database {
 				return "Cannot convert " + typeStr(old.type) + " to " + typeStr(c.type);
 			var conv = conv.f;
 			if( conv != null )
-				for( o in sheet.getLines() ) {
-					var v = Reflect.field(o, c.name);
-					if( v != null ) {
-						v = conv(v);
-						if( v != null ) Reflect.setField(o, c.name, v) else Reflect.deleteField(o, c.name);
+				// Apply type conversion to all sheets with shared data
+				for( dataSheet in allDataSheets )
+					for( o in dataSheet.lines ) {
+						var v = Reflect.field(o, c.name);
+						if( v != null ) {
+							v = conv(v);
+							if( v != null ) Reflect.setField(o, c.name, v) else Reflect.deleteField(o, c.name);
+						}
 					}
-				}
 			switch( [old.type, c.type] ) {
 				case [TList, TProperties]:
 					if( old.structRef == null )
@@ -450,49 +458,54 @@ class Database {
 
 		if( old.opt != c.opt ) {
 			if( old.opt ) {
-				for( o in sheet.getLines() ) {
-					var v = Reflect.field(o, c.name);
-					if( v == null ) {
-						v = getDefault(c, sheet);
-						if( v != null ) Reflect.setField(o, c.name, v);
+				// Apply opt change to all sheets with shared data
+				for( dataSheet in allDataSheets )
+					for( o in dataSheet.lines ) {
+						var v = Reflect.field(o, c.name);
+						if( v == null ) {
+							v = getDefault(c, sheet);
+							if( v != null ) Reflect.setField(o, c.name, v);
+						}
 					}
-				}
 			} else {
 				switch( old.type ) {
 				case TEnum(_):
 					// first choice should not be removed
 				default:
 					var def = getDefault(old, sheet);
-					for( o in sheet.getLines() ) {
-						var v = Reflect.field(o, c.name);
-						switch( c.type ) {
-						case TList:
-							var v : Array<Dynamic> = v;
-							if( v != null && v.length == 0 )
-								Reflect.deleteField(o, c.name);
-						case TProperties:
-							if( Reflect.fields(v).length == 0 || haxe.Json.stringify(v) == haxe.Json.stringify(def) )
-								Reflect.deleteField(o, c.name);
-						default:
-							if( v == def )
-								Reflect.deleteField(o, c.name);
+					for( dataSheet in allDataSheets )
+						for( o in dataSheet.lines ) {
+							var v = Reflect.field(o, c.name);
+							switch( c.type ) {
+							case TList:
+								var v : Array<Dynamic> = v;
+								if( v != null && v.length == 0 )
+									Reflect.deleteField(o, c.name);
+							case TProperties:
+								if( Reflect.fields(v).length == 0 || haxe.Json.stringify(v) == haxe.Json.stringify(def) )
+									Reflect.deleteField(o, c.name);
+							default:
+								if( v == def )
+									Reflect.deleteField(o, c.name);
+							}
 						}
-					}
 				}
 			}
 			old.opt = c.opt;
 		}
 
 		if (old.defaultValue != c.defaultValue) {
-			for( o in sheet.getLines() ) {
-				var v = Reflect.field(o, c.name);
-				if( v == getDefault(old, false, sheet) ) {
-					if (c.opt)
-						Reflect.deleteField(o, c.name);
-					else
-						Reflect.setField(o, c.name, getDefault(c, false, sheet));
+			// Apply defaultValue change to all sheets with shared data
+			for( dataSheet in allDataSheets )
+				for( o in dataSheet.lines ) {
+					var v = Reflect.field(o, c.name);
+					if( v == getDefault(old, false, sheet) ) {
+						if (c.opt)
+							Reflect.deleteField(o, c.name);
+						else
+							Reflect.setField(o, c.name, getDefault(c, false, sheet));
+					}
 				}
-			}
 		}
 
 		for( f in ["display","kind","scope","documentation", "editor", "defaultValue", "shared", "structRef"] ) {
@@ -505,6 +518,79 @@ class Database {
 
 		sheet.sync();
 		return null;
+	}
+	
+	function getAllSheetsWithSharedData( sheet : Sheet ) : Array<{ lines : Array<Dynamic> }> {
+		// Get all data objects that use this shared structure
+		var parent = sheet.getParent();
+		if( parent == null )
+			return []; // Not a sub-sheet
+		
+		// Find the parent column
+		var parentCol = null;
+		for( col in parent.s.columns )
+			if( col.name == parent.c ) {
+				parentCol = col;
+				break;
+			}
+		
+		if( parentCol == null || parentCol.shared != true )
+			return [{ lines : sheet.getLines() }]; // Not shared, just return the source
+		
+		// Collect all data from source and referencing sheets
+		var result = [];
+		
+		// Helper to extract nested data objects
+		function collectDataObjects( parentSheet : Sheet, columnName : String, columnType : ColumnType ) {
+			var dataObjects = [];
+			for( obj in parentSheet.getLines() ) {
+				var value = Reflect.field(obj, columnName);
+				if( value == null ) continue;
+				
+				if( columnType == TList ) {
+					var arr : Array<Dynamic> = cast value;
+					for( item in arr )
+						dataObjects.push(item);
+				} else if( columnType == TProperties ) {
+					dataObjects.push(value);
+				}
+			}
+			if( dataObjects.length > 0 )
+				result.push({ lines : dataObjects });
+		}
+		
+		// Add source sheet data
+		collectDataObjects(parent.s, parent.c, parentCol.type);
+		
+		// Add all referencing sheets data
+		var references = getColumnReferences(parent.s, parent.c);
+		for( ref in references )
+			collectDataObjects(ref.sheet, ref.column.name, ref.column.type);
+		
+		return result;
+	}
+	
+	public function propagateColumnAddition( sheet : Sheet, c : Column ) {
+		// Get all data sheets that share this structure
+		var allDataSheets = getAllSheetsWithSharedData(sheet);
+		
+		// Apply default values to all shared data
+		for( dataSheet in allDataSheets )
+			for( obj in dataSheet.lines ) {
+				var def = getDefault(c, sheet);
+				if( def != null )
+					Reflect.setField(obj, c.name, def);
+			}
+	}
+	
+	public function propagateColumnDeletion( sheet : Sheet, columnName : String ) {
+		// Get all data sheets that share this structure
+		var allDataSheets = getAllSheetsWithSharedData(sheet);
+		
+		// Remove the field from all shared data
+		for( dataSheet in allDataSheets )
+			for( obj in dataSheet.lines )
+				Reflect.deleteField(obj, columnName);
 	}
 
 	public function makePairs < T: { name:String } > ( oldA : Array<T>, newA : Array<T> ) : Array<{ a : T, b : T }> {
