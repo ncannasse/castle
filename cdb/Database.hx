@@ -188,21 +188,6 @@ class Database {
 		return null;
 	}
 
-	public function getColumnReferences( sheet : Sheet, columnName : String ) : Array<{ sheet : Sheet, column : Column }> {
-		var refString = sheet.name + "@" + columnName;
-		var refStringAlt = sheet.name + ":" + columnName;
-		var references = [];
-
-		for( s in sheets ) {
-			for( c in s.columns ) {
-				if( c.structRef == refString || c.structRef == refStringAlt )
-					references.push({ sheet : s, column : c });
-			}
-		}
-
-		return references;
-	}
-
 	public function load( content : String ) {
 		var data = cdb.Parser.parse(content, true);
 		loadData(data);
@@ -541,8 +526,11 @@ class Database {
 				}
 
 				var all = collect(p.s, p.c);
-				for( ref in getColumnReferences(p.s, p.c) )
-					all = all.concat(collect(ref.sheet, ref.column.name));
+				var refString = p.s.name + "@" + p.c;
+				for( s in sheets )
+					for( c in s.columns )
+						if( c.structRef == refString )
+							all = all.concat(collect(s, c.name));
 				return all;
 			}
 
