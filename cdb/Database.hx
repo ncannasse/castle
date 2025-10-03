@@ -334,15 +334,11 @@ class Database {
 		case TProperties:
 			var obj = {};
 			if( sheet != null ) {
-				var resolved = resolveColumn(c);
-				var targetSheet = resolved != null ? resolved.sheet : sheet;
-				var targetCol = resolved != null ? resolved.column : c;
-
-				var s = targetSheet.getSub(targetCol);
-				for( col in s.columns )
-					if( !col.opt ) {
-						var def = getDefault(col, s);
-						if( def != null ) Reflect.setField(obj, col.name, def);
+				var s = sheet.getSub(c);
+				for( c in s.columns )
+					if( !c.opt ) {
+						var def = getDefault(c, s);
+						if( def != null ) Reflect.setField(obj, c.name, def);
 					}
 			}
 			obj;
@@ -366,7 +362,7 @@ class Database {
 				return "Referenced column '" + c.structRef + "' is not marked as shareable";
 		}
 
-		var allDataObjects = getAllSharedDataObjects(sheet);
+		var lines = getAllSharedDataObjects(sheet);
 
 		if( old.name != c.name ) {
 
@@ -378,7 +374,7 @@ class Database {
 			if( c.name == "group" && sheet.props.hasGroup )
 				return "Sheet already has a group";
 
-			for( o in allDataObjects ) {
+			for( o in lines ) {
 				var v = Reflect.field(o, old.name);
 				Reflect.deleteField(o, old.name);
 				if( v != null )
@@ -419,7 +415,7 @@ class Database {
 				return "Cannot convert " + typeStr(old.type) + " to " + typeStr(c.type);
 			var conv = conv.f;
 			if( conv != null )
-				for( o in allDataObjects ) {
+				for( o in lines ) {
 					var v = Reflect.field(o, c.name);
 					if( v != null ) {
 						v = conv(v);
@@ -455,7 +451,7 @@ class Database {
 
 		if( old.opt != c.opt ) {
 			if( old.opt ) {
-				for( o in allDataObjects ) {
+				for( o in lines ) {
 					var v = Reflect.field(o, c.name);
 					if( v == null ) {
 						v = getDefault(c, sheet);
@@ -468,7 +464,7 @@ class Database {
 					// first choice should not be removed
 				default:
 					var def = getDefault(old, sheet);
-					for( o in allDataObjects ) {
+					for( o in lines ) {
 						var v = Reflect.field(o, c.name);
 						switch( c.type ) {
 						case TList:
@@ -489,7 +485,7 @@ class Database {
 		}
 
 		if (old.defaultValue != c.defaultValue) {
-			for( o in allDataObjects ) {
+			for( o in lines ) {
 				var v = Reflect.field(o, c.name);
 				if( v == getDefault(old, false, sheet) ) {
 					if (c.opt)
@@ -513,52 +509,52 @@ class Database {
 	}
 
 	function getAllSharedDataObjects( sheet : Sheet ) : Array<Dynamic> {
-		var parent = sheet.getParent();
-		if( parent == null ) return sheet.getLines();
-		var targetCol = Lambda.find(parent.s.columns, function(col) return col.name == parent.c);
-		if( targetCol == null ) return sheet.getLines();
-		var targetIsProps = targetCol.type == TProperties;
-
-		function collect( parentSheet : Sheet, rootCol : String, path : Array<String> ) {
-			var result = [];
-			for( line in parentSheet.getLines() ) {
-				var obj : Dynamic = Reflect.field(line, rootCol);
-				for( col in path ) {
-					if( obj == null ) break;
-					obj = Reflect.field(obj, col);
-				}
-				if( obj != null ) {
-					if( targetIsProps ) result.push(obj);
-					else for( item in (cast obj : Array<Dynamic>) ) result.push(item);
-				}
-			}
-			return result;
-		}
-
+		// Walk up the parent chain to find a shared column
 		var path = [];
 		var current = sheet;
 		while( true ) {
 			var p = current.getParent();
 			if( p == null ) return sheet.getLines();
+
 			var col = Lambda.find(p.s.columns, function(c) return c.name == p.c);
 			if( col == null ) return sheet.getLines();
+
 			if( col.shared == true ) {
+				// Found shared column - collect from source and all references
 				path.reverse();
-				var all = collect(p.s, p.c, path);
+				var isProps = col.type == TProperties;
+
+				function collect( parentSheet : Sheet, colName : String ) {
+					var result = [];
+					for( line in parentSheet.getLines() ) {
+						var obj : Dynamic = Reflect.field(line, colName);
+						for( p in path ) {
+							if( obj == null ) break;
+							obj = Reflect.field(obj, p);
+						}
+						if( obj != null ) {
+							if( isProps ) result.push(obj);
+							else for( item in (cast obj : Array<Dynamic>) ) result.push(item);
+						}
+					}
+					return result;
+				}
+
+				var all = collect(p.s, p.c);
 				for( ref in getColumnReferences(p.s, p.c) )
-					all = all.concat(collect(ref.sheet, ref.column.name, path));
+					all = all.concat(collect(ref.sheet, ref.column.name));
 				return all;
 			}
+
 			path.push(p.c);
 			current = p.s;
 		}
 	}
 
 	public function propagateColumnAddition( sheet : Sheet, c : Column ) {
-		var allDataObjects = getAllSharedDataObjects(sheet);
 		var def = getDefault(c, sheet);
 		if( def != null )
-			for( obj in allDataObjects )
+			for( obj in getAllSharedDataObjects(sheet) )
 				Reflect.setField(obj, c.name, def);
 	}
 
