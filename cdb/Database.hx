@@ -170,7 +170,6 @@ class Database {
 	}
 
 	public function resolveColumn( c : Column ) : { sheet : Sheet, column : Column } {
-		// If column has a structRef, resolve to the referenced column
 		if( c.structRef != null ) {
 			var parts = c.structRef.split("@");
 			if( parts.length == 1 )
@@ -190,18 +189,17 @@ class Database {
 	}
 
 	public function getColumnReferences( sheet : Sheet, columnName : String ) : Array<{ sheet : Sheet, column : Column }> {
-		// Find all columns that reference this column
 		var refString = sheet.name + "@" + columnName;
 		var refStringAlt = sheet.name + ":" + columnName;
 		var references = [];
-		
+
 		for( s in sheets ) {
 			for( c in s.columns ) {
 				if( c.structRef == refString || c.structRef == refStringAlt )
 					references.push({ sheet : s, column : c });
 			}
 		}
-		
+
 		return references;
 	}
 
@@ -339,7 +337,7 @@ class Database {
 				var resolved = resolveColumn(c);
 				var targetSheet = resolved != null ? resolved.sheet : sheet;
 				var targetCol = resolved != null ? resolved.column : c;
-				
+
 				var s = targetSheet.getSub(targetCol);
 				for( col in s.columns )
 					if( !col.opt ) {
@@ -360,19 +358,16 @@ class Database {
 	}
 
 	public function updateColumn( sheet : Sheet, old : Column, c : Column ) {
-		// Validate structRef if present
 		if( c.structRef != null ) {
 			var resolved = resolveColumn(c);
 			if( resolved == null )
 				return "Invalid structure reference: " + c.structRef;
-			// Check that the referenced column is marked as shareable
 			if( resolved.column.shared != true )
 				return "Referenced column '" + c.structRef + "' is not marked as shareable";
 		}
-		
-		// Gather all data objects that share this structure
+
 		var allDataObjects = getAllSharedDataObjects(sheet);
-		
+
 		if( old.name != c.name ) {
 
 			for( c2 in sheet.columns )
@@ -383,15 +378,13 @@ class Database {
 			if( c.name == "group" && sheet.props.hasGroup )
 				return "Sheet already has a group";
 
-			// Apply rename to all shared data objects
 			for( o in allDataObjects ) {
 				var v = Reflect.field(o, old.name);
 				Reflect.deleteField(o, old.name);
 				if( v != null )
 					Reflect.setField(o, c.name, v);
 			}
-			
-			// Only rename sub-sheets if this column owns them (no structRef)
+
 			if( (old.type == TList || old.type == TProperties) && old.structRef == null ) {
 				var renames = [];
 				function renameRec(sheet:Sheet, col, newName) {
@@ -406,8 +399,7 @@ class Database {
 				}
 				renameRec(sheet, old, c.name);
 				for( f in renames ) f();
-				
-				// Update structRef in all columns that reference this shared structure
+
 				if( old.shared == true ) {
 					var oldRefAt = sheet.name + "@" + old.name;
 					var oldRefColon = sheet.name + ":" + old.name;
@@ -427,7 +419,6 @@ class Database {
 				return "Cannot convert " + typeStr(old.type) + " to " + typeStr(c.type);
 			var conv = conv.f;
 			if( conv != null )
-				// Apply type conversion to all shared data objects
 				for( o in allDataObjects ) {
 					var v = Reflect.field(o, c.name);
 					if( v != null ) {
@@ -448,15 +439,12 @@ class Database {
 			old.type = c.type;
 			old.typeStr = null;
 		}
-		
-		// Handle structRef changes
+
 		if( old.structRef != c.structRef ) {
 			if( old.type == TList || old.type == TProperties ) {
-				// If we're removing structRef, create a new sub-sheet
 				if( old.structRef != null && c.structRef == null ) {
 					sheet.base.createSubSheet(sheet, old);
 				}
-				// If we're adding structRef, delete the old sub-sheet
 				else if( old.structRef == null && c.structRef != null ) {
 					var subSheet = sheet.base.getSheet(sheet.name + "@" + old.name);
 					if( subSheet != null )
@@ -467,7 +455,6 @@ class Database {
 
 		if( old.opt != c.opt ) {
 			if( old.opt ) {
-				// Apply opt change to all shared data objects
 				for( o in allDataObjects ) {
 					var v = Reflect.field(o, c.name);
 					if( v == null ) {
@@ -502,7 +489,6 @@ class Database {
 		}
 
 		if (old.defaultValue != c.defaultValue) {
-			// Apply defaultValue change to all shared data objects
 			for( o in allDataObjects ) {
 				var v = Reflect.field(o, c.name);
 				if( v == getDefault(old, false, sheet) ) {
@@ -525,14 +511,14 @@ class Database {
 		sheet.sync();
 		return null;
 	}
-	
+
 	function getAllSharedDataObjects( sheet : Sheet ) : Array<Dynamic> {
 		var parent = sheet.getParent();
 		if( parent == null ) return sheet.getLines();
 		var targetCol = Lambda.find(parent.s.columns, function(col) return col.name == parent.c);
 		if( targetCol == null ) return sheet.getLines();
 		var targetIsProps = targetCol.type == TProperties;
-		
+
 		function collect( parentSheet : Sheet, rootCol : String, path : Array<String> ) {
 			var result = [];
 			for( line in parentSheet.getLines() ) {
@@ -548,7 +534,7 @@ class Database {
 			}
 			return result;
 		}
-		
+
 		var path = [];
 		var current = sheet;
 		while( true ) {
@@ -567,7 +553,7 @@ class Database {
 			current = p.s;
 		}
 	}
-	
+
 	public function propagateColumnAddition( sheet : Sheet, c : Column ) {
 		var allDataObjects = getAllSharedDataObjects(sheet);
 		var def = getDefault(c, sheet);
@@ -575,7 +561,7 @@ class Database {
 			for( obj in allDataObjects )
 				Reflect.setField(obj, c.name, def);
 	}
-	
+
 	public function propagateColumnDeletion( sheet : Sheet, columnName : String ) {
 		for( obj in getAllSharedDataObjects(sheet) )
 			Reflect.deleteField(obj, columnName);
@@ -1256,7 +1242,6 @@ class Database {
 		for( c in sheet.columns )
 			switch( c.type ) {
 			case TList, TProperties:
-				// Only delete sub-sheet if this column owns it (no structRef)
 				if( c.structRef == null )
 					deleteSheet(sheet.getSub(c));
 			default:

@@ -60,12 +60,9 @@ class Sheet {
 	}
 
 	public inline function getSub( c : Column ) {
-		// Check if this column references another column's structure
 		var resolved = base.resolveColumn(c);
-		if( resolved != null ) {
-			// Return the sub-sheet of the referenced column
+		if( resolved != null )
 			return resolved.sheet.getSub(resolved.column);
-		}
 		return base.getSheet(name + "@" + c.name);
 	}
 
@@ -271,9 +268,8 @@ class Sheet {
 	public function deleteColumn( cname : String ) {
 		for( c in sheet.columns )
 			if( c.name == cname ) {
-				// Propagate handles all data (source + references)
 				base.propagateColumnDeletion(this, cname);
-				
+
 				sheet.columns.remove(c);
 				if( sheet.props.displayColumn == c.name ) {
 					sheet.props.displayColumn = null;
@@ -283,7 +279,6 @@ class Sheet {
 					sheet.props.displayIcon = null;
 					sync();
 				}
-				// Only delete sub-sheet if this column owns it (no structRef)
 				if( (c.type == TList || c.type == TProperties) && c.structRef == null )
 					base.deleteSheet(getSub(c));
 				return true;
@@ -292,7 +287,6 @@ class Sheet {
 	}
 
 	public function addColumn( c : Column, ?index : Int ) {
-		// create
 		for( c2 in sheet.columns )
 			if( c2.name == c.name )
 				return "Column already exists";
@@ -307,14 +301,12 @@ class Sheet {
 		else
 			sheet.columns.insert(index, c);
 		if( c.type == TList || c.type == TProperties ) {
-			// Only create a sub-sheet if not referencing another column's structure
 			if( c.structRef == null )
 				base.createSubSheet(this, c);
 		}
-		
-		// Propagate handles all data (source + references)
+
 		base.propagateColumnAddition(this, c);
-		
+
 		return null;
 	}
 

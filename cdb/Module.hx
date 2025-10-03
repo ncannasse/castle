@@ -222,19 +222,13 @@ class Module {
 				case TDynamic:
 					var t = tname.toComplex();
 					s.props.level != null && c.name == "props" ? macro : cdb.Types.LevelPropsAccess<$t> : macro : Dynamic;
-			case TProperties:
-				// Check if column references another structure
-				if( c.structRef != null ) {
-					var parts = c.structRef.split("@");
-					if( parts.length == 1 )
-						parts = c.structRef.split(":");
-					if( parts.length == 2 )
-						makeTypeName(parts[0] + "@" + parts[1]).toComplex();
-					else
-						makeTypeName(s.name + "@" + c.name).toComplex();
-				} else {
-					makeTypeName(s.name + "@" + c.name).toComplex();
-				}
+				case TProperties:
+					var ref = if( c.structRef != null ) {
+						var parts = c.structRef.split("@");
+						if( parts.length == 1 ) parts = c.structRef.split(":");
+						parts.length == 2 ? parts[0] + "@" + parts[1] : s.name + "@" + c.name;
+					} else s.name + "@" + c.name;
+					makeTypeName(ref).toComplex();
 				case TGradient:
 					macro : cdb.Types.Gradient;
 				case TCurve:
@@ -259,19 +253,13 @@ class Module {
 				case TTilePos: macro : { file : String, size : Int, x : Int, y : Int, ?width : Int, ?height : Int };
 				case TTileLayer: macro : { file : String, stride : Int, size : Int, data : String };
 				case TDynamic: macro : Dynamic;
-			case TProperties:
-				// Check if column references another structure
-				if( c.structRef != null ) {
-					var parts = c.structRef.split("@");
-					if( parts.length == 1 )
-						parts = c.structRef.split(":");
-					if( parts.length == 2 )
-						(makeTypeName(parts[0] + "@" + parts[1]) + "Def").toComplex();
-					else
-						(makeTypeName(s.name+"@" + c.name) + "Def").toComplex();
-				} else {
-					(makeTypeName(s.name+"@" + c.name) + "Def").toComplex();
-				}
+				case TProperties:
+					var ref = if( c.structRef != null ) {
+						var parts = c.structRef.split("@");
+						if( parts.length == 1 ) parts = c.structRef.split(":");
+						parts.length == 2 ? parts[0] + "@" + parts[1] : s.name + "@" + c.name;
+					} else s.name + "@" + c.name;
+					(makeTypeName(ref) + "Def").toComplex();
 				case TCurve: macro : Array<Float>;
 				case TGradient: macro : { colors: Array<Int>, positions: Array<Float>};
 				case TGuid: macro : String;
