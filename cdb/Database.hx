@@ -528,61 +528,51 @@ class Database {
 	}
 	
 	function getAllSharedDataObjects( sheet : Sheet ) : Array<Dynamic> {
-		// Check if this sub-sheet has a shared ancestor
-		var sharedAncestor = findSharedAncestor(sheet);
-		if( sharedAncestor == null )
+		// Find if this sub-sheet has a shared ancestor
+		var sharedInfo = findSharedAncestor(sheet);
+		if( sharedInfo == null )
 			return sheet.getLines(); // Not shared, just return source data
 		
-		// Get all objects from the shared root + references
-		var allRootObjects = [];
-		var rootCol = Lambda.find(sharedAncestor.rootSheet.columns, function(col) return col.name == sharedAncestor.rootColumn);
-		var isProps = rootCol.type == TProperties;
-		
-		// Add source data
-		for( obj in sharedAncestor.rootSheet.getLines() ) {
-			var value = Reflect.field(obj, sharedAncestor.rootColumn);
-			if( value != null ) {
-				if( isProps )
-					allRootObjects.push(value);
-				else
-					for( item in (cast value : Array<Dynamic>) ) allRootObjects.push(item);
-			}
-		}
-		
-		// Add reference data
-		for( ref in getColumnReferences(sharedAncestor.rootSheet, sharedAncestor.rootColumn) )
-			for( obj in ref.sheet.getLines() ) {
-				var value = Reflect.field(obj, ref.column.name);
-				if( value != null ) {
-					if( isProps )
-						allRootObjects.push(value);
+		// Helper: navigate down a path to collect objects at target level
+		function collectAtPath( parentSheet : Sheet, rootColumn : String, path : Array<{ columnName : String, isProps : Bool }> ) : Array<Dynamic> {
+			var objects = [];
+			
+			// Start from parent sheet lines and navigate the full path
+			for( line in parentSheet.getLines() ) {
+				var current : Dynamic = Reflect.field(line, rootColumn);
+				if( current == null ) continue;
+				
+				// Navigate down the path
+				for( step in path ) {
+					current = Reflect.field(current, step.columnName);
+					if( current == null ) break;
+				}
+				
+				// Collect objects at the target level
+				if( current != null ) {
+					if( sharedInfo.targetIsProps )
+						objects.push(current);
 					else
-						for( item in (cast value : Array<Dynamic>) ) allRootObjects.push(item);
+						for( item in (cast current : Array<Dynamic>) )
+							objects.push(item);
 				}
 			}
-		
-		// Drill down through the nested path to reach the target objects
-		var currentObjects = allRootObjects;
-		for( step in sharedAncestor.path ) {
-			var nextObjects = [];
-			for( obj in currentObjects ) {
-				var value = Reflect.field(obj, step.columnName);
-				if( value != null ) {
-					if( step.isProps )
-						nextObjects.push(value);
-					else
-						for( item in (cast value : Array<Dynamic>) ) nextObjects.push(item);
-				}
-			}
-			currentObjects = nextObjects;
+			
+			return objects;
 		}
 		
-		return currentObjects;
+		// Collect from source + all references
+		var allObjects = collectAtPath(sharedInfo.rootSheet, sharedInfo.rootColumn, sharedInfo.path);
+		for( ref in getColumnReferences(sharedInfo.rootSheet, sharedInfo.rootColumn) )
+			allObjects = allObjects.concat(collectAtPath(ref.sheet, ref.column.name, sharedInfo.path));
+		
+		return allObjects;
 	}
 	
-	function findSharedAncestor( sheet : Sheet ) : Null<{ rootSheet : Sheet, rootColumn : String, path : Array<{ columnName : String, isProps : Bool }> }> {
+	function findSharedAncestor( sheet : Sheet ) : Null<{ rootSheet : Sheet, rootColumn : String, path : Array<{ columnName : String, isProps : Bool }>, targetIsProps : Bool }> {
 		var path = [];
 		var current = sheet;
+		var targetCol = null;
 		
 		while( true ) {
 			var parent = current.getParent();
@@ -591,6 +581,9 @@ class Database {
 			var parentCol = Lambda.find(parent.s.columns, function(col) return col.name == parent.c);
 			if( parentCol == null ) return null;
 			
+			// Remember the first (deepest) column type for the target
+			if( targetCol == null ) targetCol = parentCol;
+			
 			// Check if this column is marked as shared
 			if( parentCol.shared == true ) {
 				// Found it! Reverse path since we built it bottom-up
@@ -598,7 +591,8 @@ class Database {
 				return {
 					rootSheet: parent.s,
 					rootColumn: parent.c,
-					path: path
+					path: path,
+					targetIsProps: targetCol.type == TProperties
 				};
 			}
 			
