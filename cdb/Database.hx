@@ -495,7 +495,7 @@ class Database {
 			}
 		}
 
-		for( f in ["display","kind","scope","documentation", "editor", "defaultValue", "shareable", "structRef"] ) {
+		for( f in ["display","kind","scope","documentation", "editor", "defaultValue", "shared", "structRef"] ) {
 			var v : Dynamic = Reflect.field(c,f);
 			if( v == null )
 				Reflect.deleteField(old, f);
