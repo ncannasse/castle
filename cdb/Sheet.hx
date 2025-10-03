@@ -287,6 +287,7 @@ class Sheet {
 	}
 
 	public function addColumn( c : Column, ?index : Int ) {
+		// create
 		for( c2 in sheet.columns )
 			if( c2.name == c.name )
 				return "Column already exists";
@@ -301,6 +302,7 @@ class Sheet {
 		else
 			sheet.columns.insert(index, c);
 		if( c.type == TList || c.type == TProperties ) {
+			// create an hidden sheet for the model
 			if( c.structRef == null )
 				base.createSubSheet(this, c);
 		}
