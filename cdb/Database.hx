@@ -528,81 +528,70 @@ class Database {
 	}
 	
 	function getAllSharedDataObjects( sheet : Sheet ) : Array<Dynamic> {
-		// Find if this sub-sheet has a shared ancestor
-		var sharedInfo = findSharedAncestor(sheet);
-		if( sharedInfo == null )
-			return sheet.getLines(); // Not shared, just return source data
-		
-		// Helper: navigate down a path to collect objects at target level
-		function collectAtPath( parentSheet : Sheet, rootColumn : String, path : Array<{ columnName : String, isProps : Bool }> ) : Array<Dynamic> {
-			var objects = [];
-			
-			// Start from parent sheet lines and navigate the full path
-			for( line in parentSheet.getLines() ) {
-				var current : Dynamic = Reflect.field(line, rootColumn);
-				if( current == null ) continue;
-				
-				// Navigate down the path
-				for( step in path ) {
-					current = Reflect.field(current, step.columnName);
-					if( current == null ) break;
-				}
-				
-				// Collect objects at the target level
-				if( current != null ) {
-					if( sharedInfo.targetIsProps )
-						objects.push(current);
-					else
-						for( item in (cast current : Array<Dynamic>) )
-							objects.push(item);
-				}
-			}
-			
-			return objects;
-		}
-		
-		// Collect from source + all references
-		var allObjects = collectAtPath(sharedInfo.rootSheet, sharedInfo.rootColumn, sharedInfo.path);
-		for( ref in getColumnReferences(sharedInfo.rootSheet, sharedInfo.rootColumn) )
-			allObjects = allObjects.concat(collectAtPath(ref.sheet, ref.column.name, sharedInfo.path));
-		
-		return allObjects;
-	}
-	
-	function findSharedAncestor( sheet : Sheet ) : Null<{ rootSheet : Sheet, rootColumn : String, path : Array<{ columnName : String, isProps : Bool }>, targetIsProps : Bool }> {
-		var path = [];
+		// Walk up the parent chain, building the path as we go
+		var pathFromTarget = []; // Path from shared root down to target
 		var current = sheet;
 		var targetCol = null;
+		var sharedRootSheet = null;
+		var sharedRootCol = null;
 		
 		while( true ) {
 			var parent = current.getParent();
-			if( parent == null ) return null; // Reached top without finding shared
+			if( parent == null ) return sheet.getLines(); // Not a sub-sheet, no propagation
 			
 			var parentCol = Lambda.find(parent.s.columns, function(col) return col.name == parent.c);
-			if( parentCol == null ) return null;
+			if( parentCol == null ) return sheet.getLines();
 			
-			// Remember the first (deepest) column type for the target
-			if( targetCol == null ) targetCol = parentCol;
+			if( targetCol == null ) targetCol = parentCol; // Remember deepest column for type check
 			
-			// Check if this column is marked as shared
+			// Found a shared column?
 			if( parentCol.shared == true ) {
-				// Found it! Reverse path since we built it bottom-up
-				path.reverse();
-				return {
-					rootSheet: parent.s,
-					rootColumn: parent.c,
-					path: path,
-					targetIsProps: targetCol.type == TProperties
-				};
+				sharedRootSheet = parent.s;
+				sharedRootCol = parent.c;
+				pathFromTarget.reverse();
+				break;
 			}
 			
-			// Not shared yet, add to path and continue up
-			path.push({
-				columnName: parent.c,
-				isProps: parentCol.type == TProperties
-			});
+			// Keep building path upward
+			pathFromTarget.push({ col: parent.c, isProps: parentCol.type == TProperties });
 			current = parent.s;
 		}
+		
+		// If no shared root found, just return source data
+		if( sharedRootSheet == null )
+			return sheet.getLines();
+		
+		// Helper to navigate nested path and collect target objects
+		function collectFromParent( parentSheet : Sheet, rootColName : String ) : Array<Dynamic> {
+			var result = [];
+			for( line in parentSheet.getLines() ) {
+				var obj : Dynamic = Reflect.field(line, rootColName);
+				if( obj == null ) continue;
+				
+				// Navigate down the nested path
+				for( step in pathFromTarget ) {
+					obj = Reflect.field(obj, step.col);
+					if( obj == null ) break;
+				}
+				
+				// Collect at target level
+				if( obj != null ) {
+					if( targetCol.type == TProperties )
+						result.push(obj);
+					else // TList
+						for( item in (cast obj : Array<Dynamic>) )
+							result.push(item);
+				}
+			}
+			return result;
+		}
+		
+		// Collect from source + all references
+		var all = collectFromParent(sharedRootSheet, sharedRootCol);
+		for( ref in getColumnReferences(sharedRootSheet, sharedRootCol) )
+			all = all.concat(collectFromParent(ref.sheet, ref.column.name));
+		
+		return all;
 	}
 	
 	public function propagateColumnAddition( sheet : Sheet, c : Column ) {
