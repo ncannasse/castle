@@ -336,7 +336,6 @@ class Database {
 		case TProperties:
 			var obj = {};
 			if( sheet != null ) {
-				// Check if this column references another column's structure
 				var resolved = resolveColumn(c);
 				var targetSheet = resolved != null ? resolved.sheet : sheet;
 				var targetCol = resolved != null ? resolved.column : c;

@@ -271,12 +271,10 @@ class Sheet {
 	public function deleteColumn( cname : String ) {
 		for( c in sheet.columns )
 			if( c.name == cname ) {
-				// Propagate deletion to referencing sheets if this is a shared structure
+				// Propagate handles all data (source + references)
 				base.propagateColumnDeletion(this, cname);
 				
 				sheet.columns.remove(c);
-				for( o in getLines() )
-					Reflect.deleteField(o, c.name);
 				if( sheet.props.displayColumn == c.name ) {
 					sheet.props.displayColumn = null;
 					sync();
@@ -313,12 +311,8 @@ class Sheet {
 			if( c.structRef == null )
 				base.createSubSheet(this, c);
 		}
-		for( i in getLines() ) {
-			var def = base.getDefault(c, this);
-			if( def != null ) Reflect.setField(i, c.name, def);
-		}
 		
-		// Propagate addition to referencing sheets if this is a shared structure
+		// Propagate handles all data (source + references)
 		base.propagateColumnAddition(this, c);
 		
 		return null;
