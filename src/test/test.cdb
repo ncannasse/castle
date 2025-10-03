@@ -471,10 +471,11 @@
 					"typeStr": "1",
 					"name": "name"
 				},
-				{
-					"typeStr": "17",
-					"name": "stats"
-				}
+			{
+				"typeStr": "17",
+				"name": "stats",
+				"shared": true
+			}
 			],
 			"lines": [
 				{

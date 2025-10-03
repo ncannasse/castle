@@ -361,11 +361,14 @@ class Database {
 	}
 
 	public function updateColumn( sheet : Sheet, old : Column, c : Column ) {
-		// Validate structRef if present (just check it exists, don't enforce type matching)
+		// Validate structRef if present
 		if( c.structRef != null ) {
 			var resolved = resolveColumn(c);
 			if( resolved == null )
 				return "Invalid structure reference: " + c.structRef;
+			// Check that the referenced column is marked as shareable
+			if( resolved.column.shared != true )
+				return "Referenced column '" + c.structRef + "' is not marked as shareable";
 		}
 		
 		if( old.name != c.name ) {
@@ -492,7 +495,7 @@ class Database {
 			}
 		}
 
-		for( f in ["display","kind","scope","documentation", "editor", "defaultValue", "structRef"] ) {
+		for( f in ["display","kind","scope","documentation", "editor", "defaultValue", "shareable", "structRef"] ) {
 			var v : Dynamic = Reflect.field(c,f);
 			if( v == null )
 				Reflect.deleteField(old, f);

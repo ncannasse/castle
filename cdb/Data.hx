@@ -62,6 +62,7 @@ typedef Column = {
 	@:optional var documentation : String;
 	@:optional var editor : Any;
 	@:optional var defaultValue : Any;
+	@:optional var shared : Bool; // Marks this column as available for sharing via structRef
 	@:optional var structRef : String; // Reference to another column's structure (format: "SheetName@ColumnName" or "SheetName:ColumnName")
 }
 
