@@ -169,6 +169,42 @@ class Database {
 		return data.customTypes;
 	}
 
+	public function resolveColumn( c : Column ) : { sheet : Sheet, column : Column } {
+		// If column has a structRef, resolve to the referenced column
+		if( c.structRef != null ) {
+			var parts = c.structRef.split("@");
+			if( parts.length == 1 )
+				parts = c.structRef.split(":");
+			if( parts.length == 2 ) {
+				var sheetName = parts[0];
+				var colName = parts[1];
+				var sheet = getSheet(sheetName);
+				if( sheet != null ) {
+					for( col in sheet.columns )
+						if( col.name == colName )
+							return { sheet : sheet, column : col };
+				}
+			}
+		}
+		return null;
+	}
+
+	public function getColumnReferences( sheet : Sheet, columnName : String ) : Array<{ sheet : Sheet, column : Column }> {
+		// Find all columns that reference this column
+		var refString = sheet.name + "@" + columnName;
+		var refStringAlt = sheet.name + ":" + columnName;
+		var references = [];
+		
+		for( s in sheets ) {
+			for( c in s.columns ) {
+				if( c.structRef == refString || c.structRef == refStringAlt )
+					references.push({ sheet : s, column : c });
+			}
+		}
+		
+		return references;
+	}
+
 	public function load( content : String ) {
 		var data = cdb.Parser.parse(content, true);
 		loadData(data);
@@ -300,11 +336,16 @@ class Database {
 		case TProperties:
 			var obj = {};
 			if( sheet != null ) {
-				var s = sheet.getSub(c);
-				for( c in s.columns )
-					if( !c.opt ) {
-						var def = getDefault(c, s);
-						if( def != null ) Reflect.setField(obj, c.name, def);
+				// Check if this column references another column's structure
+				var resolved = resolveColumn(c);
+				var targetSheet = resolved != null ? resolved.sheet : sheet;
+				var targetCol = resolved != null ? resolved.column : c;
+				
+				var s = targetSheet.getSub(targetCol);
+				for( col in s.columns )
+					if( !col.opt ) {
+						var def = getDefault(col, s);
+						if( def != null ) Reflect.setField(obj, col.name, def);
 					}
 			}
 			obj;
@@ -320,6 +361,13 @@ class Database {
 	}
 
 	public function updateColumn( sheet : Sheet, old : Column, c : Column ) {
+		// Validate structRef if present (just check it exists, don't enforce type matching)
+		if( c.structRef != null ) {
+			var resolved = resolveColumn(c);
+			if( resolved == null )
+				return "Invalid structure reference: " + c.structRef;
+		}
+		
 		if( old.name != c.name ) {
 
 			for( c2 in sheet.columns )
@@ -369,14 +417,32 @@ class Database {
 				}
 			switch( [old.type, c.type] ) {
 				case [TList, TProperties]:
-					sheet.getSub(old).props.isProps = true;
+					if( old.structRef == null )
+						sheet.getSub(old).props.isProps = true;
 				case [TProperties, TList]:
-					sheet.getSub(old).props.isProps = false;
+					if( old.structRef == null )
+						sheet.getSub(old).props.isProps = false;
 				default:
 			}
 
 			old.type = c.type;
 			old.typeStr = null;
+		}
+		
+		// Handle structRef changes
+		if( old.structRef != c.structRef ) {
+			if( old.type == TList || old.type == TProperties ) {
+				// If we're removing structRef, create a new sub-sheet
+				if( old.structRef != null && c.structRef == null ) {
+					sheet.base.createSubSheet(sheet, old);
+				}
+				// If we're adding structRef, delete the old sub-sheet
+				else if( old.structRef == null && c.structRef != null ) {
+					var subSheet = sheet.base.getSheet(sheet.name + "@" + old.name);
+					if( subSheet != null )
+						sheet.base.deleteSheet(subSheet);
+				}
+			}
 		}
 
 		if( old.opt != c.opt ) {
@@ -426,7 +492,7 @@ class Database {
 			}
 		}
 
-		for( f in ["display","kind","scope","documentation", "editor", "defaultValue"] ) {
+		for( f in ["display","kind","scope","documentation", "editor", "defaultValue", "structRef"] ) {
 			var v : Dynamic = Reflect.field(c,f);
 			if( v == null )
 				Reflect.deleteField(old, f);
@@ -1113,7 +1179,9 @@ class Database {
 		for( c in sheet.columns )
 			switch( c.type ) {
 			case TList, TProperties:
-				deleteSheet(sheet.getSub(c));
+				// Only delete sub-sheet if this column owns it (no structRef)
+				if( c.structRef == null )
+					deleteSheet(sheet.getSub(c));
 			default:
 			}
 		mapType(function(t) {

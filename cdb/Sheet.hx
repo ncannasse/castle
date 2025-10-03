@@ -60,6 +60,12 @@ class Sheet {
 	}
 
 	public inline function getSub( c : Column ) {
+		// Check if this column references another column's structure
+		var resolved = base.resolveColumn(c);
+		if( resolved != null ) {
+			// Return the sub-sheet of the referenced column
+			return resolved.sheet.getSub(resolved.column);
+		}
 		return base.getSheet(name + "@" + c.name);
 	}
 
@@ -276,7 +282,8 @@ class Sheet {
 					sheet.props.displayIcon = null;
 					sync();
 				}
-				if( c.type == TList || c.type == TProperties )
+				// Only delete sub-sheet if this column owns it (no structRef)
+				if( (c.type == TList || c.type == TProperties) && c.structRef == null )
 					base.deleteSheet(getSub(c));
 				return true;
 			}
@@ -299,8 +306,9 @@ class Sheet {
 		else
 			sheet.columns.insert(index, c);
 		if( c.type == TList || c.type == TProperties ) {
-			// create an hidden sheet for the model
-			base.createSubSheet(this, c);
+			// Only create a sub-sheet if not referencing another column's structure
+			if( c.structRef == null )
+				base.createSubSheet(this, c);
 		}
 		for( i in getLines() ) {
 			var def = base.getDefault(c, this);

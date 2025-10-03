@@ -459,6 +459,100 @@
 					"size": null
 				}
 			]
+		},
+		{
+			"name": "weapons",
+			"columns": [
+				{
+					"typeStr": "0",
+					"name": "id"
+				},
+				{
+					"typeStr": "1",
+					"name": "name"
+				},
+				{
+					"typeStr": "17",
+					"name": "stats"
+				}
+			],
+			"lines": [
+				{
+					"id": "longsword",
+					"name": "Longsword",
+					"stats": {
+						"damage": 15,
+						"speed": 5
+					}
+				},
+				{
+					"id": "dagger",
+					"name": "Dagger",
+					"stats": {
+						"damage": 8,
+						"speed": 10
+					}
+				}
+			],
+			"separators": [],
+			"props": {}
+		},
+		{
+			"name": "weapons@stats",
+			"columns": [
+				{
+					"typeStr": "3",
+					"name": "damage"
+				},
+				{
+					"typeStr": "3",
+					"name": "speed"
+				}
+			],
+			"lines": [],
+			"separators": [],
+			"props": {
+				"hide": true,
+				"isProps": true
+			}
+		},
+		{
+			"name": "armors",
+			"columns": [
+				{
+					"typeStr": "0",
+					"name": "id"
+				},
+				{
+					"typeStr": "1",
+					"name": "name"
+				},
+			{
+				"typeStr": "17",
+				"name": "stats",
+				"structRef": "weapons@stats"
+			}
+			],
+			"lines": [
+				{
+					"id": "chainmail",
+					"name": "Chainmail",
+					"stats": {
+						"damage": 0,
+						"speed": -2
+					}
+				},
+				{
+					"id": "leather",
+					"name": "Leather Armor",
+					"stats": {
+						"damage": 0,
+						"speed": 0
+					}
+				}
+			],
+			"separators": [],
+			"props": {}
 		}
 	]
 }
