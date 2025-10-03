@@ -172,12 +172,19 @@ class Database {
 	public function resolveColumn( c : Column ) : { sheet : Sheet, column : Column } {
 		if( c.structRef != null ) {
 			var parts = c.structRef.split("@");
-			if( parts.length == 2 ) {
+			if( parts.length >= 2 ) {
 				var sheet = getSheet(parts[0]);
-				if( sheet != null )
+				if( sheet != null ) {
+					for( i in 1...parts.length - 1 ) {
+						var col = Lambda.find(sheet.columns, function(c) return c.name == parts[i]);
+						if( col == null ) return null;
+						sheet = sheet.getSub(col);
+						if( sheet == null ) return null;
+					}
 					for( col in sheet.columns )
-						if( col.name == parts[1] )
+						if( col.name == parts[parts.length - 1] )
 							return { sheet : sheet, column : col };
+				}
 			}
 		}
 		return null;

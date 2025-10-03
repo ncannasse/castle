@@ -179,12 +179,7 @@ class Module {
 		}
 
 		function resolveType( c : Data.Column, s : Data.SheetData ) {
-			var ref = s.name + "@" + c.name;
-			if( c.structRef != null ) {
-				var parts = c.structRef.split("@");
-				ref = parts.length == 2 ? c.structRef : s.name + "@" + c.name;
-			}
-			return makeTypeName(ref);
+			return makeTypeName(c.structRef != null ? c.structRef : s.name + "@" + c.name);
 		}
 
 		for( s in data.sheets ) {
