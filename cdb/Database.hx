@@ -172,17 +172,12 @@ class Database {
 	public function resolveColumn( c : Column ) : { sheet : Sheet, column : Column } {
 		if( c.structRef != null ) {
 			var parts = c.structRef.split("@");
-			if( parts.length == 1 )
-				parts = c.structRef.split(":");
 			if( parts.length == 2 ) {
-				var sheetName = parts[0];
-				var colName = parts[1];
-				var sheet = getSheet(sheetName);
-				if( sheet != null ) {
+				var sheet = getSheet(parts[0]);
+				if( sheet != null )
 					for( col in sheet.columns )
-						if( col.name == colName )
+						if( col.name == parts[1] )
 							return { sheet : sheet, column : col };
-				}
 			}
 		}
 		return null;
@@ -383,11 +378,10 @@ class Database {
 
 				if( old.shared == true ) {
 					var oldRefAt = sheet.name + "@" + old.name;
-					var oldRefColon = sheet.name + ":" + old.name;
 					var newRef = sheet.name + "@" + c.name;
 					for( s in sheets )
 						for( col in s.columns )
-							if( col.structRef == oldRefAt || col.structRef == oldRefColon )
+							if( col.structRef == oldRefAt )
 								col.structRef = newRef;
 				}
 			}

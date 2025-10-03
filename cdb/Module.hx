@@ -182,8 +182,7 @@ class Module {
 			var ref = s.name + "@" + c.name;
 			if( c.structRef != null ) {
 				var parts = c.structRef.split("@");
-				if( parts.length == 1 ) parts = c.structRef.split(":");
-				ref = parts.length == 2 ? parts[0] + "@" + parts[1] : s.name + "@" + c.name;
+				ref = parts.length == 2 ? c.structRef : s.name + "@" + c.name;
 			}
 			return makeTypeName(ref);
 		}
