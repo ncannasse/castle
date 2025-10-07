@@ -655,12 +655,12 @@ abstract GuidMap<K,V>(hl.types.Int64Map) {
 	}
 }
 #else
-class GuidMap<T> {
+class GuidMap<K,V> {
 	public function new() {
 	}
-	public function set( key : GuidInt<T>, value : T ) {
+	public function set( key : GuidInt<K>, value : V ) {
 	}
-	public function get( key : GuidInt<T> ) : T {
+	public function get( key : GuidInt<K> ) : V {
 		throw "Map<Int64> not implemented on this platform";
 	}
 }
