@@ -185,6 +185,7 @@ class Module {
 			var fields : Array<haxe.macro.Expr.Field> = [];
 			var realFields : Array<haxe.macro.Expr.Field> = [];
 			var ids : Array<haxe.macro.Expr.Field> = [];
+			var hasGUID = false;
 			for( c in s.columns ) {
 
 				if( c.kind == Hidden ) continue;
@@ -229,6 +230,7 @@ class Module {
 				case TCurve:
 					macro : cdb.Types.Curve;
 				case TGuid:
+					hasGUID = true;
 					var t = tname.toComplex();
 					macro : cdb.Types.Guid<$t>;
 				}
@@ -438,6 +440,17 @@ class Module {
 					pos: pos,
 					kind: FFun( { ret : tname.toComplex(), args : [{ name : "v", type : def.toComplex(), }], expr : macro return cast v }),
 					access: [AInline, AStatic, APublic]
+				});
+			}
+
+			if( hasGUID ) {
+				var t = tname.toComplex();
+				types.push({
+					pos : pos,
+					name : tname+"Guid",
+					pack : curMod,
+					kind : TDAlias(macro : cdb.Types.GuidInt<$t>),
+					fields : [],
 				});
 			}
 
