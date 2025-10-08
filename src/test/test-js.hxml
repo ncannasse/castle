@@ -1,0 +1,6 @@
+-js test.js
+-lib castle
+-lib hx3compat
+-dce no
+-resource test.cdb
+-main TestCastle

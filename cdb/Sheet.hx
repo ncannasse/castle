@@ -393,46 +393,51 @@ class Sheet {
 			return null;
 		}
 
-		function getScopedIds(sheet : cdb.Sheet, obj : Dynamic) : Array<String> {
-			var parent = this.parent.sheet;
-			var idCol = getIdCol(this);
-
-			var colScopeDef = null;
-			for (c in sheet.columns) {
-				switch (c.type) {
-					case TRef(sname) if ( sname == parentTarget.name ):
-						colScopeDef = c;
-						break;
-					default:
-				}
-			}
-
-			if (colScopeDef == null)
-				return [];
-
-			var targetLineId = Reflect.field(obj, colScopeDef.name);
-			if (targetLineId != Reflect.field(parentTarget.lines[parent.line], idCol.name))
-				return [];
-
-			var line = parentTarget.getLines()[parent.line];
-			var scopedLines : Array<Dynamic> = Reflect.field(line, parentTarget.columns[parent.column].name);
-			return [ for(sl in scopedLines) Reflect.field(sl, idCol.name) ];
-		}
-
-		var idCol = getIdCol(this);
-		var isLocal = idCol != null && idCol.scope != null;
 		var results = [];
 		for( s in base.sheets ) {
+			var targetSheet = base.getSheet(this.realSheet.sheet.name);
+			var currentSheet = s;
+
 			for( c in s.columns )
 				switch( c.type ) {
 					case TRef(sname) if( sname == sheet.name ):
 						var sheets = getSheetPath(s, c.name);
+
 						for( o in s.getObjects() ) {
 							var obj = o.path[o.path.length - 1];
-							if (isLocal && !getScopedIds(s, obj).contains(id))
-								continue;
-							if( Reflect.field(obj, c.name) == id )
-								results.push({ s : sheets, o : o });
+
+							if (Reflect.field(obj, c.name) == id) {
+								var isLocal = getIdCol(targetSheet).scope != null;
+								var isSameObject = false;
+								if (targetSheet == currentSheet) {
+									for (l in this.sheet.lines) {
+										if (l == obj)
+											isSameObject = true;
+									}
+								}
+								if (isLocal && !isSameObject) {
+									// Look into other fields at same level for contextual references
+									var ref : { id : String, sheet : cdb.Sheet } = null;
+									for (c in currentSheet.columns) {
+										switch (c.type) {
+											case TRef(sname):
+												var sheet = base.getSheet(sname);
+												if (sheet == this.parent.sheet)
+													ref = { id: Reflect.field(obj, c.name), sheet: sheet };
+											default:
+										}
+									}
+
+									if (ref == null) continue;
+
+									var id = getIdCol(this.parent.sheet);
+									if (Reflect.field(this.parent.sheet.getLines()[this.parent.line], id.name) == ref.id)
+										results.push({ s : sheets, o : o });
+								}
+								else {
+									results.push({ s : sheets, o : o });
+								}
+							}
 						}
 					case TCustom(tname):
 						// todo : lookup in custom types
