@@ -178,9 +178,7 @@ class Module {
 			defineEnums.set(key, tname);
 		}
 
-		function resolveType( c : Data.Column, s : Data.SheetData ) {
-			return makeTypeName(c.structRef != null ? c.structRef : s.name + "@" + c.name);
-		}
+		var structRefs = [];
 
 		for( s in data.sheets ) {
 			var tname = makeTypeName(s.name);
@@ -193,30 +191,30 @@ class Module {
 
 				if( c.kind == Hidden ) continue;
 
+				var ctype = makeTypeName(s.name + "@" + c.name);
+				if( c.structRef != null )
+					structRefs.push({ from: ctype, to: makeTypeName(c.structRef) });
+
 				var t = switch( c.type ) {
 				case TInt, TColor: macro : Int;
 				case TFloat: macro : Float;
 				case TBool: macro : Bool;
 				case TString, TFile: macro : String;
 				case TList:
-					var t = resolveType(c, s).toComplex();
+					var t = ctype.toComplex();
 					macro : cdb.Types.ArrayRead<$t>;
 				case TRef(t): makeTypeName(t).toComplex();
 				case TImage: macro : String;
 				case TId:
 					tkind.toComplex();
 				case TEnum(values):
-					var t = resolveType(c, s);
-					if( c.structRef == null )
-						makeEnum(c,t,values);
-					t.toComplex();
+					makeEnum(c,ctype,values);
+					ctype.toComplex();
 				case TCustom(name):
 					name.toComplex();
 				case TFlags(values):
-					var t = resolveType(c, s);
-					if( c.structRef == null )
-						makeEnum(c,t,values);
-					var t = t.toComplex();
+					makeEnum(c,ctype,values);
+					var t = ctype.toComplex();
 					macro : cdb.Types.Flags<$t>;
 				case TLayer(t):
 					var t = makeTypeName(t).toComplex();
@@ -229,7 +227,7 @@ class Module {
 					var t = tname.toComplex();
 					s.props.level != null && c.name == "props" ? macro : cdb.Types.LevelPropsAccess<$t> : macro : Dynamic;
 				case TProperties:
-					resolveType(c, s).toComplex();
+					ctype.toComplex();
 				case TGradient:
 					macro : cdb.Types.Gradient;
 				case TCurve:
@@ -239,6 +237,10 @@ class Module {
 					macro : cdb.Types.Guid<$t>;
 				}
 
+				inline function resolveType( c : Data.Column, s : Data.SheetData ) {
+					return makeTypeName(c.structRef != null ? c.structRef : s.name + "@" + c.name);
+				}
+				
 				var rt = switch( c.type ) {
 				case TInt, TColor: macro : Int;
 				case TFloat: macro : Float;
@@ -492,6 +494,16 @@ class Module {
 				kind : TDAbstract(def.toComplex()),
 				meta : [{ name : ":cdb", params : [], pos : pos }],
 				fields : fields,
+			});
+		}
+
+		for( t in structRefs ) {
+			types.push({
+				pos : pos,
+				name : t.from,
+				pack : curMod,
+				kind : TDAlias(t.to.toComplex()),
+				fields: [],
 			});
 		}
 
