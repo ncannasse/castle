@@ -60,8 +60,17 @@ class Parser {
 		var data : Data = haxe.Json.parse(content);
 		for( s in data.sheets )
 			for( c in s.columns ) {
-				c.type = getType(c.typeStr);
-				c.typeStr = null;
+				if( c.structRef != null ) {
+					var parts = c.structRef.split("@");					
+					var colName = parts.pop();
+					var refSheet = Lambda.find(data.sheets, (s) -> s.name == parts.join("@"));
+					var refCol = Lambda.find(refSheet.columns, (c) -> c.name == colName);
+					c.type = refCol.type;
+				}
+				else {
+					c.type = getType(c.typeStr);
+					c.typeStr = null;
+				}
 			}
 		for( t in data.customTypes )
 			for( c in t.cases )
@@ -124,7 +133,7 @@ class Parser {
 			for( c in s.columns ) {
 				if( c.type == TId && idField == null ) idField = c.name;
 				save.push(c.type);
-				if( c.typeStr == null ) c.typeStr = cdb.Parser.saveType(c.type);
+				if( c.typeStr == null && c.structRef == null ) c.typeStr = cdb.Parser.saveType(c.type);
 				Reflect.deleteField(c, "type");
 			}
 
