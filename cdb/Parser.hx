@@ -133,7 +133,11 @@ class Parser {
 			for( c in s.columns ) {
 				if( c.type == TId && idField == null ) idField = c.name;
 				save.push(c.type);
-				if( c.typeStr == null && c.structRef == null ) c.typeStr = cdb.Parser.saveType(c.type);
+				if( c.structRef == null ) {
+					if( c.typeStr == null ) c.typeStr = cdb.Parser.saveType(c.type);
+				} else {
+					Reflect.deleteField(c, "typeStr");
+				}
 				Reflect.deleteField(c, "type");
 			}
 
