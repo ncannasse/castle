@@ -59,7 +59,7 @@ class Sheet {
 		return sheet.props.level != null;
 	}
 
-	public function getSub( c : Column ) {
+	public inline function getSub( c : Column ) {
 		return base.getSheet(c.structRef != null ? c.structRef : name + "@" + c.name);
 	}
 
@@ -265,10 +265,9 @@ class Sheet {
 	public function deleteColumn( cname : String ) {
 		for( c in sheet.columns )
 			if( c.name == cname ) {
+				sheet.columns.remove(c);
 				for( obj in base.getAllLines(this) )
 					Reflect.deleteField(obj, cname);
-
-				sheet.columns.remove(c);
 				if( sheet.props.displayColumn == c.name ) {
 					sheet.props.displayColumn = null;
 					sync();

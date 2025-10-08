@@ -61,7 +61,7 @@ class Parser {
 		for( s in data.sheets )
 			for( c in s.columns ) {
 				if( c.structRef != null ) {
-					var parts = c.structRef.split("@");					
+					var parts = c.structRef.split("@");	
 					var colName = parts.pop();
 					var refSheet = Lambda.find(data.sheets, (s) -> s.name == parts.join("@"));
 					var refCol = Lambda.find(refSheet.columns, (c) -> c.name == colName);
