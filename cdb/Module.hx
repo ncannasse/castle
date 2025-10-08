@@ -208,12 +208,14 @@ class Module {
 				case TId:
 					tkind.toComplex();
 				case TEnum(values):
-					makeEnum(c,ctype,values);
+					if(c.structRef == null) 
+						makeEnum(c,ctype,values);
 					ctype.toComplex();
 				case TCustom(name):
 					name.toComplex();
 				case TFlags(values):
-					makeEnum(c,ctype,values);
+					if(c.structRef == null) 
+						makeEnum(c,ctype,values);
 					var t = ctype.toComplex();
 					macro : cdb.Types.Flags<$t>;
 				case TLayer(t):
