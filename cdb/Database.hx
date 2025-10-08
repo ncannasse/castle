@@ -336,30 +336,29 @@ class Database {
 				if( v != null )
 					Reflect.setField(o, c.name, v);
 			}
-
+			var renames = [];
+			function renameRec(sheet:Sheet, col, newName) {
+				var s = sheet.getSub(col);
+				renames.push(function() {
+					s.rename(sheet.name + "@" + newName);
+					s.sync();
+				});
+				for( c in s.columns )
+					if( c.type == TList || c.type == TProperties )
+						renameRec(s, c, c.name);
+			}
 			if( (old.type == TList || old.type == TProperties) && old.structRef == null ) {
-				var renames = [];
-				function renameRec(sheet:Sheet, col, newName) {
-					var s = sheet.getSub(col);
-					renames.push(function() {
-						s.rename(sheet.name + "@" + newName);
-						s.sync();
-					});
-					for( c in s.columns )
-						if( c.type == TList || c.type == TProperties )
-							renameRec(s, c, c.name);
-				}
 				renameRec(sheet, old, c.name);
 				for( f in renames ) f();
-
-				if( old.shared == true ) {
-					var oldRefAt = sheet.name + "@" + old.name;
-					var newRef = sheet.name + "@" + c.name;
-					for( s in sheets )
-						for( col in s.columns )
-							if( col.structRef == oldRefAt )
-								col.structRef = newRef;
-				}
+			}
+			
+			if( old.shared == true && (old.type == TList || old.type == TProperties) ) {
+				var oldRefAt = sheet.name + "@" + old.name;
+				var newRef = sheet.name + "@" + c.name;
+				for( s in sheets )
+					for( col in s.columns )
+						if( col.structRef == oldRefAt )
+							col.structRef = newRef;
 			}
 			old.name = c.name;
 		}
@@ -379,11 +378,9 @@ class Database {
 				}
 			switch( [old.type, c.type] ) {
 				case [TList, TProperties]:
-					if( old.structRef == null )
-						sheet.getSub(old).props.isProps = true;
+					sheet.getSub(old).props.isProps = true;
 				case [TProperties, TList]:
-					if( old.structRef == null )
-						sheet.getSub(old).props.isProps = false;
+					sheet.getSub(old).props.isProps = false;
 				default:
 			}
 
@@ -468,7 +465,6 @@ class Database {
 	}
 
 	public function getAllLines( sheet : Sheet ) : Array<Dynamic> {
-		// Walk up the parent chain to find a shared column
 		var path = [];
 		var current = sheet;
 		while( true ) {
