@@ -347,18 +347,19 @@ class Database {
 					if( c.type == TList || c.type == TProperties )
 						renameRec(s, c, c.name);
 			}
-			if( (old.type == TList || old.type == TProperties) && old.structRef == null ) {
-				renameRec(sheet, old, c.name);
-				for( f in renames ) f();
-			}
-			
-			if( old.shared == true && (old.type == TList || old.type == TProperties) ) {
-				var oldRefAt = sheet.name + "@" + old.name;
-				var newRef = sheet.name + "@" + c.name;
-				for( s in sheets )
-					for( col in s.columns )
-						if( col.structRef == oldRefAt )
-							col.structRef = newRef;
+			if( old.type == TList || old.type == TProperties ) {
+				if( old.structRef == null ) {
+					renameRec(sheet, old, c.name);
+					for( f in renames ) f();
+				}
+				else if( old.shared ) {
+					var oldRefAt = sheet.name + "@" + old.name;
+					var newRef = sheet.name + "@" + c.name;
+					for( s in sheets )
+						for( col in s.columns )
+							if( col.structRef == oldRefAt )
+								col.structRef = newRef;
+				}
 			}
 			old.name = c.name;
 		}
