@@ -2,6 +2,6 @@
 -lib hxnodejs
 -cp .
 -js test.js
--resource test.cdb
+-cp res
 -main Test
 -dce no
