@@ -138,7 +138,7 @@ class Sheet {
 		for( obj in p.s.getObjects() ) {
 			var v : Dynamic = Reflect.field(obj.path[obj.path.length-1], p.c);
 			if( v == null ) continue;
-			if( Std.is(v, Array) ) {
+			if( v is Array ) {
 				// list
 				var v : Array<Dynamic> = v;
 				for( i in 0...v.length ) {

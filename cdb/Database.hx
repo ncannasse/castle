@@ -406,7 +406,10 @@ class Database {
 			}
 		}
 
-		if( old.opt != c.opt ) {
+		
+		var oldOpt = old.opt ?? false;
+		var newOpt = c.opt ?? false;
+		if( oldOpt != newOpt ) {
 			if( old.opt ) {
 				for( o in getAllLines(sheet) ) {
 					var v = Reflect.field(o, c.name);
@@ -417,7 +420,7 @@ class Database {
 				}
 			} else {
 				switch( old.type ) {
-				case TEnum(_):
+				case TEnum(_), TRef(_):
 					// first choice should not be removed
 				default:
 					var def = getDefault(old, sheet);

@@ -638,3 +638,58 @@ class IndexId<T,Kind> extends Index<T> {
 	}
 
 }
+
+#if hl
+abstract GuidMap<K,V>(hl.types.Int64Map) {
+	public inline function new() {
+		this = new hl.types.Int64Map();
+	}
+	public inline function set( key : GuidInt<K>, value : V ) {
+		this.set(key, value);
+	}
+	public inline function get( key : GuidInt<K> ) : V {
+		return this.get(key);
+	}
+	public inline function exists( key : GuidInt<K> ) {
+		return this.exists(key);
+	}
+}
+#else
+class GuidMap<K,V> {
+	public function new() {
+	}
+	public function set( key : GuidInt<K>, value : V ) {
+	}
+	public function get( key : GuidInt<K> ) : V {
+		throw "Map<Int64> not implemented on this platform";
+	}
+}
+#end
+
+class IndexGuid<T,Kind> extends IndexId<T,Kind> {
+
+	var byGUID : GuidMap<T,T>;
+
+	override function initSheet(data:Data) {
+		super.initSheet(data);
+		byGUID = new GuidMap();
+		for( c in sheet.columns )
+			switch( c.type ) {
+			case TGuid:
+				var cname = c.name;
+				for( a in sheet.lines ) {
+					var id : Guid<T> = Reflect.field(a, cname);
+					if( id != null && id != cast "" )
+						byGUID.set(id.toInt(), a);
+				}
+				break;
+			default:
+			}
+	}
+
+	public inline function getUID(id) {
+		return byGUID.get(id);
+	}
+
+}
+
