@@ -1,7 +1,0 @@
--lib castle
--lib hxnodejs
--cp .
--js test.js
--cp res
--main Test
--dce no

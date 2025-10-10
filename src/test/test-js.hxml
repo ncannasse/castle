@@ -1,0 +1,8 @@
+-lib castle
+-cp .
+-js test.js
+-lib hxnodejs
+-lib hx3compat
+-cp res
+-main TestCastle
+-dce no

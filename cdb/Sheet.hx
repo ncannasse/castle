@@ -387,48 +387,64 @@ class Sheet {
 	}
 
 	public function getReferencesFromId( id : String ) {
-		var scopeObj = null;
-		var depth = 0;
-		var ourIdCol = idCol;
-		if (ourIdCol == null) {
-			for (c in columns) {
-				if (c.type == TId) {
-					ourIdCol = c;
-					break;
-				}
-			}
-		}
-
-		if (ourIdCol != null && ourIdCol.scope != null && ourIdCol.scope >= 0) {
-			var cur = this;
-			for (i in 0...ourIdCol.scope-1) {
-				cur = cur.parent.sheet;
-			}
-			var cur2 = cur;
-			while(cur2 != null && cur2.parent != null){
-				cur2 = cur2.parent.sheet;
-				depth++;
-			}
-			depth--;
-			scopeObj = cur.parent.sheet.getLines()[cur.parent.line];
+		function getIdCol(sheet : cdb.Sheet) {
+			if (sheet.idCol != null)
+				return sheet.idCol;
+			for (c in columns)
+				if (c.type == TId)
+					return c;
+			return null;
 		}
 
 		var results = [];
 		for( s in base.sheets ) {
+			var targetSheet = base.getSheet(this.realSheet.sheet.name);
+			var currentSheet = s;
+
 			for( c in s.columns )
 				switch( c.type ) {
-				case TRef(sname) if( sname == sheet.name ):
-					var sheets = getSheetPath(s, c.name);
-					for( o in s.getObjects() ) {
-						var obj = o.path[o.path.length - 1];
-						if (scopeObj != null && o.path[depth] != scopeObj)
-							continue;
-						if( Reflect.field(obj, c.name) == id )
-							results.push({ s : sheets, o : o });
-					}
-				case TCustom(tname):
-					// todo : lookup in custom types
-				default:
+					case TRef(sname) if( sname == sheet.name ):
+						var sheets = getSheetPath(s, c.name);
+
+						for( o in s.getObjects() ) {
+							var obj = o.path[o.path.length - 1];
+
+							if (Reflect.field(obj, c.name) == id) {
+								var isLocal = getIdCol(targetSheet).scope != null;
+								var isSameObject = false;
+								if (targetSheet == currentSheet) {
+									for (l in this.sheet.lines) {
+										if (l == obj)
+											isSameObject = true;
+									}
+								}
+								if (isLocal && !isSameObject) {
+									// Look into other fields at same level for contextual references
+									var ref : { id : String, sheet : cdb.Sheet } = null;
+									for (c in currentSheet.columns) {
+										switch (c.type) {
+											case TRef(sname):
+												var sheet = base.getSheet(sname);
+												if (sheet == this.parent.sheet)
+													ref = { id: Reflect.field(obj, c.name), sheet: sheet };
+											default:
+										}
+									}
+
+									if (ref == null) continue;
+
+									var id = getIdCol(this.parent.sheet);
+									if (Reflect.field(this.parent.sheet.getLines()[this.parent.line], id.name) == ref.id)
+										results.push({ s : sheets, o : o });
+								}
+								else {
+									results.push({ s : sheets, o : o });
+								}
+							}
+						}
+					case TCustom(tname):
+						// todo : lookup in custom types
+					default:
 				}
 		}
 		return results;
