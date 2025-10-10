@@ -1,6 +1,8 @@
--js test.js
 -lib castle
+-cp .
+-js test.js
+-lib hxnodejs
 -lib hx3compat
--dce no
--resource test.cdb
+-cp res
 -main TestCastle
+-dce no

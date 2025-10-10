@@ -330,7 +330,7 @@ class Database {
 			if( c.name == "group" && sheet.props.hasGroup )
 				return "Sheet already has a group";
 
-			for( o in sheet.getLines() ) {
+			for( o in getAllLines(sheet) ) {
 				var v = Reflect.field(o, old.name);
 				Reflect.deleteField(o, old.name);
 				if( v != null )
@@ -348,8 +348,18 @@ class Database {
 						renameRec(s, c, c.name);
 			}
 			if( old.type == TList || old.type == TProperties ) {
-				renameRec(sheet, old, c.name);
-				for( f in renames ) f();
+				if( old.structRef == null ) {
+					renameRec(sheet, old, c.name);
+					for( f in renames ) f();
+				}
+				else if( old.shared ) {
+					var oldRefAt = sheet.name + "@" + old.name;
+					var newRef = sheet.name + "@" + c.name;
+					for( s in sheets )
+						for( col in s.columns )
+							if( col.structRef == oldRefAt )
+								col.structRef = newRef;
+				}
 			}
 			old.name = c.name;
 		}
@@ -360,7 +370,7 @@ class Database {
 				return "Cannot convert " + typeStr(old.type) + " to " + typeStr(c.type);
 			var conv = conv.f;
 			if( conv != null )
-				for( o in sheet.getLines() ) {
+				for( o in getAllLines(sheet) ) {
 					var v = Reflect.field(o, c.name);
 					if( v != null ) {
 						v = conv(v);
@@ -379,11 +389,29 @@ class Database {
 			old.typeStr = null;
 		}
 
+		if( old.structRef != c.structRef ) {
+			if( old.type == TList || old.type == TProperties ) {
+				if( old.structRef != null && c.structRef == null ) {
+					old.structRef = null;
+					sheet.base.createSubSheet(sheet, old);
+				}
+				else if( old.structRef == null && c.structRef != null ) {
+					var subSheet = sheet.base.getSheet(sheet.name + "@" + old.name);
+					if( subSheet != null )
+						sheet.base.deleteSheet(subSheet);
+					old.structRef = c.structRef;
+				}
+			} else {
+				old.structRef = c.structRef;
+			}
+		}
+
+		
 		var oldOpt = old.opt ?? false;
 		var newOpt = c.opt ?? false;
 		if( oldOpt != newOpt ) {
 			if( old.opt ) {
-				for( o in sheet.getLines() ) {
+				for( o in getAllLines(sheet) ) {
 					var v = Reflect.field(o, c.name);
 					if( v == null ) {
 						v = getDefault(c, sheet);
@@ -396,7 +424,7 @@ class Database {
 					// first choice should not be removed
 				default:
 					var def = getDefault(old, sheet);
-					for( o in sheet.getLines() ) {
+					for( o in getAllLines(sheet) ) {
 						var v = Reflect.field(o, c.name);
 						switch( c.type ) {
 						case TList:
@@ -417,7 +445,7 @@ class Database {
 		}
 
 		if (old.defaultValue != c.defaultValue) {
-			for( o in sheet.getLines() ) {
+			for( o in getAllLines(sheet) ) {
 				var v = Reflect.field(o, c.name);
 				if( v == getDefault(old, false, sheet) ) {
 					if (c.opt)
@@ -428,7 +456,7 @@ class Database {
 			}
 		}
 
-		for( f in ["display","kind","scope","documentation", "editor", "defaultValue"] ) {
+		for( f in ["display","kind","scope","documentation", "editor", "defaultValue", "shared", "structRef"] ) {
 			var v : Dynamic = Reflect.field(c,f);
 			if( v == null )
 				Reflect.deleteField(old, f);
@@ -438,6 +466,51 @@ class Database {
 
 		sheet.sync();
 		return null;
+	}
+
+	public function getAllLines( sheet : Sheet ) : Array<Dynamic> {
+		var path = [];
+		var current = sheet;
+		while( true ) {
+			var p = current.getParent();
+			if( p == null ) return sheet.getLines();
+
+			var col = Lambda.find(p.s.columns, function(c) return c.name == p.c);
+			if( col == null ) return sheet.getLines();
+
+			if( col.shared == true ) {
+				// Found shared column - collect from source and all references
+				path.reverse();
+				var isProps = col.type == TProperties;
+
+				function collect( parentSheet : Sheet, colName : String ) {
+					var result = [];
+					for( line in parentSheet.getLines() ) {
+						var obj : Dynamic = Reflect.field(line, colName);
+						for( p in path ) {
+							if( obj == null ) break;
+							obj = Reflect.field(obj, p);
+						}
+						if( obj != null ) {
+							if( isProps ) result.push(obj);
+							else for( item in (cast obj : Array<Dynamic>) ) result.push(item);
+						}
+					}
+					return result;
+				}
+
+				var all = collect(p.s, p.c);
+				var refString = p.s.name + "@" + p.c;
+				for( s in sheets )
+					for( c in s.columns )
+						if( c.structRef == refString )
+							all = all.concat(collect(s, c.name));
+				return all;
+			}
+
+			path.push(p.c);
+			current = p.s;
+		}
 	}
 
 	public function makePairs < T: { name:String } > ( oldA : Array<T>, newA : Array<T> ) : Array<{ a : T, b : T }> {
@@ -1115,7 +1188,8 @@ class Database {
 		for( c in sheet.columns )
 			switch( c.type ) {
 			case TList, TProperties:
-				deleteSheet(sheet.getSub(c));
+				if( c.structRef == null )
+					deleteSheet(sheet.getSub(c));
 			default:
 			}
 		mapType(function(t) {

@@ -60,7 +60,7 @@ class Sheet {
 	}
 
 	public inline function getSub( c : Column ) {
-		return base.getSheet(name + "@" + c.name);
+		return base.getSheet(c.structRef != null ? c.structRef : name + "@" + c.name);
 	}
 
 	public function getParent() {
@@ -266,8 +266,8 @@ class Sheet {
 		for( c in sheet.columns )
 			if( c.name == cname ) {
 				sheet.columns.remove(c);
-				for( o in getLines() )
-					Reflect.deleteField(o, c.name);
+				for( obj in base.getAllLines(this) )
+					Reflect.deleteField(obj, cname);
 				if( sheet.props.displayColumn == c.name ) {
 					sheet.props.displayColumn = null;
 					sync();
@@ -276,7 +276,7 @@ class Sheet {
 					sheet.props.displayIcon = null;
 					sync();
 				}
-				if( c.type == TList || c.type == TProperties )
+				if( (c.type == TList || c.type == TProperties) && c.structRef == null )
 					base.deleteSheet(getSub(c));
 				return true;
 			}
@@ -300,12 +300,15 @@ class Sheet {
 			sheet.columns.insert(index, c);
 		if( c.type == TList || c.type == TProperties ) {
 			// create an hidden sheet for the model
-			base.createSubSheet(this, c);
+			if( c.structRef == null )
+				base.createSubSheet(this, c);
 		}
-		for( i in getLines() ) {
-			var def = base.getDefault(c, this);
-			if( def != null ) Reflect.setField(i, c.name, def);
-		}
+
+		var def = base.getDefault(c, this);
+		if( def != null )
+			for( obj in base.getAllLines(this) )
+				Reflect.setField(obj, c.name, def);
+
 		return null;
 	}
 

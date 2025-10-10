@@ -1,17 +1,28 @@
 import haxe.unit.*;
-import dat.Data;
+import Data;
 
 class TestCastle extends haxe.unit.TestCase {
 	static var db : cdb.Database;
 
 	function test() {
-		assertTrue(dat.Data.items.get(sword).alt.fx.match(Poison(_)));
-		assertEquals(dat.Data.MonstersKind.wolf, switch (dat.Data.items.get(herb).fx) { case Monster(m): m.id; default: null; });
-		assertEquals(10, dat.Data.monsters.resolve("wolf").skills[0].sub[0].subX);
+		assertTrue(Data.items.get(sword).alt.fx.match(Poison(_)));
+		assertEquals(Data.MonstersKind.wolf, switch (Data.items.get(herb).fx) { case Monster(m): m.id; default: null; });
+		assertEquals(10, Data.monsters.resolve("wolf").skills[0].sub[0].subX);
 
 		var s = db.getSheet("items");
 		assertEquals(2, s.getReferencesFromId("herb").length);
 		assertEquals(2, s.getReferencesFromId("healp").length);
+		
+		
+		function checkStats(id: String, stats : Weapons_stats) {
+			return id + ": damage=" + stats.damage + ", speed=" + stats.speed;
+		}
+		
+		var dagger = Data.weapons.get(dagger);
+		assertEquals("dagger: damage=8, speed=10", checkStats("dagger", dagger.stats));
+
+		var armor = Data.armors.get(chainmail);
+		assertEquals("chainmail: damage=0, speed=-2", checkStats("chainmail", armor.stats));
 
 		var sheet = db.getSheet("items");
 		var psheet = db.getSheet("items@ingredients");
@@ -31,9 +42,9 @@ class TestCastle extends haxe.unit.TestCase {
 	}
 
 	static function main() {
-		var data = haxe.Resource.getString("test.cdb");
+		var data = sys.io.File.getContent("res/data.cdb");
 
-		dat.Data.load(data);
+		Data.load(data);
 		db = new cdb.Database();
 		db.load(data);
 

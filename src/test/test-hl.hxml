@@ -1,7 +1,8 @@
--hl test.hl
 -lib castle
+-cp .
+-hl test.hl
 -lib hx3compat
--dce no
--resource test.cdb
+-cp res
 -main TestCastle
+-dce no
 -D hl-ver=1.15.0

@@ -640,24 +640,27 @@ class IndexId<T,Kind> extends Index<T> {
 }
 
 #if hl
-abstract GuidMap<T>(hl.types.Int64Map) {
+abstract GuidMap<K,V>(hl.types.Int64Map) {
 	public inline function new() {
 		this = new hl.types.Int64Map();
 	}
-	public inline function set( key : GuidInt<T>, value : T ) {
+	public inline function set( key : GuidInt<K>, value : V ) {
 		this.set(key, value);
 	}
-	public inline function get( key : GuidInt<T> ) : T {
+	public inline function get( key : GuidInt<K> ) : V {
 		return this.get(key);
+	}
+	public inline function exists( key : GuidInt<K> ) {
+		return this.exists(key);
 	}
 }
 #else
-class GuidMap<T> {
+class GuidMap<K,V> {
 	public function new() {
 	}
-	public function set( key : GuidInt<T>, value : T ) {
+	public function set( key : GuidInt<K>, value : V ) {
 	}
-	public function get( key : GuidInt<T> ) : T {
+	public function get( key : GuidInt<K> ) : V {
 		throw "Map<Int64> not implemented on this platform";
 	}
 }
@@ -665,7 +668,7 @@ class GuidMap<T> {
 
 class IndexGuid<T,Kind> extends IndexId<T,Kind> {
 
-	var byGUID : GuidMap<T>;
+	var byGUID : GuidMap<T,T>;
 
 	override function initSheet(data:Data) {
 		super.initSheet(data);
