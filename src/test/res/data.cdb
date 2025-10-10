@@ -111,6 +111,11 @@
 					"name": "icon"
 				},
 				{
+					"typeStr": "8",
+					"name": "ingredients",
+					"opt": true
+				},
+				{
 					"typeStr": "2",
 					"opt": true,
 					"name": "Triple"
@@ -132,7 +137,9 @@
 				}
 			],
 			"separators": [
-				1
+				{
+					"id": "healp"
+				}
 			],
 			"lines": [
 				{
@@ -167,6 +174,11 @@
 						[
 							0
 						]
+					],
+					"ingredients": [
+						{
+							"id": "Water"
+						}
 					]
 				},
 				{
@@ -176,12 +188,42 @@
 					"fx": [
 						2,
 						"wolf"
+					],
+					"ingredients": [
+						{
+							"id": "Water"
+						},
+						{
+							"id": "Seed",
+							"ref": "Water"
+						}
 					]
 				}
 			],
 			"props": {
 				"displayColumn": "name"
 			}
+		},
+		{
+			"name": "items@ingredients",
+			"props": {
+				"hide": true
+			},
+			"separators": [],
+			"lines": [],
+			"columns": [
+				{
+					"typeStr": "0",
+					"name": "id",
+					"opt": null,
+					"scope": 1
+				},
+				{
+					"typeStr": "6:items@ingredients",
+					"name": "ref",
+					"opt": true
+				}
+			]
 		},
 		{
 			"name": "monsters",
@@ -225,11 +267,22 @@
 				}
 			],
 			"separators": [
-				1,
-				1,
-				1,
-				1,
-				1
+				{
+					"index": 1
+				},
+				{
+					"index": 1
+				},
+				{
+					"index": 1,
+					"title": "Categorie XX"
+				},
+				{
+					"index": 1
+				},
+				{
+					"index": 1
+				}
 			],
 			"lines": [
 				{
@@ -281,37 +334,15 @@
 					],
 					"drops": [
 						{
-							"test": "herb"
-						},
-						{
-							"test": "ezaeza5"
-						},
-						{
-							"test": "ssword"
-						},
-						{
-							"test": "ex1561"
-						},
-						{
-							"test": "healp"
-						},
-						{
-							"test": "herb"
-						},
-						{
-							"test": "something"
+							"test": "herb",
+							"ref": "Water"
 						}
 					],
-					"dropProba": 0.07
+					"dropProba": 0.07,
+					"drop": "healp"
 				}
 			],
-			"props": {
-				"separatorTitles": [
-					null,
-					null,
-					"Categorie XX"
-				]
-			}
+			"props": {}
 		},
 		{
 			"name": "resource",
@@ -339,6 +370,11 @@
 					"opt": true,
 					"name": "season",
 					"size": null
+				},
+				{
+					"typeStr": "17",
+					"name": "props",
+					"opt": true
 				}
 			],
 			"separators": [],
@@ -347,10 +383,43 @@
 					"biome": 0,
 					"subBiome": 7,
 					"rarity": 0.7,
-					"season": 0
+					"season": 0,
+					"props": {
+						"item": "herb",
+						"ref": "Water"
+					}
+				},
+				{
+					"biome": 1,
+					"rarity": 0,
+					"props": {
+						"item": "healp",
+						"ref": "Water"
+					}
 				}
 			],
 			"props": {}
+		},
+		{
+			"name": "resource@props",
+			"props": {
+				"hide": true,
+				"isProps": true
+			},
+			"separators": [],
+			"lines": [],
+			"columns": [
+				{
+					"typeStr": "6:items",
+					"name": "item",
+					"opt": true
+				},
+				{
+					"typeStr": "6:items@ingredients",
+					"name": "ref",
+					"opt": true
+				}
+			]
 		},
 		{
 			"name": "monsters@skills",
@@ -435,6 +504,11 @@
 					"typeStr": "6:items",
 					"name": "test",
 					"size": null
+				},
+				{
+					"typeStr": "6:items@ingredients",
+					"name": "ref",
+					"opt": true
 				}
 			]
 		},
