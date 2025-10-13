@@ -304,10 +304,10 @@ class Sheet {
 				base.createSubSheet(this, c);
 		}
 
-		var def = base.getDefault(c, this);
-		if( def != null )
+		if( base.getDefault(c, this) != null ) {
 			for( obj in base.getAllLines(this) )
-				Reflect.setField(obj, c.name, def);
+				Reflect.setField(obj, c.name, base.getDefault(c, this));
+		}
 
 		return null;
 	}
