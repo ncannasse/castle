@@ -496,7 +496,9 @@ abstract Guid<T>(String) {
 	static var CVALUES = [for( i in 0...128 ) CHARS.indexOf(String.fromCharCode(i))];
 }
 
-abstract GuidInt<T>(haxe.Int64) from haxe.Int64 to haxe.Int64 {
+typedef GuidIntImpl = #if (hl && hl_ver >= version("1.16.0")) hl.GUID #else haxe.Int64 #end;
+
+abstract GuidInt<T>(GuidIntImpl) from GuidIntImpl to GuidIntImpl {
 
 	public inline function toGuid() {
 		return Guid.ofInt(this);
@@ -673,14 +675,32 @@ class IndexGuid<T,Kind> extends IndexId<T,Kind> {
 	override function initSheet(data:Data) {
 		super.initSheet(data);
 		byGUID = new GuidMap();
+		#if hl
+		var idCol = null;
+		for( c in sheet.columns ) {
+			switch( c.type ) {
+			case TId: idCol = c; break;
+			default:
+			}
+		}
+		#end
 		for( c in sheet.columns )
 			switch( c.type ) {
 			case TGuid:
 				var cname = c.name;
 				for( a in sheet.lines ) {
 					var id : Guid<T> = Reflect.field(a, cname);
-					if( id != null && id != cast "" )
-						byGUID.set(id.toInt(), a);
+					if( id != null && id != cast "" ) {
+						var iid = id.toInt();
+						byGUID.set(iid, a);
+						#if (hl && hl_ver >= version("1.16.0"))
+						if( idCol != null ) {
+							var id = Reflect.field(a,idCol.name);
+							if( id != null && id != "" )
+								hl.Api.registerGUIDName(iid,id);
+						}
+						#end
+					}
 				}
 				break;
 			default:
