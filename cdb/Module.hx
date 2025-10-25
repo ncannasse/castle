@@ -192,6 +192,7 @@ class Module {
 			var realFields : Array<haxe.macro.Expr.Field> = [];
 			var ids : Array<haxe.macro.Expr.Field> = [];
 			var hasGUID = false;
+			var guidField = null;
 			for( c in s.columns ) {
 
 				if( c.kind == Hidden ) continue;
@@ -213,13 +214,13 @@ class Module {
 				case TId:
 					tkind.toComplex();
 				case TEnum(values):
-					if(c.structRef == null) 
+					if(c.structRef == null)
 						makeEnum(c,ctype,values);
 					ctype.toComplex();
 				case TCustom(name):
 					name.toComplex();
 				case TFlags(values):
-					if(c.structRef == null) 
+					if(c.structRef == null)
 						makeEnum(c,ctype,values);
 					var t = ctype.toComplex();
 					macro : cdb.Types.Flags<$t>;
@@ -240,6 +241,7 @@ class Module {
 				case TCurve:
 					macro : cdb.Types.Curve;
 				case TGuid:
+					guidField = c.name;
 					hasGUID = true;
 					var t = tname.toComplex();
 					macro : cdb.Types.Guid<$t>;
@@ -248,7 +250,7 @@ class Module {
 				inline function resolveType( c : Data.Column, s : Data.SheetData ) {
 					return makeTypeName(c.structRef != null ? c.structRef : s.name + "@" + c.name);
 				}
-				
+
 				var rt = switch( c.type ) {
 				case TInt, TColor: macro : Int;
 				case TFloat: macro : Float;
@@ -459,12 +461,36 @@ class Module {
 
 			if( hasGUID ) {
 				var t = tname.toComplex();
+				var tguid = macro : cdb.Types.GuidInt<$t>;
+				var tableName = s.name;
 				types.push({
 					pos : pos,
 					name : tname+"Guid",
 					pack : curMod,
-					kind : TDAlias(macro : cdb.Types.GuidInt<$t>),
-					fields : [],
+					kind : TDAbstract(tguid,null,[tguid],[tguid]),
+					fields : [
+						{
+							name : "get",
+							pos : pos,
+							access : [APublic],
+							kind : FFun({
+								args : [],
+								ret : null,
+								expr : macro return this.isNull() ? null : $i{modName}.$tableName.getUID(this),
+							})
+						},
+						{
+							name : "fromKind",
+							pos : pos,
+							access : [AStatic],
+							meta : [{name:":from",params:[],pos:pos}],
+							kind : FFun({
+								args : [{ name : "kind", type : TPath({ name : tkind, pack : [] }) }],
+								ret : TPath({ name : tname+"Guid", pack : [] }),
+								expr : macro return kind == null ? cdb.Types.GuidInt.getNull() : cast $i{modName}.$tableName.get(kind).$guidField.toInt(),
+							})
+						}
+					],
 				});
 			}
 
