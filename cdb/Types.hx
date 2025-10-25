@@ -707,8 +707,12 @@ class IndexGuid<T,Kind> extends IndexId<T,Kind> {
 			}
 	}
 
-	public inline function getUID(id) {
-		return byGUID.get(id);
+	public dynamic function getDefault() : T {
+		return null;
+	}
+
+	public function getUID(id) {
+		return byGUID.get(id) ?? getDefault();
 	}
 
 }
