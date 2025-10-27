@@ -459,34 +459,37 @@ class Module {
 				var t = tname.toComplex();
 				var tguid = macro : cdb.Types.GuidInt<$t>;
 				var tableName = s.name;
+				var fields : Array<haxe.macro.Expr.Field> = [
+					{
+						name : "get",
+						pos : pos,
+						access : [APublic],
+						kind : FFun({
+							args : [],
+							ret : null,
+							expr : macro return this.isNull() ? null : $i{modName}.$tableName.getUID(this),
+						})
+					},
+				];
+				if( idField != null ) {
+					fields.push({
+						name : "fromKind",
+						pos : pos,
+						access : [AStatic],
+						meta : [{name:":from",params:[],pos:pos}],
+						kind : FFun({
+							args : [{ name : "kind", type : TPath({ name : tkind, pack : [] }) }],
+							ret : TPath({ name : tname+"Guid", pack : [] }),
+							expr : macro return kind == null ? cdb.Types.GuidInt.getNull() : cast $i{modName}.$tableName.get(kind).$guidField.toInt(),
+						})
+					});
+				}
 				types.push({
 					pos : pos,
 					name : tname+"Guid",
 					pack : curMod,
 					kind : TDAbstract(tguid,null,[tguid],[tguid]),
-					fields : [
-						{
-							name : "get",
-							pos : pos,
-							access : [APublic],
-							kind : FFun({
-								args : [],
-								ret : null,
-								expr : macro return this.isNull() ? null : $i{modName}.$tableName.getUID(this),
-							})
-						},
-						{
-							name : "fromKind",
-							pos : pos,
-							access : [AStatic],
-							meta : [{name:":from",params:[],pos:pos}],
-							kind : FFun({
-								args : [{ name : "kind", type : TPath({ name : tkind, pack : [] }) }],
-								ret : TPath({ name : tname+"Guid", pack : [] }),
-								expr : macro return kind == null ? cdb.Types.GuidInt.getNull() : cast $i{modName}.$tableName.get(kind).$guidField.toInt(),
-							})
-						}
-					],
+					fields : fields,
 				});
 			}
 
