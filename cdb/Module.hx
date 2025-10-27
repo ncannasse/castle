@@ -488,6 +488,7 @@ class Module {
 					pos : pos,
 					name : tname+"Guid",
 					pack : curMod,
+					meta : [{ name : ":forward", params : [], pos : pos }],
 					kind : TDAbstract(tguid,null,[tguid],[tguid]),
 					fields : fields,
 				});
