@@ -406,7 +406,7 @@ class Database {
 			}
 		}
 
-		
+
 		var oldOpt = old.opt ?? false;
 		var newOpt = c.opt ?? false;
 		if( oldOpt != newOpt ) {
@@ -442,18 +442,6 @@ class Database {
 				}
 			}
 			old.opt = c.opt;
-		}
-
-		if (old.defaultValue != c.defaultValue) {
-			for( o in getAllLines(sheet) ) {
-				var v = Reflect.field(o, c.name);
-				if( v == getDefault(old, false, sheet) ) {
-					if (c.opt)
-						Reflect.deleteField(o, c.name);
-					else
-						Reflect.setField(o, c.name, getDefault(c, false, sheet));
-				}
-			}
 		}
 
 		for( f in ["display","kind","scope","documentation", "editor", "defaultValue", "shared", "structRef"] ) {
