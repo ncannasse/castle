@@ -477,6 +477,16 @@ class Module {
 						})
 					});
 					fields.push({
+						name : "toKind",
+						pos : pos,
+						access : [APublic,AInline],
+						kind : FFun({
+							args : [],
+							ret : null,
+							expr : macro return get()?.$idField,
+						})
+					});
+					fields.push({
 						name : "fromKind",
 						pos : pos,
 						access : [AStatic],
