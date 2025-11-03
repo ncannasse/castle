@@ -58,20 +58,24 @@ class Parser {
 	public static function parse( content : String, editMode : Bool ) : Data {
 		if( content == null ) throw "CDB content is null";
 		var data : Data = haxe.Json.parse(content);
+		var structRefs = [];
 		for( s in data.sheets )
 			for( c in s.columns ) {
 				if( c.structRef != null ) {
-					var parts = c.structRef.split("@");	
-					var colName = parts.pop();
-					var refSheet = Lambda.find(data.sheets, (s) -> s.name == parts.join("@"));
-					var refCol = Lambda.find(refSheet.columns, (c) -> c.name == colName);
-					c.type = refCol.type;
+					structRefs.push(c);
 				}
 				else {
 					c.type = getType(c.typeStr);
 					c.typeStr = null;
 				}
 			}
+		for (c in structRefs) {
+			var parts = c.structRef.split("@");
+			var colName = parts.pop();
+			var refSheet = Lambda.find(data.sheets, (s) -> s.name == parts.join("@"));
+			var refCol = Lambda.find(refSheet.columns, (c) -> c.name == colName);
+			c.type = refCol.type;
+		}
 		for( t in data.customTypes )
 			for( c in t.cases )
 				for( a in c.args ) {
