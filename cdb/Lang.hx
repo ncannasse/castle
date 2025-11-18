@@ -50,6 +50,8 @@ class Lang {
 	}
 
 	public function getSub( s : SheetData, c : Column ) {
+		if (c.structRef != null)
+			return getSheet(c.structRef);
 		return getSheet(s.name + "@" + c.name);
 	}
 
@@ -419,7 +421,10 @@ class Lang {
 				v = StringTools.htmlEscape(v).split("\n").join("<br/>").split("\r").join("");
 			return { name : c.name, value : v };
 		case LSingle(c, f):
-			var v = getLocText(tabs, Reflect.field(o, c.name), f, diff);
+			var o2 = Reflect.field(o, c.name);
+			if (o2 == null)
+				return {name: c.name, value: null};
+			var v = getLocText(tabs, o2, f, diff);
 			return { name : c.name+"." + v.name, value : v.value };
 		case LSub(c, ssub, fl):
 			var v : Array<Dynamic> = Reflect.field(o, c.name);
