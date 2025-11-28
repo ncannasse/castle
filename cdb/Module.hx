@@ -473,7 +473,7 @@ class Module {
 						})
 					});
 					fields.push({
-						name : "toKind",
+						name : "getKind",
 						pos : pos,
 						access : [APublic,AInline],
 						kind : FFun({
