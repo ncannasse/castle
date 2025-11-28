@@ -508,6 +508,10 @@ abstract GuidInt<T>(GuidIntImpl) from GuidIntImpl to GuidIntImpl {
 		return haxe.Int64.isZero(this);
 	}
 
+	public inline function setNull() {
+		this = getNull();
+	}
+
 	public static inline function getNull<T>() : GuidInt<T> return haxe.Int64.ofInt(0);
 }
 
