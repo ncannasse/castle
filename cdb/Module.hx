@@ -111,12 +111,27 @@ class Module {
 			}
 		if( psheet == null )
 			return s.lines;
+
+		var pcol = null;
+		for( c in psheet.columns ) {
+			if( c.name == col ) {
+				pcol = c;
+				break;
+			}
+		}
+
 		var out = [];
 		for( o in getSheetLines(sheets,psheet) ) {
-			var objs : Array<Dynamic> = Reflect.field(o, col);
-			if( objs != null )
-				for( o in objs )
-					out.push(o);
+			if (pcol != null && pcol.type == TProperties) {
+				var obj = Reflect.field(o, col);
+				if( obj != null )
+					out.push(obj);
+			} else {
+				var objs : Array<Dynamic> = Reflect.field(o, col);
+				if( objs != null )
+					for( o in objs )
+						out.push(o);
+			}
 		}
 		return out;
 	}
