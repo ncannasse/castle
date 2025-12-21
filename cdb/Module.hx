@@ -484,7 +484,7 @@ class Module {
 						kind : FFun({
 							args : [],
 							ret : null,
-							expr : macro return this.isNull() ? null : $i{modName}.$tableName.getUID(this),
+							expr : macro return #if haxe5 this == null #else this.isNull() #end ? null : $i{modName}.$tableName.getUID(this),
 						})
 					});
 					fields.push({
@@ -505,7 +505,7 @@ class Module {
 						kind : FFun({
 							args : [{ name : "kind", type : TPath({ name : tkind, pack : [] }) }],
 							ret : TPath({ name : tname+"Guid", pack : [] }),
-							expr : macro return kind == null ? cdb.Types.GuidInt.getNull() : cast $i{modName}.$tableName.get(kind).$guidField.toInt(),
+							expr : macro return kind == null ? #if haxe5 null #else cdb.Types.GuidInt.getNull() #end : cast $i{modName}.$tableName.get(kind).$guidField.toInt(),
 						})
 					});
 				}
@@ -513,7 +513,7 @@ class Module {
 					pos : pos,
 					name : tname+"Guid",
 					pack : curMod,
-					meta : [{ name : ":forward", params : [], pos : pos }],
+					meta : [{ name : ":forward", params : [], pos : pos },{ name : ":fromNull", params : [], pos : pos }],
 					kind : TDAbstract(tguid,null,[tguid],[tguid]),
 					fields : fields,
 				});

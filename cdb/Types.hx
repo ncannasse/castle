@@ -467,7 +467,7 @@ abstract Guid<T>(String) {
 
 	public function toInt() : GuidInt<T> {
 		if( this == null )
-			return GuidInt.getNull();
+			return #if haxe5 null #else GuidInt.getNull() #end;
 		var k = 0;
 		var tot = haxe.Int64.ofInt(0);
 		for( i in 0...13 ) {
@@ -480,7 +480,7 @@ abstract Guid<T>(String) {
 	}
 
 	public static function ofInt<T>( v : GuidInt<T> ) {
-		if( v.isNull() )
+		if( #if haxe5 v == null #else v.isNull() #end )
 			return new Guid<T>(null);
 		var str = "";
 		var v : haxe.Int64 = v;
@@ -498,24 +498,19 @@ abstract Guid<T>(String) {
 
 typedef GuidIntImpl = #if (hl && hl_ver >= version("1.16.0")) hl.GUID #else haxe.Int64 #end;
 
+@:fromNull
 abstract GuidInt<T>(GuidIntImpl) from GuidIntImpl to GuidIntImpl {
 
 	public inline function toGuid() {
 		return Guid.ofInt(this);
 	}
 
+	#if !haxe5
 	public inline function isNull() {
 		return haxe.Int64.isZero(this);
 	}
-
-	/*
-	Disable until https://github.com/HaxeFoundation/haxe/issues/12422 is resolved
-	public inline function setNull() {
-		this = getNull();
-	}
-	*/
-
 	public static inline function getNull<T>() : GuidInt<T> return haxe.Int64.ofInt(0);
+	#end
 }
 
 class Index<T> {
