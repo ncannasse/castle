@@ -315,6 +315,18 @@ class Database {
 		}
 	}
 
+	public static function getPolyVal( sheet : Sheet, obj : Dynamic ) : { col: Column, val: Dynamic } {
+		var found = null;
+		for( col in sheet.columns ) {
+			var v = Reflect.field(obj, col.name);
+			if( v != null ) {
+				if( found != null ) throw "mutliple fields defined";
+				found = {col: col, val: v};
+			}
+		}
+		return found;
+	}
+
 	public function typeStr( t : ColumnType ) {
 		return switch( t ) {
 		case TRef(n), TCustom(n): n;
