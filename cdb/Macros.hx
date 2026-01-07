@@ -1,10 +1,14 @@
 package cdb;
 import haxe.macro.Context;
-import haxe.macro.Expr.FieldType;
 using haxe.macro.Tools;
+#if macro
+import haxe.macro.Expr;
+#end
 using Lambda;
 
 class Macros {
+
+    static var r_attr = ~/::(.+?)::/g;
 
     public static function getData(file:String) : Data {
         var pos = Context.currentPos();
@@ -24,7 +28,7 @@ class Macros {
         return Parser.parse(sys.io.File.getContent(path), false);
     }
 
-    public static function buildPoly(file: String, sheetName: String) {
+    public static function buildPoly(file: String, sheetName: String, moduleName: String="Data") {
         var fields = Context.getBuildFields();
         var pos = Context.currentPos();
 
@@ -46,6 +50,32 @@ class Macros {
         if(polySheet == null)
             Context.error("Polymorph sub-sheet not found for column '" + polyCol.name + "'", pos);
 
+        function textField(val: String) {
+            if (!r_attr.match(val)) {
+                return FVar(macro: String, macro $v{val});
+            }
+            // Parse parameters for strong typing
+            var fields = new Array<haxe.macro.Expr.Field>();
+            var map = new Map<String, Bool>();
+            r_attr.map(val, function(r) {
+                var name = r.matched(1);
+                if (!map.exists(name)) {
+                    map.set(name, true);
+                    fields.push({
+                        name: name,
+                        kind: FVar(macro: Dynamic),
+                        pos: pos,
+                        meta: []
+                    });
+                }
+                return r.matched(0);
+            });
+            var funcType = TFunction([TAnonymous(fields)], macro: String);
+
+            // Use FProp for strong typing like DynamicText does
+            return FProp("default", "never", funcType);
+        }
+
         for(line in sheet.getLines()) {
             var id = Reflect.field(line, idCol.name);
             var pobj = Reflect.field(line, polyCol.name);
@@ -61,10 +91,19 @@ class Macros {
             var pvar : FieldType = switch(pval.col.type) {
                 case TFloat: FVar(macro: Float, macro $v{pval.val});
                 case TInt: FVar(macro: Int, macro $v{pval.val});
-                case TString: FVar(macro: String, macro $v{pval.val});
+                case TString: textField(pval.val);
                 case TBool: FVar(macro: Bool, macro $v{pval.val});
+                case TProperties:
+                    var psheet = polySheet.getSub(pval.col);
+                    if(psheet == null) null;
+                    else {
+                        // full path like Data.Sheet_col_prop
+                        var fullPath = moduleName + "." + Module.fieldName(psheet.name);
+                        var typeName = moduleName + "." + Module.makeTypeName(psheet.name);
+                        FVar(typeName.toComplex(), null);
+                    }
+                    
                 default: null;
-                // case TProperties:
                 // case TList:
             };
             

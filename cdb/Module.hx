@@ -95,6 +95,16 @@ class Module {
 	}
 	#end
 
+	public static function fieldName( name : String ) {
+		var r_chars = ~/[^A-Za-z0-9_]/g;
+		return r_chars.replace(name, "_");
+	}
+
+	public static function makeTypeName( name : String ) {
+		var t = fieldName(name);
+		return t.substr(0, 1).toUpperCase() + t.substr(1);
+	}
+
 	static function getSheetLines( sheets : Array<Data.SheetData>, s : Data.SheetData ) {
 		if( s.props.dataFiles != null )
 			return [];
@@ -156,15 +166,6 @@ class Module {
 			Context.error("File not found " + file, pos);
 		var data = Parser.parse(sys.io.File.getContent(path), false);
 
-		var r_chars = ~/[^A-Za-z0-9_]/g;
-		function makeTypeName( name : String ) {
-			var t = r_chars.replace(name, "_");
-			t = t.substr(0, 1).toUpperCase() + t.substr(1);
-			return t;
-		}
-		function fieldName( name : String ) {
-			return r_chars.replace(name, "_");
-		}
 		var types = new Array<haxe.macro.Expr.TypeDefinition>();
 		var curMod = Context.getLocalModule().split(".");
 		var modName = curMod.pop();
