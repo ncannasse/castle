@@ -276,7 +276,7 @@ class Sheet {
 					sheet.props.displayIcon = null;
 					sync();
 				}
-				if( (c.type == TList || c.type == TProperties) && c.structRef == null )
+				if( (c.type == TList || c.type == TProperties || c.type == TPoly) && c.structRef == null )
 					base.deleteSheet(getSub(c));
 				return true;
 			}
@@ -298,7 +298,7 @@ class Sheet {
 			sheet.columns.push(c);
 		else
 			sheet.columns.insert(index, c);
-		if( c.type == TList || c.type == TProperties ) {
+		if( c.type == TList || c.type == TProperties || c.type == TPoly ) {
 			// create an hidden sheet for the model
 			if( c.structRef == null )
 				base.createSubSheet(this, c);

@@ -247,6 +247,9 @@ class Module {
 					s.props.level != null && c.name == "props" ? macro : cdb.Types.LevelPropsAccess<$t> : macro : Dynamic;
 				case TProperties:
 					ctype.toComplex();
+				case TPoly:
+					// For TPoly, generate Dynamic for now (variants are in separate sub-sheets)
+					macro : Dynamic;
 				case TGradient:
 					macro : cdb.Types.Gradient;
 				case TCurve:
@@ -279,6 +282,9 @@ class Module {
 				case TDynamic: macro : Dynamic;
 				case TProperties:
 					(resolveType(c, s) + "Def").toComplex();
+				case TPoly:
+					// For TPoly, generate Dynamic for raw type
+					macro : Dynamic;
 				case TCurve: macro : Array<Float>;
 				case TGradient: macro : { colors: Array<Int>, positions: Array<Float>};
 				case TGuid: macro : String;
@@ -337,7 +343,7 @@ class Module {
 						}),
 						access : [AInline, APrivate],
 					});
-				case TList, TEnum(_), TFlags(_), TLayer(_), TTileLayer, TProperties, TGuid:
+				case TList, TEnum(_), TFlags(_), TLayer(_), TTileLayer, TProperties, TPoly, TGuid:
 					// cast
 					var cname = c.name;
 					fields.push({
