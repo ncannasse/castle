@@ -54,7 +54,7 @@ class Macros {
             if(pval == null)
                 continue;
 
-            var polyVal = Database.getPolyVal(polySheet.columns, pval);
+            var polyVal = polySheet.getPolyVal(pval);
             if(polyVal == null)
                 continue;
 

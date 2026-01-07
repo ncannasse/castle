@@ -63,6 +63,18 @@ class Sheet {
 		return base.getSheet(c.structRef != null ? c.structRef : name + "@" + c.name);
 	}
 
+	public function getPolyVal( obj : Dynamic ) : { col: Column, val: Dynamic } {
+		var found = null;
+		for( col in columns ) {
+			var v = Reflect.field(obj, col.name);
+			if( v != null ) {
+				if( found != null ) throw "mutliple fields defined";
+				found = { col: col, val: v };
+			}
+		}
+		return found;
+	}
+
 	public function getParent() {
 		if( !sheet.props.hide )
 			return null;
