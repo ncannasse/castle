@@ -48,21 +48,21 @@ class Macros {
 
         for(line in sheet.getLines()) {
             var id = Reflect.field(line, idCol.name);
-            var pval = Reflect.field(line, polyCol.name);
+            var pobj = Reflect.field(line, polyCol.name);
             if(id == null || id == "")
                 continue;
+            if(pobj == null)
+                continue;
+
+            var pval = polySheet.getPolyVal(pobj);
             if(pval == null)
                 continue;
 
-            var polyVal = polySheet.getPolyVal(pval);
-            if(polyVal == null)
-                continue;
-
-            var pvar : FieldType = switch(polyVal.col.type) {
-                case TFloat: FVar(macro: Float, polyVal.val);
-                case TInt: FVar(macro: Int, polyVal.val);
-                case TString: FVar(macro: String, polyVal.val);
-                case TBool: FVar(macro: Bool, polyVal.val);
+            var pvar : FieldType = switch(pval.col.type) {
+                case TFloat: FVar(macro: Float, macro $v{pval.val});
+                case TInt: FVar(macro: Int, macro $v{pval.val});
+                case TString: FVar(macro: String, macro $v{pval.val});
+                case TBool: FVar(macro: Bool, macro $v{pval.val});
                 default: null;
                 // case TProperties:
                 // case TList:
