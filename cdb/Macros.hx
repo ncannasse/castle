@@ -8,8 +8,6 @@ using Lambda;
 
 class Macros {
 
-    static var r_attr = ~/::(.+?)::/g;
-
     public static function getData(file:String) : Data {
         var pos = Context.currentPos();
 		var path = try Context.resolvePath(file) catch( e : Dynamic ) null;
@@ -50,14 +48,15 @@ class Macros {
         if(polySheet == null)
             Context.error("Polymorph sub-sheet not found for column '" + polyCol.name + "'", pos);
 
+        var splitRegex = ~/::(.+?)::/g;
         function textField(val: String) {
-            if (!r_attr.match(val)) {
+            if (!splitRegex.match(val)) {
                 return FVar(macro: String, macro $v{val});
             }
             // Parse parameters for strong typing
             var fields = new Array<haxe.macro.Expr.Field>();
             var map = new Map<String, Bool>();
-            r_attr.map(val, function(r) {
+            splitRegex.map(val, function(r) {
                 var name = r.matched(1);
                 if (!map.exists(name)) {
                     map.set(name, true);
