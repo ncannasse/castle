@@ -122,7 +122,7 @@ class Module {
 
 		var out = [];
 		for( o in getSheetLines(sheets,psheet) ) {
-			if (pcol != null && pcol.type == TProperties) {
+			if (pcol != null && (pcol.type == TProperties || pcol.type == TPolymorph)) {
 				var obj = Reflect.field(o, col);
 				if( obj != null )
 					out.push(obj);
@@ -140,8 +140,21 @@ class Module {
 		#if !macro
 		throw "This can only be called in a macro";
 		#else
-
-		var data = Macros.getData(file);
+		var pos = Context.currentPos();
+		var path = try Context.resolvePath(file) catch( e : Dynamic ) null;
+		if( path == null ) {
+			var r = Context.definedValue("resourcesPath");
+			if( r != null ) {
+				r = r.split("\\").join("/");
+				if( !StringTools.endsWith(r, "/") ) r += "/";
+				try path = Context.resolvePath(r + file) catch( e : Dynamic ) null;
+			}
+		}
+		if( path == null )
+			try path = Context.resolvePath("res/" + file) catch( e : Dynamic ) null;
+		if( path == null )
+			Context.error("File not found " + file, pos);
+		var data = Parser.parse(sys.io.File.getContent(path), false);
 
 		var r_chars = ~/[^A-Za-z0-9_]/g;
 		function makeTypeName( name : String ) {
@@ -233,11 +246,8 @@ class Module {
 				case TDynamic:
 					var t = tname.toComplex();
 					s.props.level != null && c.name == "props" ? macro : cdb.Types.LevelPropsAccess<$t> : macro : Dynamic;
-				case TProperties:
+				case TProperties, TPolymorph:
 					ctype.toComplex();
-				case TPolymorph:
-					// For TPolymorph, generate Dynamic for now (variants are in separate sub-sheets)
-					macro : Dynamic;
 				case TGradient:
 					macro : cdb.Types.Gradient;
 				case TCurve:
@@ -268,11 +278,8 @@ class Module {
 				case TTilePos: macro : { file : String, size : Int, x : Int, y : Int, ?width : Int, ?height : Int };
 				case TTileLayer: macro : { file : String, stride : Int, size : Int, data : String };
 				case TDynamic: macro : Dynamic;
-				case TProperties:
+				case TProperties, TPolymorph:
 					(resolveType(c, s) + "Def").toComplex();
-				case TPolymorph:
-					// For TPolymorph, generate Dynamic for raw type
-					macro : Dynamic;
 				case TCurve: macro : Array<Float>;
 				case TGradient: macro : { colors: Array<Int>, positions: Array<Float>};
 				case TGuid: macro : String;
@@ -659,7 +666,7 @@ class Module {
 					case TRef(s):
 						var fname = fieldName(s);
 						macro $i{modName}.$fname.resolve(v[$v{ai+1}]);
-					case TList, TLayer(_), TTilePos, TProperties:
+					case TList, TLayer(_), TTilePos, TProperties, TPolymorph:
 						throw "assert";
 					}
 					eargs.push(econv);

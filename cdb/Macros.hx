@@ -26,11 +26,12 @@ class Macros {
 
     public static function buildPoly(file: String, sheetName: String) {
         var fields = Context.getBuildFields();
-        /*
-        var data = getData(file);
         var pos = Context.currentPos();
-        var sheet = data.sheets.find(s -> s.name == sheetName);
 
+        var db = new Database();
+        db.loadData(getData(file));
+
+        var sheet = db.getSheet(sheetName);
         if(sheet == null)
             Context.error("Sheet '" + sheetName + "' not found", pos);
 
@@ -41,13 +42,11 @@ class Macros {
         if(polyCol == null)
             Context.error("Sheet '" + sheet.name + "' must have a polymorphic column", pos);
 
-        // Find the poly sub-sheet by name (same as Module.hx pattern)
-        var polySheetName = sheet.name + "@" + polyCol.name;
-        var polySheet = data.sheets.find(s -> s.name == polySheetName);
+        var polySheet = sheet.getSub(polyCol);
         if(polySheet == null)
-            Context.error("Polymorph sub-sheet '" + polySheetName + "' not found", pos);
+            Context.error("Polymorph sub-sheet not found for column '" + polyCol.name + "'", pos);
 
-        for(line in sheet.lines) {
+        for(line in sheet.getLines()) {
             var id = Reflect.field(line, idCol.name);
             var pval = Reflect.field(line, polyCol.name);
             if(id == null || id == "")
@@ -55,26 +54,15 @@ class Macros {
             if(pval == null)
                 continue;
 
-            // Find which column in polySheet has a value (inline getPolyVal logic)
-            var foundCol = null;
-            var foundVal : Dynamic = null;
-            for(col in polySheet.columns) {
-                var v = Reflect.field(pval, col.name);
-                if(v != null) {
-                    foundCol = col;
-                    foundVal = v;
-                    break;
-                }
-            }
-
-            if(foundCol == null)
+            var polyVal = Database.getPolyVal(polySheet.columns, pval);
+            if(polyVal == null)
                 continue;
 
-            var pvar : FieldType = switch(foundCol.type) {
-                case TFloat: FVar(macro: Float, foundVal);
-                case TInt: FVar(macro: Int, foundVal);
-                case TString: FVar(macro: String, foundVal);
-                case TBool: FVar(macro: Bool, foundVal);
+            var pvar : FieldType = switch(polyVal.col.type) {
+                case TFloat: FVar(macro: Float, polyVal.val);
+                case TInt: FVar(macro: Int, polyVal.val);
+                case TString: FVar(macro: String, polyVal.val);
+                case TBool: FVar(macro: Bool, polyVal.val);
                 default: null;
                 // case TProperties:
                 // case TList:
@@ -89,7 +77,6 @@ class Macros {
                 });
             }
         }
-            */
 
         return fields;
     }

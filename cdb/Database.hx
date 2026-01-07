@@ -315,9 +315,9 @@ class Database {
 		}
 	}
 
-	public static function getPolyVal( sheet : Sheet, obj : Dynamic ) : { col: Column, val: Dynamic } {
+	public static function getPolyVal( columns : Array<Column>, obj : Dynamic ) : { col: Column, val: Dynamic } {
 		var found = null;
-		for( col in sheet.columns ) {
+		for( col in columns ) {
 			var v = Reflect.field(obj, col.name);
 			if( v != null ) {
 				if( found != null ) throw "mutliple fields defined";
