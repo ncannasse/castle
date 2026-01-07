@@ -1,13 +1,20 @@
 package cdb;
+#if macro
 import haxe.macro.Context;
 using haxe.macro.Tools;
-#if macro
 import haxe.macro.Expr;
 #end
 using Lambda;
 
 class Macros {
 
+    public static function interpolateText(str: String, vars: Dynamic): String {
+        for (f in Reflect.fields(vars))
+            str = str.split("::" + f + "::").join("" + Reflect.field(vars, f));
+        return str;
+    }
+
+#if macro
     public static function getData(file:String) : Data {
         var pos = Context.currentPos();
 		var path = try Context.resolvePath(file) catch( e : Dynamic ) null;
@@ -71,8 +78,12 @@ class Macros {
             });
             var funcType = TFunction([TAnonymous(fields)], macro: String);
 
-            // Use FProp for strong typing like DynamicText does
-            return FProp("default", "never", funcType);
+            // Generate the actual function using the runtime helper
+            var funcExpr = macro function(vars: Dynamic) {
+                return cdb.Macros.interpolateText($v{val}, vars);
+            };
+
+            return FVar(funcType, funcExpr);
         }
 
         for(line in sheet.getLines()) {
@@ -118,4 +129,5 @@ class Macros {
 
         return fields;
     }
+#end
 }
