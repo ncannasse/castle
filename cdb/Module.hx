@@ -140,21 +140,9 @@ class Module {
 		#if !macro
 		throw "This can only be called in a macro";
 		#else
-		var pos = Context.currentPos();
-		var path = try Context.resolvePath(file) catch( e : Dynamic ) null;
-		if( path == null ) {
-			var r = Context.definedValue("resourcesPath");
-			if( r != null ) {
-				r = r.split("\\").join("/");
-				if( !StringTools.endsWith(r, "/") ) r += "/";
-				try path = Context.resolvePath(r + file) catch( e : Dynamic ) null;
-			}
-		}
-		if( path == null )
-			try path = Context.resolvePath("res/" + file) catch( e : Dynamic ) null;
-		if( path == null )
-			Context.error("File not found " + file, pos);
-		var data = Parser.parse(sys.io.File.getContent(path), false);
+
+		var data = Macros.getData(file);
+
 		var r_chars = ~/[^A-Za-z0-9_]/g;
 		function makeTypeName( name : String ) {
 			var t = r_chars.replace(name, "_");
@@ -247,8 +235,8 @@ class Module {
 					s.props.level != null && c.name == "props" ? macro : cdb.Types.LevelPropsAccess<$t> : macro : Dynamic;
 				case TProperties:
 					ctype.toComplex();
-				case TPoly:
-					// For TPoly, generate Dynamic for now (variants are in separate sub-sheets)
+				case TPolymorph:
+					// For TPolymorph, generate Dynamic for now (variants are in separate sub-sheets)
 					macro : Dynamic;
 				case TGradient:
 					macro : cdb.Types.Gradient;
@@ -282,8 +270,8 @@ class Module {
 				case TDynamic: macro : Dynamic;
 				case TProperties:
 					(resolveType(c, s) + "Def").toComplex();
-				case TPoly:
-					// For TPoly, generate Dynamic for raw type
+				case TPolymorph:
+					// For TPolymorph, generate Dynamic for raw type
 					macro : Dynamic;
 				case TCurve: macro : Array<Float>;
 				case TGradient: macro : { colors: Array<Int>, positions: Array<Float>};
@@ -343,7 +331,7 @@ class Module {
 						}),
 						access : [AInline, APrivate],
 					});
-				case TList, TEnum(_), TFlags(_), TLayer(_), TTileLayer, TProperties, TPoly, TGuid:
+				case TList, TEnum(_), TFlags(_), TLayer(_), TTileLayer, TProperties, TPolymorph, TGuid:
 					// cast
 					var cname = c.name;
 					fields.push({

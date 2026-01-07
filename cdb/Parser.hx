@@ -51,7 +51,7 @@ class Parser {
 		case 18: TGradient;
 		case 19: TCurve;
 		case 20: TGuid;
-		case 21: TPoly;
+		case 21: TPolymorph;
 		default: throw "Unknown type " + str;
 		}
 	}

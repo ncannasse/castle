@@ -144,12 +144,12 @@ class Database {
 			columns : [],
 		};
 		if( c.type == TProperties ) s.props.isProps = true;
-		if( c.type == TPoly ) s.props.isProps = true;
+		if( c.type == TPolymorph ) s.props.isProps = true;
 		// our parent might be a virtual sheet
 		var index = data.sheets.indexOf(Lambda.find(data.sheets, function(s) return s.name == parent.name));
 		for( c2 in parent.columns ) {
 			if( c == c2 ) break;
-			if( c2.type.match(TProperties|TList|TPoly) ) {
+			if( c2.type.match(TProperties|TList|TPolymorph) ) {
 				var sub = parent.getSub(c2);
 				index = data.sheets.indexOf(@:privateAccess sub.sheet);
 			}
@@ -309,7 +309,7 @@ class Database {
 					}
 			}
 			obj;
-		case TPoly:
+		case TPolymorph:
 			{};
 		case TCustom(_), TTilePos, TTileLayer, TDynamic, TGradient, TCurve: null;
 		}
@@ -347,10 +347,10 @@ class Database {
 					s.sync();
 				});
 				for( c in s.columns )
-					if( c.type == TList || c.type == TProperties || c.type == TPoly )
+					if( c.type == TList || c.type == TProperties || c.type == TPolymorph )
 						renameRec(s, c, c.name);
 			}
-			if( old.type == TList || old.type == TProperties || old.type == TPoly ) {
+			if( old.type == TList || old.type == TProperties || old.type == TPolymorph ) {
 				if( old.structRef == null ) {
 					renameRec(sheet, old, c.name);
 					for( f in renames ) f();
@@ -385,8 +385,8 @@ class Database {
 					sheet.getSub(old).props.isProps = true;
 				case [TProperties, TList]:
 					sheet.getSub(old).props.isProps = false;
-				case [TProperties, TPoly]:
-				case [TPoly, TProperties]:
+				case [TProperties, TPolymorph]:
+				case [TPolymorph, TProperties]:
 				default:
 			}
 
@@ -395,7 +395,7 @@ class Database {
 		}
 
 		if( old.structRef != c.structRef ) {
-			if( old.type == TList || old.type == TProperties || old.type == TPoly ) {
+			if( old.type == TList || old.type == TProperties || old.type == TPolymorph ) {
 				if( old.structRef != null && c.structRef == null ) {
 					old.structRef = null;
 					sheet.base.createSubSheet(sheet, old);
@@ -436,7 +436,7 @@ class Database {
 							var v : Array<Dynamic> = v;
 							if( v != null && v.length == 0 )
 								Reflect.deleteField(o, c.name);
-						case TProperties, TPoly:
+						case TProperties, TPolymorph:
 							if( Reflect.fields(v).length == 0 || haxe.Json.stringify(v) == haxe.Json.stringify(def) )
 								Reflect.deleteField(o, c.name);
 						default:
@@ -617,9 +617,9 @@ class Database {
 			conv = function(l) return l[0];
 		case [TProperties, TList]:
 			conv = function(p) return Reflect.fields(p).length == 0 ? [] : [p];
-		case [TProperties, TPoly]:
+		case [TProperties, TPolymorph]:
 			conv = null;
-		case [TPoly, TProperties]:
+		case [TPolymorph, TProperties]:
 			conv = null;
 		case [(TInt| TColor), TGradient]:
 			conv = function(c) return {colors: [c | 0xFF000000], positions: [0.0]};
@@ -788,7 +788,7 @@ class Database {
 			if( esc )
 				return haxe.Json.stringify(val);
 			return valueToString(val);
-		case TProperties, TList, TPoly:
+		case TProperties, TList, TPolymorph:
 			"???";
 		}
 	}
@@ -1138,7 +1138,7 @@ class Database {
 				var sub = objSheet.getSub(c);
 				for( obj in (v:Array<Dynamic>) )
 					updateLocalRefs(sheet, refMap, obj, sub);
-			case TProperties, TPoly:
+			case TProperties, TPolymorph:
 				updateLocalRefs(sheet, refMap, v, objSheet.getSub(c));
 			case TString if( c.kind == Script ):
 				var prefix = sheet.name.split("@").pop();
@@ -1196,7 +1196,7 @@ class Database {
 		smap.remove(sheet.name);
 		for( c in sheet.columns )
 			switch( c.type ) {
-			case TList, TProperties, TPoly:
+			case TList, TProperties, TPolymorph:
 				if( c.structRef == null )
 					deleteSheet(sheet.getSub(c));
 			default:
