@@ -37,37 +37,39 @@ class Macros {
         var fields = Context.getBuildFields();
         var pos = Context.currentPos();
 
+        inline function error(message: String) {
+            Context.error(message, pos);
+        }
+
         var db = new Database();
         db.loadData(getData(file));
 
         var sheet = db.getSheet(sheetName);
-        if(sheet == null)
-            Context.error("Sheet '" + sheetName + "' not found", pos);
+        if(sheet == null) error('"${sheetName}" not found');
+
+        var sheetKind = Module.makeTypeName(sheetName) + "Kind";
 
         var idCol = sheet.columns.find(c -> c.type == TId);
-        if(idCol == null)
-            Context.error("Sheet '" + sheet.name + "' must have a unique ID", pos);
         var polyCol = sheet.columns.find(c -> c.type == TPolymorph);
-        if(polyCol == null)
-            Context.error("Sheet '" + sheet.name + "' must have a polymorphic column", pos);
+        if(idCol == null) error('Sheet needs a unique ID');
+        if(polyCol == null) error('Sheet needs a polymorphic column');
 
         var polySheet = sheet.getSub(polyCol);
-        if(polySheet == null)
-            Context.error("Polymorph sub-sheet not found for column '" + polyCol.name + "'", pos);
+        var module = macro $i{moduleName};
 
         var splitRegex = ~/::(.+?)::/g;
-        function textField(val: String) {
+        function textField(val: String, id: String): FieldType {
             if (!splitRegex.match(val)) {
                 return FVar(macro: String, macro $v{val});
             }
             // Parse parameters for strong typing
-            var fields = new Array<haxe.macro.Expr.Field>();
+            var args = new Array<haxe.macro.Expr.Field>();
             var map = new Map<String, Bool>();
             splitRegex.map(val, function(r) {
                 var name = r.matched(1);
                 if (!map.exists(name)) {
                     map.set(name, true);
-                    fields.push({
+                    args.push({
                         name: name,
                         kind: FVar(macro: Dynamic),
                         pos: pos,
@@ -76,14 +78,16 @@ class Macros {
                 }
                 return r.matched(0);
             });
-            var funcType = TFunction([TAnonymous(fields)], macro: String);
-
-            // Generate the actual function using the runtime helper
-            var funcExpr = macro function(vars: Dynamic) {
-                return cdb.Macros.interpolateText($v{val}, vars);
-            };
-
-            return FVar(funcType, funcExpr);
+            var polyColName = polyCol.name;
+            return FFun({
+                ret: macro: String,
+                args: [{name: "vars", type: TAnonymous(args)}],
+                params: [],
+                expr: macro {
+                    var str = $module.$sheetName.get($module.$sheetKind.$id).$polyColName.text;
+                    return cdb.Macros.interpolateText(str, vars);
+                }
+            });
         }
 
         for(line in sheet.getLines()) {
@@ -101,22 +105,18 @@ class Macros {
             var pvar : FieldType = switch(pval.col.type) {
                 case TFloat: FVar(macro: Float, macro $v{pval.val});
                 case TInt: FVar(macro: Int, macro $v{pval.val});
-                case TString: textField(pval.val);
+                case TString: textField(pval.val, id);
                 case TBool: FVar(macro: Bool, macro $v{pval.val});
                 case TProperties:
                     var psheet = polySheet.getSub(pval.col);
-                    if(psheet == null) null;
-                    else {
-                        // full path like Data.Sheet_col_prop
+                    if(psheet != null) {
                         var fullPath = moduleName + "." + Module.fieldName(psheet.name);
                         var typeName = moduleName + "." + Module.makeTypeName(psheet.name);
                         FVar(typeName.toComplex(), null);
-                    }
-                    
+                    } else null;
                 default: null;
-                // case TList:
             };
-            
+
             if(pvar != null) {
                 fields.push({
                     name : id,
