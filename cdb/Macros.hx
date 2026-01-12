@@ -101,21 +101,22 @@ class Macros {
 
 		// Generates a value extraction expression, unwrapping single-column lists recursively
 		// Returns null for types that use typed getters instead (TProperties, TPolymorph)
-		function getValueExpr(sheet:cdb.Sheet, col:cdb.Data.Column, source:Expr):Null<Expr> {
+		function initExpr(sheet:cdb.Sheet, col:cdb.Data.Column, source:Expr):Null<Expr> {
 			var colName = col.name;
-			var accessed:Expr = macro ($source : Dynamic).$colName;
+			var prop:Expr = macro($source : Dynamic).$colName;
 			return switch (col.type) {
 				case TInt, TFloat, TBool:
-					accessed;
+					prop;
 				case TList:
 					var sub = sheet.getSub(col);
-					var scols = sub.columns;
-					if (scols.length == 1) {
-						var innerExpr = getValueExpr(sub, scols[0], macro l);
-						if (innerExpr == null) accessed;
-						else macro [for (l in ($accessed : Array<Dynamic>)) $innerExpr];
+					if (sub.columns.length == 1) {
+						var innerExpr = initExpr(sub, sub.columns[0], macro l);
+						if (innerExpr == null)
+							prop;
+						else
+							macro [for (l in ($prop : Array<Dynamic>)) $innerExpr];
 					} else {
-						accessed;
+						prop;
 					}
 				default:
 					null;
@@ -202,7 +203,7 @@ class Macros {
 				case TList | TInt | TFloat | TBool:
 					initExprs.push(macro {
 						var obj:Dynamic = ${getData(id)};
-						$i{id} = ${getValueExpr(polySheet, pval.col, macro obj.$polyColName)};
+						$i{id} = ${initExpr(polySheet, pval.col, macro obj.$polyColName)};
 					});
 					var initVal = pval.col.type == TList ? macro null : macro $v{pval.val};
 					FVar(t, initVal);
