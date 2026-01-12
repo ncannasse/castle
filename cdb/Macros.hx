@@ -105,17 +105,15 @@ class Macros {
 			var colName = col.name;
 			var accessed:Expr = macro ($source : Dynamic).$colName;
 			return switch (col.type) {
-				case TInt, TFloat, TBool, TString:
+				case TInt, TFloat, TBool:
 					accessed;
-				case TProperties, TPolymorph:
-					null; // These use typed getters, not init exprs
 				case TList:
 					var sub = sheet.getSub(col);
 					var scols = sub.columns;
 					if (scols.length == 1) {
-						var innerExpr = getValueExpr(sub, scols[0], macro __r);
+						var innerExpr = getValueExpr(sub, scols[0], macro l);
 						if (innerExpr == null) accessed;
-						else macro [for (__r in ($accessed : Array<Dynamic>)) $innerExpr];
+						else macro [for (l in ($accessed : Array<Dynamic>)) $innerExpr];
 					} else {
 						accessed;
 					}
@@ -201,20 +199,13 @@ class Macros {
 						})
 					});
 					FProp("get", "never", t);
-				case TList:
-					var valueExpr = getValueExpr(polySheet, pval.col, macro obj.$polyColName);
+				case TList | TInt | TFloat | TBool:
 					initExprs.push(macro {
 						var obj:Dynamic = ${getData(id)};
-						$i{id} = $valueExpr;
+						$i{id} = ${getValueExpr(polySheet, pval.col, macro obj.$polyColName)};
 					});
-					FVar(t, macro null);
-				case TInt | TFloat | TBool:
-					var valueExpr = getValueExpr(polySheet, pval.col, macro obj.$polyColName);
-					initExprs.push(macro {
-						var obj:Dynamic = ${getData(id)};
-						$i{id} = $valueExpr;
-					});
-					FVar(t, macro $v{pval.val});
+					var initVal = pval.col.type == TList ? macro null : macro $v{pval.val};
+					FVar(t, initVal);
 				default:
 					error('Unsupported column type: ${pval.col.type}');
 					null;
