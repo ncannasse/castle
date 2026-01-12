@@ -99,6 +99,31 @@ class Macros {
 			};
 		}
 
+		// Generates a value extraction expression, unwrapping single-column lists recursively
+		// Returns null for types that use typed getters instead (TProperties, TPolymorph)
+		function getValueExpr(sheet:cdb.Sheet, col:cdb.Data.Column, source:Expr):Null<Expr> {
+			var colName = col.name;
+			var accessed:Expr = macro ($source : Dynamic).$colName;
+			return switch (col.type) {
+				case TInt, TFloat, TBool, TString:
+					accessed;
+				case TProperties, TPolymorph:
+					null; // These use typed getters, not init exprs
+				case TList:
+					var sub = sheet.getSub(col);
+					var scols = sub.columns;
+					if (scols.length == 1) {
+						var innerExpr = getValueExpr(sub, scols[0], macro __r);
+						if (innerExpr == null) accessed;
+						else macro [for (__r in ($accessed : Array<Dynamic>)) $innerExpr];
+					} else {
+						accessed;
+					}
+				default:
+					null;
+			};
+		}
+
 		var splitRegex = ~/::(.+?)::/g;
 		function buildText(col:cdb.Data.Column, val:String, id:String):FieldType {
 			if (!splitRegex.match(val)) {
@@ -177,8 +202,18 @@ class Macros {
 					});
 					FProp("get", "never", t);
 				case TList:
+					var valueExpr = getValueExpr(polySheet, pval.col, macro obj.$polyColName);
+					initExprs.push(macro {
+						var obj:Dynamic = ${getData(id)};
+						$i{id} = $valueExpr;
+					});
 					FVar(t, macro null);
 				case TInt | TFloat | TBool:
+					var valueExpr = getValueExpr(polySheet, pval.col, macro obj.$polyColName);
+					initExprs.push(macro {
+						var obj:Dynamic = ${getData(id)};
+						$i{id} = $valueExpr;
+					});
 					FVar(t, macro $v{pval.val});
 				default:
 					error('Unsupported column type: ${pval.col.type}');
