@@ -1,43 +1,51 @@
 package cdb;
+
 #if macro
 import haxe.macro.Context;
 import haxe.macro.Expr;
+
 using haxe.macro.Tools;
 #end
 using Lambda;
 
 class Macros {
-
-	public dynamic static function formatText(str: String, vars: Dynamic): String {
+	public dynamic static function formatText(str:String, vars:Dynamic):String {
 		for (f in Reflect.fields(vars))
 			str = str.split("::" + f + "::").join("" + Reflect.field(vars, f));
 		return str;
 	}
 
-#if macro
-	public static function getData(file:String) : Data {
+	#if macro
+	public static function getData(file:String):Data {
 		var pos = Context.currentPos();
-		var path = try Context.resolvePath(file) catch( e : Dynamic ) null;
-		if( path == null ) {
+		var path = try Context.resolvePath(file) catch (e:Dynamic) null;
+		if (path == null) {
 			var r = Context.definedValue("resourcesPath");
-			if( r != null ) {
+			if (r != null) {
 				r = r.split("\\").join("/");
-				if( !StringTools.endsWith(r, "/") ) r += "/";
-				try path = Context.resolvePath(r + file) catch( e : Dynamic ) null;
+				if (!StringTools.endsWith(r, "/"))
+					r += "/";
+				try
+					path = Context.resolvePath(r + file)
+				catch (e:Dynamic)
+					null;
 			}
 		}
-		if( path == null )
-			try path = Context.resolvePath("res/" + file) catch( e : Dynamic ) null;
-		if( path == null )
+		if (path == null)
+			try
+				path = Context.resolvePath("res/" + file)
+			catch (e:Dynamic)
+				null;
+		if (path == null)
 			Context.error("File not found " + file, pos);
 		return Parser.parse(sys.io.File.getContent(path), false);
 	}
 
-	public static function buildPoly(file: String, sheetName: String, moduleName: String = "Data") {
+	public static function buildPoly(file:String, sheetName:String, moduleName:String = "Data") {
 		var fields = Context.getBuildFields();
 		var pos = Context.currentPos();
 
-		inline function error(message: String) {
+		inline function error(message:String) {
 			Context.error(message, pos);
 		}
 
@@ -45,14 +53,17 @@ class Macros {
 		db.loadData(getData(file));
 
 		var sheet = db.getSheet(sheetName);
-        if(sheet == null) error('"${sheetName}" not found');
+		if (sheet == null)
+			error('"${sheetName}" not found');
 
 		var sheetKind = Module.makeTypeName(sheetName) + "Kind";
 
 		var idCol = sheet.columns.find(c -> c.type == TId);
 		var polyCol = sheet.columns.find(c -> c.type == TPolymorph);
-        if(idCol == null) error('Sheet needs a unique ID');
-        if(polyCol == null) error('Sheet needs a polymorphic column');
+		if (idCol == null)
+			error('Sheet needs a unique ID');
+		if (polyCol == null)
+			error('Sheet needs a polymorphic column');
 
 		var polySheet = sheet.getSub(polyCol);
 		var module = macro $i{moduleName};
@@ -60,10 +71,38 @@ class Macros {
 
 		var reloadExprs = new Array<Expr>();
 
-        var splitRegex = ~/::(.+?)::/g;
-		function buildText(col: cdb.Data.Column, val: String, id: String): FieldType {
+		function fullType(tname:String) {
+			return (moduleName + "." + Module.makeTypeName(tname)).toComplex();
+		}
+
+		function getType(sheet:cdb.Sheet, col:cdb.Data.Column):Null<ComplexType> {
+			return switch (col.type) {
+				case TInt: macro :Int;
+				case TFloat: macro :Float;
+				case TBool: macro :Bool;
+				case TString: macro :String;
+				case TProperties | TPolymorph:
+					var subSheet = sheet.getSub(col);
+					if (subSheet == null) null; else fullType(subSheet.name);
+				case TList:
+					var subSheet = sheet.getSub(col);
+					if (subSheet == null) null; else if (subSheet.columns.length == 1) {
+						var t = getType(subSheet, subSheet.columns[0]);
+						if (t == null)
+							t = macro :Dynamic;
+						macro :Array<$t>;
+					} else {
+						var typeName = fullType(subSheet.name);
+						macro :Array<$typeName>;
+					}
+				default: null;
+			};
+		}
+
+		var splitRegex = ~/::(.+?)::/g;
+		function buildText(col:cdb.Data.Column, val:String, id:String):FieldType {
 			if (!splitRegex.match(val)) {
-				return FVar(macro: String, macro $v{val});
+				return FVar(macro :String, macro $v{val});
 			}
 			var args = new Array<haxe.macro.Expr.Field>();
 			var map = new Map<String, Bool>();
@@ -73,7 +112,7 @@ class Macros {
 					map.set(name, true);
 					args.push({
 						name: name,
-						kind: FVar(macro: Dynamic),
+						kind: FVar(macro :Dynamic),
 						pos: pos,
 						meta: []
 					});
@@ -82,22 +121,21 @@ class Macros {
 			});
 			var textColName = col.name;
 			return FFun({
-				ret: macro: String,
+				ret: macro :String,
 				args: [{name: "vars", type: TAnonymous(args)}],
 				params: [],
 				expr: macro {
-					var obj: Dynamic = $module.$sheetName.get($module.$sheetKind.$id);
+					var obj:Dynamic = $module.$sheetName.get($module.$sheetKind.$id);
 					var str = obj.$polyColName.$textColName;
 					return cdb.Macros.formatText(str, vars);
 				}
 			});
 		}
 
-		function buildProps(col: cdb.Data.Column, val: Dynamic, id: String): FieldType {
-			var psheet = polySheet.getSub(col);
-            if(psheet == null) 
+		function buildProps(col:cdb.Data.Column, val:Dynamic, id:String):FieldType {
+			var propType = getType(polySheet, col);
+			if (propType == null)
 				return null;
-			var typeName = moduleName + "." + Module.makeTypeName(psheet.name);
 			var colName = col.name;
 
 			fields.push({
@@ -106,73 +144,53 @@ class Macros {
 				access: [AStatic, APrivate],
 				kind: FFun({
 					args: [],
-					ret: typeName.toComplex(),
+					ret: propType,
 					expr: macro {
-						var obj: Dynamic = $module.$sheetName.get($module.$sheetKind.$id);
+						var obj:Dynamic = $module.$sheetName.get($module.$sheetKind.$id);
 						return obj.$polyColName.$colName;
 					}
 				})
 			});
 
-			return FProp("get", "never", typeName.toComplex());
+			return FProp("get", "never", propType);
 		}
 
-		function buildList(col: cdb.Data.Column, val: Dynamic, id: String): FieldType {
-			var psheet = polySheet.getSub(col);
-			if(psheet == null) 
+		function buildList(col:cdb.Data.Column, val:Dynamic, id:String):FieldType {
+			var arrayType = getType(polySheet, col);
+			if (arrayType == null)
 				return null;
-			
-			if(psheet.columns.length == 1) {
-				var singleCol = psheet.columns[0];
-				var elemType = switch(singleCol.type) {
-					case TInt: macro: Int;
-					case TFloat: macro: Float;
-					case TBool: macro: Bool;
-					case TString: macro: String;
-					default: macro: Dynamic; // fallback for other types
-				};
-				var arrayType = macro: Array<$elemType>;
-				return FVar(arrayType, macro null);
-			} else {
-				var typeName = (moduleName + "." + Module.makeTypeName(psheet.name)).toComplex();
-				var arrayType = macro: Array<$typeName>;
-				return FVar(arrayType, macro null);
-			}
+			return FVar(arrayType, macro null);
 		}
 
-		function getPolyVal( obj : Dynamic ) : { col: cdb.Data.Column, val: Dynamic } {
-			var found = null;
-			for( col in polySheet.columns ) {
+		function getVal(obj:Dynamic):{col:cdb.Data.Column, val:Dynamic} {
+			for (col in polySheet.columns) {
 				var v = Reflect.field(obj, col.name);
-				if( v != null ) {
-					if( found != null ) error('Multiple fields defined');
-					found = { col: col, val: v };
-				}
+				if (v != null)
+					return {col: col, val: v};
 			}
-			return found;
+			return null;
 		}
 
-        for(line in sheet.getLines()) {
+		for (line in sheet.getLines()) {
 			var id = Reflect.field(line, idCol.name);
 			var pobj = Reflect.field(line, polyCol.name);
-            if(id == null || id == "")
+			if (id == null || id == "")
 				continue;
-            if(pobj == null)
-				continue;
-
-			var pval = getPolyVal(pobj);
-            if(pval == null)
+			if (pobj == null)
 				continue;
 
-			var pvar: FieldType = switch (pval.col.type) {
-				case TFloat: FVar(macro: Float, macro $v{pval.val});
-				case TInt: FVar(macro: Int, macro $v{pval.val});
-				case TBool: FVar(macro: Bool, macro $v{pval.val});
-				case TString: buildText(pval.col, pval.val, id);
-				case TProperties: buildProps(pval.col, pval.val, id);
-				case TList: buildList(pval.col, pval.val, id);
-				default: null;
-			};
+			var pval = getVal(pobj);
+			if (pval == null)
+				continue;
+
+		var pvar:FieldType = switch (pval.col.type) {
+			case TString: buildText(pval.col, pval.val, id);
+			case TProperties | TPolymorph: buildProps(pval.col, pval.val, id);
+			case TList: buildList(pval.col, pval.val, id);
+			default:
+				var colType = getType(polySheet, pval.col);
+				colType != null ? FVar(colType, macro $v{pval.val}) : null;
+		};
 
 			if (pvar != null) {
 				fields.push({
@@ -190,7 +208,7 @@ class Macros {
 			access: [AStatic, APublic],
 			kind: FFun({
 				args: [],
-				ret: macro: Void,
+				ret: macro :Void,
 				expr: macro {
 					$b{reloadExprs}
 				}
@@ -199,5 +217,5 @@ class Macros {
 
 		return fields;
 	}
-#end
+	#end
 }
