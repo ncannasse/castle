@@ -199,7 +199,6 @@ class Module {
 		var polySheets = [];
 
 		for( s in data.sheets ) {
-			trace("sheet -- " + s.name);
 			var tname = makeTypeName(s.name);
 			var tkind = tname + "Kind";
 			var idField = null;
@@ -463,9 +462,7 @@ class Module {
 			}
 
 			var isPolymorph = polySheets.indexOf(s.name) >= 0;
-			
 			var def = tname + "Def";
-
 
 			if ( Context.defined("castle_unsafe") ) {
 				fields.push({
@@ -582,11 +579,8 @@ class Module {
 				var enumCases : Array<haxe.macro.Expr.Field> = [];
 				for( f in realFields ) {
 					var ct = switch( f.kind ) {
-						// TOMR: simpler way, avoiding allocs here ?
 						case FVar(TPath({ name: "Null", params: [TPType(inner)] })): inner;
-						default: {
-							continue; null;
-						}
+						default: continue;
 					}
 
 					enumCases.push({
@@ -599,7 +593,7 @@ class Module {
 						}),
 					});
 				}
-				
+
 				types.push({
 					pos : pos,
 					name : tname,
@@ -607,7 +601,7 @@ class Module {
 					kind : TDEnum,
 					fields : enumCases,
 				});
-				
+
 				var exprs = [];
 				for( col in s.columns ) {
 					if( col.kind == Hidden ) continue;
