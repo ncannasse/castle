@@ -358,16 +358,14 @@ class Module {
 					});
 				case TPolymorph:
 					polySheets.push(s.name + "@" + c.name);
-					// use builder for polymorphs
 					var cname = c.name;
-					var builderName = ctype + "Builder";
 					fields.push({
-						name : "get_"+c.name,
+						name : "get_"+cname,
 						pos : pos,
 						kind : FFun({
 							ret : t,
 							args : [],
-							expr : c.opt ? macro return this.$cname == null ? null : $i{builderName}.build(this.$cname) : macro return $i{builderName}.build(this.$cname),
+							expr : macro return $i{ctype + "Helper"}.get(this.$cname),
 						}),
 						access : [APrivate],
 					});
@@ -466,20 +464,10 @@ class Module {
 				});
 			}
 
-			var isPolySheet = polySheets.indexOf(s.name) >= 0;
+			var isPolymorph = polySheets.indexOf(s.name) >= 0;
 			
 			var def = tname + "Def";
-			
-			// Skip generating Def for polymorphs - they use enum directly
-			if( !isPolySheet ) {
-				types.push({
-					pos : pos,
-					name : def,
-					pack : curMod,
-					kind : TDStructure,
-					fields : realFields,
-				});
-			}
+
 
 			if ( Context.defined("castle_unsafe") ) {
 				fields.push({
@@ -584,32 +572,24 @@ class Module {
 				}
 			}
 
-			if( isPolySheet ) {
-				// Generate enum instead of abstract for polymorph sub-sheets
+			if( isPolymorph ) {
 				var enumCases : Array<haxe.macro.Expr.Field> = [];
-				for( f in fields ) {
-					// Find the corresponding column and its type
-					if( f.name.indexOf("get_") == 0 ) continue; // Skip getters
-					if( f.name == "index" || f.name == "group" ) continue; // Skip special fields
-					
-					var colName = f.name;
-					var col = Lambda.find(s.columns, c -> c.name == colName);
-					if( col == null || col.kind == Hidden ) continue;
-					
-					var caseName = makeTypeName(col.name);
-					var caseType = switch( f.kind ) {
-						case FProp(_, _, t): t;
-						default: null;
+				for( f in realFields ) {
+					var ct = switch( f.kind ) {
+						// TOMR: simpler way, avoiding allocs here ?
+						case FVar(TPath({ name: "Null", params: [TPType(inner)] })): inner;
+						default: {
+							continue; null;
+						}
 					}
-					if( caseType == null ) continue;
-					
+
 					enumCases.push({
-						name : caseName,
+						name : makeTypeName(f.name),
 						pos : pos,
 						kind : FFun({
 							ret : null,
 							expr : null,
-							args : [{ name : "v", type : caseType }],
+							args : [{ name : "v", type : ct }],
 						}),
 					});
 				}
@@ -622,35 +602,42 @@ class Module {
 					fields : enumCases,
 				});
 				
-				// Generate builder to convert from dynamic object to enum
-				var buildExprs = [];
+				var exprs = [];
+				exprs.push(macro return null);
 				for( col in s.columns ) {
 					if( col.kind == Hidden ) continue;
 					var colName = col.name;
 					var caseName = makeTypeName(col.name);
-					buildExprs.push(macro if( Reflect.field(v, $v{colName}) != null ) return $i{caseName}(cast Reflect.field(v, $v{colName})));
+					exprs.push(macro if( Reflect.field(v, $v{colName}) != null ) return $i{caseName}(cast Reflect.field(v, $v{colName})));
 				}
-				buildExprs.push(macro throw "No polymorph value set");
-				var buildExpr : haxe.macro.Expr = macro $b{buildExprs};
+				exprs.push(macro throw "No polymorph value set");
 				types.push({
 					pos : pos,
-					name : tname + "Builder",
+					name : tname + "Helper",
 					pack : curMod,
 					kind : TDClass(),
 					fields : [
 						{
-							name : "build",
+							name : "get",
 							pos : pos,
 							access : [APublic, AStatic],
 							kind : FFun( {
 								ret : tname.toComplex(),
-								expr : macro return $buildExpr,
+								expr : macro return $b{exprs},
 								args : [{ name : "v", type: macro : Dynamic, opt:false}],
 							}),
 						}
 					]
 				});
 			} else {
+				types.push({
+					pos : pos,
+					name : def,
+					pack : curMod,
+					kind : TDStructure,
+					fields : realFields,
+				});
+
 				types.push({
 					pos : pos,
 					name : tname,
