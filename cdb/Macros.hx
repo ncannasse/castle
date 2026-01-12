@@ -56,13 +56,14 @@ class Macros {
 
         var polySheet = sheet.getSub(polyCol);
         var module = macro $i{moduleName};
+        var polyColName = polyCol.name;
+
 
         var splitRegex = ~/::(.+?)::/g;
-        function textField(val: String, id: String): FieldType {
+        function buildText(col: cdb.Data.Column, val: String, id: String): FieldType {
             if (!splitRegex.match(val)) {
                 return FVar(macro: String, macro $v{val});
             }
-            // Parse parameters for strong typing
             var args = new Array<haxe.macro.Expr.Field>();
             var map = new Map<String, Bool>();
             splitRegex.map(val, function(r) {
@@ -78,16 +79,41 @@ class Macros {
                 }
                 return r.matched(0);
             });
-            var polyColName = polyCol.name;
+            var textColName = col.name;
             return FFun({
                 ret: macro: String,
                 args: [{name: "vars", type: TAnonymous(args)}],
                 params: [],
                 expr: macro {
-                    var str = $module.$sheetName.get($module.$sheetKind.$id).$polyColName.text;
+                    var obj : Dynamic = $module.$sheetName.get($module.$sheetKind.$id);
+                    var str = obj.$polyColName.$textColName;
                     return cdb.Macros.interpolateText(str, vars);
                 }
             });
+        }
+
+        function buildProps(col: cdb.Data.Column, val: Dynamic, id: String): FieldType {
+            var psheet = polySheet.getSub(col);
+            if(psheet == null) 
+                return null;
+            var typeName = moduleName + "." + Module.makeTypeName(psheet.name);
+            var colName = col.name;
+
+            fields.push({
+                name: "get_" + id,
+                pos: pos,
+                access: [AStatic, APrivate],
+                kind: FFun({
+                    args: [],
+                    ret: typeName.toComplex(),
+                    expr: macro {
+                        var obj : Dynamic = $module.$sheetName.get($module.$sheetKind.$id);
+                        return obj.$polyColName.$colName;
+                    }
+                })
+            });
+
+            return FProp("get", "never", typeName.toComplex());
         }
 
         for(line in sheet.getLines()) {
@@ -105,15 +131,9 @@ class Macros {
             var pvar : FieldType = switch(pval.col.type) {
                 case TFloat: FVar(macro: Float, macro $v{pval.val});
                 case TInt: FVar(macro: Int, macro $v{pval.val});
-                case TString: textField(pval.val, id);
                 case TBool: FVar(macro: Bool, macro $v{pval.val});
-                case TProperties:
-                    var psheet = polySheet.getSub(pval.col);
-                    if(psheet != null) {
-                        var fullPath = moduleName + "." + Module.fieldName(psheet.name);
-                        var typeName = moduleName + "." + Module.makeTypeName(psheet.name);
-                        FVar(typeName.toComplex(), null);
-                    } else null;
+                case TString: buildText(pval.col, pval.val, id);
+                case TProperties: buildProps(pval.col, pval.val, id);
                 default: null;
             };
 

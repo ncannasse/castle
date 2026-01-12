@@ -281,10 +281,8 @@ class Module {
 				case TTilePos: macro : { file : String, size : Int, x : Int, y : Int, ?width : Int, ?height : Int };
 				case TTileLayer: macro : { file : String, stride : Int, size : Int, data : String };
 				case TDynamic: macro : Dynamic;
-				case TProperties:
+				case TProperties | TPolymorph:
 					(resolveType(c, s) + "Def").toComplex();
-				case TPolymorph:
-					resolveType(c, s).toComplex(); // Polymorph uses enum directly, not Def
 				case TCurve: macro : Array<Float>;
 				case TGradient: macro : { colors: Array<Int>, positions: Array<Float>};
 				case TGuid: macro : String;
@@ -572,6 +570,14 @@ class Module {
 				}
 			}
 
+			types.push({
+				pos : pos,
+				name : def,
+				pack : curMod,
+				kind : TDStructure,
+				fields : realFields,
+			});
+
 			if( isPolymorph ) {
 				var enumCases : Array<haxe.macro.Expr.Field> = [];
 				for( f in realFields ) {
@@ -603,12 +609,11 @@ class Module {
 				});
 				
 				var exprs = [];
-				exprs.push(macro return null);
 				for( col in s.columns ) {
 					if( col.kind == Hidden ) continue;
 					var colName = col.name;
 					var caseName = makeTypeName(col.name);
-					exprs.push(macro if( Reflect.field(v, $v{colName}) != null ) return $i{caseName}(cast Reflect.field(v, $v{colName})));
+					exprs.push(macro if( v.$colName != null ) return $i{caseName}(cast v.$colName));
 				}
 				exprs.push(macro throw "No polymorph value set");
 				types.push({
@@ -624,20 +629,12 @@ class Module {
 							kind : FFun( {
 								ret : tname.toComplex(),
 								expr : macro return $b{exprs},
-								args : [{ name : "v", type: macro : Dynamic, opt:false}],
+								args : [{ name : "v", type: def.toComplex(), opt:false}],
 							}),
 						}
 					]
 				});
 			} else {
-				types.push({
-					pos : pos,
-					name : def,
-					pack : curMod,
-					kind : TDStructure,
-					fields : realFields,
-				});
-
 				types.push({
 					pos : pos,
 					name : tname,
