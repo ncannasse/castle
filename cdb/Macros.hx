@@ -82,18 +82,13 @@ class Macros {
 				case TBool: macro :Bool;
 				case TString: macro :String;
 				case TProperties | TPolymorph:
-					var subSheet = sheet.getSub(col);
-					if (subSheet == null) null; else fullType(subSheet.name);
+					var sub = sheet.getSub(col);
+					sub == null ? null : fullType(sub.name);
 				case TList:
-					var subSheet = sheet.getSub(col);
-					if (subSheet == null) null; else if (subSheet.columns.length == 1) {
-						var t = getType(subSheet, subSheet.columns[0]);
-						if (t == null)
-							t = macro :Dynamic;
-						macro :Array<$t>;
-					} else {
-						var typeName = fullType(subSheet.name);
-						macro :Array<$typeName>;
+					var sub = sheet.getSub(col);
+					if (sub == null) null; else {
+						var elemType = sub.columns.length == 1 ? (getType(sub, sub.columns[0]) ?? macro :Dynamic) : fullType(sub.name);
+						macro :Array<$elemType>;
 					}
 				default: null;
 			};
@@ -132,36 +127,6 @@ class Macros {
 			});
 		}
 
-		function buildProps(col:cdb.Data.Column, val:Dynamic, id:String):FieldType {
-			var propType = getType(polySheet, col);
-			if (propType == null)
-				return null;
-			var colName = col.name;
-
-			fields.push({
-				name: "get_" + id,
-				pos: pos,
-				access: [AStatic, APrivate],
-				kind: FFun({
-					args: [],
-					ret: propType,
-					expr: macro {
-						var obj:Dynamic = $module.$sheetName.get($module.$sheetKind.$id);
-						return obj.$polyColName.$colName;
-					}
-				})
-			});
-
-			return FProp("get", "never", propType);
-		}
-
-		function buildList(col:cdb.Data.Column, val:Dynamic, id:String):FieldType {
-			var arrayType = getType(polySheet, col);
-			if (arrayType == null)
-				return null;
-			return FVar(arrayType, macro null);
-		}
-
 		function getVal(obj:Dynamic):{col:cdb.Data.Column, val:Dynamic} {
 			for (col in polySheet.columns) {
 				var v = Reflect.field(obj, col.name);
@@ -183,23 +148,44 @@ class Macros {
 			if (pval == null)
 				continue;
 
-		var pvar:FieldType = switch (pval.col.type) {
-			case TString: buildText(pval.col, pval.val, id);
-			case TProperties | TPolymorph: buildProps(pval.col, pval.val, id);
-			case TList: buildList(pval.col, pval.val, id);
-			default:
-				var colType = getType(polySheet, pval.col);
-				colType != null ? FVar(colType, macro $v{pval.val}) : null;
-		};
+			var t = getType(polySheet, pval.col);
+			if (t == null)
+				continue;
 
-			if (pvar != null) {
-				fields.push({
-					name: id,
-					pos: pos,
-					access: [AStatic, APublic],
-					kind: pvar
-				});
-			}
+			var pvar:FieldType = switch (pval.col.type) {
+				case TString:
+					buildText(pval.col, pval.val, id);
+				case TProperties | TPolymorph:
+					var colName = pval.col.name;
+					fields.push({
+						name: "get_" + id,
+						pos: pos,
+						access: [AStatic, APrivate],
+						kind: FFun({
+							args: [],
+							ret: t,
+							expr: macro {
+								var obj:Dynamic = $module.$sheetName.get($module.$sheetKind.$id);
+								return obj.$polyColName.$colName;
+							}
+						})
+					});
+					FProp("get", "never", t);
+				case TList:
+					FVar(t, macro null);
+				case TInt|TFloat|TBool:
+					FVar(t, macro $v{pval.val});
+				default:
+					error('Unsupported column type: ${pval.col.type}');
+					null;
+			};
+
+			fields.push({
+				name: id,
+				pos: pos,
+				access: [AStatic, APublic],
+				kind: pvar
+			});
 		}
 
 		fields.push({
