@@ -99,8 +99,6 @@ class Macros {
 			};
 		}
 
-		// Generates a value extraction expression, unwrapping single-column lists recursively
-		// Returns null for types that use typed getters instead (TProperties, TPolymorph)
 		function initExpr(sheet:cdb.Sheet, col:cdb.Data.Column, source:Expr):Null<Expr> {
 			var colName = col.name;
 			var prop:Expr = macro($source : Dynamic).$colName;
@@ -125,9 +123,8 @@ class Macros {
 
 		var splitRegex = ~/::(.+?)::/g;
 		function buildText(col:cdb.Data.Column, val:String, id:String):FieldType {
-			if (!splitRegex.match(val)) {
+			if (!splitRegex.match(val))
 				return FVar(macro :String, macro $v{val});
-			}
 			var args = new Array<haxe.macro.Expr.Field>();
 			var map = new Map<String, Bool>();
 			splitRegex.map(val, function(r) {
@@ -156,15 +153,6 @@ class Macros {
 			});
 		}
 
-		function getVal(obj:Dynamic):{col:cdb.Data.Column, val:Dynamic} {
-			for (col in polySheet.columns) {
-				var v = Reflect.field(obj, col.name);
-				if (v != null)
-					return {col: col, val: v};
-			}
-			return null;
-		}
-
 		for (line in sheet.getLines()) {
 			var id = Reflect.field(line, idCol.name);
 			var pobj = Reflect.field(line, polyCol.name);
@@ -173,19 +161,28 @@ class Macros {
 			if (pobj == null)
 				continue;
 
-			var pval = getVal(pobj);
-			if (pval == null)
+			var col:cdb.Data.Column = null;
+			var val:Dynamic = null;
+			for (c in polySheet.columns) {
+				var v = Reflect.field(pobj, c.name);
+				if (v != null) {
+					col = c;
+					val = v;
+					break;
+				}
+			}
+			if (col == null)
 				continue;
 
-			var t = getType(polySheet, pval.col);
+			var t = getType(polySheet, col);
 			if (t == null)
 				continue;
 
-			var pvar:FieldType = switch (pval.col.type) {
+			var pvar:FieldType = switch (col.type) {
 				case TString:
-					buildText(pval.col, pval.val, id);
+					buildText(col, val, id);
 				case TProperties | TPolymorph:
-					var colName = pval.col.name;
+					var colName = col.name;
 					fields.push({
 						name: "get_" + id,
 						pos: pos,
@@ -203,12 +200,12 @@ class Macros {
 				case TList | TInt | TFloat | TBool:
 					initExprs.push(macro {
 						var obj:Dynamic = ${getData(id)};
-						$i{id} = ${initExpr(polySheet, pval.col, macro obj.$polyColName)};
+						$i{id} = ${initExpr(polySheet, col, macro obj.$polyColName)};
 					});
-					var initVal = pval.col.type == TList ? macro null : macro $v{pval.val};
+					var initVal = col.type == TList ? macro null : macro $v{val};
 					FVar(t, initVal);
 				default:
-					error('Unsupported column type: ${pval.col.type}');
+					error('Unsupported column type: ${col.type}');
 					null;
 			};
 
