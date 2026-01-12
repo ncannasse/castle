@@ -83,14 +83,15 @@ class Macros {
 				case TString: macro :String;
 				case TProperties | TPolymorph:
 					var sub = sheet.getSub(col);
-					sub == null ? null : fullType(sub.name);
+					fullType(sub.name);
 				case TList:
 					var sub = sheet.getSub(col);
-					if (sub == null) null; else {
-						var elemType = sub.columns.length == 1 ? (getType(sub, sub.columns[0]) ?? macro :Dynamic) : fullType(sub.name);
-						macro :Array<$elemType>;
-					}
-				default: null;
+					var scols = sub.columns;
+					var et = scols.length == 1 ? getType(sub, scols[0]) : fullType(sub.name);
+					macro :Array<$et>;
+				default:
+					error('Unsupported column type: ${col.type}');
+					null;
 			};
 		}
 
