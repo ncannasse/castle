@@ -115,6 +115,18 @@ class Macros {
 			return FProp("get", "never", typeName.toComplex());
 		}
 
+		function getPolyVal( obj : Dynamic ) : { col: cdb.Data.Column, val: Dynamic } {
+			var found = null;
+			for( col in polySheet.columns ) {
+				var v = Reflect.field(obj, col.name);
+				if( v != null ) {
+					if( found != null ) error('Multiple fields defined');
+					found = { col: col, val: v };
+				}
+			}
+			return found;
+		}
+
         for(line in sheet.getLines()) {
 			var id = Reflect.field(line, idCol.name);
 			var pobj = Reflect.field(line, polyCol.name);
@@ -123,7 +135,7 @@ class Macros {
             if(pobj == null)
 				continue;
 
-			var pval = polySheet.getPolyVal(pobj);
+			var pval = getPolyVal(pobj);
             if(pval == null)
 				continue;
 
