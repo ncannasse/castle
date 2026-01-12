@@ -143,8 +143,7 @@ class Database {
 			lines : [],
 			columns : [],
 		};
-		if( c.type == TProperties ) s.props.isProps = true;
-		if( c.type == TPolymorph ) s.props.isProps = true;
+		if( c.type == TProperties || c.type == TPolymorph ) s.props.isProps = true;
 		// our parent might be a virtual sheet
 		var index = data.sheets.indexOf(Lambda.find(data.sheets, function(s) return s.name == parent.name));
 		for( c2 in parent.columns ) {
@@ -618,9 +617,9 @@ class Database {
 		case [TProperties, TList]:
 			conv = function(p) return Reflect.fields(p).length == 0 ? [] : [p];
 		case [TProperties, TPolymorph]:
-			conv = null;
+			// nothing
 		case [TPolymorph, TProperties]:
-			conv = null;
+			// nothing
 		case [(TInt| TColor), TGradient]:
 			conv = function(c) return {colors: [c | 0xFF000000], positions: [0.0]};
 		case [TGradient, (TInt | TColor)]:

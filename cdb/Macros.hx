@@ -8,7 +8,7 @@ using Lambda;
 
 class Macros {
 
-	public static function interpolateText(str: String, vars: Dynamic): String {
+	public dynamic static function formatText(str: String, vars: Dynamic): String {
 		for (f in Reflect.fields(vars))
 			str = str.split("::" + f + "::").join("" + Reflect.field(vars, f));
 		return str;
@@ -58,8 +58,7 @@ class Macros {
 		var module = macro $i{moduleName};
 		var polyColName = polyCol.name;
 
-		var splitRegex = ~/::(.+?)::/g;
-
+        var splitRegex = ~/::(.+?)::/g;
 		function buildText(col: cdb.Data.Column, val: String, id: String): FieldType {
 			if (!splitRegex.match(val)) {
 				return FVar(macro: String, macro $v{val});
@@ -87,7 +86,7 @@ class Macros {
 				expr: macro {
 					var obj: Dynamic = $module.$sheetName.get($module.$sheetKind.$id);
 					var str = obj.$polyColName.$textColName;
-					return cdb.Macros.interpolateText(str, vars);
+					return cdb.Macros.formatText(str, vars);
 				}
 			});
 		}

@@ -95,7 +95,7 @@ class Module {
 	}
 	#end
 
-	public static function fieldName( name : String ) {
+	static function fieldName( name : String ) {
 		var r_chars = ~/[^A-Za-z0-9_]/g;
 		return r_chars.replace(name, "_");
 	}
@@ -463,6 +463,13 @@ class Module {
 
 			var isPolymorph = polySheets.indexOf(s.name) >= 0;
 			var def = tname + "Def";
+			types.push({
+				pos : pos,
+				name : def,
+				pack : curMod,
+				kind : TDStructure,
+				fields : realFields,
+			});
 
 			if ( Context.defined("castle_unsafe") ) {
 				fields.push({
@@ -566,14 +573,6 @@ class Module {
 					continue;
 				}
 			}
-
-			types.push({
-				pos : pos,
-				name : def,
-				pack : curMod,
-				kind : TDStructure,
-				fields : realFields,
-			});
 
 			if( isPolymorph ) {
 				var enumCases : Array<haxe.macro.Expr.Field> = [];
