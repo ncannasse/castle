@@ -69,10 +69,14 @@ class Macros {
 		var module = macro $i{moduleName};
 		var polyColName = polyCol.name;
 
-		var reloadExprs = new Array<Expr>();
+		var initExprs = new Array<Expr>();
 
 		function fullType(tname:String) {
 			return (moduleName + "." + Module.makeTypeName(tname)).toComplex();
+		}
+
+		function getData(id:String):Expr {
+			return macro $module.$sheetName.get($module.$sheetKind.$id);
 		}
 
 		function getType(sheet:cdb.Sheet, col:cdb.Data.Column):Null<ComplexType> {
@@ -121,7 +125,7 @@ class Macros {
 				args: [{name: "vars", type: TAnonymous(args)}],
 				params: [],
 				expr: macro {
-					var obj:Dynamic = $module.$sheetName.get($module.$sheetKind.$id);
+					var obj:Dynamic = ${getData(id)};
 					var str = obj.$polyColName.$textColName;
 					return cdb.Macros.formatText(str, vars);
 				}
@@ -166,7 +170,7 @@ class Macros {
 							args: [],
 							ret: t,
 							expr: macro {
-								var obj:Dynamic = $module.$sheetName.get($module.$sheetKind.$id);
+								var obj:Dynamic = ${getData(id)};
 								return obj.$polyColName.$colName;
 							}
 						})
@@ -174,7 +178,7 @@ class Macros {
 					FProp("get", "never", t);
 				case TList:
 					FVar(t, macro null);
-				case TInt|TFloat|TBool:
+				case TInt | TFloat | TBool:
 					FVar(t, macro $v{pval.val});
 				default:
 					error('Unsupported column type: ${pval.col.type}');
@@ -197,7 +201,7 @@ class Macros {
 				args: [],
 				ret: macro :Void,
 				expr: macro {
-					$b{reloadExprs}
+					$b{initExprs}
 				}
 			})
 		});
