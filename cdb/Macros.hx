@@ -58,6 +58,8 @@ class Macros {
 		var module = macro $i{moduleName};
 		var polyColName = polyCol.name;
 
+		var reloadExprs = new Array<Expr>();
+
         var splitRegex = ~/::(.+?)::/g;
 		function buildText(col: cdb.Data.Column, val: String, id: String): FieldType {
 			if (!splitRegex.match(val)) {
@@ -115,6 +117,29 @@ class Macros {
 			return FProp("get", "never", typeName.toComplex());
 		}
 
+		function buildList(col: cdb.Data.Column, val: Dynamic, id: String): FieldType {
+			var psheet = polySheet.getSub(col);
+			if(psheet == null) 
+				return null;
+			
+			if(psheet.columns.length == 1) {
+				var singleCol = psheet.columns[0];
+				var elemType = switch(singleCol.type) {
+					case TInt: macro: Int;
+					case TFloat: macro: Float;
+					case TBool: macro: Bool;
+					case TString: macro: String;
+					default: macro: Dynamic; // fallback for other types
+				};
+				var arrayType = macro: Array<$elemType>;
+				return FVar(arrayType, macro null);
+			} else {
+				var typeName = (moduleName + "." + Module.makeTypeName(psheet.name)).toComplex();
+				var arrayType = macro: Array<$typeName>;
+				return FVar(arrayType, macro null);
+			}
+		}
+
 		function getPolyVal( obj : Dynamic ) : { col: cdb.Data.Column, val: Dynamic } {
 			var found = null;
 			for( col in polySheet.columns ) {
@@ -145,6 +170,7 @@ class Macros {
 				case TBool: FVar(macro: Bool, macro $v{pval.val});
 				case TString: buildText(pval.col, pval.val, id);
 				case TProperties: buildProps(pval.col, pval.val, id);
+				case TList: buildList(pval.col, pval.val, id);
 				default: null;
 			};
 
@@ -157,6 +183,19 @@ class Macros {
 				});
 			}
 		}
+
+		fields.push({
+			name: "reload",
+			pos: pos,
+			access: [AStatic, APublic],
+			kind: FFun({
+				args: [],
+				ret: macro: Void,
+				expr: macro {
+					$b{reloadExprs}
+				}
+			})
+		});
 
 		return fields;
 	}
