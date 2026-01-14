@@ -185,6 +185,7 @@ class Macros {
 						});
 						FVar(macro :Array<$et>, macro null);
 					} else if (vcol.type == TId && sub.columns.length == 2) {
+						// Special case, 
 						var idcol = sub.columns[0];
 						var idcolName = idcol.name;
 						var vcol = sub.columns[1];
@@ -193,19 +194,15 @@ class Macros {
 						if (rowType == null) error('Unsupported column type ${vcol.type} in $colName');
 						var anonFields = new Array<haxe.macro.Expr.Field>();
 						var initFields = new Array<haxe.macro.Expr.ObjectField>();
-						for (row in sub.getLines()) {
+						for (i => row in (val : Array<Dynamic>)) {
 							var sid:String = Reflect.field(row, idcolName);
 							if (sid == null || sid == "") continue;
 							anonFields.push({ name: sid, pos: pos, kind: FVar(rowType) });
-							initFields.push({ field: sid, expr: macro {
-								var v:$rowType = null;
-								for (item in (obj.$polyColName.$colName : Array<Dynamic>))
-									if (item.$idcolName == $v{sid}) { v = item.$vcolName; break; }
-								v;
-							}});
+							initFields.push({ field: sid, expr: macro vals[$v{i}].$vcolName });
 						}
 						initExprs.push(macro {
 							var obj:Dynamic = ${getData(id)};
+							var vals:Array<Dynamic> = obj.$polyColName.$colName;
 							$i{id} = ${ { expr: EObjectDecl(initFields), pos: pos } };
 						});
 						FVar(TAnonymous(anonFields), macro null);
