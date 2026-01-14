@@ -112,19 +112,9 @@ class Macros {
 			};
 
 		inline function makeVar(name:String, initExpr:Expr):Expr
-			return {
-				expr: EVars([
-					{
-						name: name,
-						type: null,
-						expr: initExpr,
-						isFinal: false
-					}
-				]),
-				pos: pos
-			};
+			return {expr: EVars([{name: name, expr: initExpr}]), pos: pos};
 
-		function findVariant(polySub:Sheet, colVal:Dynamic):{col:cdb.Data.Column, val:Dynamic} {
+		function getPolyVal(polySub:Sheet, colVal:Dynamic):{col:cdb.Data.Column, val:Dynamic} {
 			for (pc in polySub.columns) {
 				var pv = Reflect.field(colVal, pc.name);
 				if (pv != null)
@@ -135,12 +125,18 @@ class Macros {
 
 		function buildField(col:cdb.Data.Column, colVal:Dynamic, sheet:Sheet, rowExpr:Expr, prefix:String):FieldBuild {
 			var colName = col.name;
-			return switch (col.type) {
+			switch (col.type) {
 				case TInt | TFloat | TBool:
-					{type: simpleType(col.type), vars: [], init: macro $rowExpr.$colName};
+					return {
+						type: simpleType(col.type),
+						vars: [],
+						init: macro $rowExpr.$colName
+					};
 				case TString:
 					var textArgs = extractTextArgs(colVal);
-					textArgs == null ? {type: macro :String, vars: [], init: macro $rowExpr.$colName} : {
+					if (textArgs == null)
+						return {type: macro :String, vars: [], init: macro $rowExpr.$colName};
+					return {
 						type: TFunction([TAnonymous(textArgs)], macro :String),
 						vars: [],
 						init: macro function(vars) {
@@ -149,86 +145,72 @@ class Macros {
 					};
 				case TProperties:
 					var subType = fullType(sheet.getSub(col).name);
-					{
+					return {
 						type: subType,
 						vars: [],
 						init: macro $rowExpr.$colName
 					};
 				case TPolymorph:
 					var polySub = sheet.getSub(col);
-					var variant = findVariant(polySub, colVal);
-					if (variant == null) {
-						{
-							type: fullType(polySub.name),
+					var pval = getPolyVal(polySub, colVal);
+					var polyVar = prefix + "_" + colName;
+					var result = buildField(pval.col, pval.val, polySub, macro $i{polyVar}, prefix);
+					result.vars.unshift(makeVar(polyVar, macro $rowExpr.$colName));
+					return result;
+				case TList:
+					var sub = sheet.getSub(col);
+					if (sub.columns.length == 0)
+						error('Empty sub-list');
+
+					var firstCol = sub.columns[0];
+					if (firstCol.type == TId && sub.columns.length == 2) {
+						var val:Array<Dynamic> = colVal;
+						var fields = [];
+						var inits = [];
+						var vars = [];
+
+						var arrVar = prefix + "_" + colName;
+						vars.push(makeVar(arrVar, macro $rowExpr.$colName));
+
+						var valCol = sub.columns[1];
+						for (i => row in val) {
+							var sid:String = Reflect.field(row, firstCol.name);
+							if (sid == null || sid == "")
+								continue;
+							var itemVar = prefix + "_" + sid;
+							var itemVal = Reflect.field(row, valCol.name);
+							var result = buildField(valCol, itemVal, sub, macro $i{arrVar}[$v{i}], itemVar);
+							for (d in result.vars)
+								vars.push(d);
+							vars.push(makeVar(itemVar, result.init));
+							fields.push({name: sid, pos: pos, kind: FVar(result.type)});
+							inits.push({field: sid, expr: macro $i{itemVar}});
+						}
+						return {
+							type: TAnonymous(fields),
+							vars: vars,
+							init: {expr: EObjectDecl(inits), pos: pos}
+						};
+					} else if (sub.columns.length == 1) {
+						var et = simpleType(firstCol.type) ?? fullType(sub.name);
+						var valCol = firstCol.name;
+						return {
+							type: macro :Array<$et>,
+							vars: [],
+							init: macro [for (l in ($rowExpr.$colName:Array<Dynamic>)) (l : Dynamic).$valCol]
+						};
+					} else {
+						var et = fullType(sub.name);
+						return {
+							type: macro :Array<$et>,
 							vars: [],
 							init: macro $rowExpr.$colName
 						};
-					} else {
-						var polyVar = prefix + "_" + colName;
-						var result = buildField(variant.col, variant.val, polySub, macro $i{polyVar}, prefix);
-						result.vars = [makeVar(polyVar, macro $rowExpr.$colName)].concat(result.vars);
-						result;
-					}
-				case TList:
-					var sub = sheet.getSub(col);
-					if (sub.columns.length == 0) {
-						error('Empty sub-list');
-						null;
-					} else {
-						var firstCol = sub.columns[0];
-						var firstColName = firstCol.name;
-						if (firstCol.type == TId && sub.columns.length == 2) {
-							// Sub-ID list: (id, value) where value can be any type (including recursive TList)
-							var val:Array<Dynamic> = colVal;
-							var anonFields = [];
-							var initFields = [];
-							var allVars = [];
-
-							// Create temp var for array access
-							var arrVar = prefix + "_" + colName;
-							allVars.push(makeVar(arrVar, macro $rowExpr.$colName));
-
-							var valCol = sub.columns[1];
-							for (i => row in val) {
-								var sid:String = Reflect.field(row, firstCol.name);
-								if (sid == null || sid == "")
-									continue;
-								var itemVar = prefix + "_" + sid;
-								var itemVal = Reflect.field(row, valCol.name);
-								var result = buildField(valCol, itemVal, sub, macro $i{arrVar}[$v{i}], itemVar);
-								for (d in result.vars)
-									allVars.push(d);
-								allVars.push(makeVar(itemVar, result.init));
-								anonFields.push({name: sid, pos: pos, kind: FVar(result.type)});
-								initFields.push({field: sid, expr: macro $i{itemVar}});
-							}
-							{
-								type: TAnonymous(anonFields),
-								vars: allVars,
-								init: {expr: EObjectDecl(initFields), pos: pos}
-							};
-						} else if (sub.columns.length == 1) {
-							// Single column list
-							var et = simpleType(firstCol.type) ?? fullType(sub.name);
-							{
-								type: macro :Array<$et>,
-								vars: [],
-								init: macro [for (l in ($rowExpr.$colName:Array<Dynamic>)) (l : Dynamic).$firstColName]
-							};
-						} else {
-							// Multi-column list without TId
-							var et = fullType(sub.name);
-							{
-								type: macro :Array<$et>,
-								vars: [],
-								init: macro $rowExpr.$colName
-							};
-						}
 					}
 				default:
 					error('Unsupported column type ${col.type}');
-					null;
-			};
+					return null;
+			}
 		};
 
 		for (line in sheet.getLines()) {
