@@ -118,12 +118,11 @@ class Macros {
 		}
 
 		// Forward declarations for mutual recursion
-		// depth: 0 = top level, 1+ = nested in sub-ID structure
-		var buildField:(col:cdb.Data.Column, colVal:Dynamic, sheet:Sheet, rowExpr:Expr, prefix:String, depth:Int) -> { fieldType:ComplexType, varDecls:Array<Expr>, initExpr:Expr } = null;
-		var buildSubIdType:(sub:Sheet, val:Array<Dynamic>, arrayExpr:Expr, prefix:String, depth:Int) -> { anonFields:Array<haxe.macro.Expr.Field>, varDecls:Array<Expr>, initExpr:Expr } = null;
+		var buildField:(col:cdb.Data.Column, colVal:Dynamic, sheet:Sheet, rowExpr:Expr, prefix:String) -> { fieldType:ComplexType, varDecls:Array<Expr>, initExpr:Expr } = null;
+		var buildSubIdType:(sub:Sheet, val:Array<Dynamic>, arrayExpr:Expr, prefix:String) -> { anonFields:Array<haxe.macro.Expr.Field>, varDecls:Array<Expr>, initExpr:Expr } = null;
 
 		// Builds field type and init expression for a column (works at any depth)
-		buildField = function(col:cdb.Data.Column, colVal:Dynamic, sheet:Sheet, rowExpr:Expr, prefix:String, depth:Int) {
+		buildField = function(col:cdb.Data.Column, colVal:Dynamic, sheet:Sheet, rowExpr:Expr, prefix:String) {
 			var colName = col.name;
 			return switch (col.type) {
 				case TInt | TFloat | TBool:
@@ -152,7 +151,7 @@ class Macros {
 						var firstColName = firstCol.name;
 						if (firstCol.type == TId && sub.columns.length >= 2) {
 							// Recursive sub-ID access
-							var result = buildSubIdType(sub, colVal, macro $rowExpr.$colName, prefix, depth + 1);
+							var result = buildSubIdType(sub, colVal, macro $rowExpr.$colName, prefix);
 							{ fieldType: TAnonymous(result.anonFields), varDecls: result.varDecls, initExpr: result.initExpr };
 						} else if (sub.columns.length == 1) {
 							// Single column list
@@ -177,7 +176,7 @@ class Macros {
 
 		// Builds anonymous type and init expression for a sub-ID list (recursive)
 		// Generates intermediate variables: prefix_SubID = { ... }
-		buildSubIdType = function(sub:Sheet, val:Array<Dynamic>, arrayExpr:Expr, prefix:String, depth:Int) {
+		buildSubIdType = function(sub:Sheet, val:Array<Dynamic>, arrayExpr:Expr, prefix:String) {
 			var idcol = sub.columns[0];
 			var idcolName = idcol.name;
 			var anonFields = new Array<haxe.macro.Expr.Field>();
@@ -194,7 +193,7 @@ class Macros {
 					// Single value column - field name is just the ID
 					var vcol = sub.columns[1];
 					var colVal = Reflect.field(row, vcol.name);
-					var result = buildField(vcol, colVal, sub, rowExpr, entryVar, depth);
+					var result = buildField(vcol, colVal, sub, rowExpr, entryVar);
 					// Collect child var decls
 					for (d in result.varDecls) allVarDecls.push(d);
 					// Create var for this entry
@@ -208,7 +207,7 @@ class Macros {
 					for (j in 1...sub.columns.length) {
 						var vcol = sub.columns[j];
 						var colVal = Reflect.field(row, vcol.name);
-						var result = buildField(vcol, colVal, sub, rowExpr, entryVar + "_" + vcol.name, depth);
+						var result = buildField(vcol, colVal, sub, rowExpr, entryVar + "_" + vcol.name);
 						// Collect child var decls
 						for (d in result.varDecls) allVarDecls.push(d);
 						nestedAnonFields.push({ name: vcol.name, pos: pos, kind: FVar(result.fieldType) });
@@ -248,7 +247,7 @@ class Macros {
 
 			// Use unified buildField for type and init expression (depth=0 for top level)
 			var rowExpr = macro obj.$polyColName;
-			var result = buildField(col, val, polySheet, rowExpr, id, 0);
+			var result = buildField(col, val, polySheet, rowExpr, id);
 
 			// Build init block
 			var initBlock = new Array<Expr>();
