@@ -112,14 +112,17 @@ class Macros {
 			};
 
 		inline function makeVar(name:String, initExpr:Expr):Expr
-			return {expr: EVars([
-				{
-					name: name,
-					type: null,
-					expr: initExpr,
-					isFinal: false
-				}
-			]), pos: pos};
+			return {
+				expr: EVars([
+					{
+						name: name,
+						type: null,
+						expr: initExpr,
+						isFinal: false
+					}
+				]),
+				pos: pos
+			};
 
 		function findVariant(polySub:Sheet, colVal:Dynamic):{col:cdb.Data.Column, val:Dynamic} {
 			for (pc in polySub.columns) {
@@ -137,22 +140,34 @@ class Macros {
 					{type: simpleType(col.type), vars: [], init: macro $rowExpr.$colName};
 				case TString:
 					var textArgs = extractTextArgs(colVal);
-					textArgs == null ? {type: macro :String, vars: [], init: macro $rowExpr.$colName} : {type: TFunction([TAnonymous(textArgs)],
-						macro :String), vars: [], init: macro function(vars) {
+					textArgs == null ? {type: macro :String, vars: [], init: macro $rowExpr.$colName} : {
+						type: TFunction([TAnonymous(textArgs)], macro :String),
+						vars: [],
+						init: macro function(vars) {
 							return cdb.Macros.formatText($rowExpr.$colName, vars);
-						}};
+						}
+					};
 				case TProperties:
 					var subType = fullType(sheet.getSub(col).name);
-					{type: subType, vars: [], init: macro $rowExpr.$colName};
+					{
+						type: subType,
+						vars: [],
+						init: macro $rowExpr.$colName
+					};
 				case TPolymorph:
 					var polySub = sheet.getSub(col);
 					var variant = findVariant(polySub, colVal);
 					if (variant == null) {
-						{type: fullType(polySub.name), vars: [], init: macro $rowExpr.$colName};
+						{
+							type: fullType(polySub.name),
+							vars: [],
+							init: macro $rowExpr.$colName
+						};
 					} else {
 						var polyVar = prefix + "_" + colName;
 						var result = buildField(variant.col, variant.val, polySub, macro $i{polyVar}, prefix);
-						{type: result.type, vars: [makeVar(polyVar, macro $rowExpr.$colName)].concat(result.vars), init: result.init};
+						result.vars = [makeVar(polyVar, macro $rowExpr.$colName)].concat(result.vars);
+						result;
 					}
 				case TList:
 					var sub = sheet.getSub(col);
@@ -187,15 +202,27 @@ class Macros {
 								anonFields.push({name: sid, pos: pos, kind: FVar(result.type)});
 								initFields.push({field: sid, expr: macro $i{itemVar}});
 							}
-							{type: TAnonymous(anonFields), vars: allVars, init: {expr: EObjectDecl(initFields), pos: pos}};
+							{
+								type: TAnonymous(anonFields),
+								vars: allVars,
+								init: {expr: EObjectDecl(initFields), pos: pos}
+							};
 						} else if (sub.columns.length == 1) {
 							// Single column list
 							var et = simpleType(firstCol.type) ?? fullType(sub.name);
-							{type: macro :Array<$et>, vars: [], init: macro [for (l in ($rowExpr.$colName:Array<Dynamic>)) (l : Dynamic).$firstColName]};
+							{
+								type: macro :Array<$et>,
+								vars: [],
+								init: macro [for (l in ($rowExpr.$colName:Array<Dynamic>)) (l : Dynamic).$firstColName]
+							};
 						} else {
 							// Multi-column list without TId
 							var et = fullType(sub.name);
-							{type: macro :Array<$et>, vars: [], init: macro $rowExpr.$colName};
+							{
+								type: macro :Array<$et>,
+								vars: [],
+								init: macro $rowExpr.$colName
+							};
 						}
 					}
 				default:
