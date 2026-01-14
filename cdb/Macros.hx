@@ -173,35 +173,34 @@ class Macros {
 				case TList:
 					var sub = polySheet.getSub(col);
 					if (sub.columns.length == 0) continue;
+					var vcol = sub.columns[0];
+					var vcolName = vcol.name;
 					if (sub.columns.length == 1) {
 						// Single column list: unwrap to Array<ElementType>
-						var scol = sub.columns[0];
-						var scolName = scol.name;
-						var et = simpleType(scol.type);
+						var et = simpleType(vcol.type);
 						if (et == null) et = fullType(sub.name);
 						initExprs.push(macro {
 							var obj:Dynamic = ${getData(id)};
-							$i{id} = [for (l in (obj.$polyColName.$colName : Array<Dynamic>)) (l : Dynamic).$scolName];
+							$i{id} = [for (l in (obj.$polyColName.$colName : Array<Dynamic>)) (l : Dynamic).$vcolName];
 						});
 						FVar(macro :Array<$et>, macro null);
-					//} //else if (scols[0].type == TId) {
-						// TId list: generate anonymous type { rowId1: T, rowId2: T, ... }
-						/*
-						var idColName = scols[0].name;
-						var valColName = scols.length == 2 ? scols[1].name : null;
-						var rowType = valColName != null ? simpleType(scols[1].type) : null;
-						if (rowType == null) rowType = fullType(sub.name);
+					} else if (vcol.type == TId && sub.columns.length == 2) {
+						var idcol = sub.columns[0];
+						var idcolName = idcol.name;
+						var vcol = sub.columns[1];
+						var vcolName = vcol.name;
+						var rowType = simpleType(vcol.type);
+						if (rowType == null) error('Unsupported column type ${vcol.type} in $colName');
 						var anonFields = new Array<haxe.macro.Expr.Field>();
 						var initFields = new Array<haxe.macro.Expr.ObjectField>();
 						for (row in sub.getLines()) {
-							var rowId:String = Reflect.field(row, idColName);
-							if (rowId == null || rowId == "") continue;
-							var valExpr = valColName != null ? macro item.$valColName : macro item;
-							anonFields.push({ name: rowId, pos: pos, kind: FVar(rowType) });
-							initFields.push({ field: rowId, expr: macro {
+							var sid:String = Reflect.field(row, idcolName);
+							if (sid == null || sid == "") continue;
+							anonFields.push({ name: sid, pos: pos, kind: FVar(rowType) });
+							initFields.push({ field: sid, expr: macro {
 								var v:$rowType = null;
 								for (item in (obj.$polyColName.$colName : Array<Dynamic>))
-									if (item.$idColName == $v{rowId}) { v = $valExpr; break; }
+									if (item.$idcolName == $v{sid}) { v = item.$vcolName; break; }
 								v;
 							}});
 						}
@@ -210,8 +209,6 @@ class Macros {
 							$i{id} = ${ { expr: EObjectDecl(initFields), pos: pos } };
 						});
 						FVar(TAnonymous(anonFields), macro null);
-						*/
-						// null;
 					} else {
 						// Multi-column list without TId: Array<StructType>
 						var et = fullType(sub.name);
