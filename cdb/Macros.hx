@@ -80,9 +80,10 @@ class Macros {
 		}
 
 		var splitRegex = ~/::(.+?)::/g;
-		function buildText(col:cdb.Data.Column, val:String, id:String):FieldType {
-			if (!splitRegex.match(val))
-				return FVar(macro :String, macro $v{val});
+
+		// Extract text interpolation args, returns null if no interpolation needed
+		function extractTextArgs(val:String):Null<Array<haxe.macro.Expr.Field>> {
+			if (!splitRegex.match(val)) return null;
 			var args = new Array<haxe.macro.Expr.Field>();
 			var map = new Map<String, Bool>();
 			splitRegex.map(val, function(r) {
@@ -98,6 +99,135 @@ class Macros {
 				}
 				return r.matched(0);
 			});
+			return args;
+		}
+
+		function simpleType(t:cdb.Data.ColumnType):Null<ComplexType> {
+			return switch (t) {
+				case TInt: macro :Int;
+				case TFloat: macro :Float;
+				case TBool: macro :Bool;
+				case TString: macro :String;
+				default: null;
+			};
+		}
+
+		// Helper to create a var declaration expression
+		function makeVar(name:String, initExpr:Expr):Expr {
+			return { expr: EVars([{ name: name, type: null, expr: initExpr, isFinal: false }]), pos: pos };
+		}
+
+		// Forward declarations for mutual recursion
+		var buildNestedField:(col:cdb.Data.Column, colVal:Dynamic, sheet:Sheet, rowExpr:Expr, prefix:String) -> { fieldType:ComplexType, varDecls:Array<Expr>, initExpr:Expr } = null;
+		var buildSubIdType:(sub:Sheet, val:Array<Dynamic>, arrayExpr:Expr, prefix:String) -> { anonFields:Array<haxe.macro.Expr.Field>, varDecls:Array<Expr>, initExpr:Expr } = null;
+
+		// Builds field type and init expression for a column in nested context
+		buildNestedField = function(col:cdb.Data.Column, colVal:Dynamic, sheet:Sheet, rowExpr:Expr, prefix:String) {
+			var colName = col.name;
+			return switch (col.type) {
+				case TInt | TFloat | TBool:
+					{ fieldType: simpleType(col.type), varDecls: [], initExpr: macro $rowExpr.$colName };
+				case TString:
+					var textArgs = extractTextArgs(colVal);
+					if (textArgs == null) {
+						{ fieldType: macro :String, varDecls: [], initExpr: macro $rowExpr.$colName };
+					} else {
+						{
+							fieldType: TFunction([TAnonymous(textArgs)], macro :String),
+							varDecls: [],
+							initExpr: macro function(vars) { return cdb.Macros.formatText($rowExpr.$colName, vars); }
+						};
+					}
+				case TProperties | TPolymorph:
+					var subType = fullType(sheet.getSub(col).name);
+					{ fieldType: subType, varDecls: [], initExpr: macro $rowExpr.$colName };
+				case TList:
+					var sub = sheet.getSub(col);
+					if (sub.columns.length == 0) {
+						error('Empty sub-list');
+						null;
+					} else {
+						var firstCol = sub.columns[0];
+						var firstColName = firstCol.name;
+						if (firstCol.type == TId && sub.columns.length >= 2) {
+							// Recursive sub-ID access
+							var result = buildSubIdType(sub, colVal, macro $rowExpr.$colName, prefix);
+							{ fieldType: TAnonymous(result.anonFields), varDecls: result.varDecls, initExpr: result.initExpr };
+						} else if (sub.columns.length == 1) {
+							// Single column list
+							var et = simpleType(firstCol.type);
+							if (et == null) et = fullType(sub.name);
+							{
+								fieldType: macro :Array<$et>,
+								varDecls: [],
+								initExpr: macro [for (l in ($rowExpr.$colName : Array<Dynamic>)) (l : Dynamic).$firstColName]
+							};
+						} else {
+							// Multi-column list without TId
+							var et = fullType(sub.name);
+							{ fieldType: macro :Array<$et>, varDecls: [], initExpr: macro $rowExpr.$colName };
+						}
+					}
+				default:
+					error('Unsupported column type ${col.type}');
+					null;
+			};
+		};
+
+		// Builds anonymous type and init expression for a sub-ID list (recursive)
+		// Generates intermediate variables: prefix_SubID = { ... }
+		buildSubIdType = function(sub:Sheet, val:Array<Dynamic>, arrayExpr:Expr, prefix:String) {
+			var idcol = sub.columns[0];
+			var idcolName = idcol.name;
+			var anonFields = new Array<haxe.macro.Expr.Field>();
+			var initFields = new Array<haxe.macro.Expr.ObjectField>();
+			var allVarDecls = new Array<Expr>();
+
+			for (i => row in val) {
+				var sid:String = Reflect.field(row, idcolName);
+				if (sid == null || sid == "") continue;
+				var rowExpr = macro $arrayExpr[$v{i}];
+				var entryVar = prefix + "_" + sid;
+
+				if (sub.columns.length == 2) {
+					// Single value column - field name is just the ID
+					var vcol = sub.columns[1];
+					var colVal = Reflect.field(row, vcol.name);
+					var result = buildNestedField(vcol, colVal, sub, rowExpr, entryVar);
+					// Collect child var decls
+					for (d in result.varDecls) allVarDecls.push(d);
+					// Create var for this entry
+					allVarDecls.push(makeVar(entryVar, result.initExpr));
+					anonFields.push({ name: sid, pos: pos, kind: FVar(result.fieldType) });
+					initFields.push({ field: sid, expr: macro $i{entryVar} });
+				} else {
+					// Multiple value columns - nested anonymous type per ID
+					var nestedAnonFields = new Array<haxe.macro.Expr.Field>();
+					var nestedInitFields = new Array<haxe.macro.Expr.ObjectField>();
+					for (j in 1...sub.columns.length) {
+						var vcol = sub.columns[j];
+						var colVal = Reflect.field(row, vcol.name);
+						var result = buildNestedField(vcol, colVal, sub, rowExpr, entryVar + "_" + vcol.name);
+						// Collect child var decls
+						for (d in result.varDecls) allVarDecls.push(d);
+						nestedAnonFields.push({ name: vcol.name, pos: pos, kind: FVar(result.fieldType) });
+						nestedInitFields.push({ field: vcol.name, expr: result.initExpr });
+					}
+					// Create var for this entry (the nested object)
+					var nestedObj:Expr = { expr: EObjectDecl(nestedInitFields), pos: pos };
+					allVarDecls.push(makeVar(entryVar, nestedObj));
+					anonFields.push({ name: sid, pos: pos, kind: FVar(TAnonymous(nestedAnonFields)) });
+					initFields.push({ field: sid, expr: macro $i{entryVar} });
+				}
+			}
+
+			return { anonFields: anonFields, varDecls: allVarDecls, initExpr: { expr: EObjectDecl(initFields), pos: pos } };
+		};
+
+		function buildText(col:cdb.Data.Column, val:String, id:String):FieldType {
+			var args = extractTextArgs(val);
+			if (args == null)
+				return FVar(macro :String, macro $v{val});
 			var textColName = col.name;
 			return FFun({
 				ret: macro :String,
@@ -134,16 +264,6 @@ class Macros {
 
 			var colName = col.name;
 
-			function simpleType(t:cdb.Data.ColumnType):Null<ComplexType> {
-				return switch (t) {
-					case TInt: macro :Int;
-					case TFloat: macro :Float;
-					case TBool: macro :Bool;
-					case TString: macro :String;
-					default: null;
-				};
-			}
-
 			var fieldId = id;
 			var fieldKind:FieldType = switch (col.type) {
 				case TInt | TFloat | TBool:
@@ -173,39 +293,28 @@ class Macros {
 				case TList:
 					var sub = polySheet.getSub(col);
 					if (sub.columns.length == 0) continue;
-					var vcol = sub.columns[0];
-					var vcolName = vcol.name;
+					var firstCol = sub.columns[0];
+					var firstColName = firstCol.name;
 					if (sub.columns.length == 1) {
 						// Single column list: unwrap to Array<ElementType>
-						var et = simpleType(vcol.type);
+						var et = simpleType(firstCol.type);
 						if (et == null) et = fullType(sub.name);
 						initExprs.push(macro {
 							var obj:Dynamic = ${getData(id)};
-							$i{id} = [for (l in (obj.$polyColName.$colName : Array<Dynamic>)) (l : Dynamic).$vcolName];
+							$i{id} = [for (l in (obj.$polyColName.$colName : Array<Dynamic>)) (l : Dynamic).$firstColName];
 						});
 						FVar(macro :Array<$et>, macro null);
-					} else if (vcol.type == TId && sub.columns.length == 2) {
-						// Special case, sub-id access
-						var idcol = sub.columns[0];
-						var idcolName = idcol.name;
-						var vcol = sub.columns[1];
-						var vcolName = vcol.name;
-						var rowType = simpleType(vcol.type);
-						if (rowType == null) error('Unsupported column type ${vcol.type} in $colName');
-						var anonFields = new Array<haxe.macro.Expr.Field>();
-						var initFields = new Array<haxe.macro.Expr.ObjectField>();
-						for (i => row in (val : Array<Dynamic>)) {
-							var sid:String = Reflect.field(row, idcolName);
-							if (sid == null || sid == "") continue;
-							anonFields.push({ name: sid, pos: pos, kind: FVar(rowType) });
-							initFields.push({ field: sid, expr: macro vals[$v{i}].$vcolName });
-						}
-						initExprs.push(macro {
-							var obj:Dynamic = ${getData(id)};
-							var vals:Array<Dynamic> = obj.$polyColName.$colName;
-							$i{id} = ${ { expr: EObjectDecl(initFields), pos: pos } };
-						});
-						FVar(TAnonymous(anonFields), macro null);
+					} else if (firstCol.type == TId) {
+						// Sub-ID access - use recursive helper
+						var result = buildSubIdType(sub, val, macro vals, id);
+						// Build init block: var declarations then assignment
+						var initBlock = new Array<Expr>();
+						initBlock.push(macro var obj:Dynamic = ${getData(id)});
+						initBlock.push(macro var vals:Array<Dynamic> = obj.$polyColName.$colName);
+						for (d in result.varDecls) initBlock.push(d);
+						initBlock.push(macro $i{id} = ${result.initExpr});
+						initExprs.push(macro $b{initBlock});
+						FVar(TAnonymous(result.anonFields), macro null);
 					} else {
 						// Multi-column list without TId: Array<StructType>
 						var et = fullType(sub.name);
