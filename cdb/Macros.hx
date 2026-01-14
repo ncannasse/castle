@@ -185,7 +185,7 @@ class Macros {
 						});
 						FVar(macro :Array<$et>, macro null);
 					} else if (vcol.type == TId && sub.columns.length == 2) {
-						// Special case, 
+						// Special case, sub-id access
 						var idcol = sub.columns[0];
 						var idcolName = idcol.name;
 						var vcol = sub.columns[1];
