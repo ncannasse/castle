@@ -362,7 +362,6 @@ class Module {
 						access : [AInline,APrivate],
 					});
 				case TPolymorph:
-					trace('---- Found poly: ${s.name}@${c.name}');
 					//polySheets.push(s.name + "@" + c.name);
 					var ref = structRefs.get(ctype) ?? ctype;
 					var cname = c.name;
@@ -585,7 +584,6 @@ class Module {
 				}
 			}
 
-			trace('---- Building ${s.name}, isPolymorph: $isPolymorph');
 			if( isPolymorph ) {
 				var enumCases : Array<haxe.macro.Expr.Field> = [];
 				for( f in realFields ) {
