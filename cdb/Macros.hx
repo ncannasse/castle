@@ -65,9 +65,7 @@ class Macros {
 		if (polyCol == null)
 			error('Sheet needs a polymorphic column');
 
-		var polySheet = sheet.getSub(polyCol);
 		var module = macro $i{moduleName};
-		var polyColName = polyCol.name;
 
 		var initExprs = new Array<Expr>();
 
@@ -219,22 +217,8 @@ class Macros {
 			if (pobj == null)
 				continue;
 
-			var col:cdb.Data.Column = null;
-			var val:Dynamic = null;
-			for (c in polySheet.columns) {
-				var v = Reflect.field(pobj, c.name);
-				if (v != null) {
-					col = c;
-					val = v;
-					break;
-				}
-			}
-			if (col == null)
-				continue;
-
-			// Use unified buildField for type and init expression (depth=0 for top level)
-			var rowExpr = macro obj.$polyColName;
-			var result = buildField(col, val, polySheet, rowExpr, id);
+			// Let buildField handle polymorph variant detection
+			var result = buildField(polyCol, pobj, sheet, macro obj, id);
 
 			// Build init block
 			var initBlock = new Array<Expr>();
