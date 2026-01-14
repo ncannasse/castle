@@ -196,7 +196,15 @@ class Module {
 		}
 
 		var structRefs = new Map<String,String>();
-		var polySheets = [];
+		var polySheets = new Map<String, cdb.Data.SheetData>();
+
+		for( s in data.sheets ) {
+			for( c in s.columns ) {
+				if( c.type == TPolymorph ) {
+					polySheets.set(s.name + "@" + c.name, s);
+				}
+			}
+		}
 
 		for( s in data.sheets ) {
 			var tname = makeTypeName(s.name);
@@ -354,7 +362,8 @@ class Module {
 						access : [AInline,APrivate],
 					});
 				case TPolymorph:
-					polySheets.push(s.name + "@" + c.name);
+					trace('---- Found poly: ${s.name}@${c.name}');
+					//polySheets.push(s.name + "@" + c.name);
 					var ref = structRefs.get(ctype) ?? ctype;
 					var cname = c.name;
 					fields.push({
@@ -462,7 +471,8 @@ class Module {
 				});
 			}
 
-			var isPolymorph = polySheets.indexOf(s.name) >= 0;
+			var isPolymorph = false;
+			var isPolymorph = polySheets.exists(s.name);
 			var def = tname + "Def";
 			types.push({
 				pos : pos,
@@ -575,6 +585,7 @@ class Module {
 				}
 			}
 
+			trace('---- Building ${s.name}, isPolymorph: $isPolymorph');
 			if( isPolymorph ) {
 				var enumCases : Array<haxe.macro.Expr.Field> = [];
 				for( f in realFields ) {
