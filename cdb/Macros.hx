@@ -79,48 +79,6 @@ class Macros {
 			return macro $module.$sheetName.get($module.$sheetKind.$id);
 		}
 
-		function getType(sheet:cdb.Sheet, col:cdb.Data.Column):Null<ComplexType> {
-			return switch (col.type) {
-				case TInt: macro :Int;
-				case TFloat: macro :Float;
-				case TBool: macro :Bool;
-				case TString: macro :String;
-				case TProperties | TPolymorph:
-					var sub = sheet.getSub(col);
-					fullType(sub.name);
-				case TList:
-					var sub = sheet.getSub(col);
-					var scols = sub.columns;
-					var et = scols.length == 1 ? getType(sub, scols[0]) : fullType(sub.name);
-					macro :Array<$et>;
-				default:
-					error('Unsupported column type: ${col.type}');
-					null;
-			};
-		}
-
-		function initExpr(sheet:cdb.Sheet, col:cdb.Data.Column, source:Expr):Null<Expr> {
-			var colName = col.name;
-			var prop:Expr = macro($source : Dynamic).$colName;
-			return switch (col.type) {
-				case TInt, TFloat, TBool:
-					prop;
-				case TList:
-					var sub = sheet.getSub(col);
-					if (sub.columns.length == 1) {
-						var innerExpr = initExpr(sub, sub.columns[0], macro l);
-						if (innerExpr == null)
-							prop;
-						else
-							macro [for (l in ($prop : Array<Dynamic>)) $innerExpr];
-					} else {
-						prop;
-					}
-				default:
-					null;
-			};
-		}
-
 		var splitRegex = ~/::(.+?)::/g;
 		function buildText(col:cdb.Data.Column, val:String, id:String):FieldType {
 			if (!splitRegex.match(val))
@@ -174,15 +132,30 @@ class Macros {
 			if (col == null)
 				continue;
 
-			var t = getType(polySheet, col);
-			if (t == null)
-				continue;
+			var colName = col.name;
 
-			var pvar:FieldType = switch (col.type) {
+			function simpleType(t:cdb.Data.ColumnType):Null<ComplexType> {
+				return switch (t) {
+					case TInt: macro :Int;
+					case TFloat: macro :Float;
+					case TBool: macro :Bool;
+					case TString: macro :String;
+					default: null;
+				};
+			}
+
+			var fieldId = id;
+			var fieldKind:FieldType = switch (col.type) {
+				case TInt | TFloat | TBool:
+					initExprs.push(macro {
+						var obj:Dynamic = ${getData(id)};
+						$i{id} = obj.$polyColName.$colName;
+					});
+					FVar(simpleType(col.type), macro $v{val});
 				case TString:
 					buildText(col, val, id);
 				case TProperties | TPolymorph:
-					var colName = col.name;
+					var t = fullType(polySheet.getSub(col).name);
 					fields.push({
 						name: "get_" + id,
 						pos: pos,
@@ -197,23 +170,66 @@ class Macros {
 						})
 					});
 					FProp("get", "never", t);
-				case TList | TInt | TFloat | TBool:
-					initExprs.push(macro {
-						var obj:Dynamic = ${getData(id)};
-						$i{id} = ${initExpr(polySheet, col, macro obj.$polyColName)};
-					});
-					var initVal = col.type == TList ? macro null : macro $v{val};
-					FVar(t, initVal);
+				case TList:
+					var sub = polySheet.getSub(col);
+					if (sub.columns.length == 0) continue;
+					if (sub.columns.length == 1) {
+						// Single column list: unwrap to Array<ElementType>
+						var scol = sub.columns[0];
+						var scolName = scol.name;
+						var et = simpleType(scol.type);
+						if (et == null) et = fullType(sub.name);
+						initExprs.push(macro {
+							var obj:Dynamic = ${getData(id)};
+							$i{id} = [for (l in (obj.$polyColName.$colName : Array<Dynamic>)) (l : Dynamic).$scolName];
+						});
+						FVar(macro :Array<$et>, macro null);
+					//} //else if (scols[0].type == TId) {
+						// TId list: generate anonymous type { rowId1: T, rowId2: T, ... }
+						/*
+						var idColName = scols[0].name;
+						var valColName = scols.length == 2 ? scols[1].name : null;
+						var rowType = valColName != null ? simpleType(scols[1].type) : null;
+						if (rowType == null) rowType = fullType(sub.name);
+						var anonFields = new Array<haxe.macro.Expr.Field>();
+						var initFields = new Array<haxe.macro.Expr.ObjectField>();
+						for (row in sub.getLines()) {
+							var rowId:String = Reflect.field(row, idColName);
+							if (rowId == null || rowId == "") continue;
+							var valExpr = valColName != null ? macro item.$valColName : macro item;
+							anonFields.push({ name: rowId, pos: pos, kind: FVar(rowType) });
+							initFields.push({ field: rowId, expr: macro {
+								var v:$rowType = null;
+								for (item in (obj.$polyColName.$colName : Array<Dynamic>))
+									if (item.$idColName == $v{rowId}) { v = $valExpr; break; }
+								v;
+							}});
+						}
+						initExprs.push(macro {
+							var obj:Dynamic = ${getData(id)};
+							$i{id} = ${ { expr: EObjectDecl(initFields), pos: pos } };
+						});
+						FVar(TAnonymous(anonFields), macro null);
+						*/
+						// null;
+					} else {
+						// Multi-column list without TId: Array<StructType>
+						var et = fullType(sub.name);
+						initExprs.push(macro {
+							var obj:Dynamic = ${getData(id)};
+							$i{id} = obj.$polyColName.$colName;
+						});
+						FVar(macro :Array<$et>, macro null);
+					}
 				default:
 					error('Unsupported column type: ${col.type}');
-					null;
+					continue;
 			};
-
 			fields.push({
 				name: id,
 				pos: pos,
 				access: [AStatic, APublic],
-				kind: pvar
+				kind: fieldKind
 			});
 		}
 
