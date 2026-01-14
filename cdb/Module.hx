@@ -195,7 +195,7 @@ class Module {
 			defineEnums.set(key, tname);
 		}
 
-		var structRefs = [];
+		var structRefs = new Map<String,String>();
 		var polySheets = [];
 
 		for( s in data.sheets ) {
@@ -213,7 +213,7 @@ class Module {
 
 				var ctype = makeTypeName(s.name + "@" + c.name);
 				if( c.structRef != null )
-					structRefs.push({ from: ctype, to: makeTypeName(c.structRef) });
+					structRefs.set(ctype, makeTypeName(c.structRef));
 
 				var t = switch( c.type ) {
 				case TInt, TColor: macro : Int;
@@ -355,6 +355,7 @@ class Module {
 					});
 				case TPolymorph:
 					polySheets.push(s.name + "@" + c.name);
+					var ref = structRefs.get(ctype) ?? ctype;
 					var cname = c.name;
 					fields.push({
 						name : "get_"+cname,
@@ -362,7 +363,7 @@ class Module {
 						kind : FFun({
 							ret : t,
 							args : [],
-							expr : macro return $i{ctype + "Helper"}.get(this.$cname),
+							expr : macro return $i{ref + "Helper"}.get(this.$cname),
 						}),
 						access : [APrivate],
 					});
@@ -639,12 +640,12 @@ class Module {
 			}
 		}
 
-		for( t in structRefs ) {
+		for( from => to in structRefs ) {
 			types.push({
 				pos : pos,
-				name : t.from,
+				name : from,
 				pack : curMod,
-				kind : TDAlias(t.to.toComplex()),
+				kind : TDAlias(to.toComplex()),
 				fields: [],
 			});
 		}
