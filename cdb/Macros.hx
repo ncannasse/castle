@@ -133,9 +133,31 @@ class Macros {
 							initExpr: macro function(vars) { return cdb.Macros.formatText($rowExpr.$colName, vars); }
 						};
 					}
-				case TProperties | TPolymorph:
+				case TProperties:
 					var subType = fullType(sheet.getSub(col).name);
 					{ fieldType: subType, varDecls: [], initExpr: macro $rowExpr.$colName };
+				case TPolymorph:
+					// Find the active variant and recurse into it
+					var polySub = sheet.getSub(col);
+					var variantCol:cdb.Data.Column = null;
+					var variantVal:Dynamic = null;
+					for (pc in polySub.columns) {
+						var pv = Reflect.field(colVal, pc.name);
+						if (pv != null) {
+							variantCol = pc;
+							variantVal = pv;
+							break;
+						}
+					}
+					if (variantCol == null) {
+						// No variant set, return the raw polymorph type
+						var subType = fullType(polySub.name);
+						{ fieldType: subType, varDecls: [], initExpr: macro $rowExpr.$colName };
+					} else {
+						// Recurse on the specific variant
+						var polyExpr = macro $rowExpr.$colName;
+						buildField(variantCol, variantVal, polySub, polyExpr, prefix);
+					}
 				case TList:
 					var sub = sheet.getSub(col);
 					if (sub.columns.length == 0) {
@@ -144,8 +166,8 @@ class Macros {
 					} else {
 						var firstCol = sub.columns[0];
 						var firstColName = firstCol.name;
-						if (firstCol.type == TId && sub.columns.length >= 2) {
-							// Sub-ID list: build anonymous type with one field per ID, recurse for values
+						if (firstCol.type == TId && sub.columns.length == 2) {
+							// Sub-ID list: (id, value) where value can be any type (including recursive TList)
 							var val:Array<Dynamic> = colVal;
 							var idcolName = firstCol.name;
 							var arrayExpr = macro $rowExpr.$colName;
@@ -153,38 +175,19 @@ class Macros {
 							var initFields = new Array<haxe.macro.Expr.ObjectField>();
 							var allVarDecls = new Array<Expr>();
 
+							var vcol = sub.columns[1];
+							var vcolName = vcol.name;
 							for (i => row in val) {
 								var sid:String = Reflect.field(row, idcolName);
 								if (sid == null || sid == "") continue;
 								var itemExpr = macro $arrayExpr[$v{i}];
 								var entryVar = prefix + "_" + sid;
-
-								if (sub.columns.length == 2) {
-									// Single value column
-									var vcol = sub.columns[1];
-									var vcolVal = Reflect.field(row, vcol.name);
-									var result = buildField(vcol, vcolVal, sub, itemExpr, entryVar);
-									for (d in result.varDecls) allVarDecls.push(d);
-									allVarDecls.push(makeVar(entryVar, result.initExpr));
-									anonFields.push({ name: sid, pos: pos, kind: FVar(result.fieldType) });
-									initFields.push({ field: sid, expr: macro $i{entryVar} });
-								} else {
-									// Multiple value columns - nested anonymous type
-									var nestedAnonFields = new Array<haxe.macro.Expr.Field>();
-									var nestedInitFields = new Array<haxe.macro.Expr.ObjectField>();
-									for (j in 1...sub.columns.length) {
-										var vcol = sub.columns[j];
-										var vcolVal = Reflect.field(row, vcol.name);
-										var result = buildField(vcol, vcolVal, sub, itemExpr, entryVar + "_" + vcol.name);
-										for (d in result.varDecls) allVarDecls.push(d);
-										nestedAnonFields.push({ name: vcol.name, pos: pos, kind: FVar(result.fieldType) });
-										nestedInitFields.push({ field: vcol.name, expr: result.initExpr });
-									}
-									var nestedObj:Expr = { expr: EObjectDecl(nestedInitFields), pos: pos };
-									allVarDecls.push(makeVar(entryVar, nestedObj));
-									anonFields.push({ name: sid, pos: pos, kind: FVar(TAnonymous(nestedAnonFields)) });
-									initFields.push({ field: sid, expr: macro $i{entryVar} });
-								}
+								var vcolVal = Reflect.field(row, vcolName);
+								var result = buildField(vcol, vcolVal, sub, itemExpr, entryVar);
+								for (d in result.varDecls) allVarDecls.push(d);
+								allVarDecls.push(makeVar(entryVar, result.initExpr));
+								anonFields.push({ name: sid, pos: pos, kind: FVar(result.fieldType) });
+								initFields.push({ field: sid, expr: macro $i{entryVar} });
 							}
 							{ fieldType: TAnonymous(anonFields), varDecls: allVarDecls, initExpr: { expr: EObjectDecl(initFields), pos: pos } };
 						} else if (sub.columns.length == 1) {
