@@ -152,9 +152,11 @@ class Macros {
 						var subType = fullType(polySub.name);
 						{ fieldType: subType, varDecls: [], initExpr: macro $rowExpr.$colName };
 					} else {
-						// Recurse on the specific variant
-						var polyExpr = macro $rowExpr.$colName;
-						buildField(variantCol, variantVal, polySub, polyExpr, prefix);
+						// Create temp var for polymorph access, then recurse
+						var polyVarName = prefix + "_" + colName;
+						var polyVarDecl = makeVar(polyVarName, macro $rowExpr.$colName);
+						var result = buildField(variantCol, variantVal, polySub, macro $i{polyVarName}, prefix);
+						{ fieldType: result.fieldType, varDecls: [polyVarDecl].concat(result.varDecls), initExpr: result.initExpr };
 					}
 				case TList:
 					var sub = sheet.getSub(col);
@@ -168,10 +170,14 @@ class Macros {
 							// Sub-ID list: (id, value) where value can be any type (including recursive TList)
 							var val:Array<Dynamic> = colVal;
 							var idcolName = firstCol.name;
-							var arrayExpr = macro $rowExpr.$colName;
 							var anonFields = new Array<haxe.macro.Expr.Field>();
 							var initFields = new Array<haxe.macro.Expr.ObjectField>();
 							var allVarDecls = new Array<Expr>();
+
+							// Create temp var for array access
+							var arrayVarName = prefix + "_" + colName;
+							allVarDecls.push(makeVar(arrayVarName, macro $rowExpr.$colName));
+							var arrayExpr = macro $i{arrayVarName};
 
 							var vcol = sub.columns[1];
 							var vcolName = vcol.name;
