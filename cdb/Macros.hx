@@ -23,6 +23,7 @@ class Macros {
 
 	#if macro
 	public static function getData(file:String):Data {
+		// TODO: Get from Module.getData, static 
 		var pos = Context.currentPos();
 		var path = try Context.resolvePath(file) catch (e:Dynamic) null;
 		if (path == null) {
@@ -54,8 +55,12 @@ class Macros {
 		inline function error(msg:String)
 			Context.error(msg, pos);
 
+		// TODO: Use cache from Module.getDatabase
 		var db = new Database();
 		db.loadData(getData(file));
+
+		var mpath = Context.getLocalModule();
+		Context.registerModuleDependency(mpath, file);
 
 		var sheet = db.getSheet(sheetName);
 		if (sheet == null)
@@ -74,14 +79,16 @@ class Macros {
 
 		var initExprs = [];
 
-		inline function fullType(tname:String)
+		inline function fullType(tname:String) {
 			return (moduleName + "." + Module.makeTypeName(tname)).toComplex();
-		inline function getData(id:String):Expr
-			return macro $module.$sheetName.get($module.$sheetKind.$id);
+		}
 
-		var splitRegex = ~/::(.+?)::/g;
+		inline function getData(id:String) {
+			return macro $module.$sheetName.get($module.$sheetKind.$id, true);
+		}
 
 		function extractTextArgs(val:String):Null<Array<haxe.macro.Expr.Field>> {
+			var splitRegex = ~/::(.+?)::/g;
 			if (!splitRegex.match(val))
 				return null;
 			var args = new Array<haxe.macro.Expr.Field>();
@@ -162,8 +169,8 @@ class Macros {
 					if (sub.columns.length == 0)
 						error('Empty sub-list');
 
-					var firstCol = sub.columns[0];
-					if (firstCol.type == TId && sub.columns.length == 2) {
+					var idCol = sub.columns.find(c -> c.type == TId);
+					if (sub.columns.length == 2 && idCol != null) {
 						var val:Array<Dynamic> = colVal;
 						var fields = [];
 						var inits = [];
@@ -172,9 +179,9 @@ class Macros {
 						var arrVar = prefix + "_" + colName;
 						vars.push(makeVar(arrVar, macro $rowExpr.$colName));
 
-						var valCol = sub.columns[1];
+						var valCol = sub.columns.find(c -> c.type != TId);
 						for (i => row in val) {
-							var sid:String = Reflect.field(row, firstCol.name);
+							var sid:String = Reflect.field(row, idCol.name);
 							if (sid == null || sid == "")
 								continue;
 							var itemVar = prefix + "_" + sid;
@@ -183,8 +190,8 @@ class Macros {
 							for (d in result.vars)
 								vars.push(d);
 							vars.push(makeVar(itemVar, result.init));
-							fields.push({name: sid, pos: pos, kind: FVar(result.type)});
-							inits.push({field: sid, expr: macro $i{itemVar}});
+							fields.push({name: sid, pos: pos, kind: FVar(result.type), access: [AFinal]});
+							inits.push({field: sid, expr: macro cast $i{itemVar}});
 						}
 						return {
 							type: TAnonymous(fields),
@@ -192,17 +199,17 @@ class Macros {
 							init: {expr: EObjectDecl(inits), pos: pos}
 						};
 					} else if (sub.columns.length == 1) {
-						var et = simpleType(firstCol.type) ?? fullType(sub.name);
-						var valCol = firstCol.name;
+						var et = simpleType(sub.columns[0].type) ?? fullType(sub.name);
+						var valCol = sub.columns[0].name;
 						return {
-							type: macro :Array<$et>,
+							type: macro :cdb.Types.ArrayRead<$et>,
 							vars: [],
 							init: macro [for (l in ($rowExpr.$colName:Array<Dynamic>)) (l : Dynamic).$valCol]
 						};
 					} else {
 						var et = fullType(sub.name);
 						return {
-							type: macro :Array<$et>,
+							type: macro :cdb.Types.ArrayRead<$et>,
 							vars: [],
 							init: macro $rowExpr.$colName
 						};
@@ -231,7 +238,7 @@ class Macros {
 				name: id,
 				pos: pos,
 				access: [AStatic, APublic],
-				kind: FVar(result.type, macro cast null)
+				kind: FVar(result.type, null)
 			});
 		}
 
@@ -242,6 +249,8 @@ class Macros {
 			kind: FFun({args: [], ret: macro :Void, expr: macro $b{initExprs}})
 		});
 
+		// TODO: how to register dependency on the types ?
+		// cannot use Context.registerModuleDependency 
 		return fields;
 	}
 	#end
