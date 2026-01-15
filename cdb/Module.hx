@@ -632,11 +632,14 @@ class Module {
 				});
 
 				var exprs = [];
+				exprs.push(macro var obj : Dynamic = cast obj);
+				exprs.push(macro if( obj.__value != null ) return obj.__value);
+
 				for( col in s.columns ) {
 					if( col.kind == Hidden ) continue;
 					var colName = col.name;
 					var caseName = makeTypeName(col.name);
-					exprs.push(macro if( v.$colName != null ) return $i{caseName}(cast v.$colName));
+					exprs.push(macro if( obj.$colName != null ) return obj.__value = $i{caseName}(cast obj.$colName));
 				}
 				exprs.push(macro throw "No polymorph value set");
 				types.push({
@@ -652,7 +655,7 @@ class Module {
 							kind : FFun( {
 								ret : tname.toComplex(),
 								expr : macro return $b{exprs},
-								args : [{ name : "v", type: def.toComplex(), opt:false}],
+								args : [{ name : "obj", type: def.toComplex(), opt:false}],
 							}),
 						}
 					]
