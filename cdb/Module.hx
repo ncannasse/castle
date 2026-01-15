@@ -239,6 +239,9 @@ class Module {
 			var ids : Array<haxe.macro.Expr.Field> = [];
 			var hasGUID = false;
 			var guidField = null;
+
+			var polyFields : Array<haxe.macro.Expr.Field> = polySheets.exists(s.name) ? [] : null;
+
 			for( c in s.columns ) {
 
 				if( c.kind == Hidden ) continue;
@@ -319,6 +322,18 @@ class Module {
 				case TGuid: macro : String;
 				};
 
+				if(polyFields != null) {
+					polyFields.push({
+						name : makeTypeName(c.name),
+						pos : pos,
+						kind : FFun({
+							ret : null,
+							expr : null,
+							args : [{ name : "v", type : t }],
+						}),
+					});
+				}
+
 				if( c.opt ) {
 					t = macro : Null<$t>;
 					rt = macro : Null<$rt>;
@@ -386,8 +401,9 @@ class Module {
 						access : [AInline,APrivate],
 					});
 				case TPolymorph:
-					//polySheets.push(s.name + "@" + c.name);
-					var ref = structRefs.get(ctype) ?? ctype;
+					var ref = structRefs.get(ctype);
+					if(ref == null)
+						ref = ctype;
 					var cname = c.name;
 					fields.push({
 						name : "get_"+cname,
@@ -494,8 +510,6 @@ class Module {
 				});
 			}
 
-			var isPolymorph = false;
-			var isPolymorph = polySheets.exists(s.name);
 			var def = tname + "Def";
 			types.push({
 				pos : pos,
@@ -608,31 +622,13 @@ class Module {
 				}
 			}
 
-			if( isPolymorph ) {
-				var enumCases : Array<haxe.macro.Expr.Field> = [];
-				for( f in realFields ) {
-					var ct = switch( f.kind ) {
-						case FVar(TPath({ name: "Null", params: [TPType(inner)] })): inner;
-						default: continue;
-					}
-
-					enumCases.push({
-						name : makeTypeName(f.name),
-						pos : pos,
-						kind : FFun({
-							ret : null,
-							expr : null,
-							args : [{ name : "v", type : ct }],
-						}),
-					});
-				}
-
+			if( polyFields != null ) {
 				types.push({
 					pos : pos,
 					name : tname,
 					pack : curMod,
 					kind : TDEnum,
-					fields : enumCases,
+					fields : polyFields,
 				});
 
 				var exprs = [];
