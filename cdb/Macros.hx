@@ -89,6 +89,7 @@ class Macros {
 				case TFloat: macro :Float;
 				case TBool: macro :Bool;
 				case TString: macro :String;
+				case TCurve: macro : cdb.Types.Curve;
 				default: null;
 			};
 
@@ -107,7 +108,7 @@ class Macros {
 		function buildField(col:cdb.Data.Column, colVal:Dynamic, sheet:Sheet, rowExpr:Expr, prefix:String):FieldBuild {
 			var colName = col.name;
 			switch (col.type) {
-				case TInt | TFloat | TBool:
+				case TInt | TFloat | TBool | TCurve:
 					return {
 						type: simpleType(col.type),
 						vars: [],
