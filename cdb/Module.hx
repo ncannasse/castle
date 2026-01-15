@@ -146,25 +146,49 @@ class Module {
 		return out;
 	}
 
+	public static function getDataPath(file: String) {
+		var pos = Context.currentPos();
+		var path = try Context.resolvePath(file) catch (e:Dynamic) null;
+		if (path == null) {
+			var r = Context.definedValue("resourcesPath");
+			if (r != null) {
+				r = r.split("\\").join("/");
+				if (!StringTools.endsWith(r, "/"))
+					r += "/";
+				try
+					path = Context.resolvePath(r + file)
+				catch (e:Dynamic)
+					null;
+			}
+		}
+		if (path == null) {
+			try
+				path = Context.resolvePath("res/" + file)
+			catch (e:Dynamic)
+				null;
+		}
+		if (path == null)
+			Context.error("File not found " + file, pos);
+		return path;
+	}
+
+	static var dataCache = new Map<String, Data>();
+	public static function getData(file: String) {
+		if (dataCache.exists(file))
+			return dataCache.get(file);
+		var path = getDataPath(file);
+		var data = Parser.parse(sys.io.File.getContent(path), false);
+		dataCache.set(file, data);
+		return data;
+	}
+
 	public static function build( file : String, ?typeName : String ) {
 		#if !macro
 		throw "This can only be called in a macro";
 		#else
 		var pos = Context.currentPos();
-		var path = try Context.resolvePath(file) catch( e : Dynamic ) null;
-		if( path == null ) {
-			var r = Context.definedValue("resourcesPath");
-			if( r != null ) {
-				r = r.split("\\").join("/");
-				if( !StringTools.endsWith(r, "/") ) r += "/";
-				try path = Context.resolvePath(r + file) catch( e : Dynamic ) null;
-			}
-		}
-		if( path == null )
-			try path = Context.resolvePath("res/" + file) catch( e : Dynamic ) null;
-		if( path == null )
-			Context.error("File not found " + file, pos);
-		var data = Parser.parse(sys.io.File.getContent(path), false);
+
+		var data = getData(file);
 
 		var types = new Array<haxe.macro.Expr.TypeDefinition>();
 		var curMod = Context.getLocalModule().split(".");
@@ -829,7 +853,7 @@ class Module {
 		});
 		var mpath = Context.getLocalModule();
 		Context.defineModule(mpath, types);
-		Context.registerModuleDependency(mpath, path);
+		Context.registerModuleDependency(mpath, getDataPath(file));
 		#if (haxe_ver >= 3.2)
 		return macro : Void;
 		#else

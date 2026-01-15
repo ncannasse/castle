@@ -22,32 +22,6 @@ class Macros {
 	}
 
 	#if macro
-	public static function getData(file:String):Data {
-		// TODO: Get from Module.getData, static 
-		var pos = Context.currentPos();
-		var path = try Context.resolvePath(file) catch (e:Dynamic) null;
-		if (path == null) {
-			var r = Context.definedValue("resourcesPath");
-			if (r != null) {
-				r = r.split("\\").join("/");
-				if (!StringTools.endsWith(r, "/"))
-					r += "/";
-				try
-					path = Context.resolvePath(r + file)
-				catch (e:Dynamic)
-					null;
-			}
-		}
-		if (path == null)
-			try
-				path = Context.resolvePath("res/" + file)
-			catch (e:Dynamic)
-				null;
-		if (path == null)
-			Context.error("File not found " + file, pos);
-		return Parser.parse(sys.io.File.getContent(path), false);
-	}
-
 	public static function buildPoly(file:String, sheetName:String, moduleName:String = "Data") {
 		var fields = Context.getBuildFields();
 		var pos = Context.currentPos();
@@ -55,12 +29,12 @@ class Macros {
 		inline function error(msg:String)
 			Context.error(msg, pos);
 
-		// TODO: Use cache from Module.getDatabase
+		var data = Module.getData(file);
 		var db = new Database();
-		db.loadData(getData(file));
+		db.loadData(data);
 
 		var mpath = Context.getLocalModule();
-		Context.registerModuleDependency(mpath, file);
+		Context.registerModuleDependency(mpath, Module.getDataPath(file));
 
 		var sheet = db.getSheet(sheetName);
 		if (sheet == null)
@@ -249,8 +223,6 @@ class Macros {
 			kind: FFun({args: [], ret: macro :Void, expr: macro $b{initExprs}})
 		});
 
-		// TODO: how to register dependency on the types ?
-		// cannot use Context.registerModuleDependency 
 		return fields;
 	}
 	#end
