@@ -575,6 +575,7 @@ class IndexId<T,Kind> extends Index<T> {
 		super.initSheet(data);
 		byId = new Map();
 		byIndex = [];
+		if( sheet == null ) return; // will throw in new()
 		for( c in sheet.columns )
 			switch( c.type ) {
 			case TId:
