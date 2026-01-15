@@ -140,11 +140,15 @@ class Macros {
 					return result;
 				case TList:
 					var sub = sheet.getSub(col);
-					if (sub.columns.length == 0)
+					var subCols = sub.columns.filter(c -> c.kind != Hidden);
+					if (subCols.length == 0)
 						error('Empty sub-list');
 
-					var idCol = sub.columns.find(c -> c.type == TId);
-					if (sub.columns.length == 2 && idCol != null) {
+					var idCol = subCols.find(c -> c.type == TId);
+					if (subCols.length == 2 && idCol != null) {
+						subCols.remove(idCol);
+						var valCol = subCols[0];
+
 						var val:Array<Dynamic> = colVal;
 						var fields = [];
 						var inits = [];
@@ -153,7 +157,6 @@ class Macros {
 						var arrVar = prefix + "_" + colName;
 						vars.push(makeVar(arrVar, macro $rowExpr.$colName));
 
-						var valCol = sub.columns.find(c -> c.type != TId);
 						for (i => row in val) {
 							var sid:String = Reflect.field(row, idCol.name);
 							if (sid == null || sid == "")
@@ -172,9 +175,9 @@ class Macros {
 							vars: vars,
 							init: {expr: EObjectDecl(inits), pos: pos}
 						};
-					} else if (sub.columns.length == 1) {
-						var et = simpleType(sub.columns[0].type) ?? fullType(sub.name);
-						var valCol = sub.columns[0].name;
+					} else if (subCols.length == 1) {
+						var et = simpleType(subCols[0].type) ?? fullType(sub.name);
+						var valCol = subCols[0].name;
 						return {
 							type: macro :cdb.Types.ArrayRead<$et>,
 							vars: [],
