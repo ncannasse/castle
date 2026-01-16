@@ -14,8 +14,14 @@ typedef FieldBuild = {
 }
 
 typedef BuildArgs = {
-	@:optional var moduleName : String;
-	@:optional var groupIds : Bool;
+	/** CDB module name */
+	@:optional var moduleName:String;
+
+	/** Whether to group consts by separator names */
+	@:optional var groupIds:Bool;
+
+	/** Path to the polymorphic column. If null, the first polymorphic column will be used. */
+	@:optional var polyColumn:String;
 }
 #end
 
@@ -50,12 +56,44 @@ class Macros {
 
 		var sheetKind = Module.makeTypeName(sheetName) + "Kind";
 		var idCol = sheet.columns.find(c -> c.type == TId);
-		var polyCol = sheet.columns.find(c -> c.type == TPolymorph);
-
 		if (idCol == null)
 			error('Sheet needs a unique ID');
+
+		var polyPath:Array<String> = null;
+		var polyCol = null;
+		
+		if (args?.polyColumn != null) {
+			if (args.polyColumn.indexOf("@") >= 0) {
+				polyPath = args.polyColumn.split("@");
+				var colName = polyPath[polyPath.length - 1];
+				var subSheet = db.getSheet(sheetName + "@" + polyPath.slice(0, -1).join("@"));
+				if (subSheet == null)
+					error('Sub-sheet "${sheetName}@${polyPath.slice(0, -1).join("@")}" not found');
+				var col = subSheet.columns.find(c -> c.name == colName);
+				if (col == null)
+					error('Column "${colName}" not found in sheet "${subSheet.name}"');
+				polyCol = col;
+			} else {
+				polyPath = [args.polyColumn];
+				polyCol = sheet.columns.find(c -> c.name == args.polyColumn);
+			}
+		} else {
+			polyCol = sheet.columns.find(c -> c.type == TPolymorph);
+			polyPath = polyCol != null ? [polyCol.name] : null;
+		}
+
 		if (polyCol == null)
 			error('Sheet needs a polymorphic column');
+
+		function getPolyObj(line:Dynamic):Dynamic {
+			var obj = line;
+			for (fieldName in polyPath) {
+				obj = Reflect.field(obj, fieldName);
+				if (obj == null)
+					return null;
+			}
+			return obj;
+		}
 
 		var module = macro $i{moduleName};
 
@@ -66,7 +104,7 @@ class Macros {
 		}
 
 		inline function getData(id:String) {
-			return macro $module.$sheetName.get($module.$sheetKind.$id);  // TODO: why too many arguments here ?
+			return macro $module.$sheetName.get($module.$sheetKind.$id); // TODO: why too many arguments here ?
 		}
 
 		function extractTextArgs(val:String):Null<Array<haxe.macro.Expr.Field>> {
@@ -97,7 +135,7 @@ class Macros {
 				case TFloat: macro :Float;
 				case TBool: macro :Bool;
 				case TString: macro :String;
-				case TCurve: macro : cdb.Types.Curve;
+				case TCurve: macro :cdb.Types.Curve;
 				default: null;
 			};
 
@@ -114,7 +152,8 @@ class Macros {
 		}
 
 		function buildField(col:cdb.Data.Column, colVal:Dynamic, sheet:Sheet, rowExpr:Expr, prefix:String):FieldBuild {
-			if(colVal == null) return null;
+			if (colVal == null)
+				return null;
 			var colName = col.name;
 			switch (col.type) {
 				case TInt | TFloat | TBool | TCurve:
@@ -140,9 +179,7 @@ class Macros {
 					return {
 						type: refType,
 						vars: [],
-						init: col.opt ?
-							macro $module.$refTableName.resolve($rowExpr.$colName.toString()) :
-							macro $rowExpr.$colName == null ? null : $module.$refTableName.resolve($rowExpr.$colName.toString())
+						init: col.opt ? macro $module.$refTableName.resolve($rowExpr.$colName.toString()) : macro $rowExpr.$colName == null ? null : $module.$refTableName.resolve($rowExpr.$colName.toString())
 					};
 				case TProperties:
 					var subType = fullType(sheet.getSub(col).name);
@@ -154,10 +191,12 @@ class Macros {
 				case TPolymorph:
 					var polySub = sheet.getSub(col);
 					var pval = getPolyVal(polySub, colVal);
-					if(pval == null) return null;
+					if (pval == null)
+						return null;
 					var polyVar = prefix + "_" + colName;
 					var result = buildField(pval.col, pval.val, polySub, macro $i{polyVar}, prefix);
-					if(result == null) return null;
+					if (result == null)
+						return null;
 					result.vars.unshift(makeVar(polyVar, macro $rowExpr.$colName));
 					return result;
 				case TList:
@@ -186,11 +225,17 @@ class Macros {
 							var itemVar = prefix + "_" + sid;
 							var itemVal = Reflect.field(row, valCol.name);
 							var result = buildField(valCol, itemVal, sub, macro $i{arrVar}[$v{i}], itemVar);
-							if(result == null) return continue;
+							if (result == null)
+								return continue;
 							for (d in result.vars)
 								vars.push(d);
 							vars.push(makeVar(itemVar, result.init));
-							fields.push({name: sid, pos: pos, kind: FVar(result.type), access: [AFinal]});
+							fields.push({
+								name: sid,
+								pos: pos,
+								kind: FVar(result.type),
+								access: [AFinal]
+							});
 							inits.push({field: sid, expr: macro cast $i{itemVar}});
 						}
 						return {
@@ -225,7 +270,7 @@ class Macros {
 			var separators = sheet.separators;
 			if (separators == null || separators.length == 0)
 				error('Sheet needs separators for groupIds feature');
-			if(separators[0].index == null)
+			if (separators[0].index == null)
 				error("groupIds need exported groups");
 
 			var i = 0;
@@ -244,15 +289,15 @@ class Macros {
 						break;
 					i++;
 
-
 					var id = Reflect.field(line, idCol.name);
-					var pobj = Reflect.field(line, polyCol.name);
+					var pobj = getPolyObj(line);
 
 					if (id == null || id == "" || pobj == null)
 						continue;
 
 					var result = buildField(polyCol, pobj, sheet, macro __o, id);
-					if(result == null) continue;
+					if (result == null)
+						continue;
 					var block = [];
 					block.push(macro var __o:Dynamic = ${getData(id)});
 					for (d in result.vars)
@@ -281,12 +326,14 @@ class Macros {
 			// Flat fields
 			for (line in sheet.getLines()) {
 				var id = Reflect.field(line, idCol.name);
-				var pobj = Reflect.field(line, polyCol.name);
+				var pobj = getPolyObj(line);
 				if (id == null || id == "" || pobj == null)
 					continue;
 
+				trace("polyCol: " + polyCol.name, "pobj: " + pobj, "id: " + id);
 				var result = buildField(polyCol, pobj, sheet, macro __o, id);
-				if(result == null) continue;
+				if (result == null)
+					continue;
 
 				var initBlock = [macro var __o:Dynamic = ${getData(id)}];
 				for (d in result.vars)
