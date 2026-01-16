@@ -214,21 +214,13 @@ class Macros {
 			if(separators[0].index == null)
 				error("groupIds need exported groups");
 			
-			var printer = new haxe.macro.Printer();
-			
 			var i = 0;
 			for (sepi in 0...separators.length) {
 				var sep = separators[sepi];
 				var nextSep = (sepi < separators.length - 1) ? separators[sepi + 1] : null;
 				
 				var groupFields = [];
-				var groupFieldInits = []; // For reload function
-				var groupInits = []; // Individual reload blocks for each field
-
-				trace("--------------------------------");
-				trace("sep: " + sep.title);
-				trace("nextSep: " + (nextSep != null ? nextSep.title : "null"));
-				trace("nextSep index: " + (nextSep != null ? nextSep.index : -1));
+				var groupInits = [];
 
 				groupInits.push(macro var __gobj:Dynamic = {});
 				
@@ -243,43 +235,17 @@ class Macros {
 
 					var id = Reflect.field(line, idCol.name);
 					var pobj = Reflect.field(line, polyCol.name);
-					
-					trace("    id: " + id);
-					
+										
 					if (id == null || id == "" || pobj == null)
 						continue;
 
-					// Use unique variable name for each field's obj to avoid conflicts
-					// var objVar = id + "_obj";
-
 					var result = buildField(polyCol, pobj, sheet, macro __o, id);
-					// trace("init: " + printer.printExpr(result.init));
-					// trace("vars: " + result.vars.map(v -> printer.printExpr(v)).join(", "));
-					// trace("type: " + (result.type.toString()));
-
-					var initBlock = [];
-					initBlock.push(macro var __o:Dynamic = ${getData(id)});
+					var block = [];
+					block.push(macro var __o:Dynamic = ${getData(id)});
 					for (d in result.vars)
-						initBlock.push(d);
-					initBlock.push(macro __gobj.$id = ${result.init});
-					groupInits.push(macro $b{initBlock});
-					// groupInits.push(macro $b{initBlock});
-
-
-					// trace("--------------------------------");
-					// trace("initExpr: " + printer.printExpr(initExpr));
-
-					//groupFieldInits.push({field: id, expr: initExpr});
-
-
-					
-					// var result = buildField(polyCol, pobj, sheet, macro $i{objVar}, id);
-
-					// // Build reload expressions for this field
-					// groupReloadExprs.push(makeVar(objVar, macro cast ${getData(id)}));
-					// for (d in result.vars)
-					// 	groupReloadExprs.push(d);
-					// groupReloadExprs.push(makeVar(id, result.init));
+						block.push(d);
+					block.push(macro __gobj.$id = ${result.init});
+					groupInits.push(macro $b{block});
 
 					groupFields.push({
 						name: id,
@@ -287,17 +253,10 @@ class Macros {
 						kind: FVar(result.type),
 						access: [AFinal]
 					});
-					// groupFieldInits.push({field: id, expr: macro $i{id}});
 				}
 				
 				groupInits.push(macro $i{sep.title} = cast __gobj);
-
-				//initExprs.push(macro $b{groupInits});
-				// trace("--------------------------------");
-				// trace(printer.printExpr(macro $b{groupInits}));
 				initExprs.push(macro $b{groupInits});
-				
-				// Create the group object field
 				fields.push({
 					name: sep.title,
 					pos: pos,
@@ -306,7 +265,7 @@ class Macros {
 				});
 			}
 		} else {
-			// Original behavior: flat fields
+			// Flat fields
 			for (line in sheet.getLines()) {
 				var id = Reflect.field(line, idCol.name);
 				var pobj = Reflect.field(line, polyCol.name);
