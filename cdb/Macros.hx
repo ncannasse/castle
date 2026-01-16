@@ -133,6 +133,16 @@ class Macros {
 							return cdb.Macros.formatText($rowExpr.$colName, vars);
 						}
 					};
+				case TRef(refTable):
+					var refType = fullType(refTable);
+					var refTableName = Module.fieldName(refTable);
+					return {
+						type: refType,
+						vars: [],
+						init: col.opt ? 
+							macro $module.$refTableName.resolve($rowExpr.$colName.toString()) :
+							macro $rowExpr.$colName == null ? null : $module.$refTableName.resolve($rowExpr.$colName.toString())
+					};
 				case TProperties:
 					var subType = fullType(sheet.getSub(col).name);
 					return {
@@ -226,10 +236,8 @@ class Macros {
 				
 				while (i < sheet.lines.length) {
 					var line = sheet.lines[i];
-					if (nextSep != null && nextSep.index == i) {
-						trace("break");
+					if (nextSep != null && nextSep.index == i)
 						break;
-					}
 					i++;
 				
 

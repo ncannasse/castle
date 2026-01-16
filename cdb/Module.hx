@@ -95,7 +95,7 @@ class Module {
 	}
 	#end
 
-	static function fieldName( name : String ) {
+	public static function fieldName( name : String ) {
 		var r_chars = ~/[^A-Za-z0-9_]/g;
 		return r_chars.replace(name, "_");
 	}
