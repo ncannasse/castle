@@ -30,7 +30,7 @@ class Macros {
 	}
 
 	#if macro
-	public static function buildPoly(file:String, path:String, args:BuildArgs = null) {
+	public static function buildConsts(file:String, path:String, args:BuildArgs = null) {
 		var moduleName = args?.moduleName ?? "Data";
 		var groupIds = args?.groupIds ?? false;
 
@@ -52,7 +52,7 @@ class Macros {
 			error('Path must contain at least Sheet@Column, got: "${path}"');
 
 		var sheetName = parts[0];
-		var polyPath = parts.slice(1);
+		var colPath = parts.slice(1);
 
 		var rootSheet = db.getSheet(sheetName);
 		if (rootSheet == null)
@@ -68,14 +68,14 @@ class Macros {
 		if (colSheet == null)
 			error('Column sheet "${colSheetName}" not found');
 
-		var colName = polyPath[polyPath.length - 1];
-		var polyCol = colSheet.columns.find(c -> c.name == colName);
-		if (polyCol == null)
+		var colName = colPath[colPath.length - 1];
+		var buildCol = colSheet.columns.find(c -> c.name == colName);
+		if (buildCol == null)
 			error('Column "${colName}" not found in sheet "${colSheetName}"');
 
-		function getPolyObj(line:Dynamic):Dynamic {
+		function getObj(line:Dynamic):Dynamic {
 			var obj = line;
-			for (fieldName in polyPath) {
+			for (fieldName in colPath) {
 				obj = Reflect.field(obj, fieldName);
 				if (obj == null)
 					return null;
@@ -93,8 +93,8 @@ class Macros {
 
 		function getData(id:String) {
 			var e = macro $module.$sheetName.get($module.$sheetKind.$id);  // TODO: optional
-			for (i in 0...polyPath.length-1) {
-				e = {expr: EField(e, polyPath[i]), pos: pos};
+			for (i in 0...colPath.length-1) {
+				e = {expr: EField(e, colPath[i]), pos: pos};
 			}
 			return e;
 		}
@@ -282,12 +282,12 @@ class Macros {
 					i++;
 
 					var id = Reflect.field(line, idCol.name);
-					var pobj = getPolyObj(line);
+					var pobj = getObj(line);
 
 					if (id == null || id == "" || pobj == null)
 						continue;
 
-					var result = buildField(polyCol, pobj, colSheet, macro __o, id);
+					var result = buildField(buildCol, pobj, colSheet, macro __o, id);
 					if (result == null)
 						continue;
 					var block = [];
@@ -318,11 +318,11 @@ class Macros {
 			// Flat fields
 			for (line in rootSheet.getLines()) {
 				var id = Reflect.field(line, idCol.name);
-				var pobj = getPolyObj(line);
+				var pobj = getObj(line);
 				if (id == null || id == "" || pobj == null)
 					continue;
 
-				var result = buildField(polyCol, pobj, colSheet, macro __o, id);
+				var result = buildField(buildCol, pobj, colSheet, macro __o, id);
 				if (result == null)
 					continue;
 
