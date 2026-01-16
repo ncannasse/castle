@@ -87,7 +87,7 @@ class DiffFile {
 			var d : Dynamic = Reflect.field(diff, f);
 			var allow = view.edit != null && view.edit.indexOf(f) >= 0;
 			switch( c.type ) {
-			case TList, TProperties:
+			case TList, TProperties, TPolymorph:
 				var value : Dynamic = Reflect.field(obj,f);
 				var sub = s.getSub(c);
 				var view : SheetView = allow ? { insert : true, edit : [for( c in sub.columns ) c.name] } : Reflect.field(view.sub,c.name);
@@ -95,7 +95,7 @@ class DiffFile {
 					if( allow ) Reflect.setField(obj, f, d);
 					continue;
 				}
-				if( c.type == TProperties )
+				if( c.type == TProperties || c.type == TPolymorph )
 					applyObject(sub, value, d, view);
 				else
 					applySheet(sub, value, d, view);
@@ -207,7 +207,7 @@ class DiffFile {
 					d = diffSheets(s1.getSub(c1),s2.getSub(c1), vnew, vold);
 					if( d == null ) continue;
 				}
-			case TProperties:
+			case TProperties, TPolymorph:
 				d = diffObject(s1.getSub(c1), s2.getSub(c1), vnew, vold);
 				if( d == null ) continue;
 			case TDynamic, TTilePos, TCustom(_), TTileLayer, TLayer(_):

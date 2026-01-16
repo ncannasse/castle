@@ -37,6 +37,7 @@ enum ColumnType {
 	TGradient;
 	TCurve;
 	TGuid;
+	TPolymorph;
 }
 
 enum abstract DisplayType(Int) {

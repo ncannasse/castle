@@ -95,6 +95,16 @@ class Module {
 	}
 	#end
 
+	public static function fieldName( name : String ) {
+		var r_chars = ~/[^A-Za-z0-9_]/g;
+		return r_chars.replace(name, "_");
+	}
+
+	public static function makeTypeName( name : String ) {
+		var t = fieldName(name);
+		return t.substr(0, 1).toUpperCase() + t.substr(1);
+	}
+
 	static function getSheetLines( sheets : Array<Data.SheetData>, s : Data.SheetData ) {
 		if( s.props.dataFiles != null )
 			return [];
@@ -122,7 +132,7 @@ class Module {
 
 		var out = [];
 		for( o in getSheetLines(sheets,psheet) ) {
-			if (pcol != null && pcol.type == TProperties) {
+			if (pcol != null && (pcol.type == TProperties || pcol.type == TPolymorph)) {
 				var obj = Reflect.field(o, col);
 				if( obj != null )
 					out.push(obj);
@@ -136,34 +146,50 @@ class Module {
 		return out;
 	}
 
+	public static function getDataPath(file: String) {
+		var pos = Context.currentPos();
+		var path = try Context.resolvePath(file) catch (e:Dynamic) null;
+		if (path == null) {
+			var r = Context.definedValue("resourcesPath");
+			if (r != null) {
+				r = r.split("\\").join("/");
+				if (!StringTools.endsWith(r, "/"))
+					r += "/";
+				try
+					path = Context.resolvePath(r + file)
+				catch (e:Dynamic)
+					null;
+			}
+		}
+		if (path == null) {
+			try
+				path = Context.resolvePath("res/" + file)
+			catch (e:Dynamic)
+				null;
+		}
+		if (path == null)
+			Context.error("File not found " + file, pos);
+		return path;
+	}
+
+	static var dataCache = new Map<String, Data>();
+	public static function getData(file: String) {
+		if (dataCache.exists(file))
+			return dataCache.get(file);
+		var path = getDataPath(file);
+		var data = Parser.parse(sys.io.File.getContent(path), false);
+		dataCache.set(file, data);
+		return data;
+	}
+
 	public static function build( file : String, ?typeName : String ) {
 		#if !macro
 		throw "This can only be called in a macro";
 		#else
 		var pos = Context.currentPos();
-		var path = try Context.resolvePath(file) catch( e : Dynamic ) null;
-		if( path == null ) {
-			var r = Context.definedValue("resourcesPath");
-			if( r != null ) {
-				r = r.split("\\").join("/");
-				if( !StringTools.endsWith(r, "/") ) r += "/";
-				try path = Context.resolvePath(r + file) catch( e : Dynamic ) null;
-			}
-		}
-		if( path == null )
-			try path = Context.resolvePath("res/" + file) catch( e : Dynamic ) null;
-		if( path == null )
-			Context.error("File not found " + file, pos);
-		var data = Parser.parse(sys.io.File.getContent(path), false);
-		var r_chars = ~/[^A-Za-z0-9_]/g;
-		function makeTypeName( name : String ) {
-			var t = r_chars.replace(name, "_");
-			t = t.substr(0, 1).toUpperCase() + t.substr(1);
-			return t;
-		}
-		function fieldName( name : String ) {
-			return r_chars.replace(name, "_");
-		}
+
+		var data = getData(file);
+
 		var types = new Array<haxe.macro.Expr.TypeDefinition>();
 		var curMod = Context.getLocalModule().split(".");
 		var modName = curMod.pop();
@@ -193,7 +219,16 @@ class Module {
 			defineEnums.set(key, tname);
 		}
 
-		var structRefs = [];
+		var structRefs = new Map<String,String>();
+		var polySheets = new Map<String, cdb.Data.SheetData>();
+
+		for( s in data.sheets ) {
+			for( c in s.columns ) {
+				if( c.type == TPolymorph ) {
+					polySheets.set(s.name + "@" + c.name, s);
+				}
+			}
+		}
 
 		for( s in data.sheets ) {
 			var tname = makeTypeName(s.name);
@@ -204,13 +239,16 @@ class Module {
 			var ids : Array<haxe.macro.Expr.Field> = [];
 			var hasGUID = false;
 			var guidField = null;
+
+			var polyFields : Array<haxe.macro.Expr.Field> = polySheets.exists(s.name) ? [] : null;
+
 			for( c in s.columns ) {
 
 				if( c.kind == Hidden ) continue;
 
 				var ctype = makeTypeName(s.name + "@" + c.name);
 				if( c.structRef != null )
-					structRefs.push({ from: ctype, to: makeTypeName(c.structRef) });
+					structRefs.set(ctype, makeTypeName(c.structRef));
 
 				var t = switch( c.type ) {
 				case TInt, TColor: macro : Int;
@@ -245,7 +283,7 @@ class Module {
 				case TDynamic:
 					var t = tname.toComplex();
 					s.props.level != null && c.name == "props" ? macro : cdb.Types.LevelPropsAccess<$t> : macro : Dynamic;
-				case TProperties:
+				case TProperties, TPolymorph:
 					ctype.toComplex();
 				case TGradient:
 					macro : cdb.Types.Gradient;
@@ -277,12 +315,24 @@ class Module {
 				case TTilePos: macro : { file : String, size : Int, x : Int, y : Int, ?width : Int, ?height : Int };
 				case TTileLayer: macro : { file : String, stride : Int, size : Int, data : String };
 				case TDynamic: macro : Dynamic;
-				case TProperties:
+				case TProperties | TPolymorph:
 					(resolveType(c, s) + "Def").toComplex();
 				case TCurve: macro : Array<Float>;
 				case TGradient: macro : { colors: Array<Int>, positions: Array<Float>};
 				case TGuid: macro : String;
 				};
+
+				if(polyFields != null) {
+					polyFields.push({
+						name : makeTypeName(c.name),
+						pos : pos,
+						kind : FFun({
+							ret : null,
+							expr : null,
+							args : [{ name : "v", type : t }],
+						}),
+					});
+				}
 
 				if( c.opt ) {
 					t = macro : Null<$t>;
@@ -349,6 +399,21 @@ class Module {
 							expr : macro return cast this.$cname,
 						}),
 						access : [AInline,APrivate],
+					});
+				case TPolymorph:
+					var ref = structRefs.get(ctype);
+					if(ref == null)
+						ref = ctype;
+					var cname = c.name;
+					fields.push({
+						name : "get_"+cname,
+						pos : pos,
+						kind : FFun({
+							ret : t,
+							args : [],
+							expr : macro return $i{ref + "Helper"}.get(this.$cname),
+						}),
+						access : [APrivate],
 					});
 				case TRef(ref):
 					var cname = c.name;
@@ -557,22 +622,63 @@ class Module {
 				}
 			}
 
-			types.push({
-				pos : pos,
-				name : tname,
-				pack : curMod,
-				kind : TDAbstract(def.toComplex()),
-				meta : [{ name : ":cdb", params : [], pos : pos }],
-				fields : fields,
-			});
+			if( polyFields != null ) {
+				types.push({
+					pos : pos,
+					name : tname,
+					pack : curMod,
+					kind : TDEnum,
+					fields : polyFields,
+				});
+
+				var exprs = [];
+				exprs.push(macro var obj : Dynamic = cast obj);
+				exprs.push(macro if( obj.__value != null ) return obj.__value);
+
+				for( col in s.columns ) {
+					if( col.kind == Hidden ) continue;
+					var colName = col.name;
+					var caseName = makeTypeName(col.name);
+					var enumExpr = macro $i{tname}.$caseName(cast obj.$colName);
+					exprs.push(macro if( obj.$colName != null ) return obj.__value = $enumExpr);
+				}
+				exprs.push(macro throw "No polymorph value set");
+				types.push({
+					pos : pos,
+					name : tname + "Helper",
+					pack : curMod,
+					kind : TDClass(),
+					fields : [
+						{
+							name : "get",
+							pos : pos,
+							access : [APublic, AStatic],
+							kind : FFun( {
+								ret : tname.toComplex(),
+								expr : macro return $b{exprs},
+								args : [{ name : "obj", type: def.toComplex(), opt:false}],
+							}),
+						}
+					]
+				});
+			} else {
+				types.push({
+					pos : pos,
+					name : tname,
+					pack : curMod,
+					kind : TDAbstract(def.toComplex()),
+					meta : [{ name : ":cdb", params : [], pos : pos }],
+					fields : fields,
+				});
+			}
 		}
 
-		for( t in structRefs ) {
+		for( from => to in structRefs ) {
 			types.push({
 				pos : pos,
-				name : t.from,
+				name : from,
 				pack : curMod,
-				kind : TDAlias(t.to.toComplex()),
+				kind : TDAlias(to.toComplex()),
 				fields: [],
 			});
 		}
@@ -665,7 +771,7 @@ class Module {
 					case TRef(s):
 						var fname = fieldName(s);
 						macro $i{modName}.$fname.resolve(v[$v{ai+1}]);
-					case TList, TLayer(_), TTilePos, TProperties:
+					case TList, TLayer(_), TTilePos, TProperties, TPolymorph:
 						throw "assert";
 					}
 					eargs.push(econv);
@@ -747,7 +853,7 @@ class Module {
 		});
 		var mpath = Context.getLocalModule();
 		Context.defineModule(mpath, types);
-		Context.registerModuleDependency(mpath, path);
+		Context.registerModuleDependency(mpath, getDataPath(file));
 		#if (haxe_ver >= 3.2)
 		return macro : Void;
 		#else

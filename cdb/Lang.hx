@@ -66,7 +66,7 @@ class Lang {
 		switch( c.type ) {
 		case TString if( c.kind == Localizable ):
 			return LName(c);
-		case TList, TProperties:
+		case TList, TProperties, TPolymorph:
 			var ssub = getSub(s,c);
 			var fl = makeSheetFields(ssub);
 			if( fl.length == 0 )
@@ -83,7 +83,7 @@ class Lang {
 			var f = makeLocField(c, s);
 			if( f != null )
 				switch( f ) {
-				case LSub(c, _, fl) if( c.type == TProperties ):
+				case LSub(c, _, fl) if( c.type == TProperties || c.type == TPolymorph ):
 					for( f in fl )
 						fields.push(LSingle(c, f));
 				default:
