@@ -19,9 +19,6 @@ typedef BuildArgs = {
 
 	/** Whether to group consts by separator names */
 	@:optional var groupIds:Bool;
-
-	/** Path to the polymorphic column. If null, the first polymorphic column will be used. */
-	@:optional var polyColumn:String;
 }
 #end
 
@@ -33,7 +30,7 @@ class Macros {
 	}
 
 	#if macro
-	public static function buildPoly(file:String, sheetName:String, args:BuildArgs = null) {
+	public static function buildPoly(file:String, path:String, args:BuildArgs = null) {
 		var moduleName = args?.moduleName ?? "Data";
 		var groupIds = args?.groupIds ?? false;
 
@@ -50,40 +47,31 @@ class Macros {
 		var mpath = Context.getLocalModule();
 		Context.registerModuleDependency(mpath, Module.getDataPath(file));
 
-		var sheet = db.getSheet(sheetName);
-		if (sheet == null)
-			error('"${sheetName}" not found');
+		var parts = path.split("@");
+		if (parts.length < 2)
+			error('Path must contain at least Sheet@Column, got: "${path}"');
+		
+		var sheetName = parts[0];
+		var polyPath = parts.slice(1);
+		
+		var rootSheet = db.getSheet(sheetName);
+		if (rootSheet == null)
+			error('Sheet "${sheetName}" not found');
 
 		var sheetKind = Module.makeTypeName(sheetName) + "Kind";
-		var idCol = sheet.columns.find(c -> c.type == TId);
+		var idCol = rootSheet.columns.find(c -> c.type == TId);
 		if (idCol == null)
-			error('Sheet needs a unique ID');
+			error('Sheet "${sheetName}" needs a unique ID');
 
-		var polyPath:Array<String> = null;
-		var polyCol = null;
+		var colSheetName = parts.slice(0, -1).join("@");
+		var colSheet = db.getSheet(colSheetName);
+		if (colSheet == null)
+			error('Column sheet "${colSheetName}" not found');
 		
-		if (args?.polyColumn != null) {
-			if (args.polyColumn.indexOf("@") >= 0) {
-				polyPath = args.polyColumn.split("@");
-				var colName = polyPath[polyPath.length - 1];
-				var subSheet = db.getSheet(sheetName + "@" + polyPath.slice(0, -1).join("@"));
-				if (subSheet == null)
-					error('Sub-sheet "${sheetName}@${polyPath.slice(0, -1).join("@")}" not found');
-				var col = subSheet.columns.find(c -> c.name == colName);
-				if (col == null)
-					error('Column "${colName}" not found in sheet "${subSheet.name}"');
-				polyCol = col;
-			} else {
-				polyPath = [args.polyColumn];
-				polyCol = sheet.columns.find(c -> c.name == args.polyColumn);
-			}
-		} else {
-			polyCol = sheet.columns.find(c -> c.type == TPolymorph);
-			polyPath = polyCol != null ? [polyCol.name] : null;
-		}
-
+		var colName = polyPath[polyPath.length - 1];
+		var polyCol = colSheet.columns.find(c -> c.name == colName);
 		if (polyCol == null)
-			error('Sheet needs a polymorphic column');
+			error('Column "${colName}" not found in sheet "${colSheetName}"');
 
 		function getPolyObj(line:Dynamic):Dynamic {
 			var obj = line;
@@ -267,7 +255,7 @@ class Macros {
 
 		if (groupIds) {
 			// Group fields by separators
-			var separators = sheet.separators;
+			var separators = rootSheet.separators;
 			if (separators == null || separators.length == 0)
 				error('Sheet needs separators for groupIds feature');
 			if (separators[0].index == null)
@@ -283,8 +271,8 @@ class Macros {
 
 				groupInits.push(macro var __gobj:Dynamic = {});
 
-				while (i < sheet.lines.length) {
-					var line = sheet.lines[i];
+				while (i < rootSheet.lines.length) {
+					var line = rootSheet.lines[i];
 					if (nextSep != null && nextSep.index == i)
 						break;
 					i++;
@@ -295,7 +283,7 @@ class Macros {
 					if (id == null || id == "" || pobj == null)
 						continue;
 
-					var result = buildField(polyCol, pobj, sheet, macro __o, id);
+					var result = buildField(polyCol, pobj, colSheet, macro __o, id);
 					if (result == null)
 						continue;
 					var block = [];
@@ -324,14 +312,13 @@ class Macros {
 			}
 		} else {
 			// Flat fields
-			for (line in sheet.getLines()) {
+			for (line in rootSheet.getLines()) {
 				var id = Reflect.field(line, idCol.name);
 				var pobj = getPolyObj(line);
 				if (id == null || id == "" || pobj == null)
 					continue;
 
-				trace("polyCol: " + polyCol.name, "pobj: " + pobj, "id: " + id);
-				var result = buildField(polyCol, pobj, sheet, macro __o, id);
+				var result = buildField(polyCol, pobj, colSheet, macro __o, id);
 				if (result == null)
 					continue;
 
