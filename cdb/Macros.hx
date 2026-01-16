@@ -66,7 +66,7 @@ class Macros {
 		}
 
 		inline function getData(id:String) {
-			return macro $module.$sheetName.get($module.$sheetKind.$id, true);
+			return macro $module.$sheetName.get($module.$sheetKind.$id);  // TODO: why too many arguments here ?
 		}
 
 		function extractTextArgs(val:String):Null<Array<haxe.macro.Expr.Field>> {
@@ -114,6 +114,7 @@ class Macros {
 		}
 
 		function buildField(col:cdb.Data.Column, colVal:Dynamic, sheet:Sheet, rowExpr:Expr, prefix:String):FieldBuild {
+			if(colVal == null) return null;
 			var colName = col.name;
 			switch (col.type) {
 				case TInt | TFloat | TBool | TCurve:
@@ -139,7 +140,7 @@ class Macros {
 					return {
 						type: refType,
 						vars: [],
-						init: col.opt ? 
+						init: col.opt ?
 							macro $module.$refTableName.resolve($rowExpr.$colName.toString()) :
 							macro $rowExpr.$colName == null ? null : $module.$refTableName.resolve($rowExpr.$colName.toString())
 					};
@@ -153,8 +154,10 @@ class Macros {
 				case TPolymorph:
 					var polySub = sheet.getSub(col);
 					var pval = getPolyVal(polySub, colVal);
+					if(pval == null) return null;
 					var polyVar = prefix + "_" + colName;
 					var result = buildField(pval.col, pval.val, polySub, macro $i{polyVar}, prefix);
+					if(result == null) return null;
 					result.vars.unshift(makeVar(polyVar, macro $rowExpr.$colName));
 					return result;
 				case TList:
@@ -183,6 +186,7 @@ class Macros {
 							var itemVar = prefix + "_" + sid;
 							var itemVal = Reflect.field(row, valCol.name);
 							var result = buildField(valCol, itemVal, sub, macro $i{arrVar}[$v{i}], itemVar);
+							if(result == null) return continue;
 							for (d in result.vars)
 								vars.push(d);
 							vars.push(makeVar(itemVar, result.init));
@@ -223,31 +227,32 @@ class Macros {
 				error('Sheet needs separators for groupIds feature');
 			if(separators[0].index == null)
 				error("groupIds need exported groups");
-			
+
 			var i = 0;
 			for (sepi in 0...separators.length) {
 				var sep = separators[sepi];
 				var nextSep = (sepi < separators.length - 1) ? separators[sepi + 1] : null;
-				
+
 				var groupFields = [];
 				var groupInits = [];
 
 				groupInits.push(macro var __gobj:Dynamic = {});
-				
+
 				while (i < sheet.lines.length) {
 					var line = sheet.lines[i];
 					if (nextSep != null && nextSep.index == i)
 						break;
 					i++;
-				
+
 
 					var id = Reflect.field(line, idCol.name);
 					var pobj = Reflect.field(line, polyCol.name);
-										
+
 					if (id == null || id == "" || pobj == null)
 						continue;
 
 					var result = buildField(polyCol, pobj, sheet, macro __o, id);
+					if(result == null) continue;
 					var block = [];
 					block.push(macro var __o:Dynamic = ${getData(id)});
 					for (d in result.vars)
@@ -262,7 +267,7 @@ class Macros {
 						access: [AFinal]
 					});
 				}
-				
+
 				groupInits.push(macro $i{sep.title} = cast __gobj);
 				initExprs.push(macro $b{groupInits});
 				fields.push({
@@ -281,6 +286,7 @@ class Macros {
 					continue;
 
 				var result = buildField(polyCol, pobj, sheet, macro __o, id);
+				if(result == null) continue;
 
 				var initBlock = [macro var __o:Dynamic = ${getData(id)}];
 				for (d in result.vars)
