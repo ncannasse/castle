@@ -50,10 +50,10 @@ class Macros {
 		var parts = path.split("@");
 		if (parts.length < 2)
 			error('Path must contain at least Sheet@Column, got: "${path}"');
-		
+
 		var sheetName = parts[0];
 		var polyPath = parts.slice(1);
-		
+
 		var rootSheet = db.getSheet(sheetName);
 		if (rootSheet == null)
 			error('Sheet "${sheetName}" not found');
@@ -67,7 +67,7 @@ class Macros {
 		var colSheet = db.getSheet(colSheetName);
 		if (colSheet == null)
 			error('Column sheet "${colSheetName}" not found');
-		
+
 		var colName = polyPath[polyPath.length - 1];
 		var polyCol = colSheet.columns.find(c -> c.name == colName);
 		if (polyCol == null)
@@ -91,8 +91,12 @@ class Macros {
 			return (moduleName + "." + Module.makeTypeName(tname)).toComplex();
 		}
 
-		inline function getData(id:String) {
-			return macro $module.$sheetName.get($module.$sheetKind.$id); // TODO: why too many arguments here ?
+		function getData(id:String) {
+			var e = macro $module.$sheetName.get($module.$sheetKind.$id);  // TODO: optional
+			for (i in 0...polyPath.length-1) {
+				e = {expr: EField(e, polyPath[i]), pos: pos};
+			}
+			return e;
 		}
 
 		function extractTextArgs(val:String):Null<Array<haxe.macro.Expr.Field>> {
