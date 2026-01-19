@@ -8,9 +8,10 @@ using haxe.macro.Tools;
 using Lambda;
 
 typedef FieldBuild = {
-	type:ComplexType,
-	vars:Array<Expr>,
-	init:Expr
+	var type:ComplexType;
+	var vars:Array<Expr>;
+	var load:Expr;
+	@:optional var init:Null<Expr>;
 }
 
 typedef BuildArgs = {
@@ -19,6 +20,9 @@ typedef BuildArgs = {
 
 	/** Whether to group consts by separator names */
 	@:optional var groupIds:Bool;
+
+	/** Whether to wrap load expressions in try/catch */
+	@:optional var safeLoad:Bool;
 }
 #end
 
@@ -33,6 +37,7 @@ class Macros {
 	public static function buildConsts(file:String, path:String, args:BuildArgs = null) {
 		var moduleName = args?.moduleName ?? "Data";
 		var groupIds = args?.groupIds ?? false;
+		var safeLoad = args?.safeLoad ?? false;
 
 		var fields = Context.getBuildFields();
 		var pos = Context.currentPos();
@@ -85,14 +90,14 @@ class Macros {
 
 		var module = macro $i{moduleName};
 
-		var initExprs = [];
+		var loadExprs = [];
 
 		inline function fullType(tname:String) {
 			return (moduleName + "." + Module.makeTypeName(tname)).toComplex();
 		}
 
 		function getData(id:String) {
-			var e = macro $module.$sheetName.get($module.$sheetKind.$id);  // TODO: optional
+			var e = macro $module.$sheetName.get($module.$sheetKind.$id);
 			for (i in 0...colPath.length-1) {
 				e = {expr: EField(e, colPath[i]), pos: pos};
 			}
@@ -123,7 +128,7 @@ class Macros {
 
 		inline function simpleType(t:cdb.Data.ColumnType):Null<ComplexType>
 			return switch (t) {
-				case TInt: macro :Int;
+				case TInt | TColor: macro :Int;
 				case TFloat: macro :Float;
 				case TBool: macro :Bool;
 				case TString: macro :String;
@@ -131,8 +136,8 @@ class Macros {
 				default: null;
 			};
 
-		inline function makeVar(name:String, initExpr:Expr):Expr
-			return {expr: EVars([{name: name, expr: initExpr}]), pos: pos};
+		inline function makeVar(name:String, loadExpr:Expr):Expr
+			return {expr: EVars([{name: name, expr: loadExpr}]), pos: pos};
 
 		function getPolyVal(polySub:Sheet, colVal:Dynamic):{col:cdb.Data.Column, val:Dynamic} {
 			for (pc in polySub.columns) {
@@ -148,20 +153,27 @@ class Macros {
 				return null;
 			var colName = col.name;
 			switch (col.type) {
-				case TInt | TFloat | TBool | TCurve:
+				case TInt | TColor | TFloat | TBool:
 					return {
 						type: simpleType(col.type),
 						vars: [],
-						init: macro $rowExpr.$colName
+						load: macro $rowExpr.$colName,
+						init: macro $v{colVal}
+					};
+				case TCurve:
+					return {
+						type: simpleType(col.type),
+						vars: [],
+						load: macro $rowExpr.$colName
 					};
 				case TString:
 					var textArgs = extractTextArgs(colVal);
 					if (textArgs == null)
-						return {type: macro :String, vars: [], init: macro $rowExpr.$colName};
+						return {type: macro :String, vars: [], load: macro $rowExpr.$colName};
 					return {
 						type: TFunction([TAnonymous(textArgs)], macro :String),
 						vars: [],
-						init: macro function(vars) {
+						load: macro function(vars) {
 							return cdb.Macros.formatText($rowExpr.$colName, vars);
 						}
 					};
@@ -171,14 +183,14 @@ class Macros {
 					return {
 						type: refType,
 						vars: [],
-						init: col.opt ? macro $module.$refTableName.resolve($rowExpr.$colName.toString()) : macro $rowExpr.$colName == null ? null : $module.$refTableName.resolve($rowExpr.$colName.toString())
+						load: col.opt ? macro $module.$refTableName.resolve($rowExpr.$colName.toString()) : macro $rowExpr.$colName == null ? null : $module.$refTableName.resolve($rowExpr.$colName.toString())
 					};
 				case TProperties:
 					var subType = fullType(sheet.getSub(col).name);
 					return {
 						type: subType,
 						vars: [],
-						init: macro $rowExpr.$colName
+						load: macro $rowExpr.$colName
 					};
 				case TPolymorph:
 					var polySub = sheet.getSub(col);
@@ -204,7 +216,7 @@ class Macros {
 
 						var val:Array<Dynamic> = colVal;
 						var fields = [];
-						var inits = [];
+						var loads = [];
 						var vars = [];
 
 						var arrVar = prefix + "_" + colName;
@@ -221,19 +233,19 @@ class Macros {
 								return continue;
 							for (d in result.vars)
 								vars.push(d);
-							vars.push(makeVar(itemVar, result.init));
+							vars.push(makeVar(itemVar, result.load));
 							fields.push({
 								name: sid,
 								pos: pos,
 								kind: FVar(result.type),
 								access: [AFinal]
 							});
-							inits.push({field: sid, expr: macro cast $i{itemVar}});
+							loads.push({field: sid, expr: macro cast $i{itemVar}});
 						}
 						return {
 							type: TAnonymous(fields),
 							vars: vars,
-							init: {expr: EObjectDecl(inits), pos: pos}
+							load: {expr: EObjectDecl(loads), pos: pos}
 						};
 					} else if (subCols.length == 1) {
 						var et = simpleType(subCols[0].type) ?? fullType(sub.name);
@@ -241,14 +253,14 @@ class Macros {
 						return {
 							type: macro :cdb.Types.ArrayRead<$et>,
 							vars: [],
-							init: macro [for (l in ($rowExpr.$colName:Array<Dynamic>)) (l : Dynamic).$valCol]
+							load: macro [for (l in ($rowExpr.$colName:Array<Dynamic>)) (l : Dynamic).$valCol]
 						};
 					} else {
 						var et = fullType(sub.name);
 						return {
 							type: macro :cdb.Types.ArrayRead<$et>,
 							vars: [],
-							init: macro $rowExpr.$colName
+							load: macro $rowExpr.$colName
 						};
 					}
 				default:
@@ -256,6 +268,14 @@ class Macros {
 					return null;
 			}
 		};
+
+		function safeWrap(id: String, expr:Expr):Expr {
+			if(safeLoad) {
+				var err = 'Failed to load "$path.$id"';
+				return macro try { $expr; } catch (e:Dynamic) { trace($v{err}); throw e; };
+			}
+			return expr;
+		}
 
 		if (groupIds) {
 			// Group fields by separators
@@ -271,9 +291,10 @@ class Macros {
 				var nextSep = (sepi < separators.length - 1) ? separators[sepi + 1] : null;
 
 				var groupFields = [];
-				var groupInits = [];
+				var initExprs = [];
+				var groupLoads = [];
 
-				groupInits.push(macro var __gobj:Dynamic = {});
+				groupLoads.push(macro var __gobj:Dynamic = {});
 
 				while (i < rootSheet.lines.length) {
 					var line = rootSheet.lines[i];
@@ -290,12 +311,17 @@ class Macros {
 					var result = buildField(buildCol, pobj, colSheet, macro __o, id);
 					if (result == null)
 						continue;
-					var block = [];
-					block.push(macro var __o:Dynamic = ${getData(id)});
-					for (d in result.vars)
-						block.push(d);
-					block.push(macro __gobj.$id = ${result.init});
-					groupInits.push(macro $b{block});
+
+					{
+						var block = [];
+						block.push(macro var __o:Dynamic = ${getData(id)});
+						for (d in result.vars)
+							block.push(d);
+						block.push(macro __gobj.$id = ${result.load});
+						groupLoads.push(safeWrap(id, macro $b{block}));
+					}
+
+					initExprs.push({field: id, expr: result.init ?? macro cast null});
 
 					groupFields.push({
 						name: id,
@@ -305,13 +331,15 @@ class Macros {
 					});
 				}
 
-				groupInits.push(macro $i{sep.title} = cast __gobj);
-				initExprs.push(macro $b{groupInits});
+				groupLoads.push(macro $i{sep.title} = cast __gobj);
+				loadExprs.push(macro $b{groupLoads});
 				fields.push({
 					name: sep.title,
 					pos: pos,
 					access: [AStatic, APublic],
-					kind: FVar(TAnonymous(groupFields), null)
+					kind: FVar(TAnonymous(groupFields), {
+						expr: EObjectDecl(initExprs), pos: pos
+					})
 				});
 			}
 		} else {
@@ -326,17 +354,17 @@ class Macros {
 				if (result == null)
 					continue;
 
-				var initBlock = [macro var __o:Dynamic = ${getData(id)}];
+				var loadBlock = [macro var __o:Dynamic = ${getData(id)}];
 				for (d in result.vars)
-					initBlock.push(d);
-				initBlock.push(macro $i{id} = ${result.init});
-				initExprs.push(macro $b{initBlock});
+					loadBlock.push(d);
+				loadBlock.push(macro $i{id} = ${result.load});
+				loadExprs.push(safeWrap(id, macro $b{loadBlock}));
 
 				fields.push({
 					name: id,
 					pos: pos,
 					access: [AStatic, APublic],
-					kind: FVar(result.type, null)
+					kind: FVar(result.type, result.init)
 				});
 			}
 		}
@@ -345,7 +373,7 @@ class Macros {
 			name: "reload",
 			pos: pos,
 			access: [AStatic, APublic],
-			kind: FFun({args: [], ret: macro :Void, expr: macro $b{initExprs}})
+			kind: FFun({args: [], ret: macro :Void, expr: macro $b{loadExprs}})
 		});
 
 		return fields;
