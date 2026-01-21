@@ -156,6 +156,67 @@ class Database {
 		return addSheet(s, index < 0 ? null : index + 1);
 	}
 
+	function unlinkStructRef(parent:Sheet, c:Column):Void {
+		var srcSheetName = c.structRef;
+		var destSheetName = parent.name + "@" + c.name;
+
+		function copyRec(srcName:String, destName:String, parent:Sheet, c:Column):Void {
+			var srcSheet = getSheet(srcName);
+			if (srcSheet == null)
+				return;
+
+			var s:cdb.Data.SheetData = {
+				name: destName,
+				props: {hide: true},
+				separators: [],
+				lines: [],
+				columns: [],
+			};
+			if (c.type == TProperties || c.type == TPolymorph)
+				s.props.isProps = true;
+
+			for (srcCol in srcSheet.columns) {
+				var nc:cdb.Data.Column = {
+					name: srcCol.name,
+					type: srcCol.type,
+					typeStr: srcCol.typeStr,
+				};
+				if (srcCol.opt != null) nc.opt = srcCol.opt;
+				if (srcCol.display != null) nc.display = srcCol.display;
+				if (srcCol.kind != null) nc.kind = srcCol.kind;
+				if (srcCol.scope != null) nc.scope = srcCol.scope;
+				if (srcCol.documentation != null) nc.documentation = srcCol.documentation;
+				if (srcCol.editor != null) nc.editor = srcCol.editor;
+				if (srcCol.defaultValue != null) nc.defaultValue = srcCol.defaultValue;
+				if (srcCol.shared != null) nc.shared = srcCol.shared;
+				if (srcCol.structRef != null) nc.structRef = srcCol.structRef;
+				s.columns.push(nc);
+			}
+
+			// Find insertion point (after parent, accounting for other subs)
+			var index = data.sheets.indexOf(Lambda.find(data.sheets, function(sh) return sh.name == parent.name));
+			for (c2 in parent.columns) {
+				if (c == c2)
+					break;
+				if (c2.type.match(TProperties | TList | TPolymorph)) {
+					var sub = parent.getSub(c2);
+					index = data.sheets.indexOf(@:privateAccess sub.sheet);
+				}
+			}
+			var destSheet = addSheet(s, index < 0 ? null : index + 1);
+
+			for (col in s.columns) {
+				if ((col.type == TList || col.type == TProperties || col.type == TPolymorph) && col.structRef == null) {
+					var nestedSrcName = srcName + "@" + col.name;
+					var nestedDestName = destName + "@" + col.name;
+					copyRec(nestedSrcName, nestedDestName, destSheet, col);
+				}
+			}
+		}
+		
+		copyRec(srcSheetName, destSheetName, parent, c);
+	}
+
 	public function sync() {
 		smap = new Map();
 		for( s in sheets )
@@ -396,8 +457,14 @@ class Database {
 		if( old.structRef != c.structRef ) {
 			if( old.type == TList || old.type == TProperties || old.type == TPolymorph ) {
 				if( old.structRef != null && c.structRef == null ) {
+					var refSheet = sheet.base.getSheet(old.structRef);
+					if( refSheet != null ) {
+						var needProps = c.type == TProperties || c.type == TPolymorph;
+						if( refSheet.props.isProps != needProps )
+							return "Cannot unlink: type mismatch";
+					}
+					sheet.base.unlinkStructRef(sheet, old);
 					old.structRef = null;
-					sheet.base.createSubSheet(sheet, old);
 				}
 				else if( old.structRef == null && c.structRef != null ) {
 					var subSheet = sheet.base.getSheet(sheet.name + "@" + old.name);
