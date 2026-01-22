@@ -133,6 +133,12 @@ class Macros {
 				case TBool: macro :Bool;
 				case TString: macro :String;
 				case TCurve: macro :cdb.Types.Curve;
+				case TGradient: macro :cdb.Types.Gradient;
+				case TImage: macro :String;
+				case TFile: macro :String;
+				case TTilePos: macro :cdb.Types.TilePos;
+				case TTileLayer: macro :cdb.Types.TileLayer;
+				case TDynamic: macro :Dynamic;
 				default: null;
 			};
 
@@ -154,6 +160,7 @@ class Macros {
 		function buildField(col:cdb.Data.Column, colVal:Dynamic, sheet:Sheet, rowExpr:Expr, prefix:String):FieldBuild {
 			if (colVal == null)
 				return null;
+			rowExpr = macro ($rowExpr : Dynamic);
 			var colName = col.name;
 			switch (col.type) {
 				case TInt | TColor | TFloat | TBool:
@@ -163,7 +170,7 @@ class Macros {
 						load: macro $rowExpr.$colName,
 						init: macro $v{colVal}
 					};
-				case TCurve:
+				case TCurve | TGradient | TImage | TFile | TTilePos | TTileLayer | TDynamic:
 					return {
 						type: simpleType(col.type),
 						vars: [],
@@ -223,7 +230,7 @@ class Macros {
 						var vars = [];
 
 						var arrVar = prefix + "_" + colName;
-						vars.push(makeVar(arrVar, debugPos(macro ($rowExpr : Dynamic).$colName, 'field: $arrVar')));
+						vars.push(makeVar(arrVar, debugPos(macro $rowExpr.$colName, 'field: $arrVar')));
 
 						for (i => row in val) {
 							var sid:String = Reflect.field(row, idCol.name);
