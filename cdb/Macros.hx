@@ -97,7 +97,7 @@ class Macros {
 		}
 
 		function getData(id:String) {
-			var e = macro $module.$sheetName.get($module.$sheetKind.$id);
+			var e : Dynamic = macro $module.$sheetName.get($module.$sheetKind.$id);
 			for (i in 0...colPath.length-1) {
 				e = {expr: EField(e, colPath[i]), pos: pos};
 			}
@@ -138,6 +138,9 @@ class Macros {
 
 		inline function makeVar(name:String, loadExpr:Expr):Expr
 			return {expr: EVars([{name: name, expr: loadExpr}]), pos: pos};
+
+		inline function debugPos(e:Expr, info:String):Expr
+			return {expr: e.expr, pos: Context.makePosition({file: info, min: 0, max: 0})};
 
 		function getPolyVal(polySub:Sheet, colVal:Dynamic):{col:cdb.Data.Column, val:Dynamic} {
 			for (pc in polySub.columns) {
@@ -220,7 +223,7 @@ class Macros {
 						var vars = [];
 
 						var arrVar = prefix + "_" + colName;
-						vars.push(makeVar(arrVar, macro $rowExpr.$colName));
+						vars.push(makeVar(arrVar, debugPos(macro ($rowExpr : Dynamic).$colName, 'field: $arrVar')));
 
 						for (i => row in val) {
 							var sid:String = Reflect.field(row, idCol.name);
