@@ -639,7 +639,14 @@ class Module {
 					if( col.kind == Hidden ) continue;
 					var colName = col.name;
 					var caseName = makeTypeName(col.name);
-					var enumExpr = macro $i{tname}.$caseName(cast obj.$colName);
+					var colValue = macro obj.$colName;
+					switch( col.type ) {
+					case TRef(s):
+						var fname = fieldName(s);
+						colValue = macro $i{modName}.$fname.resolve($colValue);
+					default:
+					}
+					var enumExpr = macro $i{tname}.$caseName(cast $colValue);
 					exprs.push(macro if( obj.$colName != null ) return obj.__value = $enumExpr);
 				}
 				exprs.push(macro throw "No polymorph value set");
