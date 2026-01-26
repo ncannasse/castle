@@ -62,35 +62,76 @@ class Lang {
 		return null;
 	}
 
-	function makeLocField(c:Column, s:SheetData) {
+	function makeLocField(c:Column, s:SheetData, cache: Map<Column, LocField>) {
 		switch( c.type ) {
 		case TString if( c.kind == Localizable ):
 			return LName(c);
 		case TList, TProperties, TPolymorph:
+			if(cache.exists(c))
+				return cache.get(c);
 			var ssub = getSub(s,c);
-			var fl = makeSheetFields(ssub);
-			if( fl.length == 0 )
-				return null;
-			return LSub(c, ssub, fl);
+			var fl = [];
+			var r = LSub(c, ssub, fl);
+			cache.set(c, r);
+			for(sc in ssub.columns ) {
+				var f = makeLocField(sc, ssub, cache);
+				if( f != null )
+					fl.push(f);
+			}
+			return r;
 		default:
 			return null;
 		}
 	}
 
 	function makeSheetFields(s:SheetData) : Array<LocField> {
-		var fields = [];
+		var cache : Map<Column, LocField> = new Map();
+		var fields : Array<LocField> = [];
 		for( c in s.columns ) {
-			var f = makeLocField(c, s);
+			var f = makeLocField(c, s, cache);
 			if( f != null )
-				switch( f ) {
-				case LSub(c, _, fl) if( c.type == TProperties || c.type == TPolymorph ):
-					for( f in fl )
-						fields.push(LSingle(c, f));
-				default:
-					fields.push(f);
-				}
+				fields.push(f);
 		}
-		return fields;
+
+		var map = new Map<LocField, Array<LocField>>();
+		function flattenRec(f:LocField) : Array<LocField> {
+			if( map.exists(f) )
+				return map.get(f);
+
+			var ret = [];
+			map.set(f, ret);
+
+			switch( f ) {
+				case LName(_):
+					ret.push(f);
+				case LSingle(c, inner):
+					for( ff in flattenRec(inner) )
+						ret.push(LSingle(c, ff));
+				case LSub(c, sub, fl):
+					if( fl.length == 0 ) 
+						return [];
+					else if( c.type == TProperties || c.type == TPolymorph ) {
+						for( inner in fl )
+							for( ff in flattenRec(inner) )
+								ret.push(LSingle(c, ff));
+					}
+					else {
+						var flat = [];
+						for( inner in fl )
+							for( ff in flattenRec(inner) )
+								flat.push(ff);
+						ret.push(LSub(c, sub, flat));
+					}
+			}
+			return ret;
+		}
+
+		var ret = [];
+		for( field in fields ) {
+			for( f in flattenRec(field) )
+				ret.push(f);
+		}
+		return ret;
 	}
 
 	static var NODES : Map<String,String>;
