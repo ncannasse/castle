@@ -574,6 +574,12 @@ class Module {
 						})
 					});
 				}
+				fields.push({
+					name : "toString",
+					pos : pos,
+					access : [APublic, AInline],
+					kind : FFun({ args : [], ret : null, expr : macro return Std.string(this) }),
+				});
 				types.push({
 					pos : pos,
 					name : tname+"Guid",
