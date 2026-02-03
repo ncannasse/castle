@@ -644,10 +644,10 @@ class IndexId<T,Kind> extends Index<T> {
 
 }
 
-#if hl
-abstract GuidMap<K,V>(hl.types.Int64Map) {
+#if haxe5
+abstract GuidMap<K,V>(Map<haxe.Int64,V>) {
 	public inline function new() {
-		this = new hl.types.Int64Map();
+		this = new Map();
 	}
 	public inline function set( key : GuidInt<K>, value : V ) {
 		this.set(key, value);
@@ -655,8 +655,8 @@ abstract GuidMap<K,V>(hl.types.Int64Map) {
 	public inline function get( key : GuidInt<K> ) : V {
 		return this.get(key);
 	}
-	public inline function exists( key : GuidInt<K> ) {
-		return this.exists(key);
+	public inline function keys() : Iterator<GuidInt<K>> {
+		return cast this.keys();
 	}
 }
 #else
@@ -666,7 +666,10 @@ class GuidMap<K,V> {
 	public function set( key : GuidInt<K>, value : V ) {
 	}
 	public function get( key : GuidInt<K> ) : V {
-		throw "Map<Int64> not implemented on this platform";
+		throw "Map<Int64> requires haxe5";
+	}
+	public inline function keys() : Iterator<K> {
+		return [].iterator();
 	}
 }
 #end
@@ -708,6 +711,16 @@ class IndexGuid<T,Kind> extends IndexId<T,Kind> {
 				break;
 			default:
 			}
+	}
+
+	override function reload(data:Data) {
+		var prev = byGUID;
+		super.reload(data);
+		if( prev == null ) return;
+		for( id in byGUID.keys() ) {
+			var oldObj = prev.get(id);
+			if( oldObj != null ) byGUID.set(id, oldObj);
+		}
 	}
 
 	public dynamic function getDefault() : T {
