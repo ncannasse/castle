@@ -668,7 +668,7 @@ class GuidMap<K,V> {
 	public function get( key : GuidInt<K> ) : V {
 		throw "Map<Int64> requires haxe5";
 	}
-	public inline function keys() : Iterator<K> {
+	public inline function keys() : Iterator<GuidInt<K>> {
 		return [].iterator();
 	}
 }
