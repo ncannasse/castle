@@ -92,8 +92,13 @@ class Macros {
 
 		var loadExprs = [];
 
-		inline function fullType(tname:String) {
-			return (moduleName + "." + Module.makeTypeName(tname)).toComplex();
+		var fullTypes = new Map<String, ComplexType>();
+		function fullType(tname:String) {
+			if(fullTypes.exists(tname))
+				return fullTypes.get(tname);
+			var type = (moduleName + "." + Module.makeTypeName(tname)).toComplex();
+			fullTypes.set(tname, type);
+			return type;
 		}
 
 		function getData(id:String) {
@@ -126,8 +131,11 @@ class Macros {
 			return args;
 		}
 
-		inline function simpleType(t:cdb.Data.ColumnType):Null<ComplexType>
-			return switch (t) {
+		var simpleTypes = new Map<cdb.Data.ColumnType, ComplexType>();
+		function simpleType(t:cdb.Data.ColumnType):Null<ComplexType> {
+			if(simpleTypes.exists(t))
+				return simpleTypes.get(t);
+			var type = switch (t) {
 				case TInt | TColor: macro :Int;
 				case TFloat: macro :Float;
 				case TBool: macro :Bool;
@@ -141,6 +149,9 @@ class Macros {
 				case TDynamic: macro :Dynamic;
 				default: null;
 			};
+			simpleTypes.set(t, type);
+			return type;
+		}
 
 		inline function makeVar(name:String, loadExpr:Expr):Expr
 			return {expr: EVars([{name: name, expr: loadExpr}]), pos: pos};
@@ -225,12 +236,18 @@ class Macros {
 						var valCol = subCols[0];
 
 						var val:Array<Dynamic> = colVal;
-						var fields = [];
+						var fields:Array<haxe.macro.Expr.Field> = [];
 						var loads = [];
 						var vars = [];
+						var keys:Array<Expr> = [];
+						var valueType:ComplexType = null;
+						var iterator = true;
+						var thisVar = prefix + "_ref";
+						var keysVar = prefix + "_keys";
 
 						var arrVar = prefix + "_" + colName;
 						vars.push(makeVar(arrVar, debugPos(macro $rowExpr.$colName, 'field: $arrVar')));
+						vars.push(makeVar(thisVar, macro null));
 
 						for (i => row in val) {
 							var sid:String = Reflect.field(row, idCol.name);
@@ -251,11 +268,41 @@ class Macros {
 								access: [AFinal]
 							});
 							loads.push({field: sid, expr: macro cast $i{itemVar}});
+							if(iterator) {
+								keys.push(macro $v{sid});
+								if (valueType == null)
+									valueType = result.type;
+								// comparison relies on memoized types in fullType and simpleType
+								else if(!Type.enumEq(valueType, result.type))
+									iterator = false;
+							}
 						}
+
+						vars.push(makeVar(keysVar, {expr: EArrayDecl(keys), pos: pos}));
+						if (iterator) {
+							var iterElemType:ComplexType = TAnonymous([
+								{name: idCol.name, pos: pos, kind: FVar(macro :String)},
+								{name: valCol.name, pos: pos, kind: FVar(valueType)}
+							]);
+							fields.push({
+								name: "iterator",
+								pos: pos,
+								kind: FFun({args: [], ret: macro :Iterator<$iterElemType>, expr: null}),
+								meta: [{name: ":noCompletion", pos: pos}]
+							});
+							var iterBody:Expr = {expr: EObjectDecl([{field: idCol.name, expr: macro key}, {field: valCol.name, expr: macro cast Reflect.field($i{thisVar}, key)}]), pos: pos};
+							loads.push({
+								field: "iterator",
+								expr: macro() -> [for (key in $i{keysVar}) $iterBody].iterator()
+							});
+						}
+
+						var objExpr:Expr = {expr: EObjectDecl(loads), pos: pos};
+						vars.push(macro $i{thisVar} = $objExpr);
 						return {
 							type: TAnonymous(fields),
 							vars: vars,
-							load: {expr: EObjectDecl(loads), pos: pos}
+							load: macro $i{thisVar}
 						};
 					} else if (subCols.length == 1) {
 						var et = simpleType(subCols[0].type) ?? fullType(sub.name);
@@ -367,7 +414,7 @@ class Macros {
 				var loadBlock = [macro var __o:Dynamic = ${getData(id)}];
 				for (d in result.vars)
 					loadBlock.push(d);
-				loadBlock.push(macro $i{id} = ${result.load});
+				loadBlock.push(macro $i{id} = cast ${result.load});
 				loadExprs.push(safeWrap(id, macro $b{loadBlock}));
 
 				fields.push({
