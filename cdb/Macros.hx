@@ -305,12 +305,52 @@ class Macros {
 							load: macro $i{thisVar}
 						};
 					} else if (subCols.length == 1) {
-						var et = simpleType(subCols[0].type) ?? fullType(sub.name);
-						var valCol = subCols[0].name;
+						var vcol = subCols[0];
+						var vname = vcol.name;
+						var valueType : ComplexType;
+						var loadExpr:Expr = macro (l : Dynamic).$vname;
+
+						if (vcol.type == TPolymorph) {
+							// Special case, list of polymorphs of identical type
+							var polyCol : String = null;
+							var polySub = sub.getSub(vcol);
+
+							for (row in (colVal : Array<Dynamic>)) {
+								var cv = Reflect.field(row, vname);
+								if (cv == null) continue;
+								var pval = getPolyVal(polySub, cv);
+								if (pval == null) continue;
+
+								var result = buildField(pval.col, pval.val, polySub, macro cv, prefix);
+								if (result == null) {
+									valueType = null;
+									break;
+								}
+								if (valueType == null) {
+									valueType = result.type;
+									polyCol = pval.col.name;
+								}
+								// comparison relies on memoized types in fullType and simpleType
+								else if (!Type.enumEq(valueType, result.type)) {
+									valueType = null;
+									break;
+								}
+								else if (polyCol != pval.col.name) {
+									valueType = null;
+									break;
+								}
+							}
+							if (valueType != null && polyCol != null)
+								loadExpr = macro ($loadExpr : Dynamic).$polyCol;
+						}
+
+						if(valueType == null)
+							valueType = simpleType(vcol.type) ?? fullType(sub.name);
+
 						return {
-							type: macro :cdb.Types.ArrayRead<$et>,
+							type: macro :cdb.Types.ArrayRead<$valueType>,
 							vars: [],
-							load: macro [for (l in ($rowExpr.$colName:Array<Dynamic>)) (l : Dynamic).$valCol]
+							load: macro [for (l in ($rowExpr.$colName:Array<Dynamic>)) $loadExpr]
 						};
 					} else {
 						var et = fullType(sub.name);
