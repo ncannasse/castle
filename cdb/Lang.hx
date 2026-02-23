@@ -62,17 +62,18 @@ class Lang {
 		return null;
 	}
 
-	function makeLocField(c:Column, s:SheetData, cache: Map<Column, LocField>) {
+	function makeLocField(c:Column, s:SheetData, cache: Array<{ c: Column, f: LocField }>) {
 		switch( c.type ) {
 		case TString if( c.kind == Localizable ):
 			return LName(c);
 		case TList, TProperties, TPolymorph:
-			if(cache.exists(c))
-				return cache.get(c);
+			var item = Lambda.find(cache, function(item) return item.c == c);
+			if(item != null)
+				return item.f;
 			var ssub = getSub(s,c);
 			var fl = [];
 			var r = LSub(c, ssub, fl);
-			cache.set(c, r);
+			cache.push({ c: c, f: r });
 			for(sc in ssub.columns ) {
 				var f = makeLocField(sc, ssub, cache);
 				if( f != null )
@@ -85,7 +86,7 @@ class Lang {
 	}
 
 	function makeSheetFields(s:SheetData) : Array<LocField> {
-		var cache : Map<Column, LocField> = new Map();
+		var cache = [];
 		var fields : Array<LocField> = [];
 		for( c in s.columns ) {
 			var f = makeLocField(c, s, cache);
@@ -93,13 +94,15 @@ class Lang {
 				fields.push(f);
 		}
 
-		var map = new Map<LocField, Array<LocField>>();
+		// don't use actual maps because in js they pollute the objects with __id__ fields
+		var map = new Array<{ f: LocField, flat: Array<LocField> }>();
 		function flattenRec(f:LocField) : Array<LocField> {
-			if( map.exists(f) )
-				return map.get(f);
+			var item = Lambda.find(map, function(item) return item.f == f);
+			if( item != null )
+				return item.flat;
 
 			var ret = [];
-			map.set(f, ret);
+			map.push({ f: f, flat: ret });
 
 			switch( f ) {
 				case LName(_):
