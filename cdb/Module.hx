@@ -655,7 +655,7 @@ class Module {
 					var enumExpr = macro $i{tname}.$caseName(cast $colValue);
 					exprs.push(macro if( obj.$colName != null ) return obj.__value = $enumExpr);
 				}
-				exprs.push(macro throw "No polymorph value set");
+				exprs.push(macro return null);
 				types.push({
 					pos : pos,
 					name : tname + "Helper",
