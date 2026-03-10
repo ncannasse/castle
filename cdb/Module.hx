@@ -17,6 +17,11 @@ package cdb;
 import haxe.macro.Context;
 using haxe.macro.Tools;
 
+private typedef SubsheetLineRef = {
+	var parent : Dynamic;
+	var line : Dynamic;
+}
+
 class Module {
 
 	#if macro
@@ -106,46 +111,56 @@ class Module {
 	}
 
 	static function getSheetLines( sheets : Array<Data.SheetData>, s : Data.SheetData ) {
+		return [for (r in getSheetLineRefs(sheets, s)) r.line];
+	}
+
+	static function getSheetLineRefs(sheets:Array<Data.SheetData>, s:Data.SheetData) : Array<SubsheetLineRef> {
 		if( s.props.dataFiles != null )
 			return [];
 		if( !s.props.hide )
-			return s.lines;
+			return [for (line in s.lines) { parent : null, line : line }];
+
 		var name = s.name.split("@");
 		var col = name.pop();
-		var parent = name.join("@");
+		var parentName = name.join("@");
+
 		var psheet = null;
 		for( sp in sheets )
-			if( sp.name == parent ) {
+			if( sp.name == parentName ) {
 				psheet = sp;
 				break;
 			}
+
 		if( psheet == null )
-			return s.lines;
+			return [for (line in s.lines) { parent : null, line : line }];
 
 		var pcol = null;
-		for( c in psheet.columns ) {
+		for( c in psheet.columns )
 			if( c.name == col ) {
 				pcol = c;
 				break;
 			}
-		}
 
 		var out = [];
-		for( o in getSheetLines(sheets,psheet) ) {
-			if (pcol != null && (pcol.type == TProperties || pcol.type == TPolymorph)) {
-				var obj = Reflect.field(o, col);
+		for( pref in getSheetLineRefs(sheets, psheet) ) {
+			var owner = pref.line;
+
+			if( pcol != null && (pcol.type == TProperties || pcol.type == TPolymorph) ) {
+				var obj = Reflect.field(owner, col);
 				if( obj != null )
-					out.push(obj);
+					out.push({ parent : owner, line : obj });
 			} else {
-				var objs : Array<Dynamic> = Reflect.field(o, col);
-				if( objs != null )
-					for( o in objs )
-						out.push(o);
+				var objs : Dynamic = Reflect.field(owner, col);
+				if( objs == null ) continue;
+				if( !Std.isOfType(objs, Array) ) objs = [objs];
+				for( obj in cast(objs, Array<Dynamic>) )
+					out.push({ parent : owner, line : obj });
 			}
 		}
 		return out;
 	}
 
+	#if macro
 	public static function getDataPath(file: String) {
 		var pos = Context.currentPos();
 		var path = try Context.resolvePath(file) catch (e:Dynamic) null;
@@ -181,6 +196,7 @@ class Module {
 		dataCache.set(file, data);
 		return data;
 	}
+	#end
 
 	public static function build( file : String, ?typeName : String ) {
 		#if !macro
@@ -241,7 +257,6 @@ class Module {
 			var guidField = null;
 
 			var polyFields : Array<haxe.macro.Expr.Field> = polySheets.exists(s.name) ? [] : null;
-
 			for( c in s.columns ) {
 
 				if( c.kind == Hidden ) continue;
@@ -459,7 +474,11 @@ class Module {
 						kind : FFun({
 							ret : t,
 							args : [],
-							expr : c.opt ? macro return this.$cname == null ? null : $i{name + "Builder"}.build(this.$cname) : macro return $i{name + "Builder"}.build(this.$cname),
+							expr : c.opt
+								? macro return this.$cname == null 
+									? null 
+									: $i{name + "Builder"}.build(this.$cname, this)
+								: macro return $i{name + "Builder"}.build(this.$cname, this),
 						}),
 						access : [AInline,APrivate],
 					});
@@ -764,6 +783,22 @@ class Module {
 				}
 				],
 			});
+			function getRefResolutionKind(sheetName:String) {
+				var rs = hsheets.get(sheetName);
+				if (rs == null) return "global";
+				
+				if (!rs.props.hide) return "global";
+
+				for (c in rs.columns) {
+					switch (c.type) {
+						case TId:
+							return c.scope == null ? "global" : "scoped";
+						default:
+					}
+				}
+				return "global";
+			}
+			
 			// build enum values
 			var cases = new Array<haxe.macro.Expr.Case>();
 			for( i in 0...t.cases.length ) {
@@ -776,14 +811,19 @@ class Module {
 						macro v[$v { ai + 1 } ];
 					case TCustom(id):
 						if( a.opt )
-							macro { var tmp = v[$v{ai+1}]; tmp == null ? null : $i{id+"Builder"}.build(tmp); }
+							macro { var tmp = v[$v{ai+1}]; tmp == null ? null : $i{id+"Builder"}.build(tmp, null); }
 						else
-							macro $i{id+"Builder"}.build(v[$v{ai+1}]);
+							macro $i{id+"Builder"}.build(v[$v{ai+1}], null);
 					case TRef(_) if( a.kind == TypeKind ):
 						macro v[$v { ai + 1 } ];
 					case TRef(s):
 						var fname = fieldName(s);
-						macro $i{modName}.$fname.resolve(v[$v{ai+1}]);
+						switch (getRefResolutionKind(s)) {
+							case "scoped":
+								macro $i{modName}.$fname.resolveScoped(scope, v[$v{ai+1}]);
+							default:
+								macro $i{modName}.$fname.resolve(v[$v{ai+1}]);
+							}
 					case TList, TLayer(_), TTilePos, TProperties, TPolymorph:
 						throw "assert";
 					}
@@ -798,6 +838,7 @@ class Module {
 				expr : ESwitch(macro v[0], cases, macro throw "Invalid value " + v),
 				pos : pos,
 			};
+			
 			types.push({
 				pos : pos,
 				name : t.name + "Builder",
@@ -811,7 +852,10 @@ class Module {
 						kind : FFun( {
 							ret : t.name.toComplex(),
 							expr : macro return $expr,
-							args : [{ name : "v",type: macro:Array<Dynamic>, opt:false}],
+							args : [
+								{ name : "v", type: macro:Array<Dynamic>, opt:false },
+								{ name : "scope", type: macro:Dynamic, opt:true },
+							],
 						}),
 					}
 				]
@@ -820,7 +864,7 @@ class Module {
 
 		var assigns = [], fields = new Array<haxe.macro.Expr.Field>();
 		for( s in data.sheets ) {
-			if( s.props.hide || s.props.dataFiles != null ) continue;
+			if( s.props.dataFiles != null ) continue;
 			var tname = makeTypeName(s.name);
 			var t = tname.toComplex();
 			var fname = fieldName(s.name);
@@ -860,6 +904,47 @@ class Module {
 				}
 				public static function load( content : String, allowReload = false ) {
 					root = cdb.Parser.parse(content, false);
+
+					var scopedRoots = new Array<String>();
+
+					for (s in root.sheets) {
+						if (s.props.dataFiles != null || !s.props.hide)
+							continue;
+
+						for (col in s.columns) {
+							switch (col.type) {
+								case TId:
+									if (col.scope != null) {
+										scopedRoots.push(s.name);
+									}
+									break;
+								case _:
+							}
+						}
+					}
+
+					function isInScopedSubtree(name:String):Bool {
+						for (rootName in scopedRoots) {
+							if (name == rootName || StringTools.startsWith(name, rootName + "@"))
+								return true;
+						}
+						return false;
+					}
+
+					for (s in root.sheets) {
+						if (s.props.dataFiles != null)
+							continue;
+
+						if (!isInScopedSubtree(s.name))
+							continue;
+
+						@:privateAccess
+						var refs = cdb.Module.getSheetLineRefs(root.sheets, s);
+
+						for (r in refs) {
+							Reflect.setField(r.line, "__cdbParent", r.parent);
+						}
+					}
 					{$a{assigns}};
 				}
 			}).fields.concat(fields),
