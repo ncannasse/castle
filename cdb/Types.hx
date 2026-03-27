@@ -529,15 +529,22 @@ class Index<T> {
 	function initSheet(data:Data) {
 		for( s in data.sheets )
 			if( s.name == name ) {
-				all = cast s.lines;
 				this.sheet = s;
-				initLines(s);
+				if (s.props.hide) {
+					all = cast SubsheetCache.getLines(data, name);
+				} else {
+					all = cast s.lines;
+					initLines(s);
+				}
 				break;
 			}
 	}
-
+	
 	static function initLines( sheet : Data.SheetData ) {
-		var lines = sheet.lines;
+		initLinesVirtual(sheet, sheet.lines);
+	}
+
+	static function initLinesVirtual( sheet : Data.SheetData, lines : Array<Dynamic> ) {
 		if( sheet.props.hasIndex )
 			for( i in 0...lines.length )
 				lines[i].index = i;
@@ -570,12 +577,36 @@ class IndexId<T,Kind> extends Index<T> {
 
 	var byIndex : Array<T>;
 	var byId : Map<String,T>;
+	var localScoped : Bool = false;
+	var byScopedId : haxe.ds.ObjectMap<Dynamic, Map<String, T>>;
 
 	override function initSheet(data:Data) {
 		super.initSheet(data);
 		byId = new Map();
 		byIndex = [];
-		if( sheet == null ) return; // will throw in new()
+		byScopedId = null;
+		localScoped = false;
+
+		if( sheet == null ) return;
+
+		if (sheet.props.hide) {
+			var entry = SubsheetCache.getEntry(data, name);
+
+			for (a in cast(entry.lines, Array<Dynamic>))
+				byIndex.push(a);
+
+			if (entry.idColumn != null) {
+				if (entry.idColumn.scope == null) {
+					for (k => v in entry.byGlobalId)
+						byId.set(k, cast v);
+				} else {
+					localScoped = true;
+					byScopedId = cast entry.byScopedId;
+				}
+			}
+			return;
+		}
+
 		for( c in sheet.columns )
 			switch( c.type ) {
 			case TId:
@@ -595,7 +626,11 @@ class IndexId<T,Kind> extends Index<T> {
 	function reload( data : Data ) {
 		var oldId = byId;
 		var oldIndex = byIndex;
+		var oldAll : Array<Dynamic> = cast all;
+		var wasHidden = sheet != null && sheet.props.hide;
+
 		initSheet(data);
+
 		for( id in byId.keys() ) {
 			var oldObj = oldId.get(id);
 			if( oldObj == null ) continue;
@@ -611,7 +646,11 @@ class IndexId<T,Kind> extends Index<T> {
 			// erase newObj
 			var idx = byIndex.indexOf(newObj);
 			if( idx >= 0 ) byIndex[idx] = oldObj;
-			sheet.lines[sheet.lines.indexOf(newObj)] = oldObj;
+
+			var allArr : Array<Dynamic> = cast all;
+			var lineIdx = allArr.indexOf(newObj);
+			if( lineIdx >= 0 ) allArr[lineIdx] = oldObj;
+
 			byId.set(id, oldObj);
 		}
 	}
@@ -628,6 +667,10 @@ class IndexId<T,Kind> extends Index<T> {
 
 	public function resolve( id : String, ?opt : Bool, ?approximate : Bool ) : T {
 		if( id == null ) return null;
+
+		if (localScoped)
+			throw "Cannot resolve hidden subsheet '" + name + "' globally because its id scope is local, want id: String";
+
 		var v = byId.get(id);
 		if( v == null && approximate ) {
 			id = id.toLowerCase();
@@ -642,6 +685,24 @@ class IndexId<T,Kind> extends Index<T> {
 		return v == null && !opt ? throw "Missing " + name + "." + id : v;
 	}
 
+	public function resolveScoped(scopeObj:Dynamic, id:String, ?opt:Bool) : T {
+
+		if (id == null) 
+			return null;
+
+		if (!localScoped)
+			return resolve(id, opt);
+		
+		var cdbParent = scopeObj.__cdbParent;
+		while (!byScopedId.exists(cdbParent) ) {
+
+			cdbParent = cdbParent.__cdbParent;
+		}
+		
+		var scopeMap = byScopedId == null ? null : byScopedId.get(cdbParent);
+		var v = scopeMap == null ? null : scopeMap.get(id);
+		return v == null && !opt ? throw "Missing " + name + "." + id : v;
+	}
 }
 
 #if haxe5
@@ -690,11 +751,14 @@ class IndexGuid<T,Kind> extends IndexId<T,Kind> {
 			}
 		}
 		#end
+
+		var source : Array<Dynamic> = cast all;
+
 		for( c in sheet.columns )
 			switch( c.type ) {
 			case TGuid:
 				var cname = c.name;
-				for( a in sheet.lines ) {
+				for( a in source ) {
 					var id : Guid<T> = Reflect.field(a, cname);
 					if( id != null && id != cast "" ) {
 						var iid = id.toInt();
