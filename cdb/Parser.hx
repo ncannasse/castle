@@ -191,7 +191,14 @@ class Parser {
 					if( a.typeStr == null ) a.typeStr = cdb.Parser.saveType(a.type);
 					Reflect.deleteField(a, "type");
 				}
-		var str = haxe.Json.stringify(data, null, "\t");
+		var replaceFn =
+		#if( js_es == 5 )
+			// filter out `__id__` keys that are added when the objects are used as key in Maps (haxe -> js ECMA 5.0 behavior)
+			(key, value) -> key == "__id__" ? js.Lib.undefined : value;
+		#else
+			null;
+		#end
+		var str = haxe.Json.stringify(data, replaceFn, "\t");
 		for( s in data.sheets ) {
 			for( c in s.columns )
 				c.type = save.shift();
