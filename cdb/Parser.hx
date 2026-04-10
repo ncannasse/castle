@@ -192,7 +192,7 @@ class Parser {
 					Reflect.deleteField(a, "type");
 				}
 		var replaceFn =
-		#if( js_es == 5 )
+		#if( !macro && js_es == 5 )
 			// filter out `__id__` keys that are added when the objects are used as key in Maps (haxe -> js ECMA 5.0 behavior)
 			(key, value) -> key == "__id__" ? js.Lib.undefined : value;
 		#else
