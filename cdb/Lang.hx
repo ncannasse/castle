@@ -111,7 +111,7 @@ class Lang {
 					for( ff in flattenRec(inner) )
 						ret.push(LSingle(c, ff));
 				case LSub(c, sub, fl):
-					if( fl.length == 0 ) 
+					if( fl.length == 0 )
 						return [];
 					else if( c.type == TProperties || c.type == TPolymorph ) {
 						for( inner in fl )
@@ -335,6 +335,7 @@ class Lang {
 				var outSub = {};
 				var id = Reflect.field(o, inf.id);
 				if( id == null ) id = "null";
+				if( inf.idGuid ) id = guidToIdent(id);
 				path.push(id);
 				for( f in fields )
 					applyRec(path, f, o, byID.get(id), outSub);
@@ -479,11 +480,16 @@ class Lang {
 
 	function getSheetHelpers(s:SheetData) {
 		var id = null;
+		var isGuid = false;
 		var helpers = [];
 		for( c in s.columns ) {
 			switch( c.type ) {
-			case TId if( id == null ):
+			case TId if( id == null || isGuid ):
 				id = c;
+				isGuid = false;
+			case TGuid if( id == null ):
+				id = c;
+				isGuid = true;
 			case TRef(sheet):
 				var map = null;
 				var s = getSheet(sheet);
@@ -511,7 +517,7 @@ class Lang {
 			}
 		}
 		if( id != null ) helpers = [];
-		return { id : id == null ? null : id.name, idOpt : id == null ? false : id.opt, helpers : helpers };
+		return { id : id == null ? null : id.name, idGuid : isGuid, idOpt : id == null ? false : id.opt, helpers : helpers };
 	}
 
 	function resolveField(obj:Dynamic, path:String, linesData:Array<Dynamic>) {
@@ -532,6 +538,10 @@ class Lang {
 			}
 		}
 		return o == null ? null : Std.string(o);
+	}
+
+	function guidToIdent( guid : String ) {
+		return "id"+guid.split("#").join("_").split("&").join("-");
 	}
 
 	function buildSheetXml(s:SheetData, tabs, values : Array<Dynamic>, linesData:Array<Dynamic>, locFields:Array<LocField>, diff : Map<String,Array<{}>> ) {
@@ -560,6 +570,7 @@ class Lang {
 					if( !inf.idOpt ) continue;
 					id = "null";
 				}
+				if( inf.idGuid ) id = guidToIdent(id);
 			}
 			var locs = [for( f in locFields ) { var l = getLocText(tabs, o, f, diff); { f : f, value : l.value, name : l.name }; }];
 			var hasLoc = false;
