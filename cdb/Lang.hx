@@ -331,14 +331,16 @@ class Lang {
 		} else {
 
 			var byID = makeIdMap(x);
-			for( o in objects ) {
+			for( idx => o in objects ) {
 				var outSub = {};
 				var id = Reflect.field(o, inf.id);
 				if( id == null ) id = "null";
 				if( inf.idGuid ) id = guidToIdent(id);
 				path.push(id);
+				var sub = byID.get(id);
+				if( sub == null ) sub = byID.get("line"+idx); // id was added later
 				for( f in fields )
-					applyRec(path, f, o, byID.get(id), outSub);
+					applyRec(path, f, o, sub, outSub);
 				path.pop();
 				if( Reflect.fields(outSub).length > 0 ) {
 					Reflect.setField(outSub, inf.id, id);
@@ -384,7 +386,7 @@ class Lang {
 		case LName(c):
 			var v = data == null ? null : data.get(c.name);
 			if( v != null ) {
-				var str = v.e.unescape();
+				var str = StringTools.trim(v.e.unescape());
 				var ref = v.ref == null ? null : v.ref.unescape();
 				var oname = Reflect.field(o,c.name);
 				if( ref != null && (oname == null || StringTools.trim(ref) != StringTools.trim(oname)) ) {
@@ -516,7 +518,7 @@ class Lang {
 			default:
 			}
 		}
-		if( id != null ) helpers = [];
+		if( id != null && !isGuid ) helpers = [];
 		return { id : id == null ? null : id.name, idGuid : isGuid, idOpt : id == null ? false : id.opt, helpers : helpers };
 	}
 
