@@ -693,7 +693,7 @@ class IndexId<T,Kind> extends Index<T> {
 		if (!localScoped)
 			return resolve(id, opt);
 		
-		var cdbParent = scopeObj.__cdbParent;
+		var cdbParent : Dynamic = scopeObj.__cdbParent;
 		while (!byScopedId.exists(cdbParent) ) {
 
 			cdbParent = cdbParent.__cdbParent;
