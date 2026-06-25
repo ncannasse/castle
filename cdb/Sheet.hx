@@ -299,8 +299,8 @@ class Sheet {
 		for( c in sheet.columns )
 			if( c.name == cname ) {
 				sheet.columns.remove(c);
-				for( obj in base.getAllLines(this) )
-					Reflect.deleteField(obj, cname);
+				for( obj in getObjects() )
+					Reflect.deleteField(obj.obj, cname);
 				if( sheet.props.displayColumn == c.name ) {
 					sheet.props.displayColumn = null;
 					sync();
@@ -338,8 +338,8 @@ class Sheet {
 		}
 
 		if( base.getDefault(c, this) != null ) {
-			for( obj in base.getAllLines(this) )
-				Reflect.setField(obj, c.name, base.getDefault(c, this));
+			for( obj in getObjects() )
+				Reflect.setField(obj.obj, c.name, base.getDefault(c, this));
 		}
 
 		return null;
