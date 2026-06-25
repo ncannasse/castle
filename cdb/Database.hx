@@ -1223,7 +1223,8 @@ class Database {
 			for( c in s.columns )
 				switch( c.type ) {
 				case TRef(n) if( n == sheet.name ):
-					for( obj in s.getLines() ) {
+					for( o in s.getObjects() ) {
+						var obj = o.obj;
 						var id = Reflect.field(obj, c.name);
 						if( id == null ) continue;
 						id = refMap.get(id);
@@ -1231,21 +1232,22 @@ class Database {
 						Reflect.setField(obj, c.name, id);
 					}
 				case TCustom(t):
-					for( obj in s.getLines() ) {
-						var o = Reflect.field(obj, c.name);
+					for( obj in s.getObjects() ) {
+						var o = Reflect.field(obj.obj, c.name);
 						if( o == null ) continue;
 						convertTypeRec(sheet, refMap, getCustomType(t), o);
 					}
 				case TString if( c.kind == Script ):
 					var prefix = sheet.name.split("@").pop();
 					prefix = prefix.charAt(0).toUpperCase() + prefix.substr(1);
-					for( obj in s.getLines() ) {
-						var v : String = Reflect.field(obj, c.name);
+					for( obj in s.getObjects() ) {
+						var o = obj.obj;
+						var v : String = Reflect.field(o, c.name);
 						if( v != null ) {
 							for( oldId => newId in refMap )
 								if( oldId != "" && newId != "" )
 									v = replaceScriptIdent(v,prefix+"."+oldId,prefix+"."+newId);
-							Reflect.setField(obj, c.name, v);
+							Reflect.setField(o, c.name, v);
 						}
 					}
 				default:

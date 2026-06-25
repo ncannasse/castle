@@ -18,6 +18,12 @@ import cdb.Data;
 
 typedef SheetIndex = { id : String, disp : String, ico : cdb.Types.TilePos, obj : Dynamic }
 
+typedef ObjectPath = { path : Array<Dynamic>, indexes : Array<Int>, ?sheets : Array<Sheet>, obj : Dynamic }
+
+typedef SheetRef = { s : Sheet, c : String, id : Null<String> }
+
+typedef Reference = { s : Array<SheetRef>, o : ObjectPath }
+
 class Sheet {
 
 	static var _UID = 0;
@@ -130,32 +136,59 @@ class Sheet {
 		return all;
 	}
 
-	public function getObjects() : Array<{ path : Array<Dynamic>, indexes : Array<Int> }> {
-		var p = getParent();
-		if( p == null )
-			return [for( i in 0...sheet.lines.length ) { path : [sheet.lines[i]], indexes : [i] }];
-		var all = [];
-		for( obj in p.s.getObjects() ) {
-			var v : Dynamic = Reflect.field(obj.path[obj.path.length-1], p.c);
-			if( v == null ) continue;
-			if( v is Array ) {
-				// list
-				var v : Array<Dynamic> = v;
-				for( i in 0...v.length ) {
-					var sobj = v[i];
+	public function getObjects() : Array<ObjectPath> {
+		return getObjectsRec(new Map());
+	}
+
+	function getObjectsRec( visited : Map<String,Bool> ) : Array<ObjectPath> {
+		if( visited.get(name) )
+			return [];
+		visited.set(name, true);
+		var all : Array<ObjectPath> = [];
+
+		function collectFromParent( parents : Array<ObjectPath>, colName : String ) {
+			for( obj in parents ) {
+				var v : Dynamic = Reflect.field(obj.obj, colName);
+				if( v == null ) continue;
+				if( v is Array ) {
+					// list
+					var v : Array<Dynamic> = v;
+					for( i in 0...v.length ) {
+						var sobj = v[i];
+						var p = obj.path.copy();
+						var idx = obj.indexes.copy();
+						p.push(sobj);
+						idx.push(i);
+						all.push({ path : p, indexes : idx, sheets : obj.sheets.concat([this]), obj : sobj });
+					}
+				} else {
+					// props
 					var p = obj.path.copy();
 					var idx = obj.indexes.copy();
-					p.push(sobj);
-					idx.push(i);
-					all.push({ path : p, indexes : idx });
+					p.push(v);
+					idx.push(-1);
+					all.push({ path : p, indexes : idx, sheets : obj.sheets.concat([this]), obj : v });
 				}
-			} else {
-				// props
-				var p = obj.path.copy();
-				var idx = obj.indexes.copy();
-				p.push(v);
-				idx.push(-1);
-				all.push({ path : p, indexes : idx });
+			}
+		}
+
+		var p = getParent();
+		if( p == null ) {
+			for( i in 0...sheet.lines.length ) {
+				var line = sheet.lines[i];
+				all.push({ path : [line], indexes : [i], sheets : [this], obj : line });
+			}
+		} else {
+			// Collect recursively from the chain of parents
+			collectFromParent( p.s.getObjectsRec(visited), p.c );
+		}
+
+		// Also collect from every column that references this sheet via structRef
+		for( s in base.sheets ) {
+			for( c in s.columns ) {
+				if( c.type != TList && c.type != TProperties && c.type != TPolymorph ) continue;
+				if( c.structRef != name ) continue;
+				collectFromParent( s.getObjectsRec(visited), c.name );
 			}
 		}
 		return all;
@@ -371,7 +404,7 @@ class Sheet {
 				}
 	}
 
-	public function getReferences( index : Int ) {
+	public function getReferences( index : Int ) : Array<Reference> {
 		var id = null;
 		for( c in sheet.columns ) {
 			switch( c.type ) {
@@ -386,28 +419,41 @@ class Sheet {
 		return getReferencesFromId(id);
 	}
 
-	public function getReferencesFromId( id : String ) {
+	public function getReferencesFromId( id : String ) : Array<Reference> {
 		function getIdCol(sheet : cdb.Sheet) {
 			if (sheet.idCol != null)
 				return sheet.idCol;
-			for (c in columns)
+			for (c in sheet.columns)
 				if (c.type == TId)
 					return c;
 			return null;
 		}
 
-		var results = [];
-		for( s in base.sheets ) {
-			var targetSheet = base.getSheet(this.realSheet.sheet.name);
-			var currentSheet = s;
+		// Builds a sheet path matching the object path returned by getObjects()
+		function sheetPathFromObj(o : ObjectPath, refCol : String ) : Array<SheetRef> {
+			var sheets : Array<cdb.Sheet> = o.sheets;
+			if( sheets == null ) return getSheetPath(this, refCol);
+			var out = [];
+			for( i in 0...sheets.length ) {
+				var s = sheets[i];
+				out.push({
+					s : s,
+					c : i == sheets.length - 1 ? refCol : null,
+					id : s.idCol == null ? null : s.idCol.name,
+				});
+			}
+			return out;
+		}
 
+		var targetSheet = base.getSheet(this.realSheet.sheet.name);
+		var results : Array<Reference> = [];
+		for( s in base.sheets ) {
+			var currentSheet = s;
 			for( c in s.columns )
 				switch( c.type ) {
 					case TRef(sname) if( sname == sheet.name ):
-						var sheets = getSheetPath(s, c.name);
-
 						for( o in s.getObjects() ) {
-							var obj = o.path[o.path.length - 1];
+							var obj = o.obj;
 
 							if (Reflect.field(obj, c.name) == id) {
 								var isLocal = getIdCol(targetSheet).scope != null;
@@ -435,10 +481,10 @@ class Sheet {
 
 									var id = getIdCol(this.parent.sheet);
 									if (Reflect.field(this.parent.sheet.getLines()[this.parent.line], id.name) == ref.id)
-										results.push({ s : sheets, o : o });
+										results.push({ s : sheetPathFromObj(o, c.name), o : o });
 								}
 								else {
-									results.push({ s : sheets, o : o });
+									results.push({ s : sheetPathFromObj(o, c.name), o : o });
 								}
 							}
 						}
@@ -450,8 +496,8 @@ class Sheet {
 		return results;
 	}
 
-	static public function getSheetPath(currentSheet: Sheet, currentColumn: String) {
-		var sheets = [];
+	static public function getSheetPath(currentSheet: Sheet, currentColumn: String) : Array<SheetRef> {
+		var sheets : Array<SheetRef> = [];
 		var p = { s : currentSheet, c : currentColumn, id : null };
 		while( true ) {
 			for( c in p.s.columns )
