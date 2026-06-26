@@ -220,6 +220,8 @@ class Database {
 	public function sync() {
 		smap = new Map();
 		for( s in sheets )
+			smap.set(s.name, s);
+		for( s in sheets )
 			s.sync();
 		tmap = new Map();
 		for( t in data.customTypes )
