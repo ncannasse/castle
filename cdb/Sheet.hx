@@ -191,6 +191,7 @@ class Sheet {
 				collectFromParent( s.getObjectsRec(visited), c.name );
 			}
 		}
+		visited.remove(name);
 		return all;
 	}
 
