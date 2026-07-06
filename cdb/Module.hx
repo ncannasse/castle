@@ -639,7 +639,10 @@ class Module {
 
 				var exprs = [];
 				exprs.push(macro var obj : Dynamic = cast obj);
-				exprs.push(macro if( obj != null && obj.__value != null ) return obj.__value);
+				exprs.push(macro {
+					if( obj == null ) return null;
+					if( obj.__value != null ) return obj.__value;
+				});
 
 				for( col in s.columns ) {
 					if( col.kind == Hidden ) continue;
