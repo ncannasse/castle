@@ -198,8 +198,21 @@ class Sheet {
 	public function newLine( ?index : Int ) {
 		var o = {
 		};
+		var prev = sheet.lines[index == null ? sheet.lines.length - 1 : index];
 		for( c in sheet.columns ) {
 			var d = base.getDefault(c, this);
+			if( c.type == TPolymorph && prev != null ) {
+				var pv = Reflect.field(prev, c.name);
+				if( pv != null ) {
+					var sub = getSub(c);
+					for( pc in sub.columns )
+						if( Reflect.field(pv, pc.name) != null ) {
+							d = {};
+							Reflect.setField(d, pc.name, base.getDefault(pc, true, sub));
+							break;
+						}
+				}
+			}
 			if( d != null )
 				Reflect.setField(o, c.name, d);
 		}
