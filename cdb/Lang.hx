@@ -522,13 +522,13 @@ class Lang {
 		return { id : id == null ? null : id.name, idGuid : isGuid, idOpt : id == null ? false : id.opt, helpers : helpers };
 	}
 
-	function resolveField(obj:Dynamic, path:String, linesData:Array<Dynamic>) {
+	function resolveField(obj:Dynamic, path:String, lineData:Dynamic) {
 		var o:Dynamic = obj;
 		for( s in path.split(".") ) {
 			if( s == "$root" ) {
-				if( linesData == null )
+				if( lineData == null )
 					return null;
-				var prefab : Dynamic = getObjParent(obj, linesData);
+				var prefab : Dynamic = getObjParent(obj, lineData);
 				if( prefab == null )
 					return null;
 				o = prefab;
