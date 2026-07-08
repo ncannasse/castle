@@ -201,7 +201,10 @@
 				}
 			],
 			"props": {
-				"displayColumn": "name"
+				"displayColumn": "name",
+				"editor": {
+					"index": 0
+				}
 			}
 		},
 		{
@@ -342,7 +345,11 @@
 					"drop": "healp"
 				}
 			],
-			"props": {}
+			"props": {
+				"editor": {
+					"index": 1
+				}
+			}
 		},
 		{
 			"name": "resource",
@@ -398,7 +405,11 @@
 					}
 				}
 			],
-			"props": {}
+			"props": {
+				"editor": {
+					"index": 2
+				}
+			}
 		},
 		{
 			"name": "resource@props",
@@ -545,11 +556,11 @@
 					"typeStr": "1",
 					"name": "name"
 				},
-			{
-				"typeStr": "17",
-				"name": "stats",
-				"shared": true
-			}
+				{
+					"typeStr": "17",
+					"name": "stats",
+					"shared": true
+				}
 			],
 			"lines": [
 				{
@@ -570,7 +581,11 @@
 				}
 			],
 			"separators": [],
-			"props": {}
+			"props": {
+				"editor": {
+					"index": 3
+				}
+			}
 		},
 		{
 			"name": "weapons@stats",
@@ -602,11 +617,10 @@
 					"typeStr": "1",
 					"name": "name"
 				},
-			{
-				"typeStr": "17",
-				"name": "stats",
-				"structRef": "weapons@stats"
-			}
+				{
+					"name": "stats",
+					"structRef": "weapons@stats"
+				}
 			],
 			"lines": [
 				{
@@ -627,7 +641,187 @@
 				}
 			],
 			"separators": [],
-			"props": {}
+			"props": {
+				"editor": {
+					"index": 4
+				}
+			}
+		},
+		{
+			"name": "const",
+			"columns": [
+				{
+					"typeStr": "0",
+					"name": "id",
+					"opt": null
+				},
+				{
+					"typeStr": "21",
+					"name": "val",
+					"opt": null,
+					"shared": true
+				}
+			],
+			"lines": [
+				{
+					"id": "Const1",
+					"val": {
+						"list": [
+							{
+								"v": {
+									"float": 1,
+									"list": []
+								}
+							},
+							{
+								"v": {
+									"float": 2
+								}
+							},
+							{
+								"v": {
+									"float": 3
+								}
+							}
+						]
+					}
+				},
+				{
+					"id": "ConstInt",
+					"val": {
+						"int": 42
+					}
+				},
+				{
+					"id": "ConstStr",
+					"val": {
+						"str": "hello"
+					}
+				},
+				{
+					"id": "ConstText",
+					"val": {
+						"str": "hi ::name:: you have ::count::"
+					}
+				},
+				{
+					"id": "ConstRef",
+					"val": {
+						"ref": "sword"
+					}
+				},
+				{
+					"id": "ConstFloat",
+					"val": {
+						"float": 3.5
+					}
+				},
+				{
+					"id": "ConstMap",
+					"val": {
+						"map": [
+							{
+								"k": "alpha",
+								"n": 1.5
+							},
+							{
+								"k": "beta",
+								"n": 2.5
+							}
+						]
+					}
+				}
+			],
+			"separators": [
+				{
+					"title": "GroupA",
+					"id": "Const1"
+				},
+				{
+					"title": "GroupB",
+					"id": "ConstText"
+				}
+			],
+			"props": {
+				"editor": {
+					"index": 5
+				},
+				"hasGroup": true
+			}
+		},
+		{
+			"name": "const@val",
+			"props": {
+				"hide": true,
+				"isProps": true
+			},
+			"separators": [],
+			"lines": [],
+			"columns": [
+				{
+					"typeStr": "4",
+					"name": "float",
+					"opt": true
+				},
+				{
+					"typeStr": "8",
+					"name": "list",
+					"opt": null
+				},
+				{
+					"name": "int",
+					"typeStr": "3",
+					"opt": true
+				},
+				{
+					"name": "str",
+					"typeStr": "1",
+					"opt": true
+				},
+				{
+					"name": "ref",
+					"typeStr": "6:items",
+					"opt": true
+				},
+				{
+					"name": "map",
+					"typeStr": "8",
+					"opt": true
+				}
+			]
+		},
+		{
+			"name": "const@val@list",
+			"props": {
+				"hide": true
+			},
+			"separators": [],
+			"lines": [],
+			"columns": [
+				{
+					"name": "v",
+					"opt": null,
+					"structRef": "const@val"
+				}
+			]
+		},
+		{
+			"name": "const@val@map",
+			"props": {
+				"hide": true
+			},
+			"separators": [],
+			"lines": [],
+			"columns": [
+				{
+					"name": "k",
+					"typeStr": "0"
+				},
+				{
+					"name": "n",
+					"typeStr": "4"
+				}
+			]
 		}
 	]
 }
