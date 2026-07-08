@@ -450,9 +450,18 @@ class Sheet {
 			var out = [];
 			for( i in 0...sheets.length ) {
 				var s = sheets[i];
+				// Find the column linking to the next sheet via getSub (handles shared structRef types)
+				var col = null;
+				if( i < sheets.length - 1 ) {
+					var next = sheets[i + 1].name;
+					for( c in s.columns ) {
+						var sub = s.getSub(c);
+						if( sub != null && sub.name == next ) { col = c.name; break; }
+					}
+				}
 				out.push({
 					s : s,
-					c : i == sheets.length - 1 ? refCol : null,
+					c : i == sheets.length - 1 ? refCol : col,
 					id : s.idCol == null ? null : s.idCol.name,
 				});
 			}
