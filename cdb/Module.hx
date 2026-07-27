@@ -239,6 +239,7 @@ class Module {
 			var ids : Array<haxe.macro.Expr.Field> = [];
 			var hasGUID = false;
 			var guidField = null;
+			var isAlias = false;
 
 			var polyFields : Array<haxe.macro.Expr.Field> = polySheets.exists(s.name) ? [] : null;
 
@@ -519,22 +520,6 @@ class Module {
 				fields : realFields,
 			});
 
-			if ( Context.defined("castle_unsafe") ) {
-				fields.push({
-					name: "toDef",
-					pos: pos,
-					kind: FFun( { ret: def.toComplex(), args: [], expr: macro return this } ),
-					access: [AInline, APublic]
-				});
-
-				fields.push({
-					name: "fromDef",
-					pos: pos,
-					kind: FFun( { ret : tname.toComplex(), args : [{ name : "v", type : def.toComplex(), }], expr : macro return cast v }),
-					access: [AInline, AStatic, APublic]
-				});
-			}
-
 			if( hasGUID ) {
 				var t = tname.toComplex();
 				var tguid = macro : cdb.Types.GuidInt<$t>;
@@ -624,18 +609,35 @@ class Module {
 						kind : TDAlias(prevName.toComplex()),
 						fields : [],
 					});
-					continue;
+					isAlias = true;
 				}
 			}
 
-			if( polyFields != null ) {
-				types.push({
-					pos : pos,
-					name : tname,
-					pack : curMod,
-					kind : TDEnum,
-					fields : polyFields,
+			if ( Context.defined("castle_unsafe") && !isAlias ) {
+				fields.push({
+					name: "toDef",
+					pos: pos,
+					kind: FFun( { ret: def.toComplex(), args: [], expr: macro return this } ),
+					access: [AInline, APublic]
 				});
+
+				fields.push({
+					name: "fromDef",
+					pos: pos,
+					kind: FFun( { ret : tname.toComplex(), args : [{ name : "v", type : def.toComplex(), }], expr : macro return cast v }),
+					access: [AInline, AStatic, APublic]
+				});
+			}
+
+			if( polyFields != null ) {
+				if( !isAlias )
+					types.push({
+						pos : pos,
+						name : tname,
+						pack : curMod,
+						kind : TDEnum,
+						fields : polyFields,
+					});
 
 				var exprs = [];
 				exprs.push(macro var obj : Dynamic = cast obj);
@@ -677,7 +679,7 @@ class Module {
 						}
 					]
 				});
-			} else {
+			} else if( !isAlias ) {
 				types.push({
 					pos : pos,
 					name : tname,
