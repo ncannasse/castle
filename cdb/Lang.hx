@@ -79,7 +79,7 @@ class Lang {
 				if( f != null )
 					fl.push(f);
 			}
-			return r;
+			return fl.length > 0 ? r : null;
 		default:
 			return null;
 		}
