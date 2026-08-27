@@ -18,7 +18,30 @@ import cdb.Data;
 
 typedef SheetIndex = { id : String, disp : String, ico : cdb.Types.TilePos, obj : Dynamic }
 
-typedef ObjectPath = { path : Array<Dynamic>, indexes : Array<Int>, ?sheets : Array<Sheet>, obj : Dynamic }
+class ObjectPath {
+	public var path : Array<Dynamic>;
+	public var indexes : Array<Int>;
+	public var sheets : Array<Sheet>;
+	public var cols : Array<String>;
+	public var obj(get, never) : Dynamic;
+
+	public function new() {
+		path = []; indexes = []; sheets = []; cols = [];
+	}
+	inline function get_obj() return path[path.length - 1];
+
+	public function push( obj : Dynamic, index : Int, sheet : Sheet, col : String ) {
+		path.push(obj); indexes.push(index); sheets.push(sheet); cols.push(col);
+	}
+	public function pop() {
+		path.pop(); indexes.pop(); sheets.pop(); cols.pop();
+	}
+	public function copy() {
+		var o = new ObjectPath();
+		o.path = path.copy(); o.indexes = indexes.copy(); o.sheets = sheets.copy(); o.cols = cols.copy();
+		return o;
+	}
+}
 
 typedef SheetRef = { s : Sheet, c : String, id : Null<String> }
 
@@ -137,61 +160,52 @@ class Sheet {
 	}
 
 	public function getObjects() : Array<ObjectPath> {
-		return getObjectsRec(new Map());
-	}
+		// collect all sheets paths that could end-up containing objects of this one
+		var parents = new Map<String,Bool>();
+		var visited : Map<String,Bool> = new Map();
+		function collectParents( sname : String ) {
+			if( visited.exists(sname) ) return;
+			visited.set(sname, true);
+			var parts = sname.split("@");
+			for( i in 1...parts.length + 1 )
+				parents.set(parts.slice(0, i).join("@"), true);
+			for( s in base.sheets )
+				for( c in s.columns )
+					if( c.structRef != null && (c.structRef == sname || StringTools.startsWith(sname, c.structRef + "@")) )
+						collectParents(s.name);
+		}
+		collectParents(name);
 
-	function getObjectsRec( visited : Map<String,Bool> ) : Array<ObjectPath> {
-		if( visited.get(name) )
-			return [];
-		visited.set(name, true);
 		var all : Array<ObjectPath> = [];
-
-		function collectFromParent( parents : Array<ObjectPath>, colName : String ) {
-			for( obj in parents ) {
-				var v : Dynamic = Reflect.field(obj.obj, colName);
-				if( v == null ) continue;
-				if( v is Array ) {
-					// list
-					var v : Array<Dynamic> = v;
-					for( i in 0...v.length ) {
-						var sobj = v[i];
-						var p = obj.path.copy();
-						var idx = obj.indexes.copy();
-						p.push(sobj);
-						idx.push(i);
-						all.push({ path : p, indexes : idx, sheets : obj.sheets.concat([this]), obj : sobj });
-					}
-				} else {
-					// props
-					var p = obj.path.copy();
-					var idx = obj.indexes.copy();
-					p.push(v);
-					idx.push(-1);
-					all.push({ path : p, indexes : idx, sheets : obj.sheets.concat([this]), obj : v });
-				}
-			}
-		}
-
-		var p = getParent();
-		if( p == null ) {
-			for( i in 0...sheet.lines.length ) {
-				var line = sheet.lines[i];
-				all.push({ path : [line], indexes : [i], sheets : [this], obj : line });
-			}
-		} else {
-			// Collect recursively from the chain of parents
-			collectFromParent( p.s.getObjectsRec(visited), p.c );
-		}
-
-		// Also collect from every column that references this sheet via structRef
-		for( s in base.sheets ) {
+		var cur = new ObjectPath(); // current position, maintained by the recursion
+		function walk( obj : Dynamic, index : Int, s : Sheet, col : String ) {
+			cur.push(obj, index, s, col);
+			if( s.name == name )
+				all.push(cur.copy());
 			for( c in s.columns ) {
 				if( c.type != TList && c.type != TProperties && c.type != TPolymorph ) continue;
-				if( c.structRef != name ) continue;
-				collectFromParent( s.getObjectsRec(visited), c.name );
+				var v : Dynamic = Reflect.field(obj, c.name);
+				if( v == null )
+					continue;
+				var sub = s.getSub(c);
+				if( sub == null || !parents.exists(sub.name) )
+					continue; // optim: avoid walking branches known to not contain this type
+
+				if( v is Array ) {
+					var list : Array<Dynamic> = v;
+					for( i in 0...list.length )
+						walk(list[i], i, sub, c.name);
+				} else
+					walk(v, -1, sub, c.name); // props: no index
 			}
+			cur.pop();
 		}
-		visited.remove(name);
+
+		for( s in base.sheets ) {
+			if( s.getParent() != null || s.lines == null || !parents.exists(s.name) ) continue;
+			for( i in 0...s.lines.length )
+				walk(s.lines[i], i, s, null);
+		}
 		return all;
 	}
 
@@ -446,26 +460,12 @@ class Sheet {
 		// Builds a sheet path matching the object path returned by getObjects()
 		function sheetPathFromObj(o : ObjectPath, refCol : String ) : Array<SheetRef> {
 			var sheets : Array<cdb.Sheet> = o.sheets;
-			if( sheets == null ) return getSheetPath(this, refCol);
-			var out = [];
-			for( i in 0...sheets.length ) {
-				var s = sheets[i];
-				// Find the column linking to the next sheet via getSub (handles shared structRef types)
-				var col = null;
-				if( i < sheets.length - 1 ) {
-					var next = sheets[i + 1].name;
-					for( c in s.columns ) {
-						var sub = s.getSub(c);
-						if( sub != null && sub.name == next ) { col = c.name; break; }
-					}
-				}
-				out.push({
-					s : s,
-					c : i == sheets.length - 1 ? refCol : col,
-					id : s.idCol == null ? null : s.idCol.name,
-				});
-			}
-			return out;
+			return [for( i in 0...sheets.length ) {
+				s : sheets[i],
+				// column leading to the next sheet, as recorded by getObjects
+				c : i == sheets.length - 1 ? refCol : o.cols[i + 1],
+				id : sheets[i].idCol == null ? null : sheets[i].idCol.name,
+			}];
 		}
 
 		var targetSheet = base.getSheet(this.realSheet.sheet.name);
