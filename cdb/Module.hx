@@ -601,7 +601,7 @@ class Module {
 				var prevName = typesCache.get(sign);
 				if( prevName == null )
 					typesCache.set(sign, tname);
-				else {
+				else if( polyFields == null ) {
 					types.push({
 						pos : pos,
 						name : tname,
