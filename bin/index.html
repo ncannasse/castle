@@ -27,11 +27,11 @@
 				<span>Sheet Name</span> <input type="text" class="value" id="sheet_name"/>
 			</p>
 			<p>
-				<label><input type="checkbox" class="value" id="sheet_level"/> Create Level</label>
+				<label class="check"><input type="checkbox" class="value" id="sheet_level"/> Create Level</label>
 			</p>
 			<p class="buttons">
 				<input type="submit" value="Create" onclick="_.createSheet($('#sheet_name').val(),$('#sheet_level').prop('checked'))"/>
-				<input type="submit" value="Cancel" onclick="$(this).parents('.modal').hide()"/>
+				<input class="cancel" type="submit" value="Cancel" onclick="$(this).parents('.modal').hide()"/>
 			</p>
 		</form>
 		</div>
@@ -79,12 +79,12 @@
 				</div>
 				<div class="localizable">Localizable <input type="checkbox" name="localizable"/></div>
 				<div class="custom"><span>Type</span> <a href="javascript:_.newType()" class="tcreate">[create]</a> <a href="#" onclick="_.newType($(this).parents('form').find('[name=ctype]').val())" class="tedit">[edit]</a></span> <select name="ctype"></select> </div>
-				<div class="opt">Required <input type="checkbox" name="req"/></div>
+				<div class="opt"><label class="check">Required <input type="checkbox" name="req"/></label></div>
 			</div>
 			<p class="buttons">
 				<input class="edit" type="submit" value="Modify" onclick="_.createColumn()"/>
 				<input class="create" type="submit" value="Create" onclick="_.createColumn()"/>
-				<input type="submit" value="Cancel" onclick="$(this).parents('.modal').hide()"/>
+				<input class="cancel" type="submit" value="Cancel" onclick="$(this).parents('.modal').hide()"/>
 			</p>
 
 			</form>
@@ -93,7 +93,7 @@
 
 	<div id="editTypes" style="display:none">
 		<div class="tedit">
-			<input class="button" type="submit" name="apply" value="Apply"/> <input class="button" type="submit" value="Cancel"/>
+			<input class="button" type="submit" name="apply" value="Apply"/> <input class="cancel button" type="submit" value="Cancel"/>
 			<textarea></textarea>
 		</div>
 	</div>
@@ -143,7 +143,7 @@
 				W <input name="width"/>
 				H <input name="height"/>
 				<input name="file" type="submit" value="File..."/>
-				<input name="cancel" type="submit" value="Cancel"/>
+				<input class="cancel" name="cancel" type="submit" value="Cancel"/>
 			</div>
 			<div class="tileScroll">
 				<div class="tileView">
