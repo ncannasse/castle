@@ -88,6 +88,7 @@ class Main extends Model {
 		window.window.addEventListener("keyup", onKeyUp);
 		window.window.addEventListener("mousemove", onMouseMove);
 		window.window.addEventListener("dragover", function(e : js.html.Event) { e.preventDefault(); return false; });
+		window.window.addEventListener("contextmenu", function(e : js.html.Event) { e.preventDefault(); return false; });
 		window.window.addEventListener("drop", onDragDrop);
 		J(".modal").keypress(function(e) e.stopPropagation()).keydown(function(e) e.stopPropagation());
 		J("#search input").keydown(function(e) {
