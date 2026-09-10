@@ -327,7 +327,7 @@ class Main extends Model {
 					var c1 = clipboard.schema[cid];
 					var c2 = sheet.columns[cid + posX];
 					if( c2 == null ) continue;
-					var f = base.getConvFunction(c1.type, c2.type);
+					var f = base.getConvFunction(c1, c2);
 					var v : Dynamic = Reflect.field(obj1, c1.name);
 					if( f == null )
 						v = base.getDefault(c2);

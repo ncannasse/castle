@@ -41,6 +41,64 @@ class TestCastle extends haxe.unit.TestCase {
 		assertEquals(1, subSheet.getReferencesFromId("Water").length);
 	}
 
+	function testEnumStr() {
+		// string-stored enum : same end-user API as int-stored enums
+		var res = Data.resource.all;
+		assertTrue(res[0].climate == Wet);
+		assertTrue(res[1].climate == Dry);
+		assertEquals("Wet", res[0].climate.toString());
+		assertEquals(1, res[0].climate.toInt());
+		assertTrue(Resource_climate.ofInt(2) == Frozen);
+		assertTrue(Resource_climate.ofString("Dry") == Dry);
+		assertEquals(3, Resource_climate.COUNT);
+		assertEquals("dry", switch( res[1].climate ) { case Dry: "dry"; case Wet: "wet"; case Frozen: "frozen"; });
+		// int-stored enum still works
+		assertTrue(res[0].biome == Plain);
+		assertEquals(1, res[1].biome.toInt());
+
+		// storage conversions through Database.updateColumn
+		var db2 = new cdb.Database();
+		db2.load(sys.io.File.getContent("res/data.cdb"));
+		var s = db2.getSheet("resource");
+		var col = Lambda.find(s.columns, c -> c.name == "climate");
+		assertTrue(col.enumStr == true);
+		assertEquals("Wet", Reflect.field(s.lines[0], "climate"));
+		assertEquals("Wet", db2.valToString(col.type, Reflect.field(s.lines[0], "climate")));
+		assertEquals("Dry", db2.getDefault(col));
+
+		// string -> int
+		var nc : cdb.Data.Column = { name : "climate", type : TEnum(["Dry","Wet","Frozen"]), typeStr : null, opt : false };
+		assertEquals(null, db2.updateColumn(s, col, nc));
+		assertFalse(col.enumStr == true);
+		assertFalse(Reflect.hasField(col, "enumStr"));
+		assertEquals(1, Reflect.field(s.lines[0], "climate"));
+		assertEquals(0, Reflect.field(s.lines[1], "climate"));
+		assertEquals(0, db2.getDefault(col));
+
+		// int -> string, with a rename (Dry -> Arid) at the same time
+		var nc2 : cdb.Data.Column = { name : "climate", type : TEnum(["Arid","Wet","Frozen"]), typeStr : null, opt : false, enumStr : true };
+		assertEquals(null, db2.updateColumn(s, col, nc2));
+		assertTrue(col.enumStr == true);
+		assertEquals("Wet", Reflect.field(s.lines[0], "climate"));
+		assertEquals("Arid", Reflect.field(s.lines[1], "climate"));
+
+		// string -> string, rename + remove : removed values become null
+		var nc3 : cdb.Data.Column = { name : "climate", type : TEnum(["Wet","Cold"]), typeStr : null, opt : false, enumStr : true };
+		assertEquals(null, db2.updateColumn(s, col, nc3));
+		assertEquals("Wet", Reflect.field(s.lines[0], "climate"));
+		assertEquals(null, Reflect.field(s.lines[1], "climate"));
+
+		// string enum <-> other types
+		var sc : cdb.Data.Column = { name : "x", type : TEnum(["A","B"]), typeStr : null, enumStr : true };
+		var ic : cdb.Data.Column = { name : "x", type : TInt, typeStr : null };
+		var tc : cdb.Data.Column = { name : "x", type : TString, typeStr : null };
+		assertEquals(1, db2.getConvFunction(sc, ic).f("B"));
+		assertEquals("B", db2.getConvFunction(sc, tc).f("B"));
+		assertEquals("B", db2.getConvFunction(ic, sc).f(1));
+		assertEquals(null, db2.getConvFunction(ic, sc).f(5));
+		assertEquals("A", db2.getConvFunction(tc, sc).f("a"));
+	}
+
 	static function main() {
 		var data = sys.io.File.getContent("res/data.cdb");
 

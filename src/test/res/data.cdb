@@ -379,6 +379,12 @@
 					"size": null
 				},
 				{
+					"typeStr": "5:Dry,Wet,Frozen",
+					"opt": false,
+					"name": "climate",
+					"enumStr": true
+				},
+				{
 					"typeStr": "17",
 					"name": "props",
 					"opt": true
@@ -391,6 +397,7 @@
 					"subBiome": 7,
 					"rarity": 0.7,
 					"season": 0,
+					"climate": "Wet",
 					"props": {
 						"item": "herb",
 						"ref": "Water"
@@ -399,6 +406,7 @@
 				{
 					"biome": 1,
 					"rarity": 0,
+					"climate": "Dry",
 					"props": {
 						"item": "healp",
 						"ref": "Water"

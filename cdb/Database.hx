@@ -190,6 +190,7 @@ class Database {
 				if (srcCol.defaultValue != null) nc.defaultValue = srcCol.defaultValue;
 				if (srcCol.shared != null) nc.shared = srcCol.shared;
 				if (srcCol.structRef != null) nc.structRef = srcCol.structRef;
+				if (srcCol.enumStr != null) nc.enumStr = srcCol.enumStr;
 				s.columns.push(nc);
 			}
 
@@ -344,6 +345,7 @@ class Database {
 		if (c.defaultValue != null)
 			return c.defaultValue;
 		return switch( c.type ) {
+		case TEnum(values) if( c.enumStr == true ): values[0];
 		case TInt, TFloat, TEnum(_), TFlags(_), TColor: 0;
 		case TString, TId, TImage, TLayer(_), TFile: "";
 		case TGuid: genGUID();
@@ -430,8 +432,8 @@ class Database {
 			old.name = c.name;
 		}
 
-		if( !old.type.equals(c.type) ) {
-			var conv = getConvFunction(old.type, c.type);
+		if( !old.type.equals(c.type) || (old.enumStr == true) != (c.enumStr == true) ) {
+			var conv = getConvFunction(old, c);
 			if( conv == null )
 				return "Cannot convert " + typeStr(old.type) + " to " + typeStr(c.type);
 			var conv = conv.f;
@@ -532,7 +534,7 @@ class Database {
 			}
 		}
 
-		for( f in ["display","kind","scope","documentation", "editor", "defaultValue", "shared", "structRef"] ) {
+		for( f in ["display","kind","scope","documentation", "editor", "defaultValue", "shared", "structRef", "enumStr"] ) {
 			var v : Dynamic = Reflect.field(c,f);
 			if( v == null )
 				Reflect.deleteField(old, f);
@@ -573,11 +575,11 @@ class Database {
 		return pairs;
 	}
 
-	public function getConvFunction( old : ColumnType, t : ColumnType ) {
+	public function getConvFunction( old : Column, c : Column ) {
 		var conv : Dynamic -> Dynamic = null;
-		if( Type.enumEq(old, t) )
+		if( Type.enumEq(old.type, c.type) && old.enumStr == c.enumStr )
 			return { f : null };
-		switch( [old, t] ) {
+		switch( [old.type, c.type] ) {
 		case [TInt, TFloat]:
 			// nothing
 		case [TId | TRef(_) | TLayer(_), TString]:
@@ -596,7 +598,7 @@ class Database {
 		case [TString, TEnum(values)]:
 			var map = new Map();
 			for( i in 0...values.length )
-				map.set(values[i].toLowerCase(), i);
+				map.set(values[i].toLowerCase(), enumValue(c, values, i));
 			conv = function(s:String) return map.get(s.toLowerCase());
 		case [TFloat, TInt]:
 			conv = function(v) return Std.int(v);
@@ -605,14 +607,14 @@ class Database {
 		case [(TFloat|TInt), TBool]:
 			conv = function(v:Float) return v != 0;
 		case [TEnum(values1), TEnum(values2)]:
-			var map = [];
+			var map = new Map();
 			for( p in makePairs([for( i in 0...values1.length ) { name : values1[i], i : i } ], [for( i in 0...values2.length ) { name : values2[i], i : i } ]) ) {
 				if( p.b == null ) continue;
-				map[p.a.i] = p.b.i;
+				map.set(Std.string(enumValue(old, values1, p.a.i)), enumValue(c, values2, p.b.i));
 			}
-			conv = function(i) return map[i];
+			conv = function(v) return map.get(Std.string(v));
 		case [TEnum(values), TString]:
-			conv = function(i) return values[i];
+			conv = function(v) { var i = enumIndex(old, values, v); return i == null ? null : values[i]; }
 		case [TFlags(values1), TFlags(values2)]:
 			var map : Array<Null<Int>> = [];
 			for( p in makePairs([for( i in 0...values1.length ) { name : values1[i], i : i } ], [for( i in 0...values2.length ) { name : values2[i], i : i } ]) ) {
@@ -630,13 +632,13 @@ class Database {
 				return out;
 			};
 		case [TInt, TEnum(values)]:
-			conv = function(i) return if( i < 0 || i >= values.length ) null else i;
+			conv = function(i) return if( i < 0 || i >= values.length ) null else enumValue(c, values, i);
 		case [TEnum(values), TInt]:
-			// nothing
+			conv = function(v) return enumIndex(old, values, v);
 		case [TFlags(values), TInt]:
 			// nothing
 		case [TEnum(val1), TFlags(val2)] if( Std.string(val1) == Std.string(val2) ):
-			conv = function(i) return 1 << i;
+			conv = function(v) { var i = enumIndex(old, val1, v); return i == null ? null : 1 << i; }
 		case [TInt, TColor] | [TColor, TInt]:
 			conv =  function(i) return i;
 		case [TList, TProperties]:
@@ -661,6 +663,15 @@ class Database {
 			return null;
 		}
 		return { f : conv };
+	}
+
+	static function enumValue( c : Column, values : Array<String>, index : Int ) : Dynamic {
+		return c.enumStr == true ? values[index] : index;
+	}
+
+	static function enumIndex( c : Column, values : Array<String>, v : Dynamic ) : Null<Int> {
+		var i : Int = c.enumStr == true ? values.indexOf(v) : v;
+		return i < 0 || i >= values.length ? null : i;
 	}
 
 	public function updateType( old : CustomType, t : CustomType ) {
@@ -713,7 +724,7 @@ class Database {
 					continue;
 				}
 				var b = a.b, a = a.a;
-				var c = getConvFunction(a.type, b.type);
+				var c = getConvFunction(a, b);
 				if( c == null )
 					throw "Cannot convert " + p.a.name + "." + a.name + ":" + typeStr(a.type) + " to " + p.b.name + "." + b.name + ":" + typeStr(b.type);
 				var f : Dynamic -> Dynamic = c.f;
@@ -797,7 +808,7 @@ class Database {
 			else
 				'"' + val.split("\\").join("\\\\").split('"').join("\\\"") + '"';
 		case TEnum(values):
-			valToString(TString, values[val], esc);
+			valToString(TString, Std.isOfType(val, String) ? val : values[val], esc);
 		case TCustom(t):
 			typeValToString(getCustomType(t), val, esc);
 		case TFlags(values):

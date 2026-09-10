@@ -65,6 +65,7 @@ typedef Column = {
 	@:optional var defaultValue : Any;
 	@:optional var shared : Bool;
 	@:optional var structRef : String;
+	@:optional var enumStr : Bool;
 }
 
 enum abstract LayerMode(String) {

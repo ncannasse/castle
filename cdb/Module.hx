@@ -20,10 +20,11 @@ using haxe.macro.Tools;
 class Module {
 
 	#if macro
-	static function makeFakeEnum( tname : String, curMod, pos, values : Array<String> ) : haxe.macro.Expr.TypeDefinition {
-		var fields : Array<haxe.macro.Expr.Field> = [for( i in 0...values.length ) { name : values[i], pos : pos, kind : FVar(null, macro $v { i } ) } ];
+	static function makeFakeEnum( tname : String, curMod, pos, values : Array<String>, asString = false ) : haxe.macro.Expr.TypeDefinition {
+		var fields : Array<haxe.macro.Expr.Field> = [for( i in 0...values.length ) { name : values[i], pos : pos, kind : FVar(null, asString ? macro $v{ values[i] } : macro $v { i } ) } ];
 		var tint = macro : Int;
 		var tstring = macro : String;
+		var tbase = asString ? tstring : tint;
 		fields.push( {
 			name : "COUNT",
 			pos : pos,
@@ -42,9 +43,7 @@ class Module {
 			kind : FFun( {
 				args : [],
 				ret : tstring,
-				expr : macro {
-					return NAMES[this];
-				}
+				expr : asString ? macro return this : macro return NAMES[this],
 			}),
 			access : [APublic, AInline],
 		});
@@ -54,9 +53,7 @@ class Module {
 			kind : FFun( {
 				args : [],
 				ret : tstring,
-				expr : macro {
-					return NAMES[this];
-				}
+				expr : asString ? macro return this : macro return NAMES[this],
 			}),
 			access : [APublic, AInline],
 		});
@@ -66,7 +63,7 @@ class Module {
 			kind : FFun({
 				args : [ { name : "v", type : tint } ],
 				ret : tname.toComplex(),
-				expr : macro return cast v,
+				expr : asString ? macro return cast NAMES[v] : macro return cast v,
 			}),
 			access : [APublic, AStatic, AInline],
 		});
@@ -76,18 +73,30 @@ class Module {
 			kind : FFun( {
 				args : [],
 				ret : tint,
-				expr : macro return this,
+				expr : asString ? macro return NAMES.indexOf(this) : macro return this,
 			}),
 			access : [APublic, AInline],
 		});
+		if( asString ) {
+			fields.push( {
+				name : "ofString",
+				pos : pos,
+				kind : FFun({
+					args : [ { name : "v", type : tstring } ],
+					ret : tname.toComplex(),
+					expr : macro return cast v,
+				}),
+				access : [APublic, AStatic, AInline],
+			});
+		}
 		return {
 			pos : pos,
 			name : tname,
 			pack : curMod,
 			#if( haxe >= version("4.3.3") )
-			kind : TDAbstract(tint,[AbEnum]),
+			kind : TDAbstract(tbase,[AbEnum]),
 			#else
-			kind : TDAbstract(tint),
+			kind : TDAbstract(tbase),
 			meta : [{ name : ":enum", pos : pos },{ name : ":fakeEnum", pos : pos }],
 			#end
 			fields : fields,
@@ -203,7 +212,8 @@ class Module {
 		var defineEnums = new Map<String,String>();
 
 		function makeEnum( c : Data.Column, tname : String, values : Array<String> ) {
-			var key = c.name+":"+values.join("|");
+			var asString = c.enumStr == true && c.type.match(TEnum(_));
+			var key = (asString ? "s:" : "i:") + c.name+":"+values.join("|");
 			var prev = defineEnums.get(key);
 			if( prev != null ) {
 				types.push({
@@ -215,7 +225,7 @@ class Module {
 				});
 				return;
 			}
-			types.push(makeFakeEnum(tname,curMod,pos,values));
+			types.push(makeFakeEnum(tname,curMod,pos,values,asString));
 			defineEnums.set(key, tname);
 		}
 
