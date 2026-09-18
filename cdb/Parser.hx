@@ -76,6 +76,10 @@ class Parser {
 			var refSheet = Lambda.find(data.sheets, (s) -> s.name == parts.join("@"));
 			var refCol = Lambda.find(refSheet.columns, (c) -> c.name == colName);
 			c.type = refCol.type;
+			if( refCol.enumStr != null )
+				c.enumStr = refCol.enumStr;
+			else
+				Reflect.deleteField(c, "enumStr");
 		}
 		for( t in data.customTypes )
 			for( c in t.cases )

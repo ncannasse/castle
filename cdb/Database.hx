@@ -415,19 +415,15 @@ class Database {
 					if( c.type == TList || c.type == TProperties || c.type == TPolymorph )
 						renameRec(s, c, c.name);
 			}
-			if( old.type == TList || old.type == TProperties || old.type == TPolymorph ) {
-				if( old.structRef == null ) {
-					renameRec(sheet, old, c.name);
-					for( f in renames ) f();
-				}
-				else if( old.shared ) {
-					var oldRefAt = sheet.name + "@" + old.name;
-					var newRef = sheet.name + "@" + c.name;
-					for( s in sheets )
-						for( col in s.columns )
-							if( col.structRef == oldRefAt )
-								col.structRef = newRef;
-				}
+			var oldRefAt = sheet.name + "@" + old.name;
+			var newRef = sheet.name + "@" + c.name;
+			for( s in sheets )
+				for( col in s.columns )
+					if( col.structRef != null && (col.structRef == oldRefAt || StringTools.startsWith(col.structRef, oldRefAt + "@")) )
+						col.structRef = newRef + col.structRef.substr(oldRefAt.length);
+			if( old.structRef == null && (old.type == TList || old.type == TProperties || old.type == TPolymorph) ) {
+				renameRec(sheet, old, c.name);
+				for( f in renames ) f();
 			}
 			old.name = c.name;
 		}
@@ -437,14 +433,28 @@ class Database {
 			if( conv == null )
 				return "Cannot convert " + typeStr(old.type) + " to " + typeStr(c.type);
 			var conv = conv.f;
+			// also convert structRefd columns
+			var refs = [];
+			for( s in sheets )
+				for( col in s.columns )
+					if( col.structRef == sheet.name + "@" + old.name )
+						refs.push({ sheet : s, col : col });
 			if( conv != null )
-				for( o in sheet.getObjects() ) {
-					var v = Reflect.field(o.obj, c.name);
-					if( v != null ) {
-						v = conv(v);
-						if( v != null ) Reflect.setField(o.obj, c.name, v) else Reflect.deleteField(o.obj, c.name);
+				for( t in [{ sheet : sheet, col : old }].concat(refs) )
+					for( o in t.sheet.getObjects() ) {
+						var v = Reflect.field(o.obj, t.col.name);
+						if( v != null ) {
+							v = conv(v);
+							if( v != null )
+								Reflect.setField(o.obj, t.col.name, v)
+							else
+								Reflect.deleteField(o.obj, t.col.name);
+						}
 					}
-				}
+			for( r in refs ) {
+				r.col.type = c.type;
+				if( c.enumStr == null ) Reflect.deleteField(r.col, "enumStr") else r.col.enumStr = c.enumStr;
+			}
 			switch( [old.type, c.type] ) {
 				case [TList, TProperties]:
 					sheet.getSub(old).props.isProps = true;

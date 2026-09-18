@@ -628,6 +628,11 @@
 				{
 					"name": "stats",
 					"structRef": "weapons@stats"
+				},
+				{
+					"name": "climate",
+					"opt": false,
+					"structRef": "resource@climate"
 				}
 			],
 			"lines": [
@@ -637,7 +642,8 @@
 					"stats": {
 						"damage": 0,
 						"speed": -2
-					}
+					},
+					"climate": "Frozen"
 				},
 				{
 					"id": "leather",
@@ -645,7 +651,8 @@
 					"stats": {
 						"damage": 0,
 						"speed": 0
-					}
+					},
+					"climate": "Dry"
 				}
 			],
 			"separators": [],

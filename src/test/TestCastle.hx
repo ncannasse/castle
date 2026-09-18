@@ -99,6 +99,52 @@ class TestCastle extends haxe.unit.TestCase {
 		assertEquals("A", db2.getConvFunction(tc, sc).f("a"));
 	}
 
+	function testEnumStrStructRef() {
+		// a structRef column inherits the storage of the column it points to
+		var armors = Data.armors.all;
+		assertTrue(armors[0].climate == Frozen);
+		assertTrue(armors[1].climate == Dry);
+		assertEquals("Frozen", armors[0].climate.toString());
+		assertEquals(2, armors[0].climate.toInt());
+
+		var db2 = new cdb.Database();
+		db2.load(sys.io.File.getContent("res/data.cdb"));
+		var src = db2.getSheet("resource");
+		var srcCol = Lambda.find(src.columns, c -> c.name == "climate");
+		var ref = db2.getSheet("armors");
+		var refCol = Lambda.find(ref.columns, c -> c.name == "climate");
+		assertTrue(refCol.enumStr == true);
+		assertEquals(Std.string(srcCol.type), Std.string(refCol.type));
+		assertEquals("Frozen", Reflect.field(ref.lines[0], "climate"));
+
+		// changing the referenced column converts the referencing data as well
+		var nc : cdb.Data.Column = { name : "climate", type : TEnum(["Dry","Wet","Frozen"]), typeStr : null, opt : false };
+		assertEquals(null, db2.updateColumn(src, srcCol, nc));
+		assertFalse(refCol.enumStr == true);
+		assertEquals(2, Reflect.field(ref.lines[0], "climate"));
+		assertEquals(0, Reflect.field(ref.lines[1], "climate"));
+
+		// back to strings, with a value rename
+		var nc2 : cdb.Data.Column = { name : "climate", type : TEnum(["Arid","Wet","Frozen"]), typeStr : null, opt : false, enumStr : true };
+		assertEquals(null, db2.updateColumn(src, srcCol, nc2));
+		assertTrue(refCol.enumStr == true);
+		assertEquals("Frozen", Reflect.field(ref.lines[0], "climate"));
+		assertEquals("Arid", Reflect.field(ref.lines[1], "climate"));
+
+		// renaming the referenced column keeps the link alive
+		var nc3 : cdb.Data.Column = { name : "weather", type : nc2.type, typeStr : null, opt : false, enumStr : true };
+		assertEquals(null, db2.updateColumn(src, srcCol, nc3));
+		assertEquals("resource@weather", refCol.structRef);
+
+		// survives a save/load round trip
+		var saved = db2.save();
+		var db3 = new cdb.Database();
+		db3.load(saved);
+		var refCol3 = Lambda.find(db3.getSheet("armors").columns, c -> c.name == "climate");
+		assertTrue(refCol3.enumStr == true);
+		assertEquals(Std.string(nc2.type), Std.string(refCol3.type));
+	}
+
 	static function main() {
 		var data = sys.io.File.getContent("res/data.cdb");
 
