@@ -137,7 +137,8 @@ class Macros {
 				case TTilePos: macro :cdb.Types.TilePos;
 				case TTileLayer: macro :cdb.Types.TileLayer;
 				case TDynamic: macro :Dynamic;
-				default: null;
+				case TId | TGuid | TEnum(_) | TRef(_) | TList | TCustom(_)
+				   | TFlags(_) | TLayer(_) | TProperties | TPolymorph: null;
 			};
 			simpleTypes.set(t, type);
 			return type;

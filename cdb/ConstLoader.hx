@@ -118,6 +118,17 @@ class ConstLoader {
 				}
 				return out;
 			}
+			// must mirror Macros.simpleType
+			var flatten = switch( vcol.type ) {
+			case TInt, TColor, TFloat, TBool, TString, TImage, TFile,
+			     TCurve, TGradient, TTilePos, TTileLayer, TDynamic:
+				true;
+			case TId, TGuid, TEnum(_), TRef(_), TList, TCustom(_), TFlags(_),
+			     TLayer(_), TProperties, TPolymorph:
+				false;
+			}
+			if( !flatten )
+				return arr;
 			return [for( row in arr ) load(vcol, Reflect.field(row, vname), sub.name)];
 		} else {
 			// full sub-objects
