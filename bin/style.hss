@@ -54,7 +54,6 @@ input[type="submit"] {
 	color : #333;
 	cursor : pointer;
 }
-
 input[type="submit"]:disabled {
 	cursor : default;
 }
@@ -65,6 +64,40 @@ input[type="submit"]:hover, input[type="submit"]:disabled {
 	border-color : #AAA;
 }
 
+.tedit,
+form {
+	input[type=submit] {
+		padding: 6px;
+		color: white;
+		background-color: #5C6885;
+		outline: 1px solid rgba(0,0,0, 0.7);
+		border: 1px solid rgba(255,255,255, 0.15);
+		border-top: 1px solid rgba(255,255,255, 0.5);
+	}
+
+	input[type="submit"]:hover, input[type="submit"]:disabled {
+		color: white;
+		background-color: #202C42;
+		//color : #888;
+		//background-color : #F4F4F4;
+		//border-color : #AAA;
+		border-color: transparent;
+		outline: none;
+	}
+
+	input.edit,
+	input.create {
+		padding-left: 20px;
+		padding-right: 20px;
+		font-weight: bold;
+	}
+	input.cancel,
+	input[value~="Cancel"] {
+		background-color: #9B3C4D;
+	}
+}
+
+
 div.modal {
 	position : fixed;
 	left : 0;
@@ -74,7 +107,7 @@ div.modal {
 	z-index : 10;
 	background-color: rgba(0,0,0,0.8);
 	.content {
-		width : 300px;
+		width : 800px;
 		background-color : white;
 		border : 1px solid #88F;
 		border-radius : 5px;
@@ -82,7 +115,7 @@ div.modal {
 		padding : 10px 20px;
 		text-align : right;
 		input[type="text"], select {
-			width : 170px;
+			width : 670px;
 		}
 		h1 {
 			color : #44C;
@@ -93,9 +126,20 @@ div.modal {
 			float : left;
 			margin-top : 3px;
 		}
+		label.check {
+			float: none;
+			display: inline-block;
+			padding-top: 8px;
+			padding-left: 20px;
+			padding-bottom: 8px;
+			cursor: pointer;
+		}
+		label.check:hover {
+			outline: 1px solid #D6D6D6;
+		}
 		textarea {
-			width : 100%;
-			height : 300px;
+			width : 170px;
+			height : 150px;
 		}
 	}
 	form.edit input.create {
@@ -150,6 +194,9 @@ div.modal {
 }
 
 .modal.tileSelect {
+	.content {
+		width: 90%;
+	}
 	.menu {
 		input[name=size], input[name=width], input[name=height] {
 			width : 30px;
@@ -183,8 +230,7 @@ div.modal {
 		padding-right : 5px;
 		padding-bottom : 5px;
 		border : 1px solid black;
-		max-width: 640px;
-		max-height : 640px;
+		max-height : 85%;
 		overflow : auto;
 	}
 }
