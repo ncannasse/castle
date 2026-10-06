@@ -144,6 +144,9 @@ class Macros {
 			return type;
 		}
 
+		inline function sameType(a:ComplexType, b:ComplexType)
+			return a.toString() == b.toString();
+
 		function getPolyVal(polySub:Sheet, colVal:Dynamic):{col:cdb.Data.Column, val:Dynamic} {
 			for (pc in polySub.columns) {
 				var pv = Reflect.field(colVal, pc.name);
@@ -213,8 +216,7 @@ class Macros {
 							if(iterator) {
 								if (valueType == null)
 									valueType = result.type;
-								// comparison relies on memoized types in fullType and simpleType
-								else if(!Type.enumEq(valueType, result.type))
+								else if(!sameType(valueType, result.type))
 									iterator = false;
 							}
 						}
@@ -258,8 +260,7 @@ class Macros {
 									valueType = result.type;
 									polyCol = pval.col.name;
 								}
-								// comparison relies on memoized types in fullType and simpleType
-								else if (!Type.enumEq(valueType, result.type)) {
+								else if (!sameType(valueType, result.type)) {
 									valueType = null;
 									break;
 								}
