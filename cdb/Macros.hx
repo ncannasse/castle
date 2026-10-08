@@ -89,6 +89,7 @@ class Macros {
 		var module = macro $i{moduleName};
 
 		var refTables = new Map<String, Bool>();
+		var textFuncs = [];
 
 		var fullTypes = new Map<String, ComplexType>();
 		function fullType(tname:String) {
@@ -171,6 +172,7 @@ class Macros {
 					var textArgs = extractTextArgs(colVal);
 					if (textArgs == null)
 						return { type: macro :String };
+					textFuncs.push(prefix);
 					return { type: TFunction([TAnonymous(textArgs)], macro :String) };
 				case TRef(refTable):
 					refTables.set(refTable, true);
@@ -375,7 +377,7 @@ class Macros {
 			pos: pos,
 			access: [AStatic, APublic],
 			kind: FFun({args: [], ret: macro :Void, expr: macro {
-				var loader = new cdb.ConstLoader(@:privateAccess $module.root, $resolveRef, $v{safeLoad});
+				var loader = new cdb.ConstLoader(@:privateAccess $module.root, $resolveRef, $v{safeLoad}, $v{textFuncs});
 				loader.reloadConsts($clsExpr, $v{sheetName}, $colPathExpr, $v{groupIds});
 			}})
 		});

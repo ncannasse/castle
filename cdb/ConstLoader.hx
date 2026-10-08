@@ -9,23 +9,21 @@ class ConstLoader {
 	var resolveRef : String -> String -> Dynamic;
 	var safeLoad : Bool;
 	var sheets : Map<String, Data.SheetData>;
+	var textFuncs : Map<String, Bool>;
 
-	public function new( root : cdb.Data, resolveRef : String -> String -> Dynamic, safeLoad : Bool ) {
+	public function new( root : cdb.Data, resolveRef : String -> String -> Dynamic, safeLoad : Bool, textFuncs : Array<String> ) {
 		this.root = root;
 		this.resolveRef = resolveRef;
 		this.safeLoad = safeLoad;
 		sheets = new Map();
 		for( s in root.sheets )
 			sheets.set(s.name, s);
+		this.textFuncs = [for( p in textFuncs ) p => true];
 	}
 
 	inline function getSub( sheetName : String, col : Data.Column ) : Data.SheetData {
 		var sub = col.structRef != null ? col.structRef : sheetName + "@" + col.name;
 		return sheets.get(sub);
-	}
-
-	static inline function hasTextArgs( str : String ) : Bool {
-		return str != null && str.indexOf("::") >= 0 && ~/::(.+?)::/.match(str);
 	}
 
 	static function getPolyVal( polySub : Data.SheetData, colVal : Dynamic ) : { col : Data.Column, val : Dynamic } {
@@ -37,7 +35,7 @@ class ConstLoader {
 		return null;
 	}
 
-	function load( col : Data.Column, raw : Dynamic, sheetName : String ) : Dynamic {
+	function load( col : Data.Column, raw : Dynamic, sheetName : String, ?path : String ) : Dynamic {
 		if( raw == null )
 			return null;
 		switch( col.type ) {
@@ -50,7 +48,7 @@ class ConstLoader {
 		case TGradient:
 			return new cdb.Types.Gradient(raw);
 		case TString:
-			if( hasTextArgs(raw) ) {
+			if( path != null && textFuncs.exists(path) ) {
 				var str : String = raw;
 				return function(vars) return cdb.Macros.formatText(str, vars);
 			}
@@ -64,15 +62,15 @@ class ConstLoader {
 			var pval = getPolyVal(polySub, raw);
 			if( pval == null )
 				return null;
-			return load(pval.col, pval.val, polySub.name);
+			return load(pval.col, pval.val, polySub.name, path);
 		case TList:
-			return loadList(col, raw, sheetName);
+			return loadList(col, raw, sheetName, path);
 		default:
 			return raw;
 		}
 	}
 
-	function loadList( col : Data.Column, raw : Dynamic, sheetName : String ) : Dynamic {
+	function loadList( col : Data.Column, raw : Dynamic, sheetName : String, path : String ) : Dynamic {
 		var sub = getSub(sheetName, col);
 		var subCols = [for( c in sub.columns ) if( c.kind != Hidden ) c];
 		var arr : Array<Dynamic> = raw;
@@ -87,7 +85,7 @@ class ConstLoader {
 			for( row in arr ) {
 				var sid : String = Reflect.field(row, idCol.name);
 				if( sid == null || sid == "" ) continue;
-				var v = load(valCol, Reflect.field(row, valCol.name), sub.name);
+				var v = load(valCol, Reflect.field(row, valCol.name), sub.name, path == null ? null : path + "_" + sid);
 				Reflect.setField(obj, sid, v);
 				keys.push(sid);
 			}
@@ -114,7 +112,7 @@ class ConstLoader {
 					var cv = Reflect.field(row, vname);
 					if( cv == null ) { out.push(null); continue; }
 					var pval = getPolyVal(polySub, cv);
-					out.push(pval == null ? null : load(pval.col, pval.val, polySub.name));
+					out.push(pval == null ? null : load(pval.col, pval.val, polySub.name, path));
 				}
 				return out;
 			}
@@ -160,7 +158,7 @@ class ConstLoader {
 				if( pobj == null ) break;
 			}
 			if( pobj == null ) return null;
-			var value = safeLoad ? safeLoadValue(buildCol, pobj, colSheet.name, sheetName, id) : load(buildCol, pobj, colSheet.name);
+			var value = safeLoad ? safeLoadValue(buildCol, pobj, colSheet.name, sheetName, id) : load(buildCol, pobj, colSheet.name, id);
 			return { id : id, value : value };
 		}
 
@@ -193,7 +191,7 @@ class ConstLoader {
 
 	function safeLoadValue( col : Data.Column, raw : Dynamic, sheetName : String, path : String, id : String ) : Dynamic {
 		try {
-			return load(col, raw, sheetName);
+			return load(col, raw, sheetName, id);
 		} catch( e : Dynamic ) {
 			trace('Failed to load "$path.$id"');
 			throw e;

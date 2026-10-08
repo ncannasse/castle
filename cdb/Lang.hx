@@ -393,6 +393,10 @@ class Lang {
 					path.push(c.name);
 					onMissing("Ignored since has changed "+path.join("."));
 					path.pop();
+				} else if( ~/::(.+?)::/.match(str) &&(oname == null || !~/::(.+?)::/.match(oname)) ) {
+					path.push(c.name);
+					onMissing("Ignored since has parameters "+path.join("."));
+					path.pop();
 				} else
 					Reflect.setField(o, c.name, str);
 			} else {
