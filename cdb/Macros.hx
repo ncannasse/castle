@@ -90,6 +90,18 @@ class Macros {
 
 		var refTables = new Map<String, Bool>();
 		var textFuncs = [];
+		var formulas:Array<Expr> = [];
+		var formulaFields:Array<Field> = [];
+		var formulaNames = new Map<String, String>();
+		function formulaName(path:String) {
+			var n = formulaNames.get(path);
+			if (n == null) {
+				n = "__formula_" + Lambda.count(formulaNames);
+				formulaNames.set(path, n);
+			}
+			return n;
+		}
+		var firstNewField = fields.length;
 
 		var fullTypes = new Map<String, ComplexType>();
 		function fullType(tname:String) {
@@ -139,7 +151,7 @@ class Macros {
 				case TTileLayer: macro :cdb.Types.TileLayer;
 				case TDynamic: macro :Dynamic;
 				case TId | TGuid | TEnum(_) | TRef(_) | TList | TCustom(_)
-				   | TFlags(_) | TLayer(_) | TProperties | TPolymorph: null;
+				   | TFlags(_) | TLayer(_) | TProperties | TPolymorph | TFormula: null;
 			};
 			simpleTypes.set(t, type);
 			return type;
@@ -157,7 +169,7 @@ class Macros {
 			return null;
 		}
 
-		function buildField(col:cdb.Data.Column, colVal:Dynamic, sheet:Sheet, prefix:String):FieldBuild {
+		function buildField(col:cdb.Data.Column, colVal:Dynamic, sheet:Sheet, prefix:String, ?scope:cdb.FormulaEngine.FormulaScope, ?scopePrefix:String):FieldBuild {
 			if (colVal == null)
 				return null;
 			switch (col.type) {
@@ -174,6 +186,21 @@ class Macros {
 						return { type: macro :String };
 					textFuncs.push(prefix);
 					return { type: TFunction([TAnonymous(textArgs)], macro :String) };
+				case TFormula:
+					var code:String = colVal;
+					var f = try cdb.FormulaEngine.toFunction(code, pos, scope, name -> macro $i{formulaName(scopePrefix == null ? name : scopePrefix + "_" + name)}) catch (e:Dynamic) {
+						error('Invalid formula for "$prefix" : "$code" ($e)');
+						null;
+					}
+					var fname = formulaName(prefix);
+					formulaFields.push({
+						name: fname,
+						pos: pos,
+						access: [AStatic, APrivate],
+						kind: FVar(f.type, f.expr)
+					});
+					formulas.push(macro { path : $v{prefix}, code : $v{cdb.FormulaEngine.scopeKey(code, scope)}, f : $i{fname} });
+					return { type: f.type, init: macro $i{fname} };
 				case TRef(refTable):
 					refTables.set(refTable, true);
 					return { type: fullType(refTable) };
@@ -184,7 +211,7 @@ class Macros {
 					var pval = getPolyVal(polySub, colVal);
 					if (pval == null)
 						return null;
-					return buildField(pval.col, pval.val, polySub, prefix);
+					return buildField(pval.col, pval.val, polySub, prefix, scope, scopePrefix);
 				case TList:
 					var sub = sheet.getSub(col);
 					var subCols = sub.columns.filter(c -> c.kind != Hidden);
@@ -200,13 +227,14 @@ class Macros {
 						var fields:Array<haxe.macro.Expr.Field> = [];
 						var valueType:ComplexType = null;
 						var iterator = true;
+						var rowsScope = cdb.FormulaEngine.listScope(val, idCol.name, valCol, valCol.type == TPolymorph ? sub.getSub(valCol).columns : null);
 
 						for (row in val) {
 							var sid:String = Reflect.field(row, idCol.name);
 							if (sid == null || sid == "")
 								continue;
 							var itemVal = Reflect.field(row, valCol.name);
-							var result = buildField(valCol, itemVal, sub, prefix + "_" + sid);
+							var result = buildField(valCol, itemVal, sub, prefix + "_" + sid, rowsScope, prefix);
 							if (result == null)
 								return continue;
 							fields.push({
@@ -287,6 +315,8 @@ class Macros {
 			}
 		};
 
+		var rootScope = colSheet.name == rootSheet.name ? cdb.FormulaEngine.listScope(rootSheet.lines, idCol.name, buildCol, buildCol.type == TPolymorph ? rootSheet.getSub(buildCol).columns : null) : null;
+
 		if (groupIds) {
 			// Group fields by separators
 			var separators = rootSheet.separators;
@@ -315,7 +345,7 @@ class Macros {
 					if (id == null || id == "" || pobj == null)
 						continue;
 
-					var result = buildField(buildCol, pobj, colSheet, id);
+					var result = buildField(buildCol, pobj, colSheet, id, rootScope);
 					if (result == null)
 						continue;
 
@@ -346,7 +376,7 @@ class Macros {
 				if (id == null || id == "" || pobj == null)
 					continue;
 
-				var result = buildField(buildCol, pobj, colSheet, id);
+				var result = buildField(buildCol, pobj, colSheet, id, rootScope);
 				if (result == null)
 					continue;
 
@@ -377,10 +407,13 @@ class Macros {
 			pos: pos,
 			access: [AStatic, APublic],
 			kind: FFun({args: [], ret: macro :Void, expr: macro {
-				var loader = new cdb.ConstLoader(@:privateAccess $module.root, $resolveRef, $v{safeLoad}, $v{textFuncs});
+				var loader = new cdb.ConstLoader(@:privateAccess $module.root, $resolveRef, $v{safeLoad}, $v{textFuncs}, $a{formulas});
 				loader.reloadConsts($clsExpr, $v{sheetName}, $colPathExpr, $v{groupIds});
 			}})
 		});
+
+		if (formulaFields.length > 0)
+			fields = fields.slice(0, firstNewField).concat(formulaFields).concat(fields.slice(firstNewField));
 
 		return fields;
 	}

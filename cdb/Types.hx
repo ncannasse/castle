@@ -496,6 +496,20 @@ abstract Guid<T>(String) {
 	static var CVALUES = [for( i in 0...128 ) CHARS.indexOf(String.fromCharCode(i))];
 }
 
+abstract Formula<Ret>(cdb.FormulaEngine.CompiledFormula) from cdb.FormulaEngine.CompiledFormula {
+	public var args(get, never) : Array<cdb.FormulaEngine.FormulaArg>;
+	inline function get_args() return this.args;
+	public inline function eval( args : Dynamic ) : Ret {
+		return cast this.call(args);
+	}
+	public inline function toFunction() : Dynamic -> Ret {
+		return cast this.toFunction();
+	}
+	public inline function toString() : String {
+		return this.code;
+	}
+}
+
 typedef GuidIntImpl = #if (hl && hl_ver >= version("1.16.0")) hl.GUID #else haxe.Int64 #end;
 
 @:fromNull

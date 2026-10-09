@@ -10,8 +10,9 @@ class ConstLoader {
 	var safeLoad : Bool;
 	var sheets : Map<String, Data.SheetData>;
 	var textFuncs : Map<String, Bool>;
+	var formulas : Map<String, { code : String, f : Dynamic }>;
 
-	public function new( root : cdb.Data, resolveRef : String -> String -> Dynamic, safeLoad : Bool, textFuncs : Array<String> ) {
+	public function new( root : cdb.Data, resolveRef : String -> String -> Dynamic, safeLoad : Bool, textFuncs : Array<String>, ?formulas : Array<{ path : String, code : String, f : Dynamic }> ) {
 		this.root = root;
 		this.resolveRef = resolveRef;
 		this.safeLoad = safeLoad;
@@ -19,6 +20,10 @@ class ConstLoader {
 		for( s in root.sheets )
 			sheets.set(s.name, s);
 		this.textFuncs = [for( p in textFuncs ) p => true];
+		this.formulas = new Map();
+		if( formulas != null )
+			for( f in formulas )
+				this.formulas.set(f.path, { code : f.code, f : f.f });
 	}
 
 	inline function getSub( sheetName : String, col : Data.Column ) : Data.SheetData {
@@ -35,7 +40,7 @@ class ConstLoader {
 		return null;
 	}
 
-	function load( col : Data.Column, raw : Dynamic, sheetName : String, ?path : String ) : Dynamic {
+	function load( col : Data.Column, raw : Dynamic, sheetName : String, ?path : String, ?scope : cdb.FormulaEngine.FormulaScope ) : Dynamic {
 		if( raw == null )
 			return null;
 		switch( col.type ) {
@@ -62,9 +67,15 @@ class ConstLoader {
 			var pval = getPolyVal(polySub, raw);
 			if( pval == null )
 				return null;
-			return load(pval.col, pval.val, polySub.name, path);
+			return load(pval.col, pval.val, polySub.name, path, scope);
 		case TList:
 			return loadList(col, raw, sheetName, path);
+		case TFormula:
+			var code : String = raw;
+			var compiled = path == null ? null : formulas.get(path);
+			if( compiled != null && compiled.code == cdb.FormulaEngine.scopeKey(code, scope) )
+				return compiled.f;
+			return (scope == null ? cdb.FormulaEngine.get(code) : cdb.FormulaEngine.compile(code, scope)).toPositional();
 		default:
 			return raw;
 		}
@@ -82,10 +93,11 @@ class ConstLoader {
 			var valCol = subCols[0] == idCol ? subCols[1] : subCols[0];
 			var obj : Dynamic = {};
 			var keys : Array<String> = [];
+			var scope = cdb.FormulaEngine.listScope(arr, idCol.name, valCol, valCol.type == TPolymorph ? getSub(sub.name, valCol).columns : null);
 			for( row in arr ) {
 				var sid : String = Reflect.field(row, idCol.name);
 				if( sid == null || sid == "" ) continue;
-				var v = load(valCol, Reflect.field(row, valCol.name), sub.name, path == null ? null : path + "_" + sid);
+				var v = load(valCol, Reflect.field(row, valCol.name), sub.name, path == null ? null : path + "_" + sid, scope);
 				Reflect.setField(obj, sid, v);
 				keys.push(sid);
 			}
@@ -122,7 +134,7 @@ class ConstLoader {
 			     TCurve, TGradient, TTilePos, TTileLayer, TDynamic:
 				true;
 			case TId, TGuid, TEnum(_), TRef(_), TList, TCustom(_), TFlags(_),
-			     TLayer(_), TProperties, TPolymorph:
+			     TLayer(_), TProperties, TPolymorph, TFormula:
 				false;
 			}
 			if( !flatten )
@@ -149,6 +161,8 @@ class ConstLoader {
 		var buildCol = findCol(colSheet, colName);
 		if( buildCol == null ) return;
 
+		var scope = colSheet.name == sheet.name ? cdb.FormulaEngine.listScope(sheet.lines, idCol.name, buildCol, buildCol.type == TPolymorph ? getSub(sheet.name, buildCol).columns : null) : null;
+
 		inline function loadLine( line : Dynamic ) : { id : String, value : Dynamic } {
 			var id : String = Reflect.field(line, idCol.name);
 			if( id == null || id == "" ) return null;
@@ -158,7 +172,7 @@ class ConstLoader {
 				if( pobj == null ) break;
 			}
 			if( pobj == null ) return null;
-			var value = safeLoad ? safeLoadValue(buildCol, pobj, colSheet.name, sheetName, id) : load(buildCol, pobj, colSheet.name, id);
+			var value = safeLoad ? safeLoadValue(buildCol, pobj, colSheet.name, sheetName, id, scope) : load(buildCol, pobj, colSheet.name, id, scope);
 			return { id : id, value : value };
 		}
 
@@ -189,9 +203,9 @@ class ConstLoader {
 		}
 	}
 
-	function safeLoadValue( col : Data.Column, raw : Dynamic, sheetName : String, path : String, id : String ) : Dynamic {
+	function safeLoadValue( col : Data.Column, raw : Dynamic, sheetName : String, path : String, id : String, ?scope : cdb.FormulaEngine.FormulaScope ) : Dynamic {
 		try {
-			return load(col, raw, sheetName, id);
+			return load(col, raw, sheetName, id, scope);
 		} catch( e : Dynamic ) {
 			trace('Failed to load "$path.$id"');
 			throw e;

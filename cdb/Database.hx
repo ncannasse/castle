@@ -375,6 +375,7 @@ class Database {
 			obj;
 		case TPolymorph:
 			{};
+		case TFormula: cdb.FormulaEngine.getDefault();
 		case TCustom(_), TTilePos, TTileLayer, TDynamic, TGradient, TCurve: null;
 		}
 	}
@@ -669,6 +670,13 @@ class Database {
 			conv = function(c) return Std.int(c[1]);
 		case [TCurve, TFloat]:
 			conv = function(c) return c[1];
+		case [(TInt | TFloat), TFormula]:
+			conv = Std.string;
+		case [TString, TFormula] | [TFormula, TString] | [TFormula, TFormula]:
+		case [TFormula, TInt]:
+			conv = function(s) return Std.parseInt(s);
+		case [TFormula, TFloat]:
+			conv = function(s) { var f = Std.parseFloat(s); return Math.isNaN(f) ? null : f; }
 		default:
 			return null;
 		}
@@ -811,7 +819,7 @@ class Database {
 		return switch( t ) {
 		case TInt, TFloat, TBool, TImage: Std.string(val);
 		case TId, TRef(_), TLayer(_), TFile, TGuid: esc ? '"'+val+'"' : val;
-		case TString:
+		case TString, TFormula:
 			var val : String = val;
 			if( !esc )
 				val;
@@ -941,6 +949,11 @@ class Database {
 				return Std.parseInt(val);
 		case TDynamic:
 			return parseDynamic(val);
+		case TFormula:
+			val = StringTools.trim(val);
+			if( strictCheck )
+				try cdb.FormulaEngine.parse(val) catch( e : cdb.FormulaEngine.FormulaError ) throw "'" + val + "' : " + e.msg;
+			return val;
 		default:
 		}
 		throw "'" + val + "' should be "+typeStr(t);

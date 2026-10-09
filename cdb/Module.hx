@@ -305,6 +305,9 @@ class Module {
 					hasGUID = true;
 					var t = tname.toComplex();
 					macro : cdb.Types.Guid<$t>;
+				case TFormula:
+					var rt = cdb.FormulaEngine.sheetColumnType(hsheets, s -> getSheetLines(data.sheets, s), s, c, pos);
+					macro : cdb.Types.Formula<$rt>;
 				}
 
 				inline function resolveType( c : Data.Column, s : Data.SheetData ) {
@@ -331,6 +334,7 @@ class Module {
 				case TCurve: macro : Array<Float>;
 				case TGradient: macro : { colors: Array<Int>, positions: Array<Float>};
 				case TGuid: macro : String;
+				case TFormula: macro : String;
 				};
 
 				if(polyFields != null) {
@@ -410,6 +414,18 @@ class Module {
 							expr : macro return cast this.$cname,
 						}),
 						access : [AInline,APrivate],
+					});
+				case TFormula:
+					var cname = c.name;
+					fields.push({
+						name : "get_"+c.name,
+						pos : pos,
+						kind : FFun({
+							ret : t,
+							args : [],
+							expr : macro return cdb.FormulaEngine.get(this.$cname),
+						}),
+						access : [APrivate],
 					});
 				case TPolymorph:
 					var ref = structRefs.get(ctype);
@@ -799,7 +815,7 @@ class Module {
 					case TRef(s):
 						var fname = fieldName(s);
 						macro $i{modName}.$fname.resolve(v[$v{ai+1}]);
-					case TList, TLayer(_), TTilePos, TProperties, TPolymorph:
+					case TList, TLayer(_), TTilePos, TProperties, TPolymorph, TFormula:
 						throw "assert";
 					}
 					eargs.push(econv);
