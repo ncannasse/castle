@@ -262,8 +262,8 @@ class FormulaEngine {
 		return DEFAULT_ARG;
 	}
 
-	public static function argsToString( args : Array<FormulaArg> ) {
-		return [for( a in args ) a.name + ":" + typeName(a.type)].join(", ");
+	public static function argsToString( args : Array<FormulaArg>, omitFloat = false ) {
+		return [for( a in args ) omitFloat && a.type == FFloat && parseTypeName(a.name) == null ? a.name : a.name + ":" + typeName(a.type)].join(", ");
 	}
 
 	static function isDefaultArgs( args : Array<FormulaArg> ) {
@@ -272,7 +272,7 @@ class FormulaEngine {
 
 	public static function makeCode( args : Array<FormulaArg>, body : String ) : String {
 		body = StringTools.trim(body);
-		return isDefaultArgs(args) ? body : "(" + argsToString(args) + ") => " + body;
+		return isDefaultArgs(args) ? body : "(" + argsToString(args, true) + ") => " + body;
 	}
 
 	public static function split( code : String ) : { args : Array<FormulaArg>, body : String } {
