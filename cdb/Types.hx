@@ -515,7 +515,7 @@ typedef GuidIntImpl = #if (hl && hl_ver >= version("1.16.0")) hl.GUID #else haxe
 @:fromNull
 abstract GuidInt<T>(GuidIntImpl) from GuidIntImpl to GuidIntImpl {
 
-	public inline function toGuid() {
+	public inline function toGuid<T>() : Guid<T> {
 		return Guid.ofInt(this);
 	}
 

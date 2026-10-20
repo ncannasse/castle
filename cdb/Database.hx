@@ -324,7 +324,7 @@ class Database {
 		#end
 	}
 
-	public static function genGUID() {
+	public static function genGUID<T>() : cdb.Types.Guid<T> {
 		var time = getTime();
 		GUID_INCR++;
 		GUID_INCR %= 2048;
@@ -813,7 +813,7 @@ class Database {
 		old.cases = t.cases;
 	}
 
-	public function valToString( t : ColumnType, val : Dynamic, esc = false ) {
+	public function valToString( t : ColumnType, val : Dynamic, esc = false ) : String {
 		if( val == null )
 			return "null";
 		return switch( t ) {
