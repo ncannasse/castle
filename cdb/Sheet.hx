@@ -383,7 +383,7 @@ class Sheet {
 		return props;
 	}
 
-	public function objToString( obj : Dynamic, esc = false ) : String {
+	public function objToString( obj : Dynamic, esc = false ) {
 		if( obj == null )
 			return "null";
 		var fl = [];

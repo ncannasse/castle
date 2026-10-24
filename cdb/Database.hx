@@ -813,7 +813,7 @@ class Database {
 		old.cases = t.cases;
 	}
 
-	public function valToString( t : ColumnType, val : Dynamic, esc = false ) : String {
+	public function valToString( t : ColumnType, val : Dynamic, esc = false ) {
 		if( val == null )
 			return "null";
 		return switch( t ) {
