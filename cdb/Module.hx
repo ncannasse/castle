@@ -34,7 +34,7 @@ class Module {
 		fields.push( {
 			name : "NAMES",
 			pos : pos,
-			kind : FVar(null, macro $v { values } ),
+			kind : FVar(macro : Array<String>, macro $v { values } ),
 			access : [APublic, AStatic],
 		});
 		fields.push( {
