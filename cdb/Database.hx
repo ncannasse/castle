@@ -324,7 +324,7 @@ class Database {
 		#end
 	}
 
-	public static function genGUID() {
+	public static function genGUID<T>() : cdb.Types.Guid<T> {
 		var time = getTime();
 		GUID_INCR++;
 		GUID_INCR %= 2048;

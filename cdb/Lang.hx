@@ -550,7 +550,7 @@ class Lang {
 		return "id"+guid.split("#").join("_").split("&").join("-");
 	}
 
-	function buildSheetXml(s:SheetData, tabs, values : Array<Dynamic>, linesData:Array<Dynamic>, locFields:Array<LocField>, diff : Map<String,Array<{}>> ) {
+	function buildSheetXml(s:SheetData, tabs:String, values : Array<Dynamic>, linesData:Array<Dynamic>, locFields:Array<LocField>, diff : Map<String,Array<{}>> ) : String {
 		var inf = getSheetHelpers(s);
 		var attr = LANG_CONFIG != null ? LANG_CONFIG[s.name] : null;
 		if( attr != null )
@@ -615,5 +615,5 @@ class Lang {
 		return buf.toString();
 	}
 
-	static dynamic function getObjParent( obj : Dynamic, data : Dynamic ) return null;
+	static dynamic function getObjParent( obj : Dynamic, data : Dynamic ) : Dynamic return null;
 }
